@@ -10,13 +10,13 @@ read -p "Enter 'update' or 'clone': " action
 read -p "Enter Personal Access Token name: " token_name
 read -s -p "Enter Personal Access Token value (input will be hidden): " token_value
 echo  # Move to a new line after the hidden input for better formatting
-read -p "Enter Git repository URL (e.g., gitlab.power-theory.io:8443/development/powertwin): " url
+read -p "Enter Git repository URL (e.g., https://gitlab.power-theory.io:8443/development/powertwin.git): " url
 
 # Remove any leading 'https://' from the URL if present
 formatted_url="${url#https://}"
 
 # Prepare the URL for git operations
-full_url="https://${token_name}:${token_value}@${formatted_url}.git"
+full_url="https://${token_name}:${token_value}@${formatted_url}"
 
 # Check the user's choice and perform the corresponding action
 if [[ $action == "clone" ]]; then
@@ -28,5 +28,3 @@ elif [[ $action == "update" ]]; then
 else
     echo "Invalid option. Please enter 'update' or 'clone'."
 fi
-
-echo ${full_url}
