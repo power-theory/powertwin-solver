@@ -2,7 +2,7 @@ stages:
   - build
   - deploy
 
-image: docker/compose:2.1.0
+image: tmaier/docker-compose:1.29
 
 build:
   stage: build
