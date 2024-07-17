@@ -9,6 +9,7 @@ build:
   script:
     - echo "Building Docker images..."
     - docker-compose -f docker-compose.yml build
+  cache: false
 
 deploy:
   stage: deploy
