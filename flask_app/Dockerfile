@@ -95,10 +95,10 @@ COPY . .
 # RUN /usr/bin/crontab /etc/cron.d/crontab
 # RUN echo $PYTHONPATH
 
-EXPOSE 8080
+EXPOSE 8000
 
 # run the main.py script, and start the Flask server
 # CMD python3 app.py
-# CMD python3 main.py --preprocess >> /flask_app/logs/info_log/0.log 2>> /flask_app/logs/error_log/0.log & flask run --host=0.0.0.0 --port=8080 >> /flask_app/logs/flask_log.log 2>&1
-# CMD python3 -m flask run --host=0.0.0.0 --port=8080 > /flask_app/logs/flask_log/0.log 2>&1
+# CMD python3 main.py --preprocess >> /flask_app/logs/info_log/0.log 2>> /flask_app/logs/error_log/0.log & flask run --host=0.0.0.0 --port=8000 >> /flask_app/logs/flask_log.log 2>&1
+# CMD python3 -m flask run --host=0.0.0.0 --port=8000 > /flask_app/logs/flask_log/0.log 2>&1
 # CMD ["cron", "-f"]

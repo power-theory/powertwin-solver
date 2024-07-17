@@ -6,8 +6,8 @@ services:
     restart: always
     build: ./flask_app
     ports:
-      - "8080:8080"
-    command: python3 -m gunicorn -b 0.0.0.0:8080 app:server > /app/logs/flask_log/0.log 2>&1
+      - "8000:8000"
+    command: python3 -m gunicorn -b 0.0.0.0:8000 app:server > /app/logs/flask_log/0.log 2>&1
 
   nginx:
     container_name: nginx

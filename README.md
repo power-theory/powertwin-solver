@@ -55,7 +55,7 @@ python3 -c "import tensorflow as tf; print(tf.reduce_sum(tf.random.normal([1000,
 
 - To run Flask App
 ```shell
-python3 -m flask run --host=0.0.0.0 --port=8080
+python3 -m flask run --host=0.0.0.0 --port=8000
 ```
 
 - To run inside terminal
