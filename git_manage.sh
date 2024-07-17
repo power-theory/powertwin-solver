@@ -2,6 +2,9 @@
 
 # Script to manage git operations: clone a new repository or update an existing one's remote URL
 
+# Default Git repository URL
+default_url="https://gitlab.power-theory.io:8443/development/powertwin-solver.git"
+
 # Ask the user for their choice
 echo "Do you want to 'update' the remote URL of an existing repository or 'clone' a new repository?"
 read -p "Enter 'update' or 'clone': " action
@@ -10,7 +13,14 @@ read -p "Enter 'update' or 'clone': " action
 read -p "Enter Personal Access Token name: " token_name
 read -s -p "Enter Personal Access Token value (input will be hidden): " token_value
 echo  # Move to a new line after the hidden input for better formatting
-read -p "Enter Git repository URL (e.g., https://gitlab.power-theory.io:8443/development/powertwin.git): " url
+
+# Prompt for the Git repository URL and provide the default option
+read -p "Enter Git repository URL (press Enter to use default: $default_url): " url
+
+# Use the default URL if the user pressed Enter
+if [[ -z "$url" ]]; then
+    url=$default_url
+fi
 
 # Remove any leading 'https://' from the URL if present
 formatted_url="${url#https://}"

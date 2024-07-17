@@ -9,7 +9,7 @@ from flask_cors import CORS
 
 server = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(server, origins=[
-    'http://localhost:8080', 
+    'http://localhost:8000', 
     'http://localhost:3000', 
     'https://gitlab.power-theory.io:8443', 
 ])
@@ -344,4 +344,4 @@ def get_log_content(log_type, subpath):
 
 
 if __name__ == '__main__':
-    socketio.run(server, host='0.0.0.0', port=8080)
+    socketio.run(server, host='0.0.0.0', port=8000)
