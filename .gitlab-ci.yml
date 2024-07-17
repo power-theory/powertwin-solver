@@ -8,11 +8,12 @@ build:
   stage: build
   script:
     - echo "Building Docker images..."
-    - docker-compose -f docker-compose.yml build
-  cache: false
+    - docker compose -f docker-compose.yml build --no-cache
+  cache:
+    paths: []
 
 deploy:
   stage: deploy
   script:
     - echo "Deploying Docker containers..."
-    - docker-compose -f docker-compose.yml up -d
+    - docker compose -f docker-compose.yml up -d
