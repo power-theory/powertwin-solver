@@ -6,6 +6,10 @@
 docker-compose -f docker-compose.yml build
 docker-compose -f docker-compose.yml up
 ```
+## Autorun Simulation
+1. Modify the simulation.json (demo has been provided)
+2. Click autorun at the top of homepage
+
 ## Starting a Simulation
 To begin a simulation there are 2 required files. The geojson file and the metadata csv.
 Geojson must contain all the geometry and required properties id, asset_id, and floorCount.
@@ -26,7 +30,7 @@ docker top <container_id>
 ```
 
 1. Docker container or simulation has stopped 
-2. Restart Docker container (Optional: Check batch status)
+2. Restart Docker container (Optional: Check batch status) 
 3. Corrupted simulation should be the name of the simulation that you want to recover (Optional: choose a specific batch)
 4. Recovery simulation name is the new simulation that you want to create
 5. Allocate however many cores, does not have to be the same amount
@@ -70,7 +74,7 @@ powertwin-db/
             └── ...
 ```
 The runtime generation tree describes the expected files create during runtime.
-The powertwin-db ideally will be moved outside of this repo into a proper database along with the uosim_time.csv to be moved to a POSTGRESql database to take advantage of the fast lookup and data management system
+The powertwin-db ideally will be moved outside of this repo into a proper database along with the uosim_time.csv to be moved to a PostgreSQL database to take advantage of the fast lookup and data management system
 
 
 ## Temporary fixes
@@ -82,6 +86,6 @@ The powertwin-db ideally will be moved outside of this repo into a proper databa
 
 
 ## Useful Repositories
-- [Powertwin Cleaner]()
+- [Powertwin Cleaner](https://github.com/nicotegui/powertwin_cleaner)
 - [Powertwin Json Setup](https://github.com/nicotegui/powertwin_jsonsetup)
 - [Powertwin Accuracy](https://github.com/nicotegui/powertwin_accuracy)

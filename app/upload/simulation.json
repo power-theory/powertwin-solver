@@ -1,7 +1,7 @@
 {
     "simulation_name": "luck77",
-    "asset_geojson_path": "app/upload/2_asset_geometries.geojson",
-    "metadata_csv_path": "app/upload/2-sensors-assets-geometries-types.csv",
+    "asset_geojson_path": "app/upload/asset_geometries.geojson",
+    "metadata_csv_path": "app/upload/sensors-assets-geometries-types.csv",
     "config_json_path": "app/upload/default_config.json",
     "num_cores": 7
 }
