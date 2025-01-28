@@ -451,7 +451,7 @@ async function getAssetConfig() {
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = '${asset_id}_config.json';
+        a.download = `${asset_id}_config.json`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
