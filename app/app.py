@@ -24,7 +24,7 @@ conn = psycopg.connect(
     dbname='powertwin',
     user=username,
     password=password,
-    host='db',  # Use 'db' to connect to the PostgreSQL service
+    host='powertwin-db',  # This must match the hostname of the container
     port='5432'
 )
 
