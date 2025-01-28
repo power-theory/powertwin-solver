@@ -1,10 +1,15 @@
 #!/bin/bash
 
-echo "Killing old docker processes"
+# Load environment variables from .env.local and .env.gitlab
+echo "Loading env variables from './.env.local'"
+set -o allexport
+source ./.env.local
+set -o allexport -
+
+echo "Killing old Docker processes"
 docker compose rm -fs
 
-echo "Loading env variables from './.env.local'"
-export ENV_FILE=./.env.local
-
-echo "Building docker containers"
-docker compose --env-file $ENV_FILE build && docker compose --env-file $ENV_FILE up --detach && docker compose --env-file $ENV_FILE logs --follow
+echo "Spinning up Docker containers"
+docker compose build --force-rm --no-cache && \
+docker compose up --detach && \
+docker compose logs --follow
