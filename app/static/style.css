@@ -1,0 +1,98 @@
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Ensure the body takes at least the full viewport height */
+    margin: 0;
+}
+
+.container {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    width: 90%;
+    max-width: 1200px;
+    min-height: 50vh; /* Ensure the container has a minimum height */
+    padding: 20px;
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    text-align: left; /* Left-align the contents */
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.tabs button {
+    background-color: #007bff;
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 0 5px;
+}
+
+.tabs button:hover {
+    background-color: #0056b3;
+}
+
+.tab {
+    display: none;
+    overflow-y: auto;
+}
+
+.tab.active {
+    display: block;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-section {
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: #2e2e2e;
+    border-radius: 8px;
+}
+
+input[readonly] {
+    background-color: #2e2e2e;
+}
+
+button {
+    background-color: #007bff;
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.9em; /* Smaller text size */
+}
+
+input, select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background-color: #2e2e2e;
+    color: #ffffff;
+    font-size: 0.9em; /* Smaller text size */
+}

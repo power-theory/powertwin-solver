@@ -1,0 +1,29 @@
+services:
+  powertwin-solver:
+    container_name: ${NAME_PREFIX:-}powertwin-solver
+    restart: always
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - powertwin_data:/app/powertwin-db
+    depends_on:
+      - db
+
+  db:
+    image: postgres:latest
+    container_name: ${NAME_PREFIX:-}powertwin-db
+    environment:
+      POSTGRES_DB: powertwin
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - powertwin_data:/app/powertwin-db
+
+volumes:
+  powertwin-solver:
+  postgres_data:
+  powertwin_data:
