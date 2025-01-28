@@ -1,0 +1,17 @@
+stages:
+  - build
+  - deploy
+
+image: tmaier/docker-compose:1.29
+
+build:
+  stage: build
+  script:
+    - echo "Building Docker images..."
+    - docker compose -f docker-compose.yml build
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Deploying Docker containers..."
+    - docker compose -f docker-compose.yml up -d

@@ -5,13 +5,13 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - powertwin_data:/app/powertwin-db
+      - ./app/powertwin_data:/app/powertwin-db
     depends_on:
-      - db
+      - powertwin-db
     tty: true 
 
 
-  db:
+  powertwin-db:
     image: postgres:latest
     container_name: powertwin-db
     environment:
@@ -21,8 +21,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      - ./app/powertwin_data:/app/powertwin-db
       - postgres_data:/var/lib/postgresql/data
-      - powertwin_data:/app/powertwin-db
 
 volumes:
   powertwin-solver:
