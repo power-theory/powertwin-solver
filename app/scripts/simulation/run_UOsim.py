@@ -4,6 +4,7 @@ import glob
 import shutil
 import time
 import csv
+import pandas as pd
 
 from .clean_report import clean_single_report
 from scripts.helper import initialize_logger
@@ -94,16 +95,34 @@ def run_uosimulation(SIMULATION_DIR,FEATURE_FILE_JSON, clean_report_flag, METADA
     f"{'='*47}"
 )
     
-    #TODO: Adjust database paths to point to the actual database server
-    DATABASE_DIR = os.path.join(os.getcwd(), 'app','powertwin-db')
-    WEATHER_BASE_NAME = os.path.join(DATABASE_DIR, 'weather_files','USA_AZ_Phoenix-Sky.Harbor.Intl.AP.722780_TMY3')
-    MAPPER_FILE = os.path.join(DATABASE_DIR, "PowerTwin.rb")
+    UOSIM_TIME_CSV = os.path.join(SIMULATION_DIR, "uosim_time.csv")
+    #TODO: change to read the location metadata rather then a csv file
+    WEATHER_MAP_CSV = 'app/urbanopt/weather_map.csv'
+    
+    with open(UOSIM_TIME_CSV, mode='r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if row['assetid'] == asset_id:
+                city = row['location']
+                
+    # Read the CSV file
+    weather_df = pd.read_csv(WEATHER_MAP_CSV)
+    city_data = weather_df[weather_df['City'].str.lower() == city.lower()]
+    
+    # Extract the relevant data
+    city_data = city_data.iloc[0]
+    weather_file = city_data['WeatherFile']
+    
+    URBANOPT_DIR = os.path.join('app','urbanopt')
+    WEATHER_BASE_NAME = os.path.join(URBANOPT_DIR, 'weather_files',weather_file, weather_file)
+    MAPPER_FILE = os.path.join(URBANOPT_DIR, "PowerTwin.rb")
     
     # Set UrbanOpt Simulation Paths
     BATCH_SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation', f'batch_{batch_index}')
     MAPPER_DESTINATION = os.path.join(BATCH_SIMULATION_DIR, "mappers")
     WEATHER_DESTINATION = os.path.join(BATCH_SIMULATION_DIR, "weather")
-
+    
+    
     # Create PowerTwin UrbanOpt Project if it doesn't exist
     if not os.path.exists(BATCH_SIMULATION_DIR):
         try:
@@ -173,9 +192,7 @@ def run_uosimulation(SIMULATION_DIR,FEATURE_FILE_JSON, clean_report_flag, METADA
     feature_seconds = feature_duration % 60
     ruo_logger.info(f"BATCH {batch_index}: {asset_id} processed in {feature_hours} hours, {feature_minutes} minutes, and {feature_seconds:.2f} seconds.")
     
-    # Update the CSV data with the results
-    UOSIM_TIME_CSV = os.path.join(SIMULATION_DIR, "uosim_time.csv")
-
+    # Update the CSV data with the results)
     # Read the existing CSV data
     with open(UOSIM_TIME_CSV, mode='r') as file:
         reader = csv.DictReader(file)

@@ -1,7 +1,8 @@
 {
-    "simulation_name": "luck77",
-    "asset_geojson_path": "app/upload/asset_geometries.geojson",
-    "metadata_csv_path": "app/upload/sensors-assets-geometries-types.csv",
-    "config_json_path": "app/upload/default_config.json",
+    "simulation_name": "luck85",
+    "asset_geojson_path": "app/upload/demo_data/asset_geometries.geojson",
+    "metadata_csv_path": "app/upload/demo_data/sensors-assets-geometries-types.csv",
+    "config_json_path": "app/upload/demo_data/default_config.json",
+    "location": "Laramie",
     "num_cores": 7
 }

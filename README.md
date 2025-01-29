@@ -39,49 +39,51 @@ docker top <container_id>
 
 ## General Tree
 ```
-📦 app
-├── powertwin-db
+🏠 app/
+├── powertwin_data
 ├── scripts/
 │   ├── diagnostics
-│   ├── logger
+│   ├── helper
 │   └── simulation
 ├── static/
 │   ├── json
 │   └── script.js
 ├── templates/
-│   └── base.html
-├── test
-├── app.py
-└── requirements.txt
+│   ├── base.html
+│   └── testing.html
+├── upload/
+│   ├── demo_data
+│   └── simulation.json
+└── urbanopt/
+    ├── weather_files
+    └── PowerTwin.rb
 ```
 
 ## Runtime Generation Tree
 ```
-powertwin-db/
-├── weather_files
-├── PowerTwin.rb
+⚡powertwin-db/
 └── user_files/
     └── <simulation_name>/
         ├── feature_files.zip
-        ├── metadata.csv
-        ├── geojson.json
+        ├── <simulation_name>_metadata.csv
+        ├── <simulation_name>_geojson.json
         ├── uosim_time.csv
         ├── feature_files/
-        │   └── <id>_<id_name>.json
+        │   └── <asset_id>_<id_name>.json
         └── urbanopt_simulation/
             ├── batch_0
             ├── batch_1
             └── ...
 ```
 The runtime generation tree describes the expected files create during runtime.
-The powertwin-db ideally will be moved outside of this repo into a proper database along with the uosim_time.csv to be moved to a PostgreSQL database to take advantage of the fast lookup and data management system
+The powertwin-db is a shared volume between the powertwin-db and powertwin-solver container, this volume is then saved locally into powertwin_data.
+*Plans to move uosim_time.csv and possibly the cleaned reports into a PostgreSQL db for efficiency 
 
 
 ## Temporary fixes
 -Currently this program does not support Mixed use, Laboratory, Single Family Detached, Vacant subtypes, and due to UrbanOpt restraints, cannot support Multifamily, Multifamily (2 to 4 units), Multifamily (5 or more units) subtypes
 -Occupancy assumptions are currently being made relative to the building subtype with a set value for each
--Only select few weather files
-
+-Only select few weather locations supported
 
 
 
