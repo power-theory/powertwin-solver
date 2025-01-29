@@ -64,6 +64,7 @@ body {
 
 input[readonly] {
     background-color: #2e2e2e;
+    font-style: italic
 }
 
 button {

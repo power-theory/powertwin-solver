@@ -32,6 +32,22 @@ fetch('/static/json/building_types.json')
     })
     .catch(error => console.error('Error loading building types:', error));
 
+// Load building types from JSON file and populate the dropdown
+fetch('/static/json/locations.json')
+    .then(response => response.json())
+    .then(data => {
+        const locationsSelects = document.querySelectorAll('.locations');
+        locationsSelects.forEach(select => {
+            data.locations.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+        });
+    })
+    .catch(error => console.error('Error loading locations:', error));
+
 function showTab(tabId) {
     console.log(`Showing tab: ${tabId}`);
     document.querySelectorAll('.tab').forEach(tab => {
@@ -298,6 +314,7 @@ async function startSimulation() {
     const metadata_csv_file = document.getElementById('startsim_metadata_csv_file_1').files[0];
     const simulation_name = document.getElementById('startsim_simulation_name').value;
     const num_cores = document.getElementById('startsim_num_cores').value;
+    const locations = document.querySelector('.locations').value;
 
     if (!(asset_geojson_file && metadata_csv_file)) {
         alert('Please upload both the GeoJSON and CSV files.');
@@ -332,13 +349,13 @@ async function startSimulation() {
     };
 
 
-
     const formData = new FormData();
     
     formData.append('simulation_name', simulation_name);
     formData.append('asset_geojson_file', asset_geojson_file);
     formData.append('metadata_csv_file', metadata_csv_file);
     formData.append('config_data', JSON.stringify(configData));
+    formData.append('location', locations);
     formData.append('num_cores', num_cores);
 
 

@@ -14,7 +14,7 @@
             <button type="button" onclick="autorunSimulation()">Autorun Simulation</button>
             <button type="button" onclick="getLogs()">Get All Logs</button>
             <button type="button" onclick="stopSimulation()">Stop Simulation</button>
-            <a href="/testing"><button>Dev Page</button></a>
+            <a href="/dev"><button>Dev Page</button></a>
         </div>
 
         <div id="simulation" class="tab active">
@@ -64,6 +64,11 @@
                         <label for="roof_r_value">Roof R-Value:</label>
                         <input type="number" id="roof_r_value" name="constructions.roof.r_value" value="15.0"><br>
                     </div>
+
+                    <label for="locations">Location:</label>
+                    <select class="locations" name="locations">
+                        <!-- Options will be populated by JavaScript -->
+                    </select><br>
 
                     <label for="startsim_num_cores">Number of Cores:</label>
                     <input type="number" id="startsim_num_cores" name="startsim_num_cores" value="1"><br>
@@ -119,6 +124,6 @@
         </div>
     </div>
 
-    <script src="static/script.js"></script>
+    <script src="static/index.js"></script>
 </body>
 </html>

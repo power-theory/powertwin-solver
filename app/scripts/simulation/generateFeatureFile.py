@@ -9,6 +9,7 @@ import csv
 import json
 import os
 import shutil
+import pandas as pd
 
 from scripts.diagnostics import asset_analysis
 from scripts.helper import initialize_logger
@@ -65,6 +66,31 @@ BUILDING_SUBTYPES = {
     "null": "Unknown"
 }
 
+
+WEATHER_MAP_CSV = 'app/urbanopt/weather_map.csv'
+
+def get_weather_data(city):
+    
+    weather_df = pd.read_csv(WEATHER_MAP_CSV)
+    
+    # Find city
+    city_data = weather_df[weather_df['City'].str.lower() == city.lower()]
+    
+    if city_data.empty:
+        raise ValueError(f"No weather data found for city: {city}")
+    
+    # Extract data
+    #https://docs.urbanopt.net/workflows/carbon_emissions.html
+    city_data = city_data.iloc[0]
+    return {
+        "climate_zone": city_data['ClimateZone'],
+        "weather_filename": city_data['WeatherFile'] + '.epw',
+        "electricity_emissions_future_subregion": city_data['FutureSubregion'],
+        "electricity_emissions_hourly_historical_subregion": city_data['AVERT_Region'],
+        "electricity_emissions_annual_historical_subregion": city_data['Subregion']
+    }
+
+
 def load_json_file(file_path):
     with open(file_path, 'r') as file:
         return json.load(file)
@@ -116,7 +142,7 @@ def read_metadata(metadata_csv):
 # The custom config serves as a default configuration unless modified by the user.
 #   It returns the new feature structure.
 ############################################################################################################
-def process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data):
+def process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location):
     properties = feature['properties']
     gff_logger.debug(f"Processing feature with properties: {properties}")
     asset_id = str(properties.get('asset_id'))
@@ -136,7 +162,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 
     floor_area = building_area_list[building_id]
     building_type = building_type_list[building_id]
-    building_name = building_name_list[building_id].replace('/', ' ')
+    building_name = building_name_list[building_id].replace('/', ' ').reaplce('&', ' ')
 
     #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
     occupancy_subtype = BUILDING_SUBTYPES.get(building_type, "Unknown")
@@ -150,6 +176,21 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 
     new_properties.update(properties)
     
+    # Calculate the perimeter of the building footprint (assuming a rectangular shape)
+    # Assuming asset is rectangluar
+    footprint_area = int(floor_area / floor_count)
+    side_length = footprint_area ** 0.5
+    perimeter = 4 * side_length
+
+    # Calculate the exterior wall area
+    floor_height = 9.0  # 9 feet per floor
+    exterior_wall_area = perimeter * floor_count * floor_height
+
+    # Apply a window-to-wall ratio (WWR)
+    window_to_wall_ratio = 0.15  # 15% WWR
+    window_area = int(window_to_wall_ratio * exterior_wall_area)
+
+    
     # Add default properties
     new_properties.update({
         "name": building_name,
@@ -158,7 +199,12 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "type": "Building",
         "building_type": building_type,
         "number_of_stories": floor_count,
-        "windows": [],
+        "windows": [
+            {
+                "window_area": window_area,
+                "window_type": "Double Pane"
+            }
+        ],
         "weekday_start_time": "00:00",
         "weekday_duration": "24:00",
         "weekend_start_time": "00:00",
@@ -169,7 +215,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "constructions": {
             "wall": {
                 "material": "Super Insulated Wall",
-                "r_value": 10.0
+                "r_value": 15.0
             },
             "roof": {
                 "material": "Super Insulated Roof",
@@ -181,8 +227,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     if occupancy_subtype == "SmallResidential":
         new_properties.update({
             "number_of_stories_above_ground": floor_count,
-            "foundation_type": "slab",
-            "attic_type": "flat roof",
+            "foundation_type": "crawlspace", 
+            "attic_type": "unvented attic",  
             "number_of_residential_units": 2,
             "number_of_bedrooms": int(number_of_occupants / 2),
             "system_type": "Residential - electric resistance and central air conditioner"
@@ -204,6 +250,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "geometry": feature['geometry'],
         "properties": new_properties
     }
+    
+    weather_data = get_weather_data(location)
 
     final_json = {
         "type": "FeatureCollection",
@@ -221,11 +269,11 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             "tariff_filename": None,
             "timesteps_per_hour": 1,
             "emissions": True,
-            "climate_zone": "2A",
-            "weather_filename": "USA_AZ_Phoenix-Sky.Harbor.Intl.AP.722780_TMY3.epw",
-            "electricity_emissions_future_subregion": "AZNMc",
-            "electricity_emissions_hourly_historical_subregion": "Southwest",
-            "electricity_emissions_annual_historical_subregion": "AZNM",
+            "climate_zone": weather_data["climate_zone"],
+            "weather_filename": weather_data["weather_filename"],
+            "electricity_emissions_future_subregion": weather_data["electricity_emissions_future_subregion"],
+            "electricity_emissions_hourly_historical_subregion": weather_data["electricity_emissions_hourly_historical_subregion"],
+            "electricity_emissions_annual_historical_subregion": weather_data["electricity_emissions_annual_historical_subregion"],
             "electricity_emissions_future_year": "2026",
             "electricity_emissions_hourly_historical_year": "2019",
             "electricity_emissions_annual_historical_year": "2019"
@@ -249,7 +297,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 #   metadata file. It processes each feature and creates a new feature structure with additional properties.
 #   It writes the new feature structure to individual feature files in the output directory.
 ############################################################################################################
-def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json, num_cores):
+def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json, num_cores, location):
     gff_logger.info("Creating feature files...")
 
     feature_files_dir = os.path.join(SIMULATION_DIR, 'feature_files')
@@ -261,7 +309,7 @@ def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json
     custom_config_data = load_json_file(config_json)
 
     for feature in geojson_data['features']:
-        result = process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data)
+        result = process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location)
         if result:
             final_json, building_id, building_name = result
             new_building_name = building_name.replace(' ', '_')
@@ -270,7 +318,7 @@ def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json
                 json.dump(final_json, feature_file, indent=4)
 
     gff_logger.info("Feature files created successfully.")
-    asset_analysis(SIMULATION_DIR, num_cores)
+    asset_analysis(SIMULATION_DIR, num_cores, location)
 
     gff_logger.debug("Zipping the output directory...")
     zip_file_path = shutil.make_archive(feature_files_dir, 'zip', feature_files_dir)
@@ -289,5 +337,7 @@ if __name__ == "__main__":
     metadata_csv = 'app/powertwin-db/uploaded_files/metadata.csv'
     config_json = 'app/powertwin-db/uploaded_files/custom_config.json'
     SIMULATION_DIR = 'app/powertwin-db/uploaded_files'
+    location = 'Phoenix'
+    num_cores = 1
     
-    create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json, num_cores=4)
+    create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json, num_cores, location)

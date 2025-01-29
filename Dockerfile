@@ -42,13 +42,9 @@ RUN gem install urbanopt-cli -v 0.13
 # Copy application code and set environment variables
 COPY . .
 
-# Make the autostart_simulation.sh script executable
-RUN chmod +x app/autostart_simulation.sh
-
 # Expose the required port
 EXPOSE 8080
 
 # Set the default command
 #CMD ["bash"]
 CMD ["python3", "app/app.py"]
-#CMD ["sh", "-c", "python3 app/app.py & sh app/autostart_simulation.sh"]

@@ -102,7 +102,7 @@ def clean_corrupted_simulation(CORRUPTED_SIMULATION_DIR, asset_id):
         recuo_logger.debug(f"Deleting asset directory: {ASSET_DIR}")
         shutil.rmtree(ASSET_DIR)
     else:
-        recuo_logger.debug(f"Neither asset directory {ASSET_DIR} nor batch directory {BATCH_DIR} found")
+        recuo_logger.debug(f"Asset {asset_id} was never proccesed")
 
 ############################################################################################################
 # Name: simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, METADATA_CSV_PATH, batch_id, num_cores)
@@ -128,13 +128,14 @@ def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, METADATA_CSV_PAT
         with zipfile.ZipFile(CORRUPTED_FEATURE_FILE_ZIP, 'r') as zip_ref:
             zip_ref.extractall(FEATURE_FILES_DIR)
     else:
-        recuo_logger.error(f"feature_file.zip not found in {CORRUPTED_SIMULATION_DIR}")
+        recuo_logger.error(f"feature_file.zip not found in {CORRUPTED_SIMULATION_DIR}, stopping recovery process")
         return
         
     # Collect assets to transfer
     assets_to_transfer = search_asset_status(CORRUPTED_STATUS_DIR, batch_id)
     
     # Determine which feature files to transfer
+    recuo_logger.info(f"Collecting feature files to transfer and cleaning corrupted simulation...")
     for root, dirs, files in os.walk(FEATURE_FILES_DIR):
         for file_name in files:
             asset_id = file_name.split('_')[0]
@@ -151,8 +152,21 @@ def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, METADATA_CSV_PAT
     recuo_logger.debug(f"Zipping {FEATURE_FILES_DIR} into {FEATURE_FILE_ZIP_PATH}")
     shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH)[0], 'zip', FEATURE_FILES_DIR)
     
+    
+    # TODO: modify the following code to use the postgres database instead of the uosim_time.csv
+    UOSIM_TIME_CSV = os.path.join(CORRUPTED_SIMULATION_DIR, 'uosim_time.csv')
+    with open(UOSIM_TIME_CSV, mode='r') as file:
+        reader = csv.DictReader(file)
+        first_row = next(reader, None)
+        if first_row:
+            recuo_logger.debug(f"location: {first_row['location']}")
+            location = first_row['location']
+        else:
+            recuo_logger.error(f"location not found in {UOSIM_TIME_CSV}, stopping recovery process")
+            return
+
     # Continue with the recovery process
-    asset_analysis(RECOVERY_DIR, num_cores)
+    asset_analysis(RECOVERY_DIR, num_cores, location)
     
     initialize_uo(RECOVERY_DIR,METADATA_CSV_PATH,FEATURE_FILE_ZIP_PATH, clean_report_flag=True)
 

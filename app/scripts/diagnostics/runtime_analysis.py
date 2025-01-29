@@ -38,7 +38,7 @@ def count_coordinate_lines(json_string):
 # Description: This function reads the JSON files in the specified directory and extracts the asset data.
 #   It writes the asset data to a CSV file and schedules the assets for processing.
 ############################################################################################################
-def asset_analysis(SIMULATION_DIR, num_cores):
+def asset_analysis(SIMULATION_DIR, num_cores, location):
     ra_logger.debug("Within asset_analysis()")
     
     UOSIM_CSV = os.path.join(SIMULATION_DIR, 'uosim_time.csv')
@@ -52,7 +52,7 @@ def asset_analysis(SIMULATION_DIR, num_cores):
         ra_logger.info(f"Number of cores: {num_cores}")
     
     # Define the fieldnames for the CSV file
-    fieldnames = ['batch', 'name', 'assetid', 'floor_area', 'number_of_stories', 'complexity', 'total_time', 'uo_run', 'uo_process']
+    fieldnames = ['batch', 'name', 'assetid', 'floor_area', 'number_of_stories', 'complexity','location', 'total_time', 'uo_run', 'uo_process']
 
     # Create the CSV file if it doesn't exist
     #TODO: CHANGE THE UOSIM_CSV TO INSTEAD BE A POSTGRES DATABASE
@@ -97,6 +97,7 @@ def asset_analysis(SIMULATION_DIR, num_cores):
                         'floor_area': floor_area,
                         'number_of_stories': number_of_stories,
                         'complexity': coordinate_lines,
+                        'location': location,
                         'total_time': None,  
                         'uo_run': None,      
                         'uo_process': None   
@@ -131,4 +132,6 @@ def asset_analysis(SIMULATION_DIR, num_cores):
 ############################################################################################################
 if __name__ == "__main__":
     SIMULATION_DIR = ''#'feature_files'
-    asset_analysis(SIMULATION_DIR, num_cores=4)
+    num_cores = 4
+    location = 'Phoenix-SkyHarbor'
+    asset_analysis(SIMULATION_DIR, num_cores, location)
