@@ -43,8 +43,8 @@ variables:
   ENVIRONMENT_URL_FLASK: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_FLASK}.${DOMAIN_NAME}:${BALANCER_PORT}
   ENVIRONMENT_URL_MSS: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_MSS}.${DOMAIN_NAME}:${BALANCER_PORT}
 
-  # Local API base URL
-  MSS_API_BASE_URL: http://$ENVIRONMENT_NAME_API
+  # Local FLASK base URL
+  MSS_FLASK_BASE_URL: http://$ENVIRONMENT_URL_FLASK
 
 .deploy_db_template: &deploy_db_template
   script:
@@ -190,7 +190,6 @@ deploy_main_db:
     PG_DB_PORT: 5335
     MSS_PORT: 5115
     PG_DB_COLLECTION_ID: 1
-    FLASK_CLIENT_APP_URL: $FLASK_CLIENT_APP_URL_PROD
   <<: *deploy_db_template
   environment:
     name: $ENVIRONMENT_NAME_DB
@@ -207,7 +206,6 @@ deploy_main_flask:
     PG_DB_PORT: 5335
     MSS_PORT: 5115
     PG_DB_COLLECTION_ID: 1
-    FLASK_CLIENT_APP_URL: $FLASK_CLIENT_APP_URL_PROD
   <<: *deploy_flask_template
   environment:
     name: $ENVIRONMENT_NAME_FLASK
@@ -224,7 +222,6 @@ deploy_main_mss:
     PG_DB_PORT: 5335
     MSS_PORT: 5115
     PG_DB_COLLECTION_ID: 1
-    API_CLIENT_APP_URL: $API_CLIENT_APP_URL_PROD
   <<: *deploy_mss_template
   environment:
     name: $ENVIRONMENT_NAME_MSS
