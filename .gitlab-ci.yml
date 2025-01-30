@@ -1,17 +1,151 @@
 stages:
-  - build
-  # - deploy
+  # Development stages
+  - deploy_dev_db
+  - deploy_dev_flask
 
-image: tmaier/docker-compose:1.29
+  # Preview stages
+  - deploy_prev_db
+  - deploy_prev_flask
 
-build:
-  stage: build
+  # Production stages
+  - deploy_main_db
+  - deploy_main_flask
+
+variables:
+  # Disable Logic
+  PG_DB_DISABLE_DEPLOY: $PG_DB_DISABLE_DEPLOY
+
+  # Container Name Elements
+  NAME_PREFIX: ${CI_COMMIT_BRANCH}-
+  NAME_SUFFIX_DB: pg
+  NAME_SUFFIX_FLASK: flask
+
+  # Project Name
+  PROJECT_NAME: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}
+
+  # Environment Names
+  ENVIRONMENT_NAME_DB: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_DB}
+  ENVIRONMENT_NAME_FLASK: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_FLASK}
+  
+  # Environment URLs
+  ENVIRONMENT_URL_DB: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_DB}.${DOMAIN_NAME}:${BALANCER_PORT}
+  ENVIRONMENT_URL_FLASK: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_FLASK}.${DOMAIN_NAME}:${BALANCER_PORT}
+
+.deploy_db_template: &deploy_db_template
   script:
-    - echo "Building Docker images..."
-    - docker compose -f docker-compose.yml build
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-pg
+    - echo "Building Docker image for DB in $CI_COMMIT_BRANCH environment..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-pg
+    - echo "Deploying DB Docker container to $CI_COMMIT_BRANCH environment..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-pg
+    - echo "DB Deployed @ ${ENVIRONMENT_URL_DB}"
+  after_script:
+    - echo "DB deployment to $CI_COMMIT_BRANCH complete"
+  when: on_success
 
-# deploy:
-#   stage: deploy
-#   script:
-#     - echo "Deploying Docker containers..."
-#     - docker compose -f docker-compose.yml up -d
+.deploy_flask_template: &deploy_flask_template
+  script:
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-flask
+    - echo "Building Docker image for FLASK in $CI_COMMIT_BRANCH environment..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-flask
+    - echo "Deploying FLASK Docker container to $CI_COMMIT_BRANCH environment..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-flask
+    - echo "FLASK Deployed @ ${ENVIRONMENT_URL_FLASK}"
+  after_script:
+    - echo "FLASK deployment to $CI_COMMIT_BRANCH complete"
+  when: on_success
+
+# Development Environment
+deploy_dev_db:
+  stage: deploy_dev_db
+  tags:
+    - tank
+  variables:
+    FLASK_PORT: 5443
+    PG_DB_PORT: 5333
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_db_template
+  environment:
+    name: $ENVIRONMENT_NAME_DB
+    url: $ENVIRONMENT_URL_DB
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && $PG_DB_DISABLE_DEPLOY != "true"'
+
+deploy_dev_flask:
+  stage: deploy_dev_flask
+  tags:
+    - tank
+  variables:
+    FLASK_PORT: 5443
+    PG_DB_PORT: 5333
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_flask_template
+  environment:
+    name: $ENVIRONMENT_NAME_FLASK
+    url: $ENVIRONMENT_URL_FLASK
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+
+# Preview Environment
+deploy_prev_db:
+  stage: deploy_prev_db
+  tags:
+    - tank
+  variables:
+    FLASK_PORT: 5444
+    PG_DB_PORT: 5334
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_db_template
+  environment:
+    name: $ENVIRONMENT_NAME_DB
+    url: $ENVIRONMENT_URL_DB
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "prev" && $PG_DB_DISABLE_DEPLOY != "true"'
+
+deploy_prev_flask:
+  stage: deploy_prev_flask
+  tags:
+    - tank
+  variables:
+    FLASK_PORT: 5444
+    PG_DB_PORT: 5334
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_flask_template
+  environment:
+    name: $ENVIRONMENT_NAME_FLASK
+    url: $ENVIRONMENT_URL_FLASK
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "prev"'
+
+# Production Environment
+deploy_main_db:
+  stage: deploy_main_db
+  tags:
+    - tank
+  variables:
+    FLASK_PORT: 5445
+    PG_DB_PORT: 5335
+    PG_DB_COLLECTION_ID: 1
+    FLASK_CLIENT_APP_URL: $FLASK_CLIENT_APP_URL_PROD
+  <<: *deploy_db_template
+  environment:
+    name: $ENVIRONMENT_NAME_DB
+    url: $ENVIRONMENT_URL_DB
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $PG_DB_DISABLE_DEPLOY != "true"'
+
+deploy_main_flask:
+  stage: deploy_main_flask
+  tags:
+    - tank
+  variables:
+    FLASK_PORT: 5445
+    PG_DB_PORT: 5335
+    PG_DB_COLLECTION_ID: 1
+    FLASK_CLIENT_APP_URL: $FLASK_CLIENT_APP_URL_PROD
+  <<: *deploy_flask_template
+  environment:
+    name: $ENVIRONMENT_NAME_FLASK
+    url: $ENVIRONMENT_URL_FLASK
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

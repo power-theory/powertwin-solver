@@ -22,12 +22,12 @@ conn = psycopg.connect(
     dbname='powertwin',
     user=username,
     password=password,
-    host='powertwin-db',  # This must match the hostname of the container
+    host='powertwin-db-pg',  # This must match the hostname of the container
     port='5432'
 )
 
 # Define the output directory for the simulation files
-USER_FILES_DIR = os.path.join('powertwin-db', 'user_files')
+USER_FILES_DIR = os.path.join('powertwin-db-pg', 'user_files')
 UPLOAD_DIR = os.path.join('app','upload') 
 
 
@@ -231,9 +231,9 @@ def get_asset_config(simulation_name, asset_id):
         main_logger.error("Error: Asset ID and Simulation Name are required")
         return jsonify({'error': 'Asset ID and Simulation Name are required'}), 400
         
-    # Fix to point to powertwin-db 
+    # Fix to point to powertwin-db-pg 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-db', 'user_files')
+    USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-db-pg', 'user_files')
     USER_FILES_DIR = os.path.normpath(USER_FILES_DIR)
    
 
@@ -285,9 +285,9 @@ def recovery():
     
     
 
-    # # Fix to point to powertwin-db 
+    # # Fix to point to powertwin-db-pg 
     # current_dir = os.path.dirname(os.path.abspath(__file__))
-    # USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-db', 'user_files')
+    # USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-db-pg', 'user_files')
     # USER_FILES_DIR = os.path.normpath(USER_FILES_DIR)
     
     
@@ -333,9 +333,9 @@ def get_logs():
 
     LOGS_DIR = os.path.join('app','logs')
     
-    # Fix to point to powertwin-db 
+    # Fix to point to powertwin-db-pg 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-db', 'user_files')
+    USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-db-pg', 'user_files')
     USER_FILES_DIR = os.path.normpath(USER_FILES_DIR)
 
     

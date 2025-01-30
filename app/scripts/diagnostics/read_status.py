@@ -91,5 +91,5 @@ def read_simulation_status(SIMULATION_STATUS_DIR, batch_id=None):
                     read_batch_status(BATCH_CSV)
 
 if __name__ == "__main__":
-    SIMULATION_STATUS_DIR = os.path.join(os.getcwd(), 'app', 'powertwin-db', 'user_files', 'example_simulation', 'batch_status')
+    SIMULATION_STATUS_DIR = os.path.join(os.getcwd(), 'app', 'powertwin-db-pg', 'user_files', 'example_simulation', 'batch_status')
     read_simulation_status(SIMULATION_STATUS_DIR)
