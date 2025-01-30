@@ -2,7 +2,7 @@
 
 
 ## HOW TO RUN
-```
+```sh
 docker-compose -f docker-compose.yml build
 docker-compose -f docker-compose.yml up
 ```
@@ -25,7 +25,8 @@ Metadata csv for the simluation must contain building area, building type, and b
 In the event of a stopped simulation, as long as the simulation directory remains the simulation may still be recovered and you may even change the amount of assigned cores or select a specific batch you would like to run.
 
 To check PID status run this command on the local machines CLI, app.py should have 2 processes any additional belong to the simulation.
-```
+```sh
+docker ps
 docker top <container_id> 
 ```
 
@@ -36,6 +37,68 @@ docker top <container_id>
 5. Allocate however many cores, does not have to be the same amount
 6. Start the recovery
 
+## CLI Commands
+This CLI tool allows you to manage simulations and related tasks for the Powertwin Solver. Below are the available commands and their usage. Open a new terminal with the follow command: 
+```sh
+docker exec -it <container_id_or_name> /bin/bash
+```
+
+
+### Autorun Simulation
+Automatically run a simulation using the configuration defined in simulation.json.
+```sh
+python cli.py autorun_simulation
+```
+
+### Start Simulation
+```sh
+python cli.py start_simulation <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_json_path> <location> <num_cores>
+```
+- `simulation_name`: Name of the simulation.
+- `asset_geojson_path`: Path to the asset geojson file.
+- `metadata_csv_path`: Path to the metadata CSV file.
+- `config_json_path`: Path to the config JSON file.
+- `location`: Location of the simulation.
+- `num_cores`: Number of cores to use.
+
+### Get Simulation Status
+Get the status of a simulation.
+```sh
+python cli.py get_simulation_status <simulation_name> [--batch_id <batch_id>]
+```
+- `simulation_name`: Name of the simulation.
+- `--batch_id`: (Optional) ID of the batch.
+
+### Stop Simulation
+Stop the currently running simulation.
+```sh
+python cli.py stop_simulation
+```
+
+### Recover Simulation
+Recover a simulation from a corrupted state.
+```sh
+python cli.py recovery <corrupted_simulation_name> <recover_simulation_name> <num_cores> [--batch_id <batch_id>]
+```
+- `corrupted_simulation_name`: Name of the corrupted simulation.
+- `recover_simulation_name`: Name of the recovery simulation.
+- `num_cores`: Number of cores to use.
+- `--batch_id`: (Optional) ID of the batch.
+
+
+### Get Asset Configuration
+Get the configuration of a specific asset in a simulation.
+```sh
+python cli.py get_asset_config <simulation_name> <asset_id>
+```
+- `simulation_name`: Name of the simulation.
+- `asset_id`: ID of the asset.
+
+### Get Logs
+Retrieve the logs of the simulation.
+```sh
+python cli.py get_logs
+```
 
 ## General Tree
 ```
