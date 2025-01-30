@@ -2,16 +2,25 @@ stages:
   # Development stages
   - deploy_dev_db
   - deploy_dev_flask
+  - deploy_dev_mss
 
   # Preview stages
   - deploy_prev_db
   - deploy_prev_flask
+  - deploy_prev_mss
 
   # Production stages
   - deploy_main_db
   - deploy_main_flask
+  - deploy_main_mss
 
 variables:
+  # .env.local
+  MSS_SLACK_VERIFICATION_TOKEN: $MSS_SLACK_VERIFICATION_TOKEN
+  MSS_SLACK_SIGNING_SECRET: $MSS_SLACK_SIGNING_SECRET
+  MSS_SLACK_WEBHOOK_URL: $MSS_SLACK_WEBHOOK_URL
+  MSS_SLACK_CHANNEL: $MSS_SLACK_CHANNEL
+
   # Disable Logic
   PG_DB_DISABLE_DEPLOY: $PG_DB_DISABLE_DEPLOY
 
@@ -19,6 +28,7 @@ variables:
   NAME_PREFIX: ${CI_COMMIT_BRANCH}-
   NAME_SUFFIX_DB: pg
   NAME_SUFFIX_FLASK: flask
+  NAME_SUFFIX_MSS: mss
 
   # Project Name
   PROJECT_NAME: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}
@@ -26,10 +36,15 @@ variables:
   # Environment Names
   ENVIRONMENT_NAME_DB: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_DB}
   ENVIRONMENT_NAME_FLASK: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_FLASK}
-  
+  ENVIRONMENT_NAME_MSS: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_MSS}
+
   # Environment URLs
   ENVIRONMENT_URL_DB: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_DB}.${DOMAIN_NAME}:${BALANCER_PORT}
   ENVIRONMENT_URL_FLASK: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_FLASK}.${DOMAIN_NAME}:${BALANCER_PORT}
+  ENVIRONMENT_URL_MSS: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_MSS}.${DOMAIN_NAME}:${BALANCER_PORT}
+
+  # Local API base URL
+  MSS_API_BASE_URL: http://$ENVIRONMENT_NAME_API
 
 .deploy_db_template: &deploy_db_template
   script:
@@ -55,6 +70,18 @@ variables:
     - echo "FLASK deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
+.deploy_mss_template: &deploy_mss_template
+  script:
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-db-mss
+    - echo "Building Docker images for Microservices in $CI_COMMIT_BRANCH environment..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-db-mss
+    - echo "Deploying Microservices Docker container to $CI_COMMIT_BRANCH environment..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d --no-deps powertwin-db-mss
+    - echo "Microservices Deployed @ ${ENVIRONMENT_URL_MSS}"
+  after_script:
+    - echo "Microservices deployment to $CI_COMMIT_BRANCH complete"
+  when: on_success
+
 # Development Environment
 deploy_dev_db:
   stage: deploy_dev_db
@@ -63,6 +90,7 @@ deploy_dev_db:
   variables:
     FLASK_PORT: 5443
     PG_DB_PORT: 5333
+    MSS_PORT: 5113
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_db_template
   environment:
@@ -78,6 +106,7 @@ deploy_dev_flask:
   variables:
     FLASK_PORT: 5443
     PG_DB_PORT: 5333
+    MSS_PORT: 5113
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_flask_template
   environment:
@@ -85,6 +114,22 @@ deploy_dev_flask:
     url: $ENVIRONMENT_URL_FLASK
   rules:
     - if: '$CI_COMMIT_BRANCH == "dev"'
+
+deploy_dev_mss:
+  stage: deploy_dev_mss
+  tags:
+    - tank
+  variables:
+    FLASK_PORT: 5443
+    PG_DB_PORT: 5333
+    MSS_PORT: 5113
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_mss_template
+  environment:
+    name: $ENVIRONMENT_NAME_MSS
+    url: $ENVIRONMENT_URL_MSS
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && $MSS_DISABLE_DEPLOY != "true"'
 
 # Preview Environment
 deploy_prev_db:
@@ -94,6 +139,7 @@ deploy_prev_db:
   variables:
     FLASK_PORT: 5444
     PG_DB_PORT: 5334
+    MSS_PORT: 5114
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_db_template
   environment:
@@ -109,6 +155,7 @@ deploy_prev_flask:
   variables:
     FLASK_PORT: 5444
     PG_DB_PORT: 5334
+    MSS_PORT: 5114
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_flask_template
   environment:
@@ -116,6 +163,22 @@ deploy_prev_flask:
     url: $ENVIRONMENT_URL_FLASK
   rules:
     - if: '$CI_COMMIT_BRANCH == "prev"'
+
+deploy_prev_mss:
+  stage: deploy_prev_mss
+  tags:
+    - tank
+  variables:
+    FLASK_PORT: 5444
+    PG_DB_PORT: 5334
+    MSS_PORT: 5114
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_mss_template
+  environment:
+    name: $ENVIRONMENT_NAME_MSS
+    url: $ENVIRONMENT_URL_MSS
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "prev" && $MSS_DISABLE_DEPLOY != "true"'
 
 # Production Environment
 deploy_main_db:
@@ -125,6 +188,7 @@ deploy_main_db:
   variables:
     FLASK_PORT: 5445
     PG_DB_PORT: 5335
+    MSS_PORT: 5115
     PG_DB_COLLECTION_ID: 1
     FLASK_CLIENT_APP_URL: $FLASK_CLIENT_APP_URL_PROD
   <<: *deploy_db_template
@@ -141,6 +205,7 @@ deploy_main_flask:
   variables:
     FLASK_PORT: 5445
     PG_DB_PORT: 5335
+    MSS_PORT: 5115
     PG_DB_COLLECTION_ID: 1
     FLASK_CLIENT_APP_URL: $FLASK_CLIENT_APP_URL_PROD
   <<: *deploy_flask_template
@@ -149,3 +214,20 @@ deploy_main_flask:
     url: $ENVIRONMENT_URL_FLASK
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+
+deploy_main_mss:
+  stage: deploy_main_mss
+  tags:
+    - tank
+  variables:
+    FLASK_PORT: 5445
+    PG_DB_PORT: 5335
+    MSS_PORT: 5115
+    PG_DB_COLLECTION_ID: 1
+    API_CLIENT_APP_URL: $API_CLIENT_APP_URL_PROD
+  <<: *deploy_mss_template
+  environment:
+    name: $ENVIRONMENT_NAME_MSS
+    url: $ENVIRONMENT_URL_MSS
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $MSS_DISABLE_DEPLOY != "true"'

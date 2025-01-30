@@ -1,28 +1,50 @@
 services:
+  powertwin-solver-pg:
+    image: postgres:latest
+    container_name: powertwin-solver-pg
+    environment:
+      - POSTGRES_DB=powertwin
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
+    ports:
+      - "${PG_DB_PORT}:5432"
+    volumes:
+      - ./app/powertwin_data:/app/powertwin-solver-pg
+      - postgres_data:/var/lib/postgresql/data
+
   powertwin-solver-flask:
     container_name: powertwin-solver-flask
     build: .
     ports:
       - "${FLASK_PORT}:8080"
+    environment:
+      - MSS_FLASK_BASE_URL=${MSS_FLASK_BASE_URL}
+      - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
     volumes:
       - ./app/powertwin_data:/app/powertwin-solver-pg
     depends_on:
       - powertwin-solver-pg
     tty: true 
 
-
-  powertwin-solver-pg:
-    image: postgres:latest
-    container_name: powertwin-solver-pg
-    environment:
-      POSTGRES_DB: powertwin
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: admin
+  powertwin-db-mss:
+    container_name: powertwin-db-mss
+    build: 
+      context: ./mss
     ports:
-      - "${PG_DB_PORT}:5432"
-    volumes:
-      - ./app/powertwin_data:/app/powertwin-solver-pg
-      - postgres_data:/var/lib/postgresql/data
+      - "${MSS_PORT}:8080"
+    environment:
+      - MSS_FLASK_BASE_URL=${MSS_FLASK_BASE_URL}
+      - MSS_SLACK_VERIFICATION_TOKEN=${MSS_SLACK_VERIFICATION_TOKEN}
+      - MSS_SLACK_SIGNING_SECRET=${MSS_SLACK_SIGNING_SECRET}
+      - MSS_SLACK_WEBHOOK_URL=${MSS_SLACK_WEBHOOK_URL}
+      - MSS_SLACK_CHANNEL=${MSS_SLACK_CHANNEL}
+      - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
+      - FLASK_PORT=${FLASK_PORT}
+    depends_on:
+      - powertwin-solver-pg
+    links:
+      - powertwin-solver-pg
 
 volumes:
   powertwin-solver-flask:
