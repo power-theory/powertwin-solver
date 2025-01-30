@@ -24,6 +24,11 @@ services:
       - /mnt/g/powertwin_data:/app/powertwin-db-pg
       - postgres_data:/var/lib/postgresql/data
 
+networks:
+  default:
+    name: gitlab-network
+    external: true
+
 volumes:
   powertwin-solver-flask:
   postgres_data:
