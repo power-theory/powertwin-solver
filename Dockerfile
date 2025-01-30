@@ -46,5 +46,4 @@ COPY . .
 EXPOSE 8080
 
 # Set the default command
-#CMD ["bash"]
 CMD ["python3", "app/app.py"]
