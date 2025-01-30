@@ -172,7 +172,7 @@ def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, METADATA_CSV_PAT
 
 
 if __name__ == "__main__":
-    USERFILES_DIR = os.path.join(os.getcwd(), 'app', 'powertwin-db', 'user_files')
+    USERFILES_DIR = os.path.join(os.getcwd(), 'app', 'powertwin-db-pg', 'user_files')
     METADATA_CSV_PATH = os.path.join(USERFILES_DIR, 'example_simulation_recovery_metadata.csv')
     CORRUPTED_SIMULATION_DIR = 'example_simulation'
     batch_id = 1

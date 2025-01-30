@@ -333,10 +333,10 @@ def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json
 # Description: This function is the entry point for the script. Used for testing purposes.
 ############################################################################################################
 if __name__ == "__main__":
-    asset_geojson = 'app/powertwin-db/uploaded_files/asset.geojson'
-    metadata_csv = 'app/powertwin-db/uploaded_files/metadata.csv'
-    config_json = 'app/powertwin-db/uploaded_files/custom_config.json'
-    SIMULATION_DIR = 'app/powertwin-db/uploaded_files'
+    asset_geojson = 'app/powertwin-db-pg/uploaded_files/asset.geojson'
+    metadata_csv = 'app/powertwin-db-pg/uploaded_files/metadata.csv'
+    config_json = 'app/powertwin-db-pg/uploaded_files/custom_config.json'
+    SIMULATION_DIR = 'app/powertwin-db-pg/uploaded_files'
     location = 'Phoenix'
     num_cores = 1
     

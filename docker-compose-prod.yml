@@ -1,29 +1,30 @@
 services:
-  powertwin-solver:
-    container_name: ${NAME_PREFIX:-}powertwin-solver
-    restart: always
+  powertwin-solver-flask:
+    container_name: ${NAME_PREFIX:-}powertwin-solver-flask
     build: .
     ports:
-      - "8080:8080"
+      - "${SOLVER_PORT}:8080"
     volumes:
-      - powertwin_data:/app/powertwin-db
+      - /mnt/g/powertwin_data:/app/powertwin-db-pg
     depends_on:
-      - db
+      - powertwin-db-pg
+    tty: true 
 
-  db:
+
+  powertwin-db-pg:
     image: postgres:latest
-    container_name: ${NAME_PREFIX:-}powertwin-db
+    container_name: ${NAME_PREFIX:-}powertwin-db-pg
     environment:
       POSTGRES_DB: powertwin
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
     ports:
-      - "5432:5432"
+      - "${PG_DB_PORT}:5432"
     volumes:
+      - /mnt/g/powertwin_data:/app/powertwin-db-pg
       - postgres_data:/var/lib/postgresql/data
-      - powertwin_data:/app/powertwin-db
 
 volumes:
-  powertwin-solver:
+  powertwin-solver-flask:
   postgres_data:
   powertwin_data:
