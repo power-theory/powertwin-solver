@@ -28,7 +28,6 @@ conn = psycopg.connect(
 
 # Define the output directory for the simulation files
 USER_FILES_DIR = os.path.join('powertwin-solver-pg', 'user_files')
-UPLOAD_DIR = os.path.join('app','upload') 
 
 
 @server.route('/')
@@ -124,7 +123,13 @@ def start_simulation():
     main_logger.debug("start_simulation() ran successfully")
     return jsonify({'confirmation': f'Simulation "{simulation_name}" ran successfully'})
 
-@server.route('/autorun_simulation', methods=['POST'])
+############################################################################################################
+# Name: def autorun_simulation()
+# Description: This function reads the simulation.json file and starts the simulation based on the given parameters.
+# Calls the create_featurefiles and initialize_uo functions to generate feature files and start the UrbanOpt simulation.
+# This function parallelizes the simulation after the feature files are created.
+############################################################################################################
+@server.route('/api/simulation/autorun_simulation', methods=['POST'])
 def autorun_simulation():
     SIMULATION_JSON = os.path.join('app', 'upload', 'simulation.json')
 
@@ -181,6 +186,11 @@ def autorun_simulation():
         main_logger.error(f"Exception: {str(e)}")
         return jsonify({'error': f"Simulation failed: {str(e)}"}), 500
 
+############################################################################################################
+# Name: def stop_simulation()
+# Description: This function stops the UrbanOpt simulation.
+# Calls the stop_UOsimulation function to stop the simulation.
+############################################################################################################
 @server.route('/api/simulation/stop', methods=['POST'])
 def stop_simulation():
     main_logger.debug("Within stop_simulation()")
@@ -193,7 +203,13 @@ def stop_simulation():
     except Exception as e:
         main_logger.error(f"Exception while stopping the simulation: {str(e)}")
         return jsonify({'error': str(e)}), 500
-    
+
+
+############################################################################################################
+# Name: def get_simulation_status()
+# Description: This function reads the simulation status files and logs the status of the simulation.
+# Calls the read_simulation_status function to read the simulation status files.
+############################################################################################################ 
 @server.route('/api/simulation/status/<simulation_name>', methods=['GET'])
 def get_simulation_status(simulation_name):
     main_logger.debug("Within simulation_status()")
@@ -220,9 +236,15 @@ def get_simulation_status(simulation_name):
         return jsonify({'error': str(e)}), 500
 
 
-    
+
 # 2. Model and Configuration Management
 
+############################################################################################################
+# Name: def get_asset_config()
+# Description: This function reads the feature files and returns the configuration of the asset.
+# Searches for the feature file based on the asset ID and simulation name.
+# Returns the feature file as a response. Available in the request_files directory.
+############################################################################################################
 @server.route('/api/asset/config/<simulation_name>/<asset_id>', methods=['GET'])
 def get_asset_config(simulation_name, asset_id):
     main_logger.debug("Within get_asset_config()")
@@ -255,7 +277,16 @@ def get_asset_config(simulation_name, asset_id):
         for file_name in os.listdir(FEATURE_FILE_DIR):
             if file_name.startswith(f"{asset_id}_") and file_name.endswith('.json'):
                 file_path = os.path.join(FEATURE_FILE_DIR, file_name)
-                response = send_file(file_path, as_attachment=True)
+                
+                # Define the path to save the requested configuration file
+                DOWNLOAD_DIR = os.path.join(USER_FILES_DIR, 'requested_files')
+                os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+                requested_file_path = os.path.join(DOWNLOAD_DIR, file_name)
+                
+                # Copy the configuration file to the requested_files directory
+                shutil.copy(file_path, requested_file_path)
+                
+                response = send_file(requested_file_path, as_attachment=True)
                 return response
     
         main_logger.error(f"No feature file found for asset ID: {asset_id}")
@@ -267,6 +298,12 @@ def get_asset_config(simulation_name, asset_id):
 
 # 3. Diagnostics and Logs
 
+############################################################################################################
+# Name: def recovery()
+# Description: This function recovers a corrupted simulation by removing assets that are "Processing" or "Not Processed Yet"
+#   from the feature_files directory and re-running the UO simulation.
+# Calls the simulation_recovery function to recover the corrupted simulation.
+############################################################################################################
 @server.route('/api/diagnostics/recovery', methods=['POST'])
 def recovery():
     main_logger.debug("Within recovery()")
@@ -325,8 +362,13 @@ def recovery():
     except Exception as e:
         main_logger.error(f"Exception during simulation recovery: {str(e)}")
         return jsonify({'error': str(e)}), 500
-  
 
+
+############################################################################################################
+# Name: def get_logs()
+# Description: This function zips the logs directory and sends the zip file as a response for download.
+# Calls the get_logs function to zip the logs directory.
+############################################################################################################
 @server.route('/api/diagnostics/getlogs', methods=['GET'])
 def get_logs():
     main_logger.debug("Within get_logs()")
@@ -340,7 +382,7 @@ def get_logs():
 
     
     # Define the path to save the zipped batch status file
-    DOWNLOAD_DIR = os.path.join(USER_FILES_DIR, 'downloaded_zip_files')
+    DOWNLOAD_DIR = os.path.join(USER_FILES_DIR, 'requested_files')
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     ZIP_FILE = os.path.join(DOWNLOAD_DIR, 'logs.zip')
     
@@ -366,7 +408,11 @@ def get_logs():
         main_logger.error(f"Exception: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
+############################################################################################################
+# Name: def log_message()
+# Description: This function logs a message to the dev_logs.txt file.
+# Calls the log_message function to log a message to the dev_logs.txt file.
+############################################################################################################
 @server.route('/api/diagnostics/log', methods=['POST'])
 def log_message():
     data = request.get_json()
@@ -387,7 +433,7 @@ def log_message():
     return jsonify({'status': 'success', 'log_file': log_txt}), 200
 
 
-# 0. Dev Tools
+# 0. Dev Tools WIP
 
 @server.route('/api/featurefiles', methods=['POST'])
 def feature_files():

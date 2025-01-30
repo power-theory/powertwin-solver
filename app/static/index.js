@@ -292,7 +292,7 @@ async function assetAnalysis() {
 
 //////////////////////////////// Simulation CALLS /////////////////////////////////////////////
 function autorunSimulation() {
-    fetch('/autorun_simulation', {
+    fetch('/api/simulation/autorun_simulation', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
