@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Load environment variables from .env.local and .env.gitlab
+# Load environment variables from .env.local
 echo "Loading env variables from './.env.local'"
 set -o allexport
 source ./.env.local

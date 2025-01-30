@@ -9,4 +9,5 @@ joblib==1.4.2
 joblib-progress==1.0.6
 colorlog==6.9.0
 rich==13.9.4
+python-dotenv==1.0.1
 psycopg[binary,pool]==3.2.4

@@ -1,4 +1,4 @@
-# Powertwin Solver v1.0.1
+# PowerTwin Solver v1.0.1
 
 ## HOW TO RUN
 ```sh
@@ -37,7 +37,7 @@ docker top <container_id>
 6. Start the recovery
 
 ## CLI Commands
-This CLI tool allows you to manage simulations and related tasks for the Powertwin Solver. Below are the available commands and their usage. Open a new terminal with the follow command: 
+This CLI tool allows you to manage simulations and related tasks for the PowerTwin Solver. Below are the available commands and their usage. Open a new terminal with the follow command: 
 ```sh
 docker exec -it <container_id_or_name> /bin/bash
 ```
@@ -151,6 +151,6 @@ The powertwin-db is a shared volume between the powertwin-db and powertwin-solve
 
 
 ## Useful Repositories
-- [Powertwin Cleaner](https://github.com/nicotegui/powertwin_cleaner)
-- [Powertwin Json Setup](https://github.com/nicotegui/powertwin_jsonsetup)
-- [Powertwin Accuracy](https://github.com/nicotegui/powertwin_accuracy)
+- [PowerTwin Cleaner](https://github.com/nicotegui/powertwin_cleaner)
+- [PowerTwin Json Setup](https://github.com/nicotegui/powertwin_jsonsetup)
+- [PowerTwin Accuracy](https://github.com/nicotegui/powertwin_accuracy)
