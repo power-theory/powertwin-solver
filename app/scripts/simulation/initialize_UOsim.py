@@ -102,9 +102,9 @@ def initialize_uo(SIMULATION_DIR,METADATA_CSV,feature_file_zip, clean_report_fla
 # Description: This function is the entry point for the script. Used for testing purposes.
 ############################################################################################################
 if __name__ == "__main__":
-    feature_file_zip = "app/powertwin-db-pg/user_files/feature_files.zip"
-    SIMULATION_DIR = "app/powertwin-db-pg/user_files"
-    METADATA_CSV = "app/powertwin-db-pg/user_files/metadata.csv"
+    feature_file_zip = "app/powertwin-solver-pg/user_files/feature_files.zip"
+    SIMULATION_DIR = "app/powertwin-solver-pg/user_files"
+    METADATA_CSV = "app/powertwin-solver-pg/user_files/metadata.csv"
     clean_report_flag = False
     initialize_uo(SIMULATION_DIR,METADATA_CSV,feature_file_zip, clean_report_flag)
     
