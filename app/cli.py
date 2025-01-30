@@ -54,7 +54,7 @@ def get_logs(args):
     print(response.json())
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Powertwin Solver Commands")
+    parser = argparse.ArgumentParser(description="PowerTwin Solver Commands")
     subparsers = parser.add_subparsers()
 
     # Start simulation command
