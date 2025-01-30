@@ -122,7 +122,10 @@ def read_metadata(metadata_csv):
                 continue
 
             # Exclude big residential buildings (Lodging and low highrise Multifamily are an exceptions) (Limited by UrbanOpt)
-            # TODO: Mixed use requires a lot more detail to undestand what is mixed and what it contains, Laborartoy requires elevator support
+            # *Note - The Mixed use building type can accommodate up to 4 building types and their corresponding fractions of total floor area. 
+            # If the number of building types is fewer than 4, additional building use types must be added but the fraction of total area can be
+            # entered as 0.
+            # # TODO: Mixed use requires a lot more detail to undestand what is mixed and what it contains, Laborartoy requires elevator support
             if asset_subtype_name in ["Multifamily", "Multifamily (2 to 4 units)", "Multifamily (5 or more units)", "Mixed use","Laboratory"]:
                 continue
 
@@ -190,7 +193,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     window_to_wall_ratio = 0.15  # 15% WWR
     window_area = int(window_to_wall_ratio * exterior_wall_area)
 
-    
+    # https://github.com/urbanopt/urbanopt-geojson-gem/blob/master/lib/urbanopt/geojson/schema/building_properties.json
     # Add default properties
     new_properties.update({
         "name": building_name,
@@ -227,9 +230,9 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     if occupancy_subtype == "SmallResidential":
         new_properties.update({
             "number_of_stories_above_ground": floor_count,
-            "foundation_type": "crawlspace", 
-            "attic_type": "unvented attic",  
-            "number_of_residential_units": 2,
+            "foundation_type": "basement - conditioned", 
+            "attic_type": "attic - unvented",  
+            "number_of_residential_units": 1,
             "number_of_bedrooms": int(number_of_occupants / 2),
             "system_type": "Residential - electric resistance and central air conditioner"
         })
