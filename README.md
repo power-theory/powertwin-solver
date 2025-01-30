@@ -125,7 +125,7 @@ python cli.py get_logs
 
 ## Runtime Generation Tree
 ```
-⚡powertwin-data/
+⚡powertwin_data/
 └── user_files/
     └── <simulation_name>/
         ├── feature_files.zip
@@ -145,9 +145,9 @@ The powertwin-db is a shared volume between the powertwin-db and powertwin-solve
 
 
 ## Temporary fixes
--Currently this program does not support Mixed use, Laboratory, Single Family Detached, Vacant subtypes, and due to UrbanOpt restraints, cannot support Multifamily, Multifamily (2 to 4 units), Multifamily (5 or more units) subtypes
--Occupancy assumptions are currently being made relative to the building subtype with a set value for each
--Only select few weather locations supported
+- Currently this program does not support Mixed use, Laboratory, Single Family Detached, Vacant subtypes, and due to UrbanOpt restraints, cannot support Multifamily, Multifamily (2 to 4 units), Multifamily (5 or more units) subtypes
+- Occupancy assumptions are currently being made relative to the building subtype with a set value for each
+- Only select few weather locations supported
 
 
 ## Useful Repositories
