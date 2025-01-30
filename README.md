@@ -1,5 +1,4 @@
-# Powertwin Solver
-
+# Powertwin Solver v1.0.1
 
 ## HOW TO RUN
 ```sh
@@ -8,7 +7,7 @@ docker-compose -f docker-compose.yml up
 ```
 ## Autorun Simulation
 1. Modify the simulation.json (demo has been provided)
-2. Click autorun at the top of homepage
+2. Click autorun at the top of homepage or run autorun command
 
 ## Starting a Simulation
 To begin a simulation there are 2 required files. The geojson file and the metadata csv.
@@ -43,16 +42,15 @@ This CLI tool allows you to manage simulations and related tasks for the Powertw
 docker exec -it <container_id_or_name> /bin/bash
 ```
 
-
 ### Autorun Simulation
 Automatically run a simulation using the configuration defined in simulation.json.
 ```sh
-python cli.py autorun_simulation
+python cli.py autorun
 ```
 
 ### Start Simulation
 ```sh
-python cli.py start_simulation <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_json_path> <location> <num_cores>
+python cli.py start <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_json_path> <location> <num_cores>
 ```
 - `simulation_name`: Name of the simulation.
 - `asset_geojson_path`: Path to the asset geojson file.
@@ -64,7 +62,7 @@ python cli.py start_simulation <simulation_name> <asset_geojson_path> <metadata_
 ### Get Simulation Status
 Get the status of a simulation.
 ```sh
-python cli.py get_simulation_status <simulation_name> [--batch_id <batch_id>]
+python cli.py status <simulation_name> [--batch_id <batch_id>]
 ```
 - `simulation_name`: Name of the simulation.
 - `--batch_id`: (Optional) ID of the batch.
@@ -72,13 +70,13 @@ python cli.py get_simulation_status <simulation_name> [--batch_id <batch_id>]
 ### Stop Simulation
 Stop the currently running simulation.
 ```sh
-python cli.py stop_simulation
+python cli.py stop
 ```
 
 ### Recover Simulation
 Recover a simulation from a corrupted state.
 ```sh
-python cli.py recovery <corrupted_simulation_name> <recover_simulation_name> <num_cores> [--batch_id <batch_id>]
+python cli.py recover <corrupted_simulation_name> <recover_simulation_name> <num_cores> [--batch_id <batch_id>]
 ```
 - `corrupted_simulation_name`: Name of the corrupted simulation.
 - `recover_simulation_name`: Name of the recovery simulation.
@@ -89,7 +87,7 @@ python cli.py recovery <corrupted_simulation_name> <recover_simulation_name> <nu
 ### Get Asset Configuration
 Get the configuration of a specific asset in a simulation.
 ```sh
-python cli.py get_asset_config <simulation_name> <asset_id>
+python cli.py get_config <simulation_name> <asset_id>
 ```
 - `simulation_name`: Name of the simulation.
 - `asset_id`: ID of the asset.
@@ -103,7 +101,6 @@ python cli.py get_logs
 ## General Tree
 ```
 🏠 app/
-├── powertwin_data
 ├── scripts/
 │   ├── diagnostics
 │   ├── helper
@@ -117,14 +114,18 @@ python cli.py get_logs
 ├── upload/
 │   ├── demo_data
 │   └── simulation.json
-└── urbanopt/
-    ├── weather_files
-    └── PowerTwin.rb
+├── urbanopt/
+│   ├── weather_files
+│   ├── PowerTwin.rb
+│   └── weather_map.csv
+├── app.py
+└── cli.py
+
 ```
 
 ## Runtime Generation Tree
 ```
-⚡powertwin-db/
+⚡powertwin-data/
 └── user_files/
     └── <simulation_name>/
         ├── feature_files.zip
@@ -147,7 +148,6 @@ The powertwin-db is a shared volume between the powertwin-db and powertwin-solve
 -Currently this program does not support Mixed use, Laboratory, Single Family Detached, Vacant subtypes, and due to UrbanOpt restraints, cannot support Multifamily, Multifamily (2 to 4 units), Multifamily (5 or more units) subtypes
 -Occupancy assumptions are currently being made relative to the building subtype with a set value for each
 -Only select few weather locations supported
-
 
 
 ## Useful Repositories

@@ -28,7 +28,7 @@ def stop_simulation(args):
     print(response.json())
 
 def autorun_simulation(args):
-    url = "http://localhost:8080/autorun_simulation"
+    url = "http://localhost:8080/api/simulation/autorun_simulation"
     response = requests.post(url)
     print(response.json())
 
