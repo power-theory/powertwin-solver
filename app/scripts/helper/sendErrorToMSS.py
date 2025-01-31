@@ -3,7 +3,7 @@ import requests
 
 
 def send_error_to_mss(function_name, error_message):
-    url = os.getenv('MSS_FLASK_BASE_URL')
+    url = os.getenv('FLASK_MSS_BASE_URL')
     api_token = os.getenv('PG_DB_TOKEN_ADMIN')
     commit_branch = os.getenv('CI_COMMIT_BRANCH')
 
