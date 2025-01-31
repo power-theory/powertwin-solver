@@ -14,33 +14,59 @@ def start_simulation(args):
         'num_cores': args.num_cores
     }
     response = requests.post(url, files=files, data=data)
-    print(response.json())
+    if response.status_code == 200:
+        print("start_simulation function worked")
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.json())
+
 
 def get_simulation_status(args):
     url = f"http://localhost:8080/api/simulation/status/{args.simulation_name}"
     params = {'batch_id': args.batch_id} if args.batch_id else {}
     response = requests.get(url, params=params)
-    print(response.json())
+    if response.status_code == 200:
+        print("get_simulation_status function worked")
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.json())
 
 def delete_simulation(args):
     url = f"http://localhost:8080/api/simulation/delete/{args.simulation_name}"
     response = requests.get(url)
-    print(response.json())
+    if response.status_code == 200:
+        print("delete_simulation function worked")
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.json())
 
 def stop_simulation(args):
     url = "http://localhost:8080/api/simulation/stop"
     response = requests.post(url)
-    print(response.json())
+    if response.status_code == 200:
+        print("stop_simulation function worked")
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.json())
 
 def autorun_simulation(args):
     url = "http://localhost:8080/api/simulation/autorun_simulation"
     response = requests.post(url)
-    print(response.json())
+    if response.status_code == 200:
+        print("autorun_simulation function worked")
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.json())
 
 def get_asset_config(args):
     url = f"http://localhost:8080/api/asset/config/{args.simulation_name}/{args.asset_id}"
     response = requests.get(url)
-    print(response.json())
+    if response.status_code == 200:
+        print("get_asset_config function worked, check the user_files/requested_files directory for asset config")
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.json())
+
 
 def recovery(args):
     url = "http://localhost:8080/api/diagnostics/recovery"
@@ -51,12 +77,21 @@ def recovery(args):
         'recover_num_cores': args.num_cores
     }
     response = requests.post(url, data=data)
-    print(response.json())
+    if response.status_code == 200:
+        print("recovery function worked")
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.json())
 
 def get_logs(args):
     url = "http://localhost:8080/api/diagnostics/getlogs"
     response = requests.get(url)
-    print(response.json())
+    if response.status_code == 200:
+        print("get_logs function worked, check the user_files/requested_files directory for logs")
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.json())
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PowerTwin Solver Commands")

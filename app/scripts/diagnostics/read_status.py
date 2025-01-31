@@ -16,7 +16,7 @@ def print_assets_progress(title, assets_completed, total_assets, progress):
     progress_format = f"[{progress:<4.1f}%]"
 
     output = f"{batch_format: <14s}{progress_format: <10s}|{bar}| ({title})"
-    rbs_logger(output)
+    rbs_logger.info(output)
     return output
 
 ############################################################################################################
@@ -95,7 +95,7 @@ def read_simulation_status(SIMULATION_STATUS_DIR, batch_id=None):
     total_assets = 0
     finished_assets = 0
     total_batches = 0
-    finished_assets = 0
+    finished_batches = 0
 
     if batch_id is not None:
         # Read the specific batch status file
