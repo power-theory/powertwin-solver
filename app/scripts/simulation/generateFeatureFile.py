@@ -200,7 +200,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "floor_area": int(floor_area),  
         "footprint_area": int(floor_area / floor_count),  
         "type": "Building",
-        "building_type": building_type,
+        "building_type": #building_type, commenting to induce error
         "number_of_stories": floor_count,
         "windows": [
             {
