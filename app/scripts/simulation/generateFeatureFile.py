@@ -200,7 +200,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "floor_area": int(floor_area),  
         "footprint_area": int(floor_area / floor_count),  
         "type": "Building",
-        "building_type": "test", #building_type, commenting to induce error
+        "building_type": building_type,
         "number_of_stories": floor_count,
         "windows": [
             {
@@ -302,6 +302,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 ############################################################################################################
 def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json, num_cores, location):
     gff_logger.info("Creating feature files...")
+    
+    raise Exception("Forced failure for testing purposes")
 
     feature_files_dir = os.path.join(SIMULATION_DIR, 'feature_files')
     os.makedirs(feature_files_dir, exist_ok=True)
@@ -311,6 +313,7 @@ def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json
     geojson_data = load_json_file(asset_geojson)
     custom_config_data = load_json_file(config_json)
 
+    
     for feature in geojson_data['features']:
         result = process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location)
         if result:

@@ -7,7 +7,7 @@ import csv
 import pandas as pd
 
 from .clean_report import clean_single_report
-from scripts.helper import initialize_logger
+from scripts.helper import initialize_logger, send_error_to_mss
 
 ruo_logger = initialize_logger('Run UOSim')
 
@@ -249,6 +249,7 @@ def run_batch(batch, SIMULATION_DIR, clean_report_flag, METADATA_CSV, batch_inde
         except Exception as e:
             ruo_logger.error(f"BATCH {batch_index}: Failed to process asset {asset_id}: {str(e)}")
             # Update status to Failed
+            send_error_to_mss('run_batch',f"Failed to process asset {asset_id}: {str(e)}")
             update_status(status_file, asset_id, asset_name, "Failed")
         
     # Clean up the batch simulation directory
