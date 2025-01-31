@@ -42,13 +42,11 @@ def read_batch_status(BATCH_CSV):
                     log_entries.append(row)
                 if row["Status"] == "Finished":
                     finished_assets += 1
-                
-                progress = (finished_assets / total_assets) * 100
-                print_assets_progress(f"Batch {batch_id} Progress", finished_assets, total_assets, progress)
     except Exception as e:
         rbs_logger.error(f"Error reading file {BATCH_CSV}: {str(e)}")
         return 0, 0
     
+                
     rbs_logger.debug(f"Printing Status for Batch: {batch_id}")
     if log_entries:
         # Create a table with rich
@@ -78,6 +76,9 @@ def read_batch_status(BATCH_CSV):
 
         # Print the table to the console
         console.print(table)
+            
+        progress = (finished_assets / total_assets) * 100
+        print_assets_progress(f"Batch {batch_id} Progress", finished_assets, total_assets, progress)
     else:
         rbs_logger.error("No entries found in the batch status file.")
         
