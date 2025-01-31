@@ -72,11 +72,11 @@ variables:
 
 .deploy_mss_template: &deploy_mss_template
   script:
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-db-mss
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-mss
     - echo "Building Docker images for Microservices in $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-db-mss
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-mss
     - echo "Deploying Microservices Docker container to $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d --no-deps powertwin-db-mss
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d --no-deps powertwin-solver-mss
     - echo "Microservices Deployed @ ${ENVIRONMENT_URL_MSS}"
   after_script:
     - echo "Microservices deployment to $CI_COMMIT_BRANCH complete"

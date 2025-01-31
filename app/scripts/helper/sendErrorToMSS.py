@@ -15,7 +15,7 @@ def send_error_to_mss(function_name, error_message):
 
     try:
         response = requests.post(
-            f"{url}:8080/slack/log-error",
+            f"{url}:8000/slack/log-error",
             json={'error_message': combined_error_message},
             headers={'api_token': api_token}
         )
