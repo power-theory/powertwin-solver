@@ -22,6 +22,11 @@ def get_simulation_status(args):
     response = requests.get(url, params=params)
     print(response.json())
 
+def delete_simulation(args):
+    url = f"http://localhost:8080/api/simulation/delete/{args.simulation_name}"
+    response = requests.get(url)
+    print(response.json())
+
 def stop_simulation(args):
     url = "http://localhost:8080/api/simulation/stop"
     response = requests.post(url)
@@ -72,6 +77,11 @@ if __name__ == "__main__":
     parser_status.add_argument('simulation_name', type=str, help='Name of the simulation')
     parser_status.add_argument('--batch_id', type=int, help='ID of the batch')
     parser_status.set_defaults(func=get_simulation_status)
+
+    # Delete simulation command
+    parser_status = subparsers.add_parser('delete', help='Delete simulation')
+    parser_status.add_argument('simulation_name', type=str, help='Name of the simulation')
+    parser_status.set_defaults(func=delete_simulation)
 
     # Stop simulation command
     parser_stop = subparsers.add_parser('stop', help='Stop the simulation')
