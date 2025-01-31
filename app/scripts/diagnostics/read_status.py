@@ -47,7 +47,7 @@ def read_batch_status(BATCH_CSV):
                 print_assets_progress(f"Batch {batch_id} Progress", finished_assets, total_assets, progress)
     except Exception as e:
         rbs_logger.error(f"Error reading file {BATCH_CSV}: {str(e)}")
-        return
+        return 0, 0
     
     rbs_logger.debug(f"Printing Status for Batch: {batch_id}")
     if log_entries:
