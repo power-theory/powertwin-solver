@@ -33,7 +33,7 @@ services:
     build: 
       context: ./mss
     ports:
-      - "${MSS_PORT}:8000"
+      - "${MSS_PORT}:8080"
     environment:
       - MSS_FLASK_BASE_URL=${MSS_FLASK_BASE_URL}
       - MSS_SLACK_VERIFICATION_TOKEN=${MSS_SLACK_VERIFICATION_TOKEN}
