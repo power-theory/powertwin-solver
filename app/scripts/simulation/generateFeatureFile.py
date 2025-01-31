@@ -302,8 +302,6 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 ############################################################################################################
 def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json, num_cores, location):
     gff_logger.info("Creating feature files...")
-    
-    raise Exception("Forced failure for testing purposes")
 
     feature_files_dir = os.path.join(SIMULATION_DIR, 'feature_files')
     os.makedirs(feature_files_dir, exist_ok=True)
