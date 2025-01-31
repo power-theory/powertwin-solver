@@ -9,7 +9,7 @@ from flask_cors import CORS
 
 from scripts.simulation import initialize_uo, create_featurefiles, clean_single_report, stop_UOsimulation
 from scripts.diagnostics import asset_analysis, read_simulation_status, simulation_recovery
-from scripts.helper import initialize_logger
+from scripts.helper import initialize_logger, send_error_to_mss
 
 username = "postgres"
 password = "admin"
@@ -118,6 +118,7 @@ def start_simulation():
         main_logger.debug("Exited initialize_uo to start_simulation()")
     except Exception as e:
         main_logger.error(f"Exception: {str(e)}")
+        send_error_to_mss('start_simulation', str(e))
         return jsonify({'error': str(e)}), 500
     
     main_logger.debug("start_simulation() ran successfully")
@@ -184,6 +185,7 @@ def autorun_simulation():
         return jsonify({'message': 'Simulation completed successfully.'}), 200
     except Exception as e:
         main_logger.error(f"Exception: {str(e)}")
+        send_error_to_mss('autorun_simulation', str(e))
         return jsonify({'error': f"Simulation failed: {str(e)}"}), 500
 
 ############################################################################################################
@@ -202,6 +204,7 @@ def stop_simulation():
         return jsonify({'message': 'Simulation stopped successfully'}), 200
     except Exception as e:
         main_logger.error(f"Exception while stopping the simulation: {str(e)}")
+        send_error_to_mss('stop_simulation', str(e))
         return jsonify({'error': str(e)}), 500
 
 
@@ -233,6 +236,7 @@ def get_simulation_status(simulation_name):
         return jsonify({'message': 'Simulation status files read successfully'}), 200
     except Exception as e:
         main_logger.error(f"Exception while reading simulation status files: {str(e)}")
+        send_error_to_mss('get_simulation_status', str(e))
         return jsonify({'error': str(e)}), 500
 
 
@@ -294,6 +298,7 @@ def get_asset_config(simulation_name, asset_id):
     
     except Exception as e:
         main_logger.error(f"Exception: {str(e)}")
+        send_error_to_mss('get_asset_config', str(e))
         return jsonify({'error': str(e)}), 500
 
 # 3. Diagnostics and Logs
@@ -361,6 +366,7 @@ def recovery():
         return jsonify({'message': 'Simulation recovery process completed successfully'}), 200
     except Exception as e:
         main_logger.error(f"Exception during simulation recovery: {str(e)}")
+        send_error_to_mss('recovery', str(e))
         return jsonify({'error': str(e)}), 500
 
 
@@ -406,6 +412,7 @@ def get_logs():
         return send_file(ZIP_FILE, as_attachment=True)
     except Exception as e:
         main_logger.error(f"Exception: {str(e)}")
+        send_error_to_mss('get_logs', str(e))
         return jsonify({'error': str(e)}), 500
 
 ############################################################################################################
