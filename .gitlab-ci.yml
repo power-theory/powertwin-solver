@@ -44,7 +44,8 @@ variables:
   ENVIRONMENT_URL_MSS: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_MSS}.${DOMAIN_NAME}:${BALANCER_PORT}
 
   # Local FLASK base URL
-  MSS_FLASK_BASE_URL: http://$ENVIRONMENT_URL_FLASK
+  FLASK_MSS_BASE_URL: http://$ENVIRONMENT_NAME_MSS
+  MSS_FLASK_BASE_URL: http://$ENVIRONMENT_NAME_FLASK
 
 .deploy_db_template: &deploy_db_template
   script:

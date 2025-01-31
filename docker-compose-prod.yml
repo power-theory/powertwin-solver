@@ -20,7 +20,7 @@ services:
     ports:
       - "${FLASK_PORT}:8080"
     environment:
-      - MSS_FLASK_BASE_URL=${MSS_FLASK_BASE_URL}
+      - FLASK_MSS_BASE_URL=${FLASK_MSS_BASE_URL}
       - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
     volumes:
       - /mnt/g/powertwin_data:/app/powertwin-solver-pg
