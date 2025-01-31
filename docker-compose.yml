@@ -28,8 +28,8 @@ services:
       - powertwin-solver-pg
     tty: true 
 
-  powertwin-db-mss:
-    container_name: powertwin-db-mss
+  powertwin-solver-mss:
+    container_name: powertwin-solver-mss
     build: 
       context: ./mss
     ports:
