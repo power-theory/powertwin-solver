@@ -10,8 +10,8 @@ services:
     ports:
       - "${PG_DB_PORT}:5432"
     volumes:
-      - ./app/powertwin_data:/app/powertwin-solver-pg
-      - postgres_data:/var/lib/postgresql/data
+      - ./powertwin_data:/app/powertwin-solver-pg
+      - ./postgres_data:/var/lib/postgresql/data
 
   powertwin-solver-flask:
     container_name: powertwin-solver-flask
@@ -23,7 +23,7 @@ services:
       - FLASK_MSS_BASE_URL=${FLASK_MSS_BASE_URL}
       - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
     volumes:
-      - ./app/powertwin_data:/app/powertwin-solver-pg
+      - ./powertwin_data:/app/powertwin-solver-pg
     depends_on:
       - powertwin-solver-pg
     tty: true 
