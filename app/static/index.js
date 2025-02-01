@@ -433,6 +433,40 @@ async function stopSimulation() {
         alert('An error occurred while stopping the simulation.');
     }
 }
+
+async function deleteSimulation() {
+    const simulation_name = document.getElementById('delete_simulation_name').value;
+    
+    if (!simulation_name) {
+        alert('Please enter a simulation name.');
+        console.error("Simulation name is required");
+        return;
+    }
+
+    let url = `/api/simulation/delete/${simulation_name}`;
+
+    try {
+        console.log(`Sending DELETE request to ${url}`);
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            alert(`Error: ${errorData.error}`);
+            console.error("Response not OK");
+            return;
+        }
+        const data = await response.json();
+        console.log(data);
+        alert(JSON.stringify(data));
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while deleting the simulation.');
+    }
+}
 //////////////////////////////// Mangement CALLS /////////////////////////////////////////////
 
 async function getAssetConfig() {

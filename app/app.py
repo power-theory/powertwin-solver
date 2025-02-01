@@ -240,6 +240,31 @@ def get_simulation_status(simulation_name):
         return jsonify({'error': str(e)}), 500
 
 
+@server.route('/api/simulation/delete/<simulation_name>', methods=['DELETE'])
+def delete_simulation(simulation_name):
+    main_logger.debug("Within delete_simulation()")
+    
+    if simulation_name is None:
+        main_logger.error("Error: Simulation name is required.")
+        return jsonify({'error': 'Simulation name is required.'}), 400
+
+    SIMULATION_DIR = os.path.join(USER_FILES_DIR, simulation_name)    
+
+    if not os.path.exists(SIMULATION_DIR):
+        main_logger.error("Simulation status directory not found")
+        return jsonify({'error': 'Simulation status directory not found'}), 404
+    
+    # Delete simulation directory
+    try:
+        shutil.rmtree(SIMULATION_DIR)
+        main_logger.info(f"Simulation directory {SIMULATION_DIR} deleted successfully.")
+        return jsonify({'message': f'Simulation directory {SIMULATION_DIR} deleted successfully.'}), 200
+    except Exception as e:
+        main_logger.error(f"Exception while trying to delete simulation: {str(e)}")
+        send_error_to_mss('delete_simulation', str(e))
+        return jsonify({'error': str(e)}), 500
+
+
 
 # 2. Model and Configuration Management
 

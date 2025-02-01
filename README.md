@@ -67,6 +67,13 @@ python cli.py status <simulation_name> [--batch_id <batch_id>]
 - `simulation_name`: Name of the simulation.
 - `--batch_id`: (Optional) ID of the batch.
 
+### Delete Simulation
+Delete a simulation.
+```sh
+python cli.py delete <simulation_name>
+```
+- `simulation_name`: Name of the simulation.
+
 ### Stop Simulation
 Stop the currently running simulation.
 ```sh
