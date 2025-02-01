@@ -11,7 +11,7 @@ services:
       - "${PG_DB_PORT}:5432"
     volumes:
       - /mnt/g/powertwin_data:/app/powertwin-solver-pg
-      - postgres_data:/var/lib/postgresql/data
+      - /mnt/g/postgres_data:/var/lib/postgresql/data
 
   powertwin-solver-flask:
     container_name: ${NAME_PREFIX:-}powertwin-solver-flask
