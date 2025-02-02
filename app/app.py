@@ -27,7 +27,8 @@ conn = psycopg.connect(
 )
 
 # Define the output directory for the simulation files
-USER_FILES_DIR = os.path.join('powertwin-solver-pg', 'user_files')
+USER_FILES_DIR = os.path.join('app','database', 'user_files')
+LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 
 
 @server.route('/')
@@ -284,13 +285,13 @@ def get_asset_config(simulation_name, asset_id):
         
     # Fix to point to powertwin-solver-pg 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-solver-pg', 'user_files')
-    USER_FILES_DIR = os.path.normpath(USER_FILES_DIR)
+    LOCAL_DIR = os.path.join(current_dir, '..', 'powertwin-solver-pg', 'user_files')
+    LOCAL_DIR = os.path.normpath(LOCAL_DIR)
    
 
     try:
         # Search to see if user_files directory exists, so that we can search for the feature file
-        SIMULATION_DIR = os.path.join(USER_FILES_DIR, f'{simulation_name}')
+        SIMULATION_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
         if not os.path.exists(SIMULATION_DIR):
             main_logger.error("Simulation directory does not exist")
             return jsonify({'error': 'Simulation directory does not exist'}), 404
@@ -308,7 +309,7 @@ def get_asset_config(simulation_name, asset_id):
                 file_path = os.path.join(FEATURE_FILE_DIR, file_name)
                 
                 # Define the path to save the requested configuration file
-                DOWNLOAD_DIR = os.path.join(USER_FILES_DIR, 'requested_files')
+                DOWNLOAD_DIR = os.path.join(LOCAL_DIR, 'requested_files')
                 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
                 requested_file_path = os.path.join(DOWNLOAD_DIR, file_name)
                 
@@ -358,19 +359,20 @@ def recovery():
     # USER_FILES_DIR = os.path.normpath(USER_FILES_DIR)
     
     
-    CORRUPTED_SIMULATION_DIR = os.path.join(USER_FILES_DIR, corrupted_simulation_name)
+    CORRUPTED_SIMULATION_DIR = os.path.join(LOCAL_DIR, corrupted_simulation_name)
 
     if not os.path.exists(CORRUPTED_SIMULATION_DIR):
         main_logger.error("Simulation directory not found")
         return jsonify({'error': 'Simulation directory not found'}), 404
 
-    RECOVERY_DIR = os.path.join(USER_FILES_DIR, f'{recover_simulation_name}')
+    RECOVERY_DIR_LOCAL = os.path.join(LOCAL_DIR, f'{recover_simulation_name}')
+    RECOVERY_DIR_CONTAINER = os.path.join(USER_FILES_DIR, f'{recover_simulation_name}')
 
-    if os.path.exists(RECOVERY_DIR):
+    if os.path.exists(RECOVERY_DIR_LOCAL) or os.path.exists(RECOVERY_DIR_CONTAINER):
         main_logger.debug("Recovery directory already exists")
         return jsonify({'error': 'Recovery directory already exists'}), 400
 
-    os.makedirs(RECOVERY_DIR, exist_ok=True)
+    os.makedirs(RECOVERY_DIR_CONTAINER, exist_ok=True)
 
     # Construct the metadata CSV file name
     metadata_csv_name = f'{corrupted_simulation_name}_metadata.csv'
@@ -382,12 +384,12 @@ def recovery():
 
     # Copy and rename the metadata CSV file to the recovery directory
     new_metadata_csv_name = f'{recover_simulation_name}_metadata.csv'
-    new_metadata_csv_path = os.path.join(RECOVERY_DIR, new_metadata_csv_name)
+    new_metadata_csv_path = os.path.join(RECOVERY_DIR_CONTAINER, new_metadata_csv_name)
     shutil.copy(metadata_csv_path, new_metadata_csv_path)
 
     try:
         main_logger.debug("Calling simulation_recovery from recovery()")
-        simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, metadata_csv_path, batch_id, num_cores)
+        simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR_CONTAINER, metadata_csv_path, batch_id, num_cores)
         return jsonify({'message': 'Simulation recovery process completed successfully'}), 200
     except Exception as e:
         main_logger.error(f"Exception during simulation recovery: {str(e)}")

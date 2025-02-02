@@ -118,13 +118,14 @@ def read_simulation_status(SIMULATION_STATUS_DIR, batch_id=None):
                     batch_total_assets, batch_finished_assets = read_batch_status(BATCH_CSV)
                     total_assets += batch_total_assets
                     finished_assets += batch_finished_assets
+                    total_batches += 1
                     if batch_total_assets == batch_finished_assets:
                         finished_batches += 1
                     
     # Calculate overall progress
     if total_assets > 0:
         overall_progress = (finished_assets / total_assets) * 100
-        rbs_logger.info(f"Batch Progress: {finished_batches}/{total_batches}%")
+        rbs_logger.info(f"Batch Progress: ({finished_batches}/{total_batches})")
         print_assets_progress("Overall Progress", finished_assets, total_assets, overall_progress)
     else:
         rbs_logger.error("No assets found in the simulation status directory.")

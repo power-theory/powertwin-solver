@@ -77,6 +77,16 @@ data_mapping = {
 }
 
 def clean_asset_dir(ASSET_DIR):
+    
+    # Fix to point to powertwin-solver-pg 
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-solver-pg', 'user_files')
+    USER_FILES_DIR = os.path.normpath(USER_FILES_DIR)
+    print(USER_FILES_DIR)
+
+
+    os.makedirs(USER_FILES_DIR, exist_ok=True)
+
     # Define the files and directories to keep
     keep_files = {'in.osm', 'in.osw'}
     keep_dirs = {'feature_reports', 'generated_files'}
@@ -92,6 +102,12 @@ def clean_asset_dir(ASSET_DIR):
         # Check if the item is a directory and not in the keep_dirs set
         elif os.path.isdir(item_path) and item not in keep_dirs:
             shutil.rmtree(item_path)
+    
+    # Save file locally
+    shutil.move(ASSET_DIR, os.path.join(USER_FILES_DIR))
+    
+            
+            
 
 ############################################################################################################
 # Name: clean_report(CLEANED_REPORT_DEST,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id)
