@@ -8,7 +8,7 @@
     "constructions": {
         "wall": {
             "material": "Super Insulated Wall",
-            "r_value": 10.0
+            "r_value": 15.0
         },
         "roof": {
             "material": "Super Insulated Roof",
