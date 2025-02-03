@@ -300,11 +300,12 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 #   metadata file. It processes each feature and creates a new feature structure with additional properties.
 #   It writes the new feature structure to individual feature files in the output directory.
 ############################################################################################################
-def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json, num_cores, location):
+def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, location):
     gff_logger.info("Creating feature files...")
 
-    feature_files_dir = os.path.join(SIMULATION_DIR, 'feature_files')
-    os.makedirs(feature_files_dir, exist_ok=True)
+    FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
+    LOCAL_FEATURE_FILES_DIR = os.path.join(LOCAL_DIR, 'feature_files')
+    os.makedirs(FEATURE_FILES_DIR, exist_ok=True)
     
     # Metadata requires the area, subtype and name of the building to be present from the metadata
     building_area_list, building_type_list, building_name_list, = read_metadata(metadata_csv)
@@ -317,18 +318,19 @@ def create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json
         if result:
             final_json, building_id, building_name = result
             new_building_name = building_name.replace(' ', '_')
-            feature_file_path = os.path.join(feature_files_dir, f'{building_id}_{new_building_name}.json')
+            feature_file_path = os.path.join(FEATURE_FILES_DIR, f'{building_id}_{new_building_name}.json')
             with open(feature_file_path, 'w') as feature_file:
                 json.dump(final_json, feature_file, indent=4)
 
     gff_logger.info("Feature files created successfully.")
-    asset_analysis(SIMULATION_DIR, num_cores, location)
+    asset_analysis(SIMULATION_DIR,LOCAL_DIR, num_cores, location)
 
     gff_logger.debug("Zipping the output directory...")
-    zip_file_path = shutil.make_archive(feature_files_dir, 'zip', feature_files_dir)
+    shutil.make_archive(LOCAL_FEATURE_FILES_DIR, 'zip', FEATURE_FILES_DIR)
+    zip_file_path = shutil.make_archive(FEATURE_FILES_DIR, 'zip', FEATURE_FILES_DIR)
 
     gff_logger.debug("Removing the unzipped directory...")
-    shutil.rmtree(feature_files_dir)
+    shutil.rmtree(FEATURE_FILES_DIR)
 
     gff_logger.info(f"Zip file created at: {zip_file_path}")
 
@@ -341,7 +343,8 @@ if __name__ == "__main__":
     metadata_csv = 'app/powertwin-solver-pg/uploaded_files/metadata.csv'
     config_json = 'app/powertwin-solver-pg/uploaded_files/custom_config.json'
     SIMULATION_DIR = 'app/powertwin-solver-pg/uploaded_files'
+    LOCAL_DIR = 'app/powertwin-solver-pg/user_files'
     location = 'Phoenix'
     num_cores = 1
     
-    create_featurefiles(SIMULATION_DIR, asset_geojson, metadata_csv, config_json, num_cores, location)
+    create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, location)

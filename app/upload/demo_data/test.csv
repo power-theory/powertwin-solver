@@ -1,3 +1,4 @@
+sensor_id,sensor_type_id,sensor_type_name,asset_id,asset_name,asset_subtype_id,asset_subtype_name,asset_metadata,asset_geometries_properties
 21424,1,"Electricity",585189812,"Single Family Dwelling",4,"Single-Family","{""area"": 412.81979767226863, ""latitude"": 41.3224703706888, ""longitude"": -105.57407480720687}","{""id"": ""585189812"", ""base"": 0, ""height"": 4, ""asset_id"": ""585189812"", ""floorCount"": 1}"
 21425,2,"Renewables",585189812,"Single Family Dwelling",4,"Single-Family","{""area"": 412.81979767226863, ""latitude"": 41.3224703706888, ""longitude"": -105.57407480720687}","{""id"": ""585189812"", ""base"": 0, ""height"": 4, ""asset_id"": ""585189812"", ""floorCount"": 1}"
 21426,3,"Hot Water",585189812,"Single Family Dwelling",4,"Single-Family","{""area"": 412.81979767226863, ""latitude"": 41.3224703706888, ""longitude"": -105.57407480720687}","{""id"": ""585189812"", ""base"": 0, ""height"": 4, ""asset_id"": ""585189812"", ""floorCount"": 1}"

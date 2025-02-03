@@ -1,5 +1,5 @@
 {
-    "simulation_name": "test1",
+    "simulation_name": "laramie1",
     "asset_geojson_path": "app/upload/demo_data/test.geojson",
     "metadata_csv_path": "app/upload/demo_data/test.csv",
     "config_json_path": "app/upload/demo_data/default_config.json",

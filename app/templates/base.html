@@ -66,8 +66,8 @@
                         <input type="number" id="roof_r_value" name="constructions.roof.r_value" value="15.0"><br>
                     </div>
 
-                    <label for="locations">Location:</label>
-                    <select class="locations" name="locations">
+                    <label for="location">Location:</label>
+                    <select class="location" name="location">
                         <!-- Options will be populated by JavaScript -->
                     </select><br>
 
@@ -109,7 +109,7 @@
             
             <div class="form-section">
                 <h2>Delete Simulation</h2>
-                <form id="status-form">
+                <form id="delete-form">
                     <label for="delete_simulation_name">Simulation Name:</label>
                     <input type="text" id="delete_simulation_name" name="delete_simulation_name"><br>
                     <button type="button" onclick="deleteSimulation()">Delete Simulation</button>

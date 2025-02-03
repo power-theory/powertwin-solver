@@ -1,4 +1,4 @@
-# PowerTwin Solver v1.0.1
+# PowerTwin Solver v1.1.0
 
 ## HOW TO RUN
 ```sh
@@ -108,6 +108,7 @@ python cli.py get_logs
 ## General Tree
 ```
 🏠 app/
+├── database
 ├── scripts/
 │   ├── diagnostics
 │   ├── helper
@@ -132,18 +133,44 @@ python cli.py get_logs
 
 ## Runtime Generation Tree
 ```
-⚡powertwin_data/
+⚡database/
+└── user_files/
+    └── <simulation_name>/
+        ├── feature_files.zip
+        ├── uosim_time.csv
+        ├── feature_files/
+        │   ├── <asset_id>_<id_name>.json
+        │   └── ...
+        ├── batch_status/
+        |   ├── 0_status.csv
+        |   └── ...
+        └── urbanopt_simulation/
+            ├── batch_0
+            |   ├── <asset_id>
+            |   └── ...
+            └── ...
+```
+
+## Local Tree
+```
+🔗powertwin_data/
 └── user_files/
     └── <simulation_name>/
         ├── feature_files.zip
         ├── <simulation_name>_metadata.csv
         ├── <simulation_name>_geojson.json
+        ├── <simulation_name>_config.json
         ├── uosim_time.csv
-        ├── feature_files/
-        │   └── <asset_id>_<id_name>.json
+        ├── batch_status/
+        |   ├── 0_status.csv
+        |   └── ...
+        ├── cleaned_reports/
+        |   ├── <asset_id>
+        |   └── ...
         └── urbanopt_simulation/
             ├── batch_0
-            ├── batch_1
+            |   ├── <asset_id>
+            |   └── ...
             └── ...
 ```
 The runtime generation tree describes the expected files create during runtime.

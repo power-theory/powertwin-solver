@@ -36,7 +36,7 @@ fetch('/static/json/building_types.json')
 fetch('/static/json/locations.json')
     .then(response => response.json())
     .then(data => {
-        const locationsSelects = document.querySelectorAll('.locations');
+        const locationsSelects = document.querySelectorAll('.location');
         locationsSelects.forEach(select => {
             data.locations.forEach(type => {
                 const option = document.createElement('option');
@@ -311,10 +311,10 @@ async function startSimulation() {
     console.log("startSimulation script loaded");
 
     const asset_geojson_file = document.getElementById('startsim_asset_geojson_file').files[0];
-    const metadata_csv_file = document.getElementById('startsim_metadata_csv_file_1').files[0];
+    const metadata_csv_file = document.getElementById('startsim_metadata_csv_file').files[0];
     const simulation_name = document.getElementById('startsim_simulation_name').value;
     const num_cores = document.getElementById('startsim_num_cores').value;
-    const locations = document.querySelector('.locations').value;
+    const location = document.querySelector('.location').value;
 
     if (!(asset_geojson_file && metadata_csv_file)) {
         alert('Please upload both the GeoJSON and CSV files.');
@@ -355,7 +355,7 @@ async function startSimulation() {
     formData.append('asset_geojson_file', asset_geojson_file);
     formData.append('metadata_csv_file', metadata_csv_file);
     formData.append('config_data', JSON.stringify(configData));
-    formData.append('location', locations);
+    formData.append('location', location);
     formData.append('num_cores', num_cores);
 
 

@@ -1,0 +1,30 @@
+services:
+  powertwin-solver-pg:
+    image: postgres:latest
+    container_name: powertwin-solver-pg
+    environment:
+      - POSTGRES_DB=powertwin
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./powertwin_data:/app/powertwin-solver-pg
+      - ./postgres_data:/var/lib/postgresql/data
+
+  powertwin-solver-flask:
+    container_name: powertwin-solver-flask
+    build: 
+      context: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./powertwin_data:/app/powertwin-solver-pg
+    depends_on:
+      - powertwin-solver-pg
+    tty: true 
+
+volumes:
+  powertwin-solver-flask:
+  postgres_data:
+  powertwin_data:

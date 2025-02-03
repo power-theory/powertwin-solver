@@ -9,6 +9,11 @@ from scripts.diagnostics import asset_analysis
 
 recuo_logger = initialize_logger('Recover UOSim')
 
+# Fix to point to powertwin-solver-pg 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+LOCAL_USER_FILES_DIR = os.path.join(current_dir, '..','..','..', 'powertwin-solver-pg', 'user_files')
+LOCAL_USER_FILES_DIR = os.path.normpath(LOCAL_USER_FILES_DIR)
+
 ############################################################################################################
 # Name: process_status_file(status_file_path, assets_to_transfer, CORRUPTED_STATUS_DIR)
 # Description: This function processes the status file and adds asset IDs to the assets_to_transfer set.
@@ -18,8 +23,7 @@ def process_status_file(status_file_path, assets_to_transfer, CORRUPTED_STATUS_D
         reader = csv.DictReader(file)
         for row in reader:
             asset_id = row['Asset ID']
-            asset_name = row['Name']
-            cleaned_report_dir = os.path.join(CORRUPTED_STATUS_DIR, 'cleaned_reports', f'{asset_id}_{asset_name}')
+            cleaned_report_dir = os.path.join(CORRUPTED_STATUS_DIR, 'cleaned_reports', f'{asset_id}')
             
             if row['Status'] == 'Processing' and os.path.exists(cleaned_report_dir) and os.listdir(cleaned_report_dir):
                 recuo_logger.debug(f"Excluding asset {asset_id} with non-empty cleaned_reports directory: {cleaned_report_dir}")
@@ -109,7 +113,7 @@ def clean_corrupted_simulation(CORRUPTED_SIMULATION_DIR, asset_id):
 # Description: This function recovers a corrupted simulation by removing assets that are "Processing" or "Not Processed Yet"
 #   from the feature_files directory and re-running the UO simulation.
 ############################################################################################################
-def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, METADATA_CSV_PATH, batch_id, num_cores):    
+def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, RECOVERY_DIR_LOCAL, METADATA_CSV_PATH, batch_id, num_cores):    
     recuo_logger.info(f"Recovering simulation: {CORRUPTED_SIMULATION_DIR}")
 
 
@@ -117,6 +121,7 @@ def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, METADATA_CSV_PAT
     CORRUPTED_STATUS_DIR = os.path.join(CORRUPTED_SIMULATION_DIR, 'batch_status')
 
     FEATURE_FILE_ZIP_PATH = os.path.join(RECOVERY_DIR, 'feature_files.zip')
+    FEATURE_FILE_ZIP_PATH_LOCAL = os.path.join(RECOVERY_DIR_LOCAL, 'feature_files.zip')
     FEATURE_FILES_DIR = os.path.join(RECOVERY_DIR, 'feature_files')
     os.makedirs(FEATURE_FILES_DIR, exist_ok=True)
         
@@ -142,15 +147,20 @@ def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, METADATA_CSV_PAT
             if asset_id not in assets_to_transfer:
                 file_path = os.path.join(root, file_name)
                 os.remove(file_path)
-            else:
-                clean_corrupted_simulation(CORRUPTED_SIMULATION_DIR, asset_id)
+            # else:
+            #     clean_corrupted_simulation(CORRUPTED_SIMULATION_DIR, asset_id)
+            
+    
 
 
     
     
     # Zip the feature_files directory
-    recuo_logger.debug(f"Zipping {FEATURE_FILES_DIR} into {FEATURE_FILE_ZIP_PATH}")
+    
+    
+    recuo_logger.debug(f"Zipping {FEATURE_FILES_DIR} into {FEATURE_FILE_ZIP_PATH} and {FEATURE_FILE_ZIP_PATH_LOCAL}")
     shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH)[0], 'zip', FEATURE_FILES_DIR)
+    shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH_LOCAL)[0], 'zip', FEATURE_FILES_DIR)
     
     
     # TODO: modify the following code to use the postgres database instead of the uosim_time.csv
@@ -166,18 +176,20 @@ def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, METADATA_CSV_PAT
             return
 
     # Continue with the recovery process
-    asset_analysis(RECOVERY_DIR, num_cores, location)
+    asset_analysis(RECOVERY_DIR, RECOVERY_DIR_LOCAL, num_cores, location)
     
-    initialize_uo(RECOVERY_DIR,METADATA_CSV_PATH,FEATURE_FILE_ZIP_PATH, clean_report_flag=True)
+    initialize_uo(RECOVERY_DIR,RECOVERY_DIR_LOCAL,METADATA_CSV_PATH,FEATURE_FILE_ZIP_PATH, clean_report_flag=True)
 
 
 if __name__ == "__main__":
     USERFILES_DIR = os.path.join(os.getcwd(), 'app', 'powertwin-solver-pg', 'user_files')
     METADATA_CSV_PATH = os.path.join(USERFILES_DIR, 'example_simulation_recovery_metadata.csv')
     CORRUPTED_SIMULATION_DIR = 'example_simulation'
+    RECOVERY_DIR = 'example_recovery'
+    RECOVERY_DIR_LOCAL = 'example_recovery'
     batch_id = 1
     num_cores = 4
-    simulation_recovery(USERFILES_DIR, METADATA_CSV_PATH, CORRUPTED_SIMULATION_DIR, batch_id, num_cores)
+    simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, RECOVERY_DIR_LOCAL, METADATA_CSV_PATH, batch_id, num_cores)
         
     
         
