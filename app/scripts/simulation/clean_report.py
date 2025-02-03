@@ -76,16 +76,7 @@ data_mapping = {
     }
 }
 
-def clean_asset_dir(ASSET_DIR):
-    
-    # Fix to point to powertwin-solver-pg 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-solver-pg', 'user_files')
-    USER_FILES_DIR = os.path.normpath(USER_FILES_DIR)
-    print(USER_FILES_DIR)
-
-
-    os.makedirs(USER_FILES_DIR, exist_ok=True)
+def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
 
     # Define the files and directories to keep
     keep_files = {'in.osm', 'in.osw'}
@@ -104,7 +95,7 @@ def clean_asset_dir(ASSET_DIR):
             shutil.rmtree(item_path)
     
     # Save file locally
-    shutil.move(ASSET_DIR, os.path.join(USER_FILES_DIR))
+    shutil.move(ASSET_DIR, os.path.join(LOCAL_BATCH_SIMULATION_DIR))
     
             
             
@@ -113,14 +104,14 @@ def clean_asset_dir(ASSET_DIR):
 # Name: clean_report(CLEANED_REPORT_DEST,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id)
 # Description: This function processes the input CSV file and saves cleaned section reports to a new directory.
 ############################################################################################################
-def clean_single_report(SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id):
+def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id):
     cr_logger.debug(f"Within clean_report for asset_id: {asset_id}")
     
-    CLEANED_REPORT_DEST = os.path.join(SIMULATION_DIR,'cleaned_reports', f'{asset_id}')
+    CLEANED_REPORT_DEST = os.path.join(LOCAL_DIR,'cleaned_reports', f'{asset_id}')
     os.makedirs(CLEANED_REPORT_DEST, exist_ok=True)
     
     # Find the metadata CSV file that ends with _metadata.csv
-    METADATA_CSV = glob(os.path.join(SIMULATION_DIR, '*_metadata.csv'))
+    METADATA_CSV = glob(os.path.join(LOCAL_DIR, '*_metadata.csv'))
     if not METADATA_CSV:
         cr_logger.error("No metadata CSV file found")
         return
@@ -128,6 +119,7 @@ def clean_single_report(SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset
     
     UNCLEAN_REPORT_CSV = os.path.join(BATCH_SIMULATION_DIR, "run", "powertwin_scenario", asset_id, "feature_reports", "default_feature_report.csv")
     ASSET_DIR = os.path.join(BATCH_SIMULATION_DIR, "run", "powertwin_scenario", asset_id)
+    LOCAL_ASSET_DIR = os.path.join(LOCAL_BATCH_SIMULATION_DIR, asset_id)
         
     sensor_id_list = {}
     
@@ -182,7 +174,7 @@ def clean_single_report(SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset
         cr_logger.debug(f"Saving cleaned section report to: {output_file}")
         clean_df.to_csv(output_file, index=False)
 
-    clean_asset_dir(ASSET_DIR)
+    clean_asset_dir(ASSET_DIR, LOCAL_ASSET_DIR)
 
 ############################################################################################################
 # Main script:

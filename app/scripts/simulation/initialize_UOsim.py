@@ -15,7 +15,7 @@ inituo_logger = initialize_logger('Initialize UOSim')
 # Description: This function prepares the record for the simulation times. The simulation times are written to a
 #   CSV file for data analysis.
 ############################################################################################################
-def prepare_record(SIMULATION_DIR, clean_report_flag, METADATA_CSV):
+def prepare_record(SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV):
     UOSIM_TIME_CSV = os.path.join(SIMULATION_DIR, "uosim_time.csv")
     
     # Read the existing CSV data
@@ -39,7 +39,7 @@ def prepare_record(SIMULATION_DIR, clean_report_flag, METADATA_CSV):
     # Run simulations in parallel
     try:
         with parallel_backend('loky', n_jobs=len(batches), verbose=10):
-            Parallel()(delayed(run_batch)(batch, SIMULATION_DIR, clean_report_flag, METADATA_CSV, batch_index) for batch_index, batch in batches.items())
+            Parallel()(delayed(run_batch)(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, batch_index) for batch_index, batch in batches.items())
     except Exception as e:
         inituo_logger.error(f"Error running simulations: {e}")
         return
@@ -51,13 +51,15 @@ def prepare_record(SIMULATION_DIR, clean_report_flag, METADATA_CSV):
 #   weather files, and extracting the feature files. It then prepares the record for the simulation times.
 #   The simulation times are written to a CSV file for data analysis.
 ############################################################################################################
-def initialize_uo(SIMULATION_DIR,METADATA_CSV,feature_file_zip, clean_report_flag=False):
+def initialize_uo(SIMULATION_DIR,LOCAL_DIR,METADATA_CSV,feature_file_zip, clean_report_flag=False):
     start_time = time.time()
     
     
     OUTPUT_FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, "feature_files")
     UOSIMULATION_DIR = os.path.join(SIMULATION_DIR, 'urbanopt_simulation')
+    LOCAL_UOSIMULATION_DIR = os.path.join(LOCAL_DIR, 'urbanopt_simulation')
     os.makedirs(UOSIMULATION_DIR, exist_ok=True)
+    os.makedirs(LOCAL_UOSIMULATION_DIR, exist_ok=True)
     
     # TODO: Adjust so that the feature file is located from the database server
     
@@ -82,7 +84,7 @@ def initialize_uo(SIMULATION_DIR,METADATA_CSV,feature_file_zip, clean_report_fla
             return
 
     # Update the CSV file with simulation times
-    prepare_record(SIMULATION_DIR, clean_report_flag, METADATA_CSV)      
+    prepare_record(SIMULATION_DIR, LOCAL_DIR, clean_report_flag, METADATA_CSV)      
 
     end_time = time.time()
     duration_seconds = end_time - start_time

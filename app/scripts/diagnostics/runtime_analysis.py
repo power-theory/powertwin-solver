@@ -2,6 +2,7 @@ import os
 import json
 import csv
 import multiprocessing
+import shutil
 
 from scripts.helper import initialize_logger
 
@@ -38,10 +39,11 @@ def count_coordinate_lines(json_string):
 # Description: This function reads the JSON files in the specified directory and extracts the asset data.
 #   It writes the asset data to a CSV file and schedules the assets for processing.
 ############################################################################################################
-def asset_analysis(SIMULATION_DIR, num_cores, location):
+def asset_analysis(SIMULATION_DIR, LOCAL_DIR, num_cores, location):
     ra_logger.debug("Within asset_analysis()")
     
     UOSIM_CSV = os.path.join(SIMULATION_DIR, 'uosim_time.csv')
+    LOCAL_UOSIM_CSV = os.path.join(LOCAL_DIR, 'uosim_time.csv')
     FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
     
     if num_cores > multiprocessing.cpu_count():
@@ -117,6 +119,9 @@ def asset_analysis(SIMULATION_DIR, num_cores, location):
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(asset_data)
+    
+    ra_logger.info("Copying uosim_time.csv to local directory...")
+    shutil.copy(UOSIM_CSV, LOCAL_UOSIM_CSV)
 
     # Print the scheduled assets for each core
     # for i in range(num_cores):
@@ -131,7 +136,8 @@ def asset_analysis(SIMULATION_DIR, num_cores, location):
 # Description: This function is the entry point for the script. Used for testing purposes.
 ############################################################################################################
 if __name__ == "__main__":
-    SIMULATION_DIR = ''#'feature_files'
+    SIMULATION_DIR = ''
     num_cores = 4
     location = 'Phoenix-SkyHarbor'
-    asset_analysis(SIMULATION_DIR, num_cores, location)
+    LOCAL_DIR = ''
+    asset_analysis(SIMULATION_DIR, LOCAL_DIR, num_cores, location)

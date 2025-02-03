@@ -82,24 +82,24 @@ def start_simulation():
         main_logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
     
-    if simulation_name:
-        # Check if the simulation name already exists
-        SIMULATION_DIR = os.path.join(USER_FILES_DIR,f'{simulation_name}')
-        if os.path.exists(SIMULATION_DIR):
-            main_logger.error("Error: Simulation name already exists.")
-            return jsonify({'error': 'Simulation name already exists.'}), 400
     
+    LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
     
-    # Define the upload directory and paths for the uploaded files
-
-    SIMULATION_DIR = os.path.join(USER_FILES_DIR,f'{simulation_name}')
+    SIMULATION_DIR = os.path.join(USER_FILES_DIR, f'{simulation_name}')
+    LOCAL_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
+    if os.path.exists(SIMULATION_DIR) or os.path.exists(LOCAL_DIR):
+        main_logger.error("Error: Simulation name already exists.")
+        return jsonify({'error': 'Simulation name already exists.'}), 400
+    
     os.makedirs(SIMULATION_DIR, exist_ok=True)
+    os.makedirs(LOCAL_DIR, exist_ok=True)
     main_logger.info(f"Upload directory: {SIMULATION_DIR}")
-
-    asset_geojson_path = os.path.join(SIMULATION_DIR, f'{simulation_name}_asset.geojson')
-    metadata_csv_path = os.path.join(SIMULATION_DIR, f'{simulation_name}_metadata.csv')
-    config_json_path = os.path.join(SIMULATION_DIR, f'{simulation_name}_config.json')
+    main_logger.info(f"Local directory: {LOCAL_DIR}")
     
+    asset_geojson_path = os.path.join(LOCAL_DIR, f'{simulation_name}_asset.geojson')
+    metadata_csv_path = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
+    config_json_path = os.path.join(LOCAL_DIR, f'{simulation_name}_config.json')
+
     # Save the uploaded files
     ASSET_GEOJSON.save(asset_geojson_path)
     METADATA_CSV.save(metadata_csv_path)
@@ -109,14 +109,19 @@ def start_simulation():
     # Call the create_feature_files and initialize_uo functions
     try:
         main_logger.debug("Calling create_feature_files from start_simulation()")
-        create_featurefiles(SIMULATION_DIR,asset_geojson_path, metadata_csv_path, config_json_path, num_cores, location)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, location)
         main_logger.debug("Exited create_feature_files to start_simulation()")
         
         featurefile_zip_path = os.path.join(SIMULATION_DIR,'feature_files.zip')
         
         main_logger.debug("Calling initialize_uo from start_simulation()")
-        initialize_uo(SIMULATION_DIR,metadata_csv_path,featurefile_zip_path, clean_report_flag=True)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR,metadata_csv_path,featurefile_zip_path, clean_report_flag=True)
         main_logger.debug("Exited initialize_uo to start_simulation()")
+        
+        main_logger.debug("Deleting simulation directory, within the container")
+        
+        get_logs()
+        shutil.rmtree(SIMULATION_DIR)
     except Exception as e:
         main_logger.error(f"Exception: {str(e)}")
         send_error_to_mss('start_simulation', str(e))
@@ -134,6 +139,8 @@ def start_simulation():
 @server.route('/api/simulation/autorun_simulation', methods=['POST'])
 def autorun_simulation():
     SIMULATION_JSON = os.path.join('app', 'upload', 'simulation.json')
+    LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
+
 
     if not os.path.exists(SIMULATION_JSON):
         main_logger.error("Error: simulation.json file not found.")
@@ -155,17 +162,21 @@ def autorun_simulation():
 
     
     SIMULATION_DIR = os.path.join(USER_FILES_DIR, f'{simulation_name}')
-    if os.path.exists(SIMULATION_DIR):
+    LOCAL_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
+    if os.path.exists(SIMULATION_DIR) or os.path.exists(LOCAL_DIR):
         main_logger.error("Error: Simulation name already exists.")
         return jsonify({'error': 'Simulation name already exists.'}), 400
     
     os.makedirs(SIMULATION_DIR, exist_ok=True)
+    os.makedirs(LOCAL_DIR, exist_ok=True)
     main_logger.info(f"Upload directory: {SIMULATION_DIR}")
+    main_logger.info(f"Local directory: {LOCAL_DIR}")
     
 
-    ASSET_GEOJSON = os.path.join(SIMULATION_DIR, f'{simulation_name}_asset.geojson')
-    METADATA_CSV = os.path.join(SIMULATION_DIR, f'{simulation_name}_metadata.csv')
-    CONFIG_JSON = os.path.join(SIMULATION_DIR, f'{simulation_name}_config.json')
+    ASSET_GEOJSON = os.path.join(LOCAL_DIR, f'{simulation_name}_asset.geojson')
+    METADATA_CSV = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
+    METADATA_CSV = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
+    CONFIG_JSON = os.path.join(LOCAL_DIR, f'{simulation_name}_config.json')
     
     # Copy the files to the new directory
     shutil.copy(asset_geojson_path, ASSET_GEOJSON)
@@ -175,14 +186,18 @@ def autorun_simulation():
     # Call the create_feature_files and initialize_uo functions
     try:
         main_logger.debug("Calling create_feature_files from start_simulation_from_json()")
-        create_featurefiles(SIMULATION_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location)
         main_logger.debug("Exited create_feature_files to start_simulation_from_json()")
         
         featurefile_zip_path = os.path.join(SIMULATION_DIR, 'feature_files.zip')
         
         main_logger.debug("Calling initialize_uo from start_simulation_from_json()")
-        initialize_uo(SIMULATION_DIR, METADATA_CSV, featurefile_zip_path, clean_report_flag=True)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR, METADATA_CSV, featurefile_zip_path, clean_report_flag=True)
         main_logger.debug("Exited initialize_uo to start_simulation_from_json()")
+        
+        main_logger.debug("Deleting simulation directory, within the container")
+        get_logs()
+        shutil.rmtree(SIMULATION_DIR)
         return jsonify({'message': 'Simulation completed successfully.'}), 200
     except Exception as e:
         main_logger.error(f"Exception: {str(e)}")
@@ -352,12 +367,7 @@ def recovery():
         return jsonify({'error': 'Recover simulation name is required.'}), 400
     
     
-
-    # # Fix to point to powertwin-solver-pg 
-    # current_dir = os.path.dirname(os.path.abspath(__file__))
-    # USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-solver-pg', 'user_files')
-    # USER_FILES_DIR = os.path.normpath(USER_FILES_DIR)
-    
+    LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
     
     CORRUPTED_SIMULATION_DIR = os.path.join(LOCAL_DIR, corrupted_simulation_name)
 
@@ -373,10 +383,17 @@ def recovery():
         return jsonify({'error': 'Recovery directory already exists'}), 400
 
     os.makedirs(RECOVERY_DIR_CONTAINER, exist_ok=True)
+    os.makedirs(RECOVERY_DIR_LOCAL, exist_ok=True)
 
     # Construct the metadata CSV file name
     metadata_csv_name = f'{corrupted_simulation_name}_metadata.csv'
     metadata_csv_path = os.path.join(CORRUPTED_SIMULATION_DIR, metadata_csv_name)
+    # Construct the asset geojson file name
+    geojson_name = f'{corrupted_simulation_name}_asset.geojson'
+    geojson_path = os.path.join(CORRUPTED_SIMULATION_DIR, geojson_name)
+    # Construct the config json file name
+    config_name = f'{corrupted_simulation_name}_config.json'
+    config_path = os.path.join(CORRUPTED_SIMULATION_DIR, config_name)
 
     if not os.path.exists(metadata_csv_path):
         main_logger.error("Metadata CSV file not found in the corrupted simulation directory")
@@ -384,13 +401,31 @@ def recovery():
 
     # Copy and rename the metadata CSV file to the recovery directory
     new_metadata_csv_name = f'{recover_simulation_name}_metadata.csv'
-    new_metadata_csv_path = os.path.join(RECOVERY_DIR_CONTAINER, new_metadata_csv_name)
-    shutil.copy(metadata_csv_path, new_metadata_csv_path)
+    new_metadata_csv_path1 = os.path.join(RECOVERY_DIR_CONTAINER, new_metadata_csv_name)
+    new_metadata_csv_path2 = os.path.join(RECOVERY_DIR_LOCAL, new_metadata_csv_name)
+    shutil.copy(metadata_csv_path, new_metadata_csv_path1)
+    shutil.copy(metadata_csv_path, new_metadata_csv_path2)
+
+    # Copy and rename the metadata CSV file to the recovery directory
+    new_geojson_name = f'{recover_simulation_name}_asset.geojson'
+    new_geojson_name_path = os.path.join(RECOVERY_DIR_CONTAINER, new_geojson_name)
+    shutil.copy(geojson_path, new_geojson_name_path)
+
+    # Copy and rename the metadata CSV file to the recovery directory
+    new_config_name = f'{recover_simulation_name}_config.json'
+    new_config_name_path = os.path.join(RECOVERY_DIR_CONTAINER, new_config_name)
+    shutil.copy(config_path, new_config_name_path)
 
     try:
         main_logger.debug("Calling simulation_recovery from recovery()")
-        simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR_CONTAINER, metadata_csv_path, batch_id, num_cores)
+        simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, new_metadata_csv_path1, batch_id, num_cores)
+        
+        main_logger.debug("Exited simulation_recovery to recovery(), deleting recovery directory within the container")
+        get_logs()
+        shutil.rmtree(RECOVERY_DIR_CONTAINER)
         return jsonify({'message': 'Simulation recovery process completed successfully'}), 200
+
+
     except Exception as e:
         main_logger.error(f"Exception during simulation recovery: {str(e)}")
         send_error_to_mss('recovery', str(e))

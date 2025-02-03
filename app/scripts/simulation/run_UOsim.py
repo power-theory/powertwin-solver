@@ -52,12 +52,12 @@ def run_command(command):
         raise e
 
 ############################################################################################################
-# Name: update_status(status_file, asset_id, status, message)
+# Name: update_status(BATCH_STATUS_CSV, asset_id, status, message)
 # Description: This function updates the status of an asset in the status file.
 ############################################################################################################
-def update_status(status_file, asset_id, status, message):
+def update_status(BATCH_STATUS_CSV, asset_id, status, message):
     # Read the current status file
-    with open(status_file, 'r', newline='') as f:
+    with open(BATCH_STATUS_CSV, 'r', newline='') as f:
         reader = csv.reader(f)
         lines = list(reader)
     
@@ -69,7 +69,7 @@ def update_status(status_file, asset_id, status, message):
             break
     
     # Write the updated status file
-    with open(status_file, 'w', newline='') as f:
+    with open(BATCH_STATUS_CSV, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerows(lines)
 
@@ -80,7 +80,7 @@ def update_status(status_file, asset_id, status, message):
 #   runs the simulation, processes the simulation, and cleans the report if necessary. It records the time it
 #   takes to run the simulation and process the simulation.
 ############################################################################################################
-def run_uosimulation(SIMULATION_DIR,FEATURE_FILE_JSON, clean_report_flag, METADATA_CSV, batch_index):
+def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_flag, METADATA_CSV, batch_index):
     feature_start_time = time.time()
     
     feature_file_name = os.path.basename(FEATURE_FILE_JSON)
@@ -119,6 +119,7 @@ def run_uosimulation(SIMULATION_DIR,FEATURE_FILE_JSON, clean_report_flag, METADA
     
     # Set UrbanOpt Simulation Paths
     BATCH_SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation', f'batch_{batch_index}')
+    LOCAL_BATCH_SIMULATION_DIR = os.path.join(LOCAL_DIR, 'urbanopt_simulation', f'batch_{batch_index}')
     MAPPER_DESTINATION = os.path.join(BATCH_SIMULATION_DIR, "mappers")
     WEATHER_DESTINATION = os.path.join(BATCH_SIMULATION_DIR, "weather")
     
@@ -180,7 +181,7 @@ def run_uosimulation(SIMULATION_DIR,FEATURE_FILE_JSON, clean_report_flag, METADA
     
     if(clean_report_flag):
         ruo_logger.debug(f"BATCH {batch_index}: Cleaning report for {asset_id}:{asset_name}...") 
-        clean_single_report(SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id)
+        clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id)
         
     
     feature_end_time = time.time()
@@ -192,7 +193,7 @@ def run_uosimulation(SIMULATION_DIR,FEATURE_FILE_JSON, clean_report_flag, METADA
     feature_seconds = feature_duration % 60
     ruo_logger.info(f"BATCH {batch_index}: {asset_id} processed in {feature_hours} hours, {feature_minutes} minutes, and {feature_seconds:.2f} seconds.")
     
-    # Update the CSV data with the results)
+    # Update the CSV data with the results
     # Read the existing CSV data
     with open(UOSIM_TIME_CSV, mode='r') as file:
         reader = csv.DictReader(file)
@@ -210,6 +211,10 @@ def run_uosimulation(SIMULATION_DIR,FEATURE_FILE_JSON, clean_report_flag, METADA
         writer = csv.DictWriter(file, fieldnames=reader.fieldnames)
         writer.writeheader()
         writer.writerows(data)
+        
+    # Copy the UOSIM_TIME_CSV to the local directory
+    LOCAL_UOSIM_TIME_CSV = os.path.join(LOCAL_DIR, 'uosim_time.csv')
+    shutil.copy(UOSIM_TIME_CSV, LOCAL_UOSIM_TIME_CSV)
     
 
 ############################################################################################################
@@ -218,13 +223,15 @@ def run_uosimulation(SIMULATION_DIR,FEATURE_FILE_JSON, clean_report_flag, METADA
 #   runs the simulation, processes the simulation, and cleans the report if necessary. It records the time it
 #   takes to run the simulation and process the simulation.
 ############################################################################################################
-def run_batch(batch, SIMULATION_DIR, clean_report_flag, METADATA_CSV, batch_index):
+def run_batch(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, batch_index):
     # Create a status file for the batch
-    status_file = os.path.join(SIMULATION_DIR, 'batch_status', f"{batch_index}_status.csv")
-    os.makedirs(os.path.dirname(status_file), exist_ok=True)
+    BATCH_STATUS_CSV = os.path.join(SIMULATION_DIR, 'batch_status', f"{batch_index}_status.csv")
+    LOCAL_BATCH_STATUS_CSV = os.path.join(LOCAL_DIR, 'batch_status',f"{batch_index}_status.csv")
+    os.makedirs(os.path.dirname(BATCH_STATUS_CSV), exist_ok=True)
+    os.makedirs(os.path.dirname(LOCAL_BATCH_STATUS_CSV), exist_ok=True)
     
     # Initialize the status file with headers
-    with open(status_file, 'w', newline='') as f:
+    with open(BATCH_STATUS_CSV, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(["Asset ID", "Name","Status"])
         for row in batch:
@@ -239,18 +246,24 @@ def run_batch(batch, SIMULATION_DIR, clean_report_flag, METADATA_CSV, batch_inde
         feature_file = os.path.join(SIMULATION_DIR, "feature_files", f"{asset_id}_{asset_name}.json")
 
         # Update status to Processing
-        update_status(status_file, asset_id, asset_name, "Processing")
+        update_status(BATCH_STATUS_CSV, asset_id, asset_name, "Processing")
+        shutil.copy(BATCH_STATUS_CSV, LOCAL_BATCH_STATUS_CSV)
         
         ruo_logger.debug(f"BATCH {batch_index}: Starting processing asset {asset_id}...")
         try:
-            run_uosimulation(SIMULATION_DIR, feature_file, clean_report_flag, METADATA_CSV, batch_index)
+            run_uosimulation(SIMULATION_DIR, LOCAL_DIR,feature_file, clean_report_flag, METADATA_CSV, batch_index)
             # Update status to Finished
-            update_status(status_file, asset_id, asset_name, "Finished")
+            update_status(BATCH_STATUS_CSV, asset_id, asset_name, "Finished")
+
         except Exception as e:
             ruo_logger.error(f"BATCH {batch_index}: Failed to process asset {asset_id}: {str(e)}")
             # Update status to Failed
-            update_status(status_file, asset_id, asset_name, "Failed")
+            update_status(BATCH_STATUS_CSV, asset_id, asset_name, "Failed")
+
         
+        shutil.copy(BATCH_STATUS_CSV, LOCAL_BATCH_STATUS_CSV)
+    
+    
     # Clean up the batch simulation directory
     BATCH_SIMULATION_DIR = os.path.join(SIMULATION_DIR, 'urbanopt_simulation', f'batch_{batch_index}')
     clean_batch_dir(BATCH_SIMULATION_DIR)
