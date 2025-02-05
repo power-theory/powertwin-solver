@@ -50,6 +50,7 @@ variables:
 .deploy_db_template: &deploy_db_template
   script:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-pg
+    - docker system prune -af --volumes
     - echo "Building Docker image for DB in $CI_COMMIT_BRANCH environment..."
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-pg
     - echo "Deploying DB Docker container to $CI_COMMIT_BRANCH environment..."
@@ -62,6 +63,7 @@ variables:
 .deploy_flask_template: &deploy_flask_template
   script:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-flask
+    - docker system prune -af --volumes
     - echo "Building Docker image for FLASK in $CI_COMMIT_BRANCH environment..."
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-flask
     - echo "Deploying FLASK Docker container to $CI_COMMIT_BRANCH environment..."
@@ -74,6 +76,7 @@ variables:
 .deploy_mss_template: &deploy_mss_template
   script:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-mss
+    - docker system prune -af --volumes
     - echo "Building Docker images for Microservices in $CI_COMMIT_BRANCH environment..."
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-mss
     - echo "Deploying Microservices Docker container to $CI_COMMIT_BRANCH environment..."
