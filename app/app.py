@@ -7,14 +7,14 @@ import psycopg
 from flask import Flask, request, jsonify, render_template, send_file
 from flask_cors import CORS
 
-from scripts.simulation import initialize_uo, create_featurefiles, clean_single_report, stop_UOsimulation
-from scripts.diagnostics import asset_analysis, read_simulation_status, simulation_recovery
+from scripts.simulation import initialize_uo, create_featurefiles, stop_UOsimulation
+from scripts.diagnostics import read_simulation_status, simulation_recovery
 from scripts.helper import initialize_logger, send_error_to_mss
 
 username = "postgres"
 password = "admin"
 
-main_logger = initialize_logger('App Main')
+logger = initialize_logger('App Main')
 server = Flask(__name__)
 CORS(server)
 
@@ -27,7 +27,7 @@ conn = psycopg.connect(
 )
 
 # Define the output directory for the simulation files
-USER_FILES_DIR = os.path.join('app','database', 'user_files')
+USER_FILES_DIR = os.path.join('data', 'user_files')
 LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 
 
@@ -35,9 +35,6 @@ LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 def home():
     return render_template('base.html')
 
-@server.route('/dev')
-def dev():
-    return render_template('dev.html')
 
 # @server.route('/test_db', methods=['GET'])
 # def test_db():
@@ -50,7 +47,7 @@ def dev():
 #             else:
 #                 return jsonify({'error': 'Unexpected result from database query.'}), 500
 #     except Exception as e:
-#         main_logger.error(f"Exception while testing database connection: {str(e)}")
+#         logger.error(f"Exception while testing database connection: {str(e)}")
 #         return jsonify({'error': str(e)}), 500
 
 
@@ -58,14 +55,17 @@ def dev():
 
 ############################################################################################################
 # Name: def start_simulation()
-# Description: This function requires ASSET_GEOJSON, METADATA_CSV, config_data, and simulation_name to start the simulation.
-# Performs error checking and creates a directory based on the given simulation name.
-# Calls the create_featurefiles and initialize_uo functions to generate feature files and start the UrbanOpt simulation.
-# This function parallelizes the simulation after the feature files are created.
+# Description: This function requires ASSET_GEOJSON, METADATA_CSV, config_data, and simulation_name, 
+# location, and num_cores to start the simulation. Performs error checking and creates a directory 
+# based on the given simulation name. Calls the create_featurefiles and initialize_uo functions to
+# generate feature files and start the UrbanOpt simulation. This function parallelizes the 
+# simulation after the feature files are created.
 ############################################################################################################
 @server.route('/api/simulation/start', methods=['POST'])
 def start_simulation():
-    main_logger.debug("Within start_simulation()")
+    logger.debug("Within start_simulation()")
+    
+    # Inputs
     ASSET_GEOJSON = request.files.get('asset_geojson_file')
     METADATA_CSV = request.files.get('metadata_csv_file')
     config_data = request.form.get('config_data')
@@ -73,61 +73,61 @@ def start_simulation():
     location = request.form.get('location')
     num_cores = int(request.form.get('num_cores', 1))
 
-    
-    if not ASSET_GEOJSON or not METADATA_CSV or not config_data:
-        main_logger.error("Error: Both features asset Geojson,metadata CSV, and config data is required.")
-        return jsonify({'error': 'Both features asset Geojson,metadata CSV, and config data is required.'}), 400
-    
-    if simulation_name is None:
-        main_logger.error("Error: Simulation name is required.")
-        return jsonify({'error': 'Simulation name is required.'}), 400
-    
-    
+    # Reference the volume directory where the local files will be stored
+    # TODO: Set as global variable for consistency across all LOCAL_DIR references 
     LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
     
+    # Error checking
+    if not ASSET_GEOJSON or not METADATA_CSV or not config_data or not simulation_name or not location or num_cores <= 0:
+        logger.error("Error: missing or invalid parameter.")
+        return jsonify({'error': 'missing or invalid parameter'}), 400
+    
+    # Define and create Simulation directory (container) and Local directory (saved on host)
+    # Local directory stores all necessary files for recovery and completed asset files
+    # Simulation directory contains all files necessary for the simulation
     SIMULATION_DIR = os.path.join(USER_FILES_DIR, f'{simulation_name}')
     LOCAL_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
     if os.path.exists(SIMULATION_DIR) or os.path.exists(LOCAL_DIR):
-        main_logger.error("Error: Simulation name already exists.")
+        logger.error("Error: Simulation name already exists.")
         return jsonify({'error': 'Simulation name already exists.'}), 400
     
     os.makedirs(SIMULATION_DIR, exist_ok=True)
     os.makedirs(LOCAL_DIR, exist_ok=True)
-    main_logger.info(f"Upload directory: {SIMULATION_DIR}")
-    main_logger.info(f"Local directory: {LOCAL_DIR}")
+    logger.info(f"Upload directory: {SIMULATION_DIR}")
+    logger.info(f"Local directory: {LOCAL_DIR}")
     
+    # Define and save the paths for the uploaded files in Local directory
     asset_geojson_path = os.path.join(LOCAL_DIR, f'{simulation_name}_asset.geojson')
     metadata_csv_path = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
     config_json_path = os.path.join(LOCAL_DIR, f'{simulation_name}_config.json')
 
-    # Save the uploaded files
     ASSET_GEOJSON.save(asset_geojson_path)
     METADATA_CSV.save(metadata_csv_path)
     with open(config_json_path, 'w') as config_file:
         json.dump(json.loads(config_data), config_file)
 
-    # Call the create_feature_files and initialize_uo functions
+    # Call the create_feature_files and initialize_uo to run the simulation and 
+    # delete the simulation directory (container)
     try:
-        main_logger.debug("Calling create_feature_files from start_simulation()")
+        logger.debug("Calling create_feature_files from start_simulation()")
         create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, location)
-        main_logger.debug("Exited create_feature_files to start_simulation()")
+        logger.debug("Exited create_feature_files to start_simulation()")
         
         featurefile_zip_path = os.path.join(SIMULATION_DIR,'feature_files.zip')
         
-        main_logger.debug("Calling initialize_uo from start_simulation()")
+        logger.debug("Calling initialize_uo from start_simulation()")
         initialize_uo(SIMULATION_DIR, LOCAL_DIR,metadata_csv_path,featurefile_zip_path, clean_report_flag=True)
-        main_logger.debug("Exited initialize_uo to start_simulation()")
+        logger.debug("Exited initialize_uo to start_simulation()")
         
-        main_logger.debug("Deleting simulation directory, within the container")
-        
+        logger.debug("Deleting simulation directory, within the container")
         get_logs()
         shutil.rmtree(SIMULATION_DIR)
     except Exception as e:
-        main_logger.error(f"Exception: {str(e)}")
+        logger.error(f"Exception: {str(e)}")
         send_error_to_mss('start_simulation', str(e))
         return jsonify({'error': str(e)}), 500
     
-    main_logger.debug("start_simulation() ran successfully")
+    logger.debug("start_simulation() ran successfully")
     return jsonify({'confirmation': f'Simulation "{simulation_name}" ran successfully'})
 
 ############################################################################################################
@@ -138,14 +138,22 @@ def start_simulation():
 ############################################################################################################
 @server.route('/api/simulation/autorun_simulation', methods=['POST'])
 def autorun_simulation():
-    SIMULATION_JSON = os.path.join('app', 'upload', 'simulation.json')
+    logger.debug("Within autorun_simulation()")
+    
+    # Reference the volume directory where the local files will be stored
+    # TODO: Set as global variable for consistency across all LOCAL_DIR references 
     LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 
 
+    SIMULATION_JSON = os.path.join('upload', 'simulation.json')
+    
+    # Error checking
     if not os.path.exists(SIMULATION_JSON):
-        main_logger.error("Error: simulation.json file not found.")
+        logger.error("Error: simulation.json file not found.")
         return jsonify({'error': 'simulation.json file not found.'}), 404
     
+    
+    # Get the parameters from the simulation.json file
     with open(SIMULATION_JSON, 'r') as file:
         data = json.load(file)
     
@@ -156,70 +164,74 @@ def autorun_simulation():
     location = data.get('location')
     num_cores = data.get('num_cores', 1)
 
-    if not simulation_name or not asset_geojson_path or not metadata_csv_path or not config_json_path:
-        main_logger.error("Error: Missing required fields in simulation.json")
+    # Error checking
+    if not simulation_name or not asset_geojson_path or not metadata_csv_path or not config_json_path or not location or num_cores <= 0:
+        logger.error("Error: Missing required fields in simulation.json")
         return jsonify({'error': 'Missing required fields in simulation.json'}), 400
 
-    
+    # Define and create Simulation directory (container) and Local directory (saved on host)
+    # Local directory stores all necessary files for recovery and completed asset files
+    # Simulation directory contains all files necessary for the simulation
     SIMULATION_DIR = os.path.join(USER_FILES_DIR, f'{simulation_name}')
     LOCAL_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
     if os.path.exists(SIMULATION_DIR) or os.path.exists(LOCAL_DIR):
-        main_logger.error("Error: Simulation name already exists.")
+        logger.error("Error: Simulation name already exists.")
         return jsonify({'error': 'Simulation name already exists.'}), 400
     
     os.makedirs(SIMULATION_DIR, exist_ok=True)
     os.makedirs(LOCAL_DIR, exist_ok=True)
-    main_logger.info(f"Upload directory: {SIMULATION_DIR}")
-    main_logger.info(f"Local directory: {LOCAL_DIR}")
+    logger.info(f"Upload directory: {SIMULATION_DIR}")
+    logger.info(f"Local directory: {LOCAL_DIR}")
     
 
+    # Copy the files to the Local directory
     ASSET_GEOJSON = os.path.join(LOCAL_DIR, f'{simulation_name}_asset.geojson')
-    METADATA_CSV = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
     METADATA_CSV = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
     CONFIG_JSON = os.path.join(LOCAL_DIR, f'{simulation_name}_config.json')
     
-    # Copy the files to the new directory
     shutil.copy(asset_geojson_path, ASSET_GEOJSON)
     shutil.copy(metadata_csv_path, METADATA_CSV)
     shutil.copy(config_json_path, CONFIG_JSON)
 
-    # Call the create_feature_files and initialize_uo functions
+    # Call the create_feature_files and initialize_uo to run the simulation and 
+    # delete the simulation directory (container)
     try:
-        main_logger.debug("Calling create_feature_files from start_simulation_from_json()")
+        logger.debug("Calling create_feature_files from start_simulation_from_json()")
         create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location)
-        main_logger.debug("Exited create_feature_files to start_simulation_from_json()")
+        logger.debug("Exited create_feature_files to start_simulation_from_json()")
         
         featurefile_zip_path = os.path.join(SIMULATION_DIR, 'feature_files.zip')
         
-        main_logger.debug("Calling initialize_uo from start_simulation_from_json()")
+        logger.debug("Calling initialize_uo from start_simulation_from_json()")
         initialize_uo(SIMULATION_DIR, LOCAL_DIR, METADATA_CSV, featurefile_zip_path, clean_report_flag=True)
-        main_logger.debug("Exited initialize_uo to start_simulation_from_json()")
+        logger.debug("Exited initialize_uo to start_simulation_from_json()")
         
-        main_logger.debug("Deleting simulation directory, within the container")
+        logger.debug("Deleting simulation directory, within the container")
         get_logs()
         shutil.rmtree(SIMULATION_DIR)
         return jsonify({'message': 'Simulation completed successfully.'}), 200
     except Exception as e:
-        main_logger.error(f"Exception: {str(e)}")
+        logger.error(f"Exception: {str(e)}")
         send_error_to_mss('autorun_simulation', str(e))
         return jsonify({'error': f"Simulation failed: {str(e)}"}), 500
 
 ############################################################################################################
 # Name: def stop_simulation()
 # Description: This function stops the UrbanOpt simulation.
-# Calls the stop_UOsimulation function to stop the simulation.
+# Calls the stop_UOsimulation function to aggressively stop the simulation.
+# WARNING: KILLS ALL PIDS WITHIN THE CONTAINER BESIDES ANY WITH app.py
 ############################################################################################################
 @server.route('/api/simulation/stop', methods=['POST'])
 def stop_simulation():
-    main_logger.debug("Within stop_simulation()")
+    logger.debug("Within stop_simulation()")
     # Stop the simulation
     try:
-        main_logger.debug("Stopping the simulation")
+        logger.debug("Stopping the simulation")
         stop_UOsimulation()
 
         return jsonify({'message': 'Simulation stopped successfully'}), 200
     except Exception as e:
-        main_logger.error(f"Exception while stopping the simulation: {str(e)}")
+        logger.error(f"Exception while stopping the simulation: {str(e)}")
         send_error_to_mss('stop_simulation', str(e))
         return jsonify({'error': str(e)}), 500
 
@@ -231,52 +243,58 @@ def stop_simulation():
 ############################################################################################################ 
 @server.route('/api/simulation/status/<simulation_name>', methods=['GET'])
 def get_simulation_status(simulation_name):
-    main_logger.debug("Within simulation_status()")
+    logger.debug("Within simulation_status()")
     
+    
+    # Parameter checking
     batch_id = request.args.get('batch_id', default=None, type=int)
 
     if simulation_name is None:
-        main_logger.error("Error: Simulation name is required.")
+        logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
-
+    
     SIMULATION_STATUS_DIR = os.path.join(USER_FILES_DIR, simulation_name, 'batch_status')    
-
     if not os.path.exists(SIMULATION_STATUS_DIR):
-        main_logger.error("Simulation status directory not found")
+        logger.error("Simulation status directory not found")
         return jsonify({'error': 'Simulation status directory not found'}), 404
     
     # Read and log the simulation status files
     try:
-        main_logger.debug(f"Entering read_simulation_status() from simulation_status() with batch_id={batch_id}")
+        logger.debug(f"Entering read_simulation_status() from simulation_status() with batch_id={batch_id}")
         read_simulation_status(SIMULATION_STATUS_DIR, batch_id)
         return jsonify({'message': 'Simulation status files read successfully'}), 200
     except Exception as e:
-        main_logger.error(f"Exception while reading simulation status files: {str(e)}")
+        logger.error(f"Exception while reading simulation status files: {str(e)}")
         send_error_to_mss('get_simulation_status', str(e))
         return jsonify({'error': str(e)}), 500
 
-
+############################################################################################################
+# Name: def delete_simulation()
+# Description: This function deletes the simulation directory based on the given simulation name.
+# Calls the shutil.rmtree function to remove the simulation directory.
+############################################################################################################
 @server.route('/api/simulation/delete/<simulation_name>', methods=['DELETE'])
 def delete_simulation(simulation_name):
-    main_logger.debug("Within delete_simulation()")
+    logger.debug("Within delete_simulation()")
+    
+    # Check param
     
     if simulation_name is None:
-        main_logger.error("Error: Simulation name is required.")
+        logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
 
     SIMULATION_DIR = os.path.join(USER_FILES_DIR, simulation_name)    
-
     if not os.path.exists(SIMULATION_DIR):
-        main_logger.error("Simulation status directory not found")
+        logger.error("Simulation status directory not found")
         return jsonify({'error': 'Simulation status directory not found'}), 404
     
     # Delete simulation directory
     try:
         shutil.rmtree(SIMULATION_DIR)
-        main_logger.info(f"Simulation directory {SIMULATION_DIR} deleted successfully.")
+        logger.info(f"Simulation directory {SIMULATION_DIR} deleted successfully.")
         return jsonify({'message': f'Simulation directory {SIMULATION_DIR} deleted successfully.'}), 200
     except Exception as e:
-        main_logger.error(f"Exception while trying to delete simulation: {str(e)}")
+        logger.error(f"Exception while trying to delete simulation: {str(e)}")
         send_error_to_mss('delete_simulation', str(e))
         return jsonify({'error': str(e)}), 500
 
@@ -292,33 +310,27 @@ def delete_simulation(simulation_name):
 ############################################################################################################
 @server.route('/api/asset/config/<simulation_name>/<asset_id>', methods=['GET'])
 def get_asset_config(simulation_name, asset_id):
-    main_logger.debug("Within get_asset_config()")
+    logger.debug("Within get_asset_config()")
     
     if not asset_id or not simulation_name:
-        main_logger.error("Error: Asset ID and Simulation Name are required")
+        logger.error("Error: Asset ID and Simulation Name are required")
         return jsonify({'error': 'Asset ID and Simulation Name are required'}), 400
-        
-    # Fix to point to powertwin-solver-pg 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    LOCAL_DIR = os.path.join(current_dir, '..', 'powertwin-solver-pg', 'user_files')
-    LOCAL_DIR = os.path.normpath(LOCAL_DIR)
-   
-
+           
     try:
         # Search to see if user_files directory exists, so that we can search for the feature file
         SIMULATION_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
         if not os.path.exists(SIMULATION_DIR):
-            main_logger.error("Simulation directory does not exist")
+            logger.error("Simulation directory does not exist")
             return jsonify({'error': 'Simulation directory does not exist'}), 404
 
         # Search for feature file dir
         FEATURE_FILE_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
         if not os.path.exists(FEATURE_FILE_DIR):
-            main_logger.error(F"{FEATURE_FILE_DIR} directory found")
+            logger.error(F"{FEATURE_FILE_DIR} directory found")
             return jsonify({'error': 'No feature files directory found'}), 404
 
         # Search for the asset ID in the feature files
-        main_logger.debug(f"Searching for feature file in {FEATURE_FILE_DIR}")
+        logger.debug(f"Searching for feature file in {FEATURE_FILE_DIR}")
         for file_name in os.listdir(FEATURE_FILE_DIR):
             if file_name.startswith(f"{asset_id}_") and file_name.endswith('.json'):
                 file_path = os.path.join(FEATURE_FILE_DIR, file_name)
@@ -334,11 +346,11 @@ def get_asset_config(simulation_name, asset_id):
                 response = send_file(requested_file_path, as_attachment=True)
                 return response
     
-        main_logger.error(f"No feature file found for asset ID: {asset_id}")
+        logger.error(f"No feature file found for asset ID: {asset_id}")
         return jsonify({'error': f'No feature file found for asset ID: {asset_id}'}), 404
     
     except Exception as e:
-        main_logger.error(f"Exception: {str(e)}")
+        logger.error(f"Exception: {str(e)}")
         send_error_to_mss('get_asset_config', str(e))
         return jsonify({'error': str(e)}), 500
 
@@ -352,34 +364,32 @@ def get_asset_config(simulation_name, asset_id):
 ############################################################################################################
 @server.route('/api/diagnostics/recovery', methods=['POST'])
 def recovery():
-    main_logger.debug("Within recovery()")
+    logger.debug("Within recovery()")
     corrupted_simulation_name = request.form.get('corrupted_simulation_name')
     recover_simulation_name = request.form.get('recover_simulation_name')
     batch_id = request.form.get('recover_batch_id', default=None, type=int)
     num_cores = int(request.form.get('recover_num_cores', 1))
 
     if not corrupted_simulation_name:
-        main_logger.error("Error: Simulation name is required.")
+        logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
 
     if not recover_simulation_name:
-        main_logger.error("Error: Recover simulation name is required.")
+        logger.error("Error: Recover simulation name is required.")
         return jsonify({'error': 'Recover simulation name is required.'}), 400
     
-    
+    # TODO: Set as global variable for consistency across all LOCAL_DIR references 
     LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
     
     CORRUPTED_SIMULATION_DIR = os.path.join(LOCAL_DIR, corrupted_simulation_name)
-
     if not os.path.exists(CORRUPTED_SIMULATION_DIR):
-        main_logger.error("Simulation directory not found")
+        logger.error("Simulation directory not found")
         return jsonify({'error': 'Simulation directory not found'}), 404
 
     RECOVERY_DIR_LOCAL = os.path.join(LOCAL_DIR, f'{recover_simulation_name}')
     RECOVERY_DIR_CONTAINER = os.path.join(USER_FILES_DIR, f'{recover_simulation_name}')
-
     if os.path.exists(RECOVERY_DIR_LOCAL) or os.path.exists(RECOVERY_DIR_CONTAINER):
-        main_logger.debug("Recovery directory already exists")
+        logger.debug("Recovery directory already exists")
         return jsonify({'error': 'Recovery directory already exists'}), 400
 
     os.makedirs(RECOVERY_DIR_CONTAINER, exist_ok=True)
@@ -396,15 +406,15 @@ def recovery():
     config_path = os.path.join(CORRUPTED_SIMULATION_DIR, config_name)
 
     if not os.path.exists(metadata_csv_path):
-        main_logger.error("Metadata CSV file not found in the corrupted simulation directory")
+        logger.error("Metadata CSV file not found in the corrupted simulation directory")
         return jsonify({'error': 'Metadata CSV file not found in the corrupted simulation directory'}), 404
 
     # Copy and rename the metadata CSV file to the recovery directory
     new_metadata_csv_name = f'{recover_simulation_name}_metadata.csv'
-    new_metadata_csv_path1 = os.path.join(RECOVERY_DIR_CONTAINER, new_metadata_csv_name)
-    new_metadata_csv_path2 = os.path.join(RECOVERY_DIR_LOCAL, new_metadata_csv_name)
-    shutil.copy(metadata_csv_path, new_metadata_csv_path1)
-    shutil.copy(metadata_csv_path, new_metadata_csv_path2)
+    new_metadata_csv_path_container = os.path.join(RECOVERY_DIR_CONTAINER, new_metadata_csv_name)
+    new_metadata_csv_path_local = os.path.join(RECOVERY_DIR_LOCAL, new_metadata_csv_name)
+    shutil.copy(metadata_csv_path, new_metadata_csv_path_container)
+    shutil.copy(metadata_csv_path, new_metadata_csv_path_local)
 
     # Copy and rename the metadata CSV file to the recovery directory
     new_geojson_name = f'{recover_simulation_name}_asset.geojson'
@@ -417,17 +427,17 @@ def recovery():
     shutil.copy(config_path, new_config_name_path)
 
     try:
-        main_logger.debug("Calling simulation_recovery from recovery()")
-        simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, new_metadata_csv_path1, batch_id, num_cores)
+        logger.debug("Calling simulation_recovery from recovery()")
+        simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, new_metadata_csv_path_container, batch_id, num_cores)
         
-        main_logger.debug("Exited simulation_recovery to recovery(), deleting recovery directory within the container")
+        logger.debug("Exited simulation_recovery to recovery(), deleting recovery directory within the container")
         get_logs()
         shutil.rmtree(RECOVERY_DIR_CONTAINER)
         return jsonify({'message': 'Simulation recovery process completed successfully'}), 200
 
 
     except Exception as e:
-        main_logger.error(f"Exception during simulation recovery: {str(e)}")
+        logger.error(f"Exception during simulation recovery: {str(e)}")
         send_error_to_mss('recovery', str(e))
         return jsonify({'error': str(e)}), 500
 
@@ -437,45 +447,39 @@ def recovery():
 # Description: This function zips the logs directory and sends the zip file as a response for download.
 # Calls the get_logs function to zip the logs directory.
 ############################################################################################################
-@server.route('/api/diagnostics/getlogs', methods=['GET'])
+@server.route('/logs', methods=['GET'])
 def get_logs():
-    main_logger.debug("Within get_logs()")
-
-    LOGS_DIR = os.path.join('app','logs')
+    logger.debug("Within get_logs()")
     
-    # Fix to point to powertwin-solver-pg 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    USER_FILES_DIR = os.path.join(current_dir, '..', 'powertwin-solver-pg', 'user_files')
-    USER_FILES_DIR = os.path.normpath(USER_FILES_DIR)
+    REQUESTED_FILES_DIR = os.path.join(LOCAL_DIR, 'requested_files')
+    os.makedirs(REQUESTED_FILES_DIR, exist_ok=True)
+    REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.txt')
 
-    
-    # Define the path to save the zipped batch status file
-    DOWNLOAD_DIR = os.path.join(USER_FILES_DIR, 'requested_files')
-    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-    ZIP_FILE = os.path.join(DOWNLOAD_DIR, 'logs.zip')
+    LOGS_DIR = os.path.join('logs')
+    LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
     
     if not os.path.exists(LOGS_DIR):
-        main_logger.error("Logs dir does not exist")
+        logger.error("Logs dir does not exist")
         return jsonify({'error': 'Logs dir does not exist'}), 404
     
+    if not os.path.exists(LOG_FILE):
+        logger.error("Log file does not exist")
+        return jsonify({'error': 'Log file does not exist'}), 404
 
-    # Zip the logs directory
     try:
-        shutil.make_archive(os.path.splitext(ZIP_FILE)[0], 'zip', LOGS_DIR)
-        main_logger.debug("Logs directory zipped successfully")
+        with open(LOG_FILE, 'r') as file:
+            logs = file.read()
+        # Save the log file to the requested_files directory
+        with open(REQUESTED_LOG_FILE, 'w') as file:
+            file.write(logs)
+        logger.debug(f"Log file saved to {REQUESTED_LOG_FILE}")
     except Exception as e:
-        main_logger.error(f"Exception while zipping logs: {str(e)}")
+        logger.error(f"Exception while reading log file: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+    # Render the logs in the template
+    return render_template('logs.html', logs=logs)
 
-    # Send the zip file as a response for download
-    try:
-        main_logger.debug("Sending log file")
-        return send_file(ZIP_FILE, as_attachment=True)
-    except Exception as e:
-        main_logger.error(f"Exception: {str(e)}")
-        send_error_to_mss('get_logs', str(e))
-        return jsonify({'error': str(e)}), 500
 
 ############################################################################################################
 # Name: def log_message()
@@ -492,7 +496,7 @@ def log_message():
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Define the log file path
-    log_txt = os.path.join(os.getcwd(), 'app','logs','dev_logs.txt')
+    log_txt = os.path.join('logs','dev_logs.txt')
     os.makedirs(os.path.dirname(log_txt), exist_ok=True)
 
     # Append the log entry to the log file
@@ -500,174 +504,6 @@ def log_message():
         log_file.write(f"[{timestamp}] [{log_type.upper()}] {message}\n")
 
     return jsonify({'status': 'success', 'log_file': log_txt}), 200
-
-
-# 0. Dev Tools WIP
-
-@server.route('/api/featurefiles', methods=['POST'])
-def feature_files():
-    main_logger.debug("Within get_feature_files()")
-    asset_geojson = request.files.get('asset_geojson_file')
-    metadata_csv = request.files.get('metadata_csv_file_1')
-    config_data = request.form.get('config_data')
-    num_cores = request.form.get('num_cores', 1)
-    
-    if not asset_geojson or not metadata_csv or not config_data:
-        main_logger.error("Error: Both features asset Geojson,metadata CSV, and config data is required.")
-        return jsonify({'error': 'Both features asset Geojson,metadata CSV, and config data is required.'}), 400
-    
-
-    # Define the upload directory and paths for the uploaded files
-    SIMULATION_DIR = os.path.join(USER_FILES_DIR,'default')
-    os.makedirs(SIMULATION_DIR, exist_ok=True)
-    main_logger.info(f"Upload directory: {SIMULATION_DIR}")
-
-
-    asset_geojson_path = os.path.join(SIMULATION_DIR, asset_geojson.filename)
-    metadata_csv_path = os.path.join(SIMULATION_DIR, metadata_csv.filename)
-    config_json_path = os.path.join(SIMULATION_DIR, 'default_custom_config.json')
-    
-    # Save the uploaded files
-    asset_geojson.save(asset_geojson_path)
-    metadata_csv.save(metadata_csv_path)
-    with open(config_json_path, 'w') as config_file:
-        json.dump(json.loads(config_data), config_file)
-
-    # Call the generate_feature_files function in the generateFeatureFile.py script
-    try:
-        main_logger.debug("Calling generateFeatureFile.py from get_feature_files()")
-        create_featurefiles(SIMULATION_DIR,asset_geojson_path, metadata_csv_path, config_json_path, num_cores)
-        main_logger.debug("Exited generateFeatureFile.py to get_feature_files()")
-    except Exception as e:
-        main_logger.error(f"Exception: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-
-    # Define the zip file path for storing the feature files
-    ZIP_PATH = os.path.join(SIMULATION_DIR,'feature_files.zip')
-
-    # Send the zip file as a response for download
-    try:
-        main_logger.debug("Sending feature files zip")
-        return send_file(ZIP_PATH, as_attachment=True)
-    except Exception as e:
-        main_logger.error(f"Exception: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-    
-@server.route('/api/UOsimulation/start', methods=['POST'])
-def start_uo_simulation():
-    main_logger.debug("Within start_uo_simulation()")
-    featurefile_zip = request.files.get('featurefile_zip')
-    asset_id = request.form.get('asset_id_2')
-    clean_report_boolean = request.form.get('clean_report_1') is not None
-
-    if (featurefile_zip and asset_id) or (not featurefile_zip and not asset_id):
-        main_logger.error("Error: Please upload either a feature file zip or input an asset id, but not both.")
-        return jsonify({'error': 'Please upload either a feature file zip or input an asset id, but not both.'}), 400
-    
-    if featurefile_zip:
-        # Call the initialize_uo function with the feature file from runUOsimulation.py
-        
-        SIMULATION_DIR = os.path.join(USER_FILES_DIR, 'default')
-        os.makedirs(SIMULATION_DIR, exist_ok=True)
-        main_logger.info(f"Upload directory: {SIMULATION_DIR}")
-    
-        # Save the uploaded feature file zip
-        featurefile_zip_path = os.path.join(SIMULATION_DIR, featurefile_zip.filename)
-        featurefile_zip.save(featurefile_zip_path)
-        
-        try:
-            main_logger.debug("Calling runUOsimulation.py from start_uo_simulation()")
-            initialize_uo(SIMULATION_DIR,featurefile_zip_path, clean_report_flag=clean_report_boolean)
-            main_logger.debug("Exited runUOsimulation.py to start_uo_simulation()")
-        except Exception as e:
-            main_logger.error(f"Exception: {str(e)}")
-            return jsonify({'error': str(e)}), 500
-    else:
-        # Call the initialize_uo function with the asset ID from runUOsimulation.py
-        # TODO: Fix directroy path to correctly find asset id
-        
-        UPLOAD_DIR = os.path.join(UPLOAD_DIR, f'{asset_id}')
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        main_logger.info(f"Upload directory: {UPLOAD_DIR}")
-        
-        try:
-            main_logger.debug("Calling runUOsimulation.py from start_uo_simulation()")
-            initialize_uo(UPLOAD_DIR,featurefile_zip_path, clean_report_flag=clean_report_boolean)
-            main_logger.debug("Exited runUOsimulation.py to start_uo_simulation()")
-        except Exception as e:
-            main_logger.error(f"Exception: {str(e)}")
-            return jsonify({'error': str(e)}), 500
-        
-    main_logger.debug("start_uo_simulation() ran successfully")
-    return jsonify({'confirmation': 'Urban Opt simulation ran successfully'})
-
-@server.route('/api/clean_report', methods=['POST'])
-def clean_report():
-    main_logger.debug("Within get_clean_report()")
-    unclean_report_csv = request.json.get('unclean_report_csv')
-    metadata_csv = request.json.get('metadata_csv_file_2')
-    asset_id = request.json.get('asset_id_3')
-    
-    if not unclean_report_csv or not metadata_csv or not asset_id:
-        main_logger.error("Error: Unclean Report, Metadata CSV, and Asset ID are required")
-        return jsonify({'error': 'Unclean Report, Metadata CSV, and Asset ID are required'}), 400
-        
-    # Define the upload directory and paths for the uploaded files
-    SIMULATION_DIR = os.path.join(USER_FILES_DIR, 'default')
-    os.makedirs(SIMULATION_DIR, exist_ok=True)
-    main_logger.info(f"Upload directory: {SIMULATION_DIR}")
-
-    unclean_report_csv_path = os.path.join(SIMULATION_DIR, unclean_report_csv_path.filename)
-    metadata_csv_path = os.path.join(SIMULATION_DIR, metadata_csv.filename)
-    
-    # Save the uploaded files
-    unclean_report_csv.save(unclean_report_csv_path)
-    metadata_csv.save(metadata_csv_path)
-    
-    # Call the clean_report function in the clean_report.py script
-    try:
-        main_logger.debug("Calling clean_report.py from get_clean_report()")
-        clean_single_report(unclean_report_csv, metadata_csv, asset_id)
-        main_logger.debug("Exited clean_report.py to get_clean_report()")
-    except Exception as e:
-        main_logger.error(f"Exception: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-    main_logger.debug("get_clean_report() ran successfully")
-    return jsonify({'confirmation': 'Clean report ran successfully'})
-
-@server.route('/api/diagnostics/analysis', methods=['GET'])
-def get_runtime_analysis():
-    main_logger.debug("Within get_runtime_analysis()")
-    featurefile_zip = request.files.get('featurefile_zip_2')
-    num_cores = request.form.get('num_cores', 1)
-    
-    if not featurefile_zip:
-        main_logger.error("Error: Feature file zip is required.")
-        return jsonify({'error': 'Feature file zip is required.'}), 400
-    
-    # Define the upload directory and paths for the uploaded files
-    SIMULATION_DIR = os.path.join(USER_FILES_DIR, 'default')
-    
-    os.makedirs(SIMULATION_DIR, exist_ok=True)
-    main_logger.info(f"Upload directory: {SIMULATION_DIR}")
-
-    # Save the uploaded feature file zip
-    featurefile_zip_path = os.path.join(SIMULATION_DIR, featurefile_zip.filename)
-    featurefile_zip.save(featurefile_zip_path)
-    
-    try:
-        main_logger.debug("Calling asset_analysis from get_runtime_analysis()")
-        asset_analysis(featurefile_zip, num_cores)
-        main_logger.debug("Exited asset_analysis to get_runtime_analysis()")
-    except Exception as e:
-        main_logger.error(f"Exception: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-    
-    main_logger.debug("get_runtime_analysis() ran successfully")
-    return jsonify({'analysis': 'data'})
-
 
 if __name__ == '__main__':
     server.run(debug=True, host='0.0.0.0', port=8080)

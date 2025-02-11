@@ -42,8 +42,11 @@ RUN gem install urbanopt-cli -v 0.13
 # Copy application code and set environment variables
 COPY . .
 
+# Install the solver package
+RUN pip install -e .
+
 # Expose the required port
 EXPOSE 8080
 
 # Set the default command
-CMD ["python3", "app/app.py"]
+CMD ["python3", "app.py"]

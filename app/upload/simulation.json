@@ -1,8 +1,8 @@
 {
     "simulation_name": "laramie1",
-    "asset_geojson_path": "app/upload/demo_data/2_asset_geometries.geojson",
-    "metadata_csv_path": "app/upload/demo_data/2-sensors-assets-geometries-types.csv",
-    "config_json_path": "app/upload/demo_data/default_config.json",
+    "asset_geojson_path": "upload/demo_data/2_asset_geometries.geojson",
+    "metadata_csv_path": "upload/demo_data/2-sensors-assets-geometries-types.csv",
+    "config_json_path": "upload/demo_data/default_config.json",
     "location": "Laramie",
-    "num_cores": 8
+    "num_cores": 6
 }

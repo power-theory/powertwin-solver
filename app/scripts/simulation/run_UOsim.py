@@ -7,9 +7,9 @@ import csv
 import pandas as pd
 
 from .clean_report import clean_single_report
-from scripts.helper import initialize_logger, send_error_to_mss
+from scripts.helper import initialize_logger
 
-ruo_logger = initialize_logger('Run UOSim')
+logger = initialize_logger('Run UOSim')
 
 ############################################################################################################
 # Name: clean_batch_dir(BATCH_SIMULATION_DIR)
@@ -27,12 +27,12 @@ def clean_batch_dir(BATCH_SIMULATION_DIR):
         # Check if the item is a directory and not in the keep_dirs set
         if os.path.isdir(item_path) and item not in keep_dirs:
             shutil.rmtree(item_path)
-            ruo_logger.debug(f"Deleted directory: {item_path}")
+            logger.debug(f"Deleted directory: {item_path}")
         
         # Check if the item is a file
         elif os.path.isfile(item_path):
             os.remove(item_path)
-            ruo_logger.debug(f"Deleted file: {item_path}")
+            logger.debug(f"Deleted file: {item_path}")
 
 ############################################################################################################
 # Name: run_command(command)
@@ -43,12 +43,12 @@ def run_command(command):
     try:
         result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
         end_time = time.time()
-        ruo_logger.info(f"Command '{command}' executed successfully.")
-        ruo_logger.info(f"Output: {result.stdout}")
+        logger.info(f"Command '{command}' executed successfully.")
+        logger.info(f"Output: {result.stdout}")
         return end_time - start_time
     except subprocess.CalledProcessError as e:
         end_time = time.time()
-        ruo_logger.error(f"Command '{command}' failed with error: {e.stderr}")
+        logger.error(f"Command '{command}' failed with error: {e.stderr}")
         raise e
 
 ############################################################################################################
@@ -87,7 +87,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
     asset_id = feature_file_name.split('_')[0]
     asset_name = '_'.join(feature_file_name.split('_')[1:]).replace('.json', '')
 
-    ruo_logger.info(f"\n{'='*47}\n"
+    logger.info(f"\n{'='*47}\n"
     f"Processing feature file: {feature_file_name}\n"
     f"Asset ID: {asset_id}\n"
     f"Asset Name: {asset_name}\n"
@@ -97,7 +97,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
     
     UOSIM_TIME_CSV = os.path.join(SIMULATION_DIR, "uosim_time.csv")
     #TODO: change to read the location metadata rather then a csv file
-    WEATHER_MAP_CSV = 'app/urbanopt/weather_map.csv'
+    WEATHER_MAP_CSV = 'urbanopt/weather_map.csv'
     
     with open(UOSIM_TIME_CSV, mode='r') as file:
         reader = csv.DictReader(file)
@@ -113,7 +113,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
     city_data = city_data.iloc[0]
     weather_file = city_data['WeatherFile']
     
-    URBANOPT_DIR = os.path.join('app','urbanopt')
+    URBANOPT_DIR = os.path.join('urbanopt')
     WEATHER_BASE_NAME = os.path.join(URBANOPT_DIR, 'weather_files',weather_file, weather_file)
     MAPPER_FILE = os.path.join(URBANOPT_DIR, "PowerTwin.rb")
     
@@ -127,10 +127,10 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
     # Create PowerTwin UrbanOpt Project if it doesn't exist
     if not os.path.exists(BATCH_SIMULATION_DIR):
         try:
-            ruo_logger.debug(f"BATCH {batch_index}: Creating UrbanOpt project at {BATCH_SIMULATION_DIR}.")
+            logger.debug(f"BATCH {batch_index}: Creating UrbanOpt project at {BATCH_SIMULATION_DIR}.")
             subprocess.run(f"uo create -p {BATCH_SIMULATION_DIR}", shell=True, check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
-            ruo_logger.error(f"BATCH {batch_index}: Failed to create UrbanOpt project: {e.stderr}")
+            logger.error(f"BATCH {batch_index}: Failed to create UrbanOpt project: {e.stderr}")
             raise e
         
         os.makedirs(MAPPER_DESTINATION, exist_ok=True)
@@ -141,7 +141,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
                 if os.path.basename(rb_file) != "Baseline.rb":
                     os.remove(rb_file)
 
-        ruo_logger.debug(f"BATCH {batch_index}: Copying mapper file to {MAPPER_DESTINATION}")
+        logger.debug(f"BATCH {batch_index}: Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
 
         # TODO: Adjust so that copied weather files with the specified extensions are from the database server
@@ -152,18 +152,18 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
 
     # Move the feature file to the project directory
     try:
-        ruo_logger.debug(f"BATCH {batch_index}: Moving feature file {FEATURE_FILE_JSON} to {BATCH_SIMULATION_DIR}")
+        logger.debug(f"BATCH {batch_index}: Moving feature file {FEATURE_FILE_JSON} to {BATCH_SIMULATION_DIR}")
         shutil.copy(FEATURE_FILE_JSON, BATCH_SIMULATION_DIR)
     except shutil.Error as e:
-        ruo_logger.error(f"BATCH {batch_index}: Failed to move feature file: {e}")
+        logger.error(f"BATCH {batch_index}: Failed to move feature file: {e}")
         raise e
 
     # Create the scenario
     try:
-        ruo_logger.info(f"BATCH {batch_index}: Creating scenario for feature file: {feature_file_name}")
+        logger.info(f"BATCH {batch_index}: Creating scenario for feature file: {feature_file_name}")
         subprocess.run(f"uo create -s {BATCH_SIMULATION_DIR}/{feature_file_name}", shell=True, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
-        ruo_logger.error(f"BATCH {batch_index}: Failed to create scenario: {e.stderr}")
+        logger.error(f"BATCH {batch_index}: Failed to create scenario: {e.stderr}")
         raise e
     
     # Define the path to the scenario file
@@ -172,15 +172,15 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
 
     # Run the run and process commands and record their times
     # FEATURE FILE MUST BE IN THE SIMULATION DIRECTORY ALONG WITH THE SCENARIO FILE
-    ruo_logger.info(f"BATCH {batch_index}: Running UrbanOpt simulation for: {asset_id}")
+    logger.info(f"BATCH {batch_index}: Running UrbanOpt simulation for: {asset_id}")
     uo_run_time = run_command(f"uo run -s {SCENARIO_FILE_CSV} -f {FEATURE_FILE_JSON}")
     
-    ruo_logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
+    logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
     uo_process_time = run_command(f"uo process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
     total_time = uo_run_time + uo_process_time
     
     if(clean_report_flag):
-        ruo_logger.debug(f"BATCH {batch_index}: Cleaning report for {asset_id}:{asset_name}...") 
+        logger.debug(f"BATCH {batch_index}: Cleaning report for {asset_id}:{asset_name}...") 
         clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id)
         
     
@@ -191,7 +191,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
     feature_hours = int(feature_duration // 3600)
     feature_minutes = int((feature_duration % 3600) // 60)
     feature_seconds = feature_duration % 60
-    ruo_logger.info(f"BATCH {batch_index}: {asset_id} processed in {feature_hours} hours, {feature_minutes} minutes, and {feature_seconds:.2f} seconds.")
+    logger.info(f"BATCH {batch_index}: {asset_id} processed in {feature_hours} hours, {feature_minutes} minutes, and {feature_seconds:.2f} seconds.")
     
     # Update the CSV data with the results
     # Read the existing CSV data
@@ -225,6 +225,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
 ############################################################################################################
 def run_batch(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, batch_index):
     # Create a status file for the batch
+    # TODO: Move to using postgrs db
     BATCH_STATUS_CSV = os.path.join(SIMULATION_DIR, 'batch_status', f"{batch_index}_status.csv")
     LOCAL_BATCH_STATUS_CSV = os.path.join(LOCAL_DIR, 'batch_status',f"{batch_index}_status.csv")
     os.makedirs(os.path.dirname(BATCH_STATUS_CSV), exist_ok=True)
@@ -239,7 +240,8 @@ def run_batch(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, 
             asset_name = row['name'].replace(' ', '_').replace(',', '')
             writer.writerow([asset_id, asset_name,"Not Processed Yet"])
     
-    ruo_logger.debug(f"BATCH {batch_index}: Processing {len(batch)} assets...")
+    logger.debug(f"BATCH {batch_index}: Processing {len(batch)} assets...")
+    # Iterate through the batch and process each asset
     for row in batch:
         asset_id = row['assetid']
         asset_name = row['name'].replace(' ', '_').replace(',', '')
@@ -249,18 +251,18 @@ def run_batch(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, 
         update_status(BATCH_STATUS_CSV, asset_id, asset_name, "Processing")
         shutil.copy(BATCH_STATUS_CSV, LOCAL_BATCH_STATUS_CSV)
         
-        ruo_logger.debug(f"BATCH {batch_index}: Starting processing asset {asset_id}...")
+        logger.debug(f"BATCH {batch_index}: Starting processing asset {asset_id}...")
         try:
             run_uosimulation(SIMULATION_DIR, LOCAL_DIR,feature_file, clean_report_flag, METADATA_CSV, batch_index)
             # Update status to Finished
             update_status(BATCH_STATUS_CSV, asset_id, asset_name, "Finished")
 
         except Exception as e:
-            ruo_logger.error(f"BATCH {batch_index}: Failed to process asset {asset_id}: {str(e)}")
+            logger.error(f"BATCH {batch_index}: Failed to process asset {asset_id}: {str(e)}")
             # Update status to Failed
             update_status(BATCH_STATUS_CSV, asset_id, asset_name, "Failed")
 
-        
+        # Copy to local
         shutil.copy(BATCH_STATUS_CSV, LOCAL_BATCH_STATUS_CSV)
     
     
@@ -268,7 +270,7 @@ def run_batch(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, 
     BATCH_SIMULATION_DIR = os.path.join(SIMULATION_DIR, 'urbanopt_simulation', f'batch_{batch_index}')
     clean_batch_dir(BATCH_SIMULATION_DIR)
     
-    ruo_logger.info(f"\n{'='*47}\n"
+    logger.info(f"\n{'='*47}\n"
     f"Batch {batch_index} finished processing.\n"
     f"Total assets processed: {len(batch)}\n"
     f"{'='*47}"

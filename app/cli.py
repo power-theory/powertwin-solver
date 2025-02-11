@@ -83,17 +83,17 @@ def recovery(args):
         print(f"Error: {response.status_code}")
         print(response.json())
 
-def get_logs(args):
-    url = "http://localhost:8080/api/diagnostics/getlogs"
+def logs(args):
+    url = "http://localhost:8080/logs"
     response = requests.get(url)
     if response.status_code == 200:
-        print("get_logs function worked, check the user_files/requested_files directory for logs")
+        print("logs function worked")
     else:
         print(f"Error: {response.status_code}")
         print(response.json())
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="PowerTwin Solver Commands")
     subparsers = parser.add_subparsers()
 
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     # Get simulation status command
     parser_status = subparsers.add_parser('status', help='Get simulation status')
     parser_status.add_argument('simulation_name', type=str, help='Name of the simulation')
-    parser_status.add_argument('--batch_id', type=int, help='ID of the batch')
+    parser_status.add_argument('-b','--batch_id', type=int, help='ID of the batch')
     parser_status.set_defaults(func=get_simulation_status)
 
     # Delete simulation command
@@ -137,12 +137,15 @@ if __name__ == "__main__":
     parser_recovery.add_argument('corrupted_simulation_name', type=str, help='Name of the corrupted simulation')
     parser_recovery.add_argument('recover_simulation_name', type=str, help='Name of the recovery simulation')
     parser_recovery.add_argument('num_cores', type=int, help='Number of cores to use')
-    parser_recovery.add_argument('--batch_id', type=int, help='ID of the batch')
+    parser_recovery.add_argument('-b','--batch_id', type=int, help='ID of the batch')
     parser_recovery.set_defaults(func=recovery)
 
     # Get logs command
-    parser_get_logs = subparsers.add_parser('get_logs', help='Get logs')
-    parser_get_logs.set_defaults(func=get_logs)
+    parser_get_logs = subparsers.add_parser('logs', help='Get logs')
+    parser_get_logs.set_defaults(func=logs)
 
     args = parser.parse_args()
     args.func(args)
+    
+if __name__ == "__main__":
+    main()

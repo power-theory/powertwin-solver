@@ -4,13 +4,17 @@ import logging
 from rich.logging import RichHandler
 from rich.console import Console
 
+############################################################################################################
+# Name: initialize_logger(logger_name)
+# Description: This function initializes the logger with the given name.
+############################################################################################################
 def initialize_logger(logger_name):
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.DEBUG)
 
     # Check if handlers are already added to the logger
     if not logger.handlers:
-        log_dir = os.path.join(os.getcwd(), 'app', 'logs')
+        log_dir = os.path.join('logs')
         os.makedirs(log_dir, exist_ok=True)
 
         # Create handlers
