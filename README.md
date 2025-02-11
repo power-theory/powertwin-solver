@@ -1,4 +1,4 @@
-# PowerTwin Solver v1.1.0
+# PowerTwin Solver v1.2
 
 ## HOW TO RUN
 ```sh
@@ -6,7 +6,7 @@ docker-compose -f docker-compose.yml build
 docker-compose -f docker-compose.yml up
 ```
 ## Autorun Simulation
-1. Modify the simulation.json (demo has been provided)
+1. Modify the simulation.json located in app/upload prior to building (demo has been provided)
 2. Click autorun at the top of homepage or run autorun command
 
 ## Starting a Simulation
@@ -45,12 +45,12 @@ docker exec -it <container_id_or_name> /bin/bash
 ### Autorun Simulation
 Automatically run a simulation using the configuration defined in simulation.json.
 ```sh
-python cli.py autorun
+solver autorun
 ```
 
 ### Start Simulation
 ```sh
-python cli.py start <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_json_path> <location> <num_cores>
+solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_json_path> <location> <num_cores>
 ```
 - `simulation_name`: Name of the simulation.
 - `asset_geojson_path`: Path to the asset geojson file.
@@ -62,39 +62,39 @@ python cli.py start <simulation_name> <asset_geojson_path> <metadata_csv_path> <
 ### Get Simulation Status
 Get the status of a simulation.
 ```sh
-python cli.py status <simulation_name> [--batch_id <batch_id>]
+solver status <simulation_name> [-b <batch_id>]
 ```
 - `simulation_name`: Name of the simulation.
-- `--batch_id`: (Optional) ID of the batch.
+- `-b or --batch_id`: (Optional) ID of the batch.
 
 ### Delete Simulation
 Delete a simulation.
 ```sh
-python cli.py delete <simulation_name>
+solver delete <simulation_name>
 ```
 - `simulation_name`: Name of the simulation.
 
 ### Stop Simulation
 Stop the currently running simulation.
 ```sh
-python cli.py stop
+solver stop
 ```
 
 ### Recover Simulation
 Recover a simulation from a corrupted state.
 ```sh
-python cli.py recover <corrupted_simulation_name> <recover_simulation_name> <num_cores> [--batch_id <batch_id>]
+solver recover <corrupted_simulation_name> <recover_simulation_name> <num_cores> [-b <batch_id>]
 ```
 - `corrupted_simulation_name`: Name of the corrupted simulation.
 - `recover_simulation_name`: Name of the recovery simulation.
 - `num_cores`: Number of cores to use.
-- `--batch_id`: (Optional) ID of the batch.
+- `-b or --batch_id`: (Optional) ID of the batch.
 
 
 ### Get Asset Configuration
 Get the configuration of a specific asset in a simulation.
 ```sh
-python cli.py get_config <simulation_name> <asset_id>
+solver get_config <simulation_name> <asset_id>
 ```
 - `simulation_name`: Name of the simulation.
 - `asset_id`: ID of the asset.
@@ -102,7 +102,7 @@ python cli.py get_config <simulation_name> <asset_id>
 ### Get Logs
 Retrieve the logs of the simulation.
 ```sh
-python cli.py get_logs
+solver logs
 ```
 
 ## General Tree
@@ -178,13 +178,10 @@ The powertwin-db is a shared volume between the powertwin-db and powertwin-solve
 *Plans to move uosim_time.csv and possibly the cleaned reports into a PostgreSQL db for efficiency 
 
 
-## Temporary fixes
+## TODO
+- Migrate csv files into Postgres DB
 - Currently this program does not support Mixed use, Laboratory, Single Family Detached, Vacant subtypes, and due to UrbanOpt restraints, cannot support Multifamily, Multifamily (2 to 4 units), Multifamily (5 or more units) subtypes
 - Occupancy assumptions are currently being made relative to the building subtype with a set value for each
-- Only select few weather locations supported
-
-
-## Useful Repositories
-- [PowerTwin Cleaner](https://github.com/nicotegui/powertwin_cleaner)
-- [PowerTwin Json Setup](https://github.com/nicotegui/powertwin_jsonsetup)
-- [PowerTwin Accuracy](https://github.com/nicotegui/powertwin_accuracy)
+- Only select few weather locations supported (automation requires all weather file data)
+- Include all options for feature file configuration for my precise measures
+- Restructure Flask app to follow expected best practice structure (utilize Blueprints)

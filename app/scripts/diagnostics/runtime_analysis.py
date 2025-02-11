@@ -6,7 +6,7 @@ import shutil
 
 from scripts.helper import initialize_logger
 
-ra_logger = initialize_logger('Runtime Analysis')
+logger = initialize_logger('Runtime Analysis')
 
 ############################################################################################################
 # Name: count_coordinate_lines(json_string)
@@ -40,45 +40,44 @@ def count_coordinate_lines(json_string):
 #   It writes the asset data to a CSV file and schedules the assets for processing.
 ############################################################################################################
 def asset_analysis(SIMULATION_DIR, LOCAL_DIR, num_cores, location):
-    ra_logger.debug("Within asset_analysis()")
+    logger.debug("Within asset_analysis()")
+    
+    #TODO: Move uosim_time.csv into a Postgres database along with the batch assignment
     
     UOSIM_CSV = os.path.join(SIMULATION_DIR, 'uosim_time.csv')
     LOCAL_UOSIM_CSV = os.path.join(LOCAL_DIR, 'uosim_time.csv')
     FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
     
     if num_cores > multiprocessing.cpu_count():
-        ra_logger.warning(f"Warning: Number of cores ({num_cores}) is greater than the number of available cores ({multiprocessing.cpu_count()}).")
-        ra_logger.critical("Using all available cores.")
+        logger.warning(f"Warning: Number of cores ({num_cores}) is greater than the number of available cores ({multiprocessing.cpu_count()}).")
+        logger.critical("Using all available cores.")
         num_cores = multiprocessing.cpu_count()
     else:
-        ra_logger.info(f"Number of cores: {num_cores}")
+        logger.info(f"Number of cores: {num_cores}")
     
     # Define the fieldnames for the CSV file
     fieldnames = ['batch', 'name', 'assetid', 'floor_area', 'number_of_stories', 'complexity','location', 'total_time', 'uo_run', 'uo_process']
 
     # Create the CSV file if it doesn't exist
-    #TODO: CHANGE THE UOSIM_CSV TO INSTEAD BE A POSTGRES DATABASE
-
     if not os.path.exists(UOSIM_CSV):
         with open(UOSIM_CSV, mode='w', newline='') as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
 
     # Create a list to store the asset data
-    asset_data = []
-
     # Iterate over all files in the directory
+    asset_data = []
     for filename in os.listdir(FEATURE_FILES_DIR):
         if filename.endswith('.json'):
             # Extract asset_id from the filename
             asset_id = filename.split('_')[0]
-            ra_logger.debug(f"Processing asset {asset_id}...")
+            logger.debug(f"Processing asset {asset_id}...")
 
             # Read the JSON file
             with open(os.path.join(FEATURE_FILES_DIR, filename), 'r') as json_file:
                 json_string = json_file.read()
                 if not json_string.strip():
-                    ra_logger.warning(f"Skipping empty file: {filename}")
+                    logger.warning(f"Skipping empty file: {filename}")
                     continue
                 try:
                     data = json.loads(json_string)
@@ -105,7 +104,7 @@ def asset_analysis(SIMULATION_DIR, LOCAL_DIR, num_cores, location):
                         'uo_process': None   
                     })
                 except json.JSONDecodeError as e:
-                    ra_logger.error(f"Error decoding JSON in file {filename}: {e}")
+                    logger.error(f"Error decoding JSON in file {filename}: {e}")
 
     # Sort the asset data by complexity, number of stories, and floor area
     asset_data.sort(key=lambda x: (x['complexity'], x['number_of_stories'], x['floor_area']), reverse=True)
@@ -120,16 +119,16 @@ def asset_analysis(SIMULATION_DIR, LOCAL_DIR, num_cores, location):
         writer.writeheader()
         writer.writerows(asset_data)
     
-    ra_logger.info("Copying uosim_time.csv to local directory...")
+    logger.info("Copying uosim_time.csv to local directory...")
     shutil.copy(UOSIM_CSV, LOCAL_UOSIM_CSV)
 
     # Print the scheduled assets for each core
     # for i in range(num_cores):
-    #     ra_logger.info(f"Batch {i + 1}:")
+    #     logger.info(f"Batch {i + 1}:")
     #     for asset in asset_data:
     #         if asset['batch'] == i:
-    #             ra_logger.info(f"  {asset['name']}: Complexity: {asset['complexity']}, Stories: {asset['number_of_stories']}, Floor Area: {asset['floor_area']}")
-    #     ra_logger.info("")
+    #             logger.info(f"  {asset['name']}: Complexity: {asset['complexity']}, Stories: {asset['number_of_stories']}, Floor Area: {asset['floor_area']}")
+    #     logger.info("")
 
 ############################################################################################################
 # Name: main()

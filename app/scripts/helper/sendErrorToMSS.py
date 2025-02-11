@@ -1,7 +1,10 @@
 import os
 import requests
 
-
+############################################################################################################
+# Name: send_error_to_mss(function_name, error_message)
+# Description: This function sends the error message to the MSS.
+############################################################################################################
 def send_error_to_mss(function_name, error_message):
     url = os.getenv('FLASK_MSS_BASE_URL')
     api_token = os.getenv('PG_DB_TOKEN_ADMIN')

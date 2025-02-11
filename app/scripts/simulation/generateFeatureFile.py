@@ -14,8 +14,9 @@ import pandas as pd
 from scripts.diagnostics import asset_analysis
 from scripts.helper import initialize_logger
 
-gff_logger = initialize_logger('Generate Feature Files')
+logger = initialize_logger('Generate Feature Files')
 
+# TODO: Move these to a separate file
 OCCUPANTS_MAPPING = {
     "Educational": 355,
     "Business": 100,
@@ -34,6 +35,7 @@ OCCUPANTS_MAPPING = {
     "Unknown": 0
 }
 
+# TODO: Move these to a separate file
 BUILDING_SUBTYPES = {
     "Education": "Educational",
     "Office": "Business",
@@ -66,9 +68,14 @@ BUILDING_SUBTYPES = {
     "null": "Unknown"
 }
 
+# TODO: Modify the way weather information is gathered from asset metadata
+WEATHER_MAP_CSV = 'urbanopt/weather_map.csv'
 
-WEATHER_MAP_CSV = 'app/urbanopt/weather_map.csv'
-
+############################################################################################################
+# Name: get_weather_data()
+# Description: This function reads the weather data from the weather map CSV file and returns the weather data for the city.
+# TODO: Modify the way weather information is gathered from asset metadata
+############################################################################################################
 def get_weather_data(city):
     
     weather_df = pd.read_csv(WEATHER_MAP_CSV)
@@ -91,11 +98,6 @@ def get_weather_data(city):
     }
 
 
-def load_json_file(file_path):
-    with open(file_path, 'r') as file:
-        return json.load(file)
-
-
 ############################################################################################################
 # Name: read_metadata()
 # Description: This function reads the metadata CSV file and returns the building area and type data.
@@ -106,9 +108,11 @@ def read_metadata(metadata_csv):
     building_name_list = {}
     processed_building_ids = set()
 
-    gff_logger.debug("Reading metadata CSV file...")
+    logger.debug("Reading metadata CSV file...")
     with open(metadata_csv, 'r') as metadata_file:
         reader = csv.DictReader(metadata_file)
+        
+        # Read each row in the CSV file to assign building data to its corresponding building ID
         for row in reader:
             asset_name = row['asset_name']
             asset_subtype_name = row['asset_subtype_name']
@@ -135,19 +139,19 @@ def read_metadata(metadata_csv):
             building_area_list[building_id] = int(floor_area)
             building_type_list[building_id] = asset_subtype_name
 
-    gff_logger.debug("Metadata CSV file read successfully.")
+    logger.debug("Metadata CSV file read successfully.")
+    
+    # Return the building area, type, and name data
     return building_area_list, building_type_list, building_name_list
 
 ############################################################################################################
 # Name: process_feature()
 # Description: This function processes each feature and creates a new feature structure with additional properties.
-# It takes the gathered lists from the metadata file and the features from the geojson file.
-# The custom config serves as a default configuration unless modified by the user.
 #   It returns the new feature structure.
 ############################################################################################################
 def process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location):
     properties = feature['properties']
-    gff_logger.debug(f"Processing feature with properties: {properties}")
+    logger.debug(f"Processing feature with properties: {properties}")
     asset_id = str(properties.get('asset_id'))
     building_id = str(properties.get('id'))
 
@@ -165,18 +169,18 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 
     floor_area = building_area_list[building_id]
     building_type = building_type_list[building_id]
+    # Replace special characters in building name
     building_name = building_name_list[building_id].replace('/', ' ').replace('&', ' ')
 
     #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
     occupancy_subtype = BUILDING_SUBTYPES.get(building_type, "Unknown")
     number_of_occupants = OCCUPANTS_MAPPING.get(occupancy_subtype, 0)
 
-    # Create new properties
+    # Create new properties (must be first)
     new_properties = {
         'id': str(properties.pop('id')),
         'asset_id': str(properties.pop('asset_id'))
     }
-
     new_properties.update(properties)
     
     # Calculate the perimeter of the building footprint (assuming a rectangular shape)
@@ -226,7 +230,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             }
         }
     })
-    
+    # Apply custom properties if SmallResidential subtype
     if occupancy_subtype == "SmallResidential":
         new_properties.update({
             "number_of_stories_above_ground": floor_count,
@@ -248,14 +252,17 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     new_properties.pop('base', None)
     new_properties.pop('floorCount', None)
 
+    # Combine geometry and properties
     new_feature = {
         "type": "Feature",
         "geometry": feature['geometry'],
         "properties": new_properties
     }
     
+    # Get weather data
     weather_data = get_weather_data(location)
 
+    # Create the final JSON structure
     final_json = {
         "type": "FeatureCollection",
         "mappers": [],
@@ -301,7 +308,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 #   It writes the new feature structure to individual feature files in the output directory.
 ############################################################################################################
 def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, location):
-    gff_logger.info("Creating feature files...")
+    logger.info("Creating feature files...")
 
     FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
     LOCAL_FEATURE_FILES_DIR = os.path.join(LOCAL_DIR, 'feature_files')
@@ -309,12 +316,18 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
     
     # Metadata requires the area, subtype and name of the building to be present from the metadata
     building_area_list, building_type_list, building_name_list, = read_metadata(metadata_csv)
-    geojson_data = load_json_file(asset_geojson)
-    custom_config_data = load_json_file(config_json)
-
     
+    with open(asset_geojson, 'r') as file:
+        geojson_data = json.load(file)
+    
+    with open(config_json, 'r') as file:
+        custom_config_data = json.load(file)
+
+
+    # Process each feature in the GeoJSON data    
     for feature in geojson_data['features']:
         result = process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location)
+        # If the result is not None, write the feature file
         if result:
             final_json, building_id, building_name = result
             new_building_name = building_name.replace(' ', '_')
@@ -322,28 +335,29 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
             with open(feature_file_path, 'w') as feature_file:
                 json.dump(final_json, feature_file, indent=4)
 
-    gff_logger.info("Feature files created successfully.")
+    logger.info("Feature files created successfully.")
+    # Run the asset analysis to organize the assets to their batch
     asset_analysis(SIMULATION_DIR,LOCAL_DIR, num_cores, location)
 
-    gff_logger.debug("Zipping the output directory...")
+    logger.debug("Zipping the output directory...")
     shutil.make_archive(LOCAL_FEATURE_FILES_DIR, 'zip', FEATURE_FILES_DIR)
     zip_file_path = shutil.make_archive(FEATURE_FILES_DIR, 'zip', FEATURE_FILES_DIR)
 
-    gff_logger.debug("Removing the unzipped directory...")
+    logger.debug("Removing the unzipped directory...")
     shutil.rmtree(FEATURE_FILES_DIR)
 
-    gff_logger.info(f"Zip file created at: {zip_file_path}")
+    logger.info(f"Zip file created at: {zip_file_path}")
 
 ############################################################################################################
 # Name: main()
 # Description: This function is the entry point for the script. Used for testing purposes.
 ############################################################################################################
 if __name__ == "__main__":
-    asset_geojson = 'app/powertwin-solver-pg/uploaded_files/asset.geojson'
-    metadata_csv = 'app/powertwin-solver-pg/uploaded_files/metadata.csv'
-    config_json = 'app/powertwin-solver-pg/uploaded_files/custom_config.json'
-    SIMULATION_DIR = 'app/powertwin-solver-pg/uploaded_files'
-    LOCAL_DIR = 'app/powertwin-solver-pg/user_files'
+    asset_geojson = 'powertwin-solver-pg/uploaded_files/asset.geojson'
+    metadata_csv = 'powertwin-solver-pg/uploaded_files/metadata.csv'
+    config_json = 'powertwin-solver-pg/uploaded_files/custom_config.json'
+    SIMULATION_DIR = 'powertwin-solver-pg/uploaded_files'
+    LOCAL_DIR = 'powertwin-solver-pg/user_files'
     location = 'Phoenix'
     num_cores = 1
     

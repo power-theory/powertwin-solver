@@ -15,7 +15,7 @@ services:
   powertwin-solver-flask:
     container_name: powertwin-solver-flask
     build: 
-      context: .
+      context: ./app
     ports:
       - "8080:8080"
     volumes:

@@ -8,6 +8,10 @@ from scripts.helper import initialize_logger
 rbs_logger = initialize_logger('Read Batch Status')
 console = Console()
 
+############################################################################################################
+# Name: print_assets_progress(title, assets_completed, total_assets, progress)
+# Description: This function prints the progress of the assets.
+############################################################################################################
 def print_assets_progress(title, assets_completed, total_assets, progress):
     filled_length = int(progress // 10)
     bar = '#' * filled_length + ' ' * (10 - filled_length)
@@ -125,13 +129,13 @@ def read_simulation_status(SIMULATION_STATUS_DIR, batch_id=None):
     # Calculate overall progress
     if total_assets > 0:
         overall_progress = (finished_assets / total_assets) * 100
-        rbs_logger.info(f"Batch Progress: ({finished_batches}/{total_batches})")
+        rbs_logger.info(f"\nBatch Progress: ({finished_batches}/{total_batches})")
         print_assets_progress("Overall Progress", finished_assets, total_assets, overall_progress)
     else:
         rbs_logger.error("No assets found in the simulation status directory.")
 
 if __name__ == "__main__":
-    SIMULATION_STATUS_DIR = os.path.join(os.getcwd(), 'app', 'powertwin-solver-pg', 'user_files', 'example_simulation', 'batch_status')
+    SIMULATION_STATUS_DIR = os.path.join('powertwin-solver-pg', 'user_files', 'example_simulation', 'batch_status')
     read_simulation_status(SIMULATION_STATUS_DIR)
     
     

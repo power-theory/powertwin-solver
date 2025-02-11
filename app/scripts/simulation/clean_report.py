@@ -22,7 +22,8 @@ from scripts.helper import initialize_logger
 cr_logger = initialize_logger('Clean Report')
 
 
-# Define the column mapping
+# Define the column mapping for different sections of the report
+# TODO: Locate this elsewhere to make it easier to update
 data_mapping = {
     1: {
         "name": "Electricity",
