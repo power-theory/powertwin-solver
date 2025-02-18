@@ -67,11 +67,12 @@ def asset_analysis(SIMULATION_DIR, LOCAL_DIR, num_cores, location):
     # Create a list to store the asset data
     # Iterate over all files in the directory
     asset_data = []
+    logger.info(f"Processing assets...")
     for filename in os.listdir(FEATURE_FILES_DIR):
         if filename.endswith('.json'):
             # Extract asset_id from the filename
             asset_id = filename.split('_')[0]
-            logger.debug(f"Processing asset {asset_id}...")
+            #logger.debug(f"Processing asset {asset_id}...")
 
             # Read the JSON file
             with open(os.path.join(FEATURE_FILES_DIR, filename), 'r') as json_file:

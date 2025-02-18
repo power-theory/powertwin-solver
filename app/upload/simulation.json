@@ -4,5 +4,5 @@
     "metadata_csv_path": "upload/demo_data/2-sensors-assets-geometries-types.csv",
     "config_json_path": "upload/demo_data/default_config.json",
     "location": "Laramie",
-    "num_cores": 6
+    "num_cores": 3
 }

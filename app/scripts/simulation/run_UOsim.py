@@ -1,9 +1,9 @@
 import os
 import subprocess
-import glob
 import shutil
 import time
 import csv
+import random
 import pandas as pd
 
 from .clean_report import clean_single_report
@@ -12,17 +12,17 @@ from scripts.helper import initialize_logger
 logger = initialize_logger('Run UOSim')
 
 ############################################################################################################
-# Name: clean_batch_dir(BATCH_SIMULATION_DIR)
+# Name: clean_batch_dir(SIMULATION_DIR)
 # Description: This function cleans the batch directory by deleting all directories and files except the run
 #   directory.
 ############################################################################################################
-def clean_batch_dir(BATCH_SIMULATION_DIR):
+def clean_batch_dir(SIMULATION_DIR):
     # Define the directory to keep
     keep_dirs = {'run'}
 
-    # Iterate through the files and directories in BATCH_SIMULATION_DIR
-    for item in os.listdir(BATCH_SIMULATION_DIR):
-        item_path = os.path.join(BATCH_SIMULATION_DIR, item)
+    # Iterate through the files and directories in SIMULATION_DIR
+    for item in os.listdir(SIMULATION_DIR):
+        item_path = os.path.join(SIMULATION_DIR, item)
         
         # Check if the item is a directory and not in the keep_dirs set
         if os.path.isdir(item_path) and item not in keep_dirs:
@@ -75,12 +75,12 @@ def update_status(BATCH_STATUS_CSV, asset_id, status, message):
 
 
 ############################################################################################################
-# Name: run_uosimulation(SIMULATION_DIR,FEATURE_FILE_JSON, BATCH_SIMULATION_DIR, clean_report_flag, METADATA_CSV)
+# Name: run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, METADATA_CSV, batch_index)
 # Description: This function runs the UrbanOpt simulation for a single feature file. It creates the scenario,
 #   runs the simulation, processes the simulation, and cleans the report if necessary. It records the time it
 #   takes to run the simulation and process the simulation.
 ############################################################################################################
-def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_flag, METADATA_CSV, batch_index):
+def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     feature_start_time = time.time()
     
     feature_file_name = os.path.basename(FEATURE_FILE_JSON)
@@ -94,17 +94,24 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
     f"Batch Index: {batch_index}\n"
     f"{'='*47}"
 )
-    
+
     UOSIM_TIME_CSV = os.path.join(SIMULATION_DIR, "uosim_time.csv")
-    #TODO: change to read the location metadata rather then a csv file
-    WEATHER_MAP_CSV = 'urbanopt/weather_map.csv'
-    
     with open(UOSIM_TIME_CSV, mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
             if row['assetid'] == asset_id:
                 city = row['location']
                 
+    SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
+    WEATHER_DESTINATION = os.path.join(SIMULATION_DIR, "weather")
+    
+    #TODO: change to read the location metadata rather then a csv file
+    URBANOPT_DIR = os.path.join('urbanopt')
+    WEATHER_MAP_CSV = os.path.join(URBANOPT_DIR,'weather_map.csv')
+
+    # TODO: Adjust so that copied weather files with the specified extensions are from the database server
+    # Weather files should be selected dependent on geolocation of building which can be found in the feature file
+    
     # Read the CSV file
     weather_df = pd.read_csv(WEATHER_MAP_CSV)
     city_data = weather_df[weather_df['City'].str.lower() == city.lower()]
@@ -113,62 +120,41 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
     city_data = city_data.iloc[0]
     weather_file = city_data['WeatherFile']
     
-    URBANOPT_DIR = os.path.join('urbanopt')
-    WEATHER_BASE_NAME = os.path.join(URBANOPT_DIR, 'weather_files',weather_file, weather_file)
-    MAPPER_FILE = os.path.join(URBANOPT_DIR, "PowerTwin.rb")
-    
-    # Set UrbanOpt Simulation Paths
-    BATCH_SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation', f'batch_{batch_index}')
-    LOCAL_BATCH_SIMULATION_DIR = os.path.join(LOCAL_DIR, 'urbanopt_simulation', f'batch_{batch_index}')
-    MAPPER_DESTINATION = os.path.join(BATCH_SIMULATION_DIR, "mappers")
-    WEATHER_DESTINATION = os.path.join(BATCH_SIMULATION_DIR, "weather")
-    
-    
-    # Create PowerTwin UrbanOpt Project if it doesn't exist
-    if not os.path.exists(BATCH_SIMULATION_DIR):
-        try:
-            logger.debug(f"BATCH {batch_index}: Creating UrbanOpt project at {BATCH_SIMULATION_DIR}.")
-            subprocess.run(f"uo create -p {BATCH_SIMULATION_DIR}", shell=True, check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError as e:
-            logger.error(f"BATCH {batch_index}: Failed to create UrbanOpt project: {e.stderr}")
-            raise e
         
-        os.makedirs(MAPPER_DESTINATION, exist_ok=True)
+    if not os.path.exists(WEATHER_DESTINATION):
         os.makedirs(WEATHER_DESTINATION, exist_ok=True)
 
-        # Baseline ruby file should not be deleted, it is the parent file
-        for rb_file in glob.glob(os.path.join(MAPPER_DESTINATION, "*.rb")):
-                if os.path.basename(rb_file) != "Baseline.rb":
-                    os.remove(rb_file)
-
-        logger.debug(f"BATCH {batch_index}: Copying mapper file to {MAPPER_DESTINATION}")
-        shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
-
-        # TODO: Adjust so that copied weather files with the specified extensions are from the database server
-        # Weather files should be selected dependent on geolocation of building which can be found in the feature file
+        WEATHER_BASE_NAME = os.path.join(URBANOPT_DIR, 'weather_files',weather_file, weather_file)
         for ext in ["ddy", "stat", "epw"]:
             shutil.copy(f"{WEATHER_BASE_NAME}.{ext}", WEATHER_DESTINATION)
 
+    LOCAL_BATCH_SIMULATION_DIR = os.path.join(LOCAL_DIR, 'urbanopt_simulation', f'batch_{batch_index}')
 
     # Move the feature file to the project directory
     try:
-        logger.debug(f"BATCH {batch_index}: Moving feature file {FEATURE_FILE_JSON} to {BATCH_SIMULATION_DIR}")
-        shutil.copy(FEATURE_FILE_JSON, BATCH_SIMULATION_DIR)
+        logger.debug(f"BATCH {batch_index}: Moving feature file {FEATURE_FILE_JSON} to {SIMULATION_DIR}")
+        shutil.copy(FEATURE_FILE_JSON, SIMULATION_DIR)
     except shutil.Error as e:
         logger.error(f"BATCH {batch_index}: Failed to move feature file: {e}")
         raise e
 
+    # Add a random delay between 1 to 5 seconds between each asset to avoid overloading the scenario file overwrite
+    sleep_time = random.randint(1, 5)
+    time.sleep(sleep_time) 
     # Create the scenario
     try:
         logger.info(f"BATCH {batch_index}: Creating scenario for feature file: {feature_file_name}")
-        subprocess.run(f"uo create -s {BATCH_SIMULATION_DIR}/{feature_file_name}", shell=True, check=True, capture_output=True, text=True)
+        subprocess.run(f"uo create --scenario-file {SIMULATION_DIR}/{feature_file_name}", shell=True, check=True, capture_output=True, text=True)
+        #TODO: Could potentially rename the incorect powertwin_scenario.csv file if many cores running at once, further testing required 
+        # Seems to be a problem, a potential fix is to manually create the scenario file instead of calling the command
+        shutil.move(f"{SIMULATION_DIR}/powertwin_scenario.csv", f"{SIMULATION_DIR}/powertwin_scenario_{batch_index}.csv")
     except subprocess.CalledProcessError as e:
         logger.error(f"BATCH {batch_index}: Failed to create scenario: {e.stderr}")
         raise e
     
     # Define the path to the scenario file
-    SCENARIO_FILE_CSV = os.path.join(BATCH_SIMULATION_DIR, "powertwin_scenario.csv")
-    FEATURE_FILE_JSON = os.path.join(BATCH_SIMULATION_DIR, feature_file_name)
+    SCENARIO_FILE_CSV = os.path.join(SIMULATION_DIR, f"powertwin_scenario_{batch_index}.csv")
+    FEATURE_FILE_JSON = os.path.join(SIMULATION_DIR, feature_file_name)
 
     # Run the run and process commands and record their times
     # FEATURE FILE MUST BE IN THE SIMULATION DIRECTORY ALONG WITH THE SCENARIO FILE
@@ -179,10 +165,19 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
     uo_process_time = run_command(f"uo process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
     total_time = uo_run_time + uo_process_time
     
-    if(clean_report_flag):
-        logger.debug(f"BATCH {batch_index}: Cleaning report for {asset_id}:{asset_name}...") 
-        clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id)
+    
+    # Rename SIMULATION_DIR to correct locate the asset file
+    SIMULATION_DIR = os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_index}')
         
+    # Clean Report 
+    metadata_files = [f for f in os.listdir(LOCAL_DIR) if f.endswith('_metadata.csv')]
+    if metadata_files:
+        METADATA_CSV = os.path.join(LOCAL_DIR, metadata_files[0])
+        logger.debug(f"BATCH {batch_index}: Cleaning report for {asset_id}:{asset_name}...") 
+        clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, METADATA_CSV, asset_id)
+    else:
+        logger.error("No metadata file found with pattern *_metadata.csv, not cleaning report")
+    
     
     feature_end_time = time.time()
     feature_duration = feature_end_time - feature_start_time
@@ -218,12 +213,12 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, clean_report_fl
     
 
 ############################################################################################################
-# Name: run_batch(batch, SIMULATION_DIR, clean_report_flag, METADATA_CSV, batch_index)
+# Name: run_batch(batch, SIMULATION_DIR, METADATA_CSV, batch_index)
 # Description: This function runs the UrbanOpt simulation for a batch of feature files. It creates the scenario,
 #   runs the simulation, processes the simulation, and cleans the report if necessary. It records the time it
 #   takes to run the simulation and process the simulation.
 ############################################################################################################
-def run_batch(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, batch_index):
+def run_batch(batch, SIMULATION_DIR,LOCAL_DIR, batch_index):
     # Create a status file for the batch
     # TODO: Move to using postgrs db
     BATCH_STATUS_CSV = os.path.join(SIMULATION_DIR, 'batch_status', f"{batch_index}_status.csv")
@@ -253,7 +248,7 @@ def run_batch(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, 
         
         logger.debug(f"BATCH {batch_index}: Starting processing asset {asset_id}...")
         try:
-            run_uosimulation(SIMULATION_DIR, LOCAL_DIR,feature_file, clean_report_flag, METADATA_CSV, batch_index)
+            run_uosimulation(SIMULATION_DIR, LOCAL_DIR,feature_file, batch_index)
             # Update status to Finished
             update_status(BATCH_STATUS_CSV, asset_id, asset_name, "Finished")
 
@@ -267,8 +262,8 @@ def run_batch(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, 
     
     
     # Clean up the batch simulation directory
-    BATCH_SIMULATION_DIR = os.path.join(SIMULATION_DIR, 'urbanopt_simulation', f'batch_{batch_index}')
-    clean_batch_dir(BATCH_SIMULATION_DIR)
+    SIMULATION_DIR = os.path.join(SIMULATION_DIR, 'urbanopt_simulation')
+    clean_batch_dir(SIMULATION_DIR)
     
     logger.info(f"\n{'='*47}\n"
     f"Batch {batch_index} finished processing.\n"
@@ -295,10 +290,9 @@ if __name__ == "__main__":
     ]
     
     SIMULATION_DIR = os.path.join(os.getcwd(), 'output')
-    clean_report_flag = True
     METADATA_CSV = os.path.join(os.getcwd(), 'metadata.csv')
     batch_index = 1
     
-    run_batch(batch, SIMULATION_DIR, clean_report_flag, METADATA_CSV, batch_index)
+    run_batch(batch, SIMULATION_DIR, METADATA_CSV, batch_index)
     
     

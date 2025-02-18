@@ -151,7 +151,7 @@ def read_metadata(metadata_csv):
 ############################################################################################################
 def process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location):
     properties = feature['properties']
-    logger.debug(f"Processing feature with properties: {properties}")
+    #logger.debug(f"Processing feature with properties: {properties}")
     asset_id = str(properties.get('asset_id'))
     building_id = str(properties.get('id'))
 
@@ -324,7 +324,8 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
         custom_config_data = json.load(file)
 
 
-    # Process each feature in the GeoJSON data    
+    # Process each feature in the GeoJSON data 
+    logger.info("Processing features...")   
     for feature in geojson_data['features']:
         result = process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location)
         # If the result is not None, write the feature file

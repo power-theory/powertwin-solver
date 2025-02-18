@@ -78,6 +78,7 @@ def start_simulation():
     LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
     
     # Error checking
+    #TODO: Metadata csv should be optional since its only required for report cleaning
     if not ASSET_GEOJSON or not METADATA_CSV or not config_data or not simulation_name or not location or num_cores <= 0:
         logger.error("Error: missing or invalid parameter.")
         return jsonify({'error': 'missing or invalid parameter'}), 400
@@ -116,7 +117,7 @@ def start_simulation():
         featurefile_zip_path = os.path.join(SIMULATION_DIR,'feature_files.zip')
         
         logger.debug("Calling initialize_uo from start_simulation()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR,metadata_csv_path,featurefile_zip_path, clean_report_flag=True)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR,featurefile_zip_path)
         logger.debug("Exited initialize_uo to start_simulation()")
         
         logger.debug("Deleting simulation directory, within the container")
@@ -165,6 +166,7 @@ def autorun_simulation():
     num_cores = data.get('num_cores', 1)
 
     # Error checking
+    #TODO: Metadata csv should be optional since its only required for report cleaning
     if not simulation_name or not asset_geojson_path or not metadata_csv_path or not config_json_path or not location or num_cores <= 0:
         logger.error("Error: Missing required fields in simulation.json")
         return jsonify({'error': 'Missing required fields in simulation.json'}), 400
@@ -203,7 +205,7 @@ def autorun_simulation():
         featurefile_zip_path = os.path.join(SIMULATION_DIR, 'feature_files.zip')
         
         logger.debug("Calling initialize_uo from start_simulation_from_json()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, METADATA_CSV, featurefile_zip_path, clean_report_flag=True)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR, featurefile_zip_path)
         logger.debug("Exited initialize_uo to start_simulation_from_json()")
         
         logger.debug("Deleting simulation directory, within the container")
@@ -411,9 +413,7 @@ def recovery():
 
     # Copy and rename the metadata CSV file to the recovery directory
     new_metadata_csv_name = f'{recover_simulation_name}_metadata.csv'
-    new_metadata_csv_path_container = os.path.join(RECOVERY_DIR_CONTAINER, new_metadata_csv_name)
     new_metadata_csv_path_local = os.path.join(RECOVERY_DIR_LOCAL, new_metadata_csv_name)
-    shutil.copy(metadata_csv_path, new_metadata_csv_path_container)
     shutil.copy(metadata_csv_path, new_metadata_csv_path_local)
 
     # Copy and rename the metadata CSV file to the recovery directory
@@ -428,7 +428,7 @@ def recovery():
 
     try:
         logger.debug("Calling simulation_recovery from recovery()")
-        simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, new_metadata_csv_path_container, batch_id, num_cores)
+        simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, batch_id, num_cores)
         
         logger.debug("Exited simulation_recovery to recovery(), deleting recovery directory within the container")
         get_logs()
@@ -458,10 +458,6 @@ def get_logs():
     LOGS_DIR = os.path.join('logs')
     LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
     
-    if not os.path.exists(LOGS_DIR):
-        logger.error("Logs dir does not exist")
-        return jsonify({'error': 'Logs dir does not exist'}), 404
-    
     if not os.path.exists(LOG_FILE):
         logger.error("Log file does not exist")
         return jsonify({'error': 'Log file does not exist'}), 404
@@ -472,11 +468,14 @@ def get_logs():
         # Save the log file to the requested_files directory
         with open(REQUESTED_LOG_FILE, 'w') as file:
             file.write(logs)
+
         logger.debug(f"Log file saved to {REQUESTED_LOG_FILE}")
     except Exception as e:
         logger.error(f"Exception while reading log file: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
+    
+    with open(REQUESTED_LOG_FILE, 'r') as file:
+        logs = file.read()
     # Render the logs in the template
     return render_template('logs.html', logs=logs)
 

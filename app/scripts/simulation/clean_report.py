@@ -19,7 +19,7 @@ from glob import glob
 from scripts.helper import initialize_logger
 
 
-cr_logger = initialize_logger('Clean Report')
+logger = initialize_logger('Clean Report')
 
 
 # Define the column mapping for different sections of the report
@@ -77,6 +77,11 @@ data_mapping = {
     }
 }
 
+############################################################################################################
+# Name: clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR)
+# Description: This function cleans the asset directory by removing all files and directories except for the
+#   in.osm and in.osw files.
+############################################################################################################
 def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
 
     # Define the files and directories to keep
@@ -102,11 +107,11 @@ def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
             
 
 ############################################################################################################
-# Name: clean_report(CLEANED_REPORT_DEST,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id)
+# Name: clean_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, METADATA_CSV, asset_id)
 # Description: This function processes the input CSV file and saves cleaned section reports to a new directory.
 ############################################################################################################
-def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id):
-    cr_logger.debug(f"Within clean_report for asset_id: {asset_id}")
+def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, METADATA_CSV, asset_id):
+    logger.debug(f"Within clean_report for asset_id: {asset_id}")
     
     CLEANED_REPORT_DEST = os.path.join(LOCAL_DIR,'cleaned_reports', f'{asset_id}')
     os.makedirs(CLEANED_REPORT_DEST, exist_ok=True)
@@ -114,13 +119,21 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,BATCH_SIMULATION_DI
     # Find the metadata CSV file that ends with _metadata.csv
     METADATA_CSV = glob(os.path.join(LOCAL_DIR, '*_metadata.csv'))
     if not METADATA_CSV:
-        cr_logger.error("No metadata CSV file found")
+        logger.error("No metadata CSV file found")
         return
     METADATA_CSV = METADATA_CSV[0]  
     
-    UNCLEAN_REPORT_CSV = os.path.join(BATCH_SIMULATION_DIR, "run", "powertwin_scenario", asset_id, "feature_reports", "default_feature_report.csv")
-    ASSET_DIR = os.path.join(BATCH_SIMULATION_DIR, "run", "powertwin_scenario", asset_id)
+    UNCLEAN_REPORT_CSV = os.path.join(SIMULATION_DIR, asset_id, "feature_reports", "default_feature_report.csv")
+    ASSET_DIR = os.path.join(SIMULATION_DIR, asset_id)
     LOCAL_ASSET_DIR = os.path.join(LOCAL_BATCH_SIMULATION_DIR, asset_id)
+    
+    if ASSET_DIR is None:
+        logger.error(f"No asset directory found for asset id: {asset_id}")
+        return
+    
+    if UNCLEAN_REPORT_CSV is None:
+        logger.error(f"No unclean report CSV file found for asset id: {asset_id}")
+        return
         
     sensor_id_list = {}
     
@@ -172,7 +185,7 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,BATCH_SIMULATION_DI
 
         # Save the section DataFrame to a new CSV file
         output_file = os.path.join(CLEANED_REPORT_DEST, f'cleaned_predicted_{data_header.lower().replace(" ", "_")}.csv')
-        cr_logger.debug(f"Saving cleaned section report to: {output_file}")
+        logger.debug(f"Saving cleaned section report to: {output_file}")
         clean_df.to_csv(output_file, index=False)
 
     clean_asset_dir(ASSET_DIR, LOCAL_ASSET_DIR)
@@ -182,10 +195,10 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,BATCH_SIMULATION_DI
 # Description: This function is the entry point for the script. Used for testing purposes.
 ############################################################################################################
 if __name__ == "__main__":
-    BATCH_SIMULATION_DIR = ''
+    SIMULATION_DIR = ''
     METADATA_CSV = 'metadata.csv'
     asset_id = '1'
     SIMULATION_DIR = 'output'
     
     # Process the CSV file
-    clean_single_report(SIMULATION_DIR,BATCH_SIMULATION_DIR, METADATA_CSV, asset_id)
+    clean_single_report(SIMULATION_DIR,SIMULATION_DIR, METADATA_CSV, asset_id)

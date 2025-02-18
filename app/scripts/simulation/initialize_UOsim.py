@@ -3,6 +3,8 @@ import glob
 import time
 import zipfile
 import csv
+import subprocess
+import shutil
 
 from joblib import Parallel, delayed, parallel_backend
 from .run_UOsim import run_batch
@@ -11,11 +13,11 @@ from scripts.helper import initialize_logger
 logger = initialize_logger('Initialize UOSim')
 
 ############################################################################################################
-# Name: prepare_record(SIMULATION_DIR, clean_report_flag, METADATA_CSV)
+# Name: prepare_record(SIMULATION_DIR,LOCAL_DIR)
 # Description: This function prepares the record for the simulation times. The simulation times are written to a
 #   CSV file for data analysis.
 ############################################################################################################
-def prepare_record(SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV):
+def prepare_record(SIMULATION_DIR,LOCAL_DIR):
     
     # Read the existing uosim time CSV data
     UOSIM_TIME_CSV = os.path.join(SIMULATION_DIR, "uosim_time.csv")
@@ -35,30 +37,56 @@ def prepare_record(SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV):
     logger.debug(f"Total batches: {len(batches)}, Total assets: {len(data)}\n" 
                         f"Preparing to run simulations..."
     )
+     
+    UO_SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
+
+    MAPPER_FILE = os.path.join('urbanopt', "PowerTwin.rb")
+    MAPPER_DESTINATION = os.path.join(UO_SIMULATION_DIR, "mappers")
+    WEATHER_DESTINATION = os.path.join(UO_SIMULATION_DIR, "weather")
+    
+
+
+    # Create PowerTwin UrbanOpt Project if it doesn't exist (it shouldnt)
+    if not os.path.exists(UO_SIMULATION_DIR):
+        logger.debug(f"Creating UrbanOpt project at {UO_SIMULATION_DIR}")
+        subprocess.run(f"uo create -p {UO_SIMULATION_DIR}", shell=True, check=True, capture_output=True, text=True)
+
+        
+        os.makedirs(MAPPER_DESTINATION, exist_ok=True)
+        
+        # Deleting the pre loaded content of the weather dir
+        shutil.rmtree(WEATHER_DESTINATION)
+
+        # WARNING: Baseline ruby file should never be deleted, it is the parent file
+        for rb_file in glob.glob(os.path.join(MAPPER_DESTINATION, "*.rb")):
+                if os.path.basename(rb_file) != "Baseline.rb":
+                    os.remove(rb_file)
+
+        # Adding custom mapper (map be modified to include more features)
+        logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
+        shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
     
     # Run simulations in parallel
     try:
         with parallel_backend('loky', n_jobs=len(batches), verbose=10):
-            Parallel()(delayed(run_batch)(batch, SIMULATION_DIR,LOCAL_DIR, clean_report_flag, METADATA_CSV, batch_index) for batch_index, batch in batches.items())
+            Parallel()(delayed(run_batch)(batch, SIMULATION_DIR,LOCAL_DIR, batch_index) for batch_index, batch in batches.items())
     except Exception as e:
         logger.error(f"Error running simulations: {e}")
         return
 
 
 ############################################################################################################
-# Name: initialize_uo(SIMULATION_DIR,METADATA_CSV,feature_file_zip, clean_report_flag=False)
+# Name: initialize_uo(SIMULATION_DIR,feature_file_zip)
 # Description: This function initializes the UrbanOpt simulation by creating the UrbanOpt project, copying the
 #   weather files, and extracting the feature files. It then prepares the record for the simulation times.
 #   The simulation times are written to a CSV file for data analysis.
 ############################################################################################################
-def initialize_uo(SIMULATION_DIR,LOCAL_DIR,METADATA_CSV,feature_file_zip, clean_report_flag=False):
+def initialize_uo(SIMULATION_DIR,LOCAL_DIR,feature_file_zip):
     start_time = time.time()
     
     
     OUTPUT_FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, "feature_files")
-    UOSIMULATION_DIR = os.path.join(SIMULATION_DIR, 'urbanopt_simulation')
     LOCAL_UOSIMULATION_DIR = os.path.join(LOCAL_DIR, 'urbanopt_simulation')
-    os.makedirs(UOSIMULATION_DIR, exist_ok=True)
     os.makedirs(LOCAL_UOSIMULATION_DIR, exist_ok=True)
         
     # Extract the feature files
@@ -82,7 +110,7 @@ def initialize_uo(SIMULATION_DIR,LOCAL_DIR,METADATA_CSV,feature_file_zip, clean_
             return
 
     # Update the CSV file with simulation times
-    prepare_record(SIMULATION_DIR, LOCAL_DIR, clean_report_flag, METADATA_CSV)      
+    prepare_record(SIMULATION_DIR, LOCAL_DIR)      
 
     end_time = time.time()
     duration_seconds = end_time - start_time
@@ -104,7 +132,5 @@ def initialize_uo(SIMULATION_DIR,LOCAL_DIR,METADATA_CSV,feature_file_zip, clean_
 if __name__ == "__main__":
     feature_file_zip = "powertwin-solver-pg/user_files/feature_files.zip"
     SIMULATION_DIR = "powertwin-solver-pg/user_files"
-    METADATA_CSV = "powertwin-solver-pg/user_files/metadata.csv"
-    clean_report_flag = False
-    initialize_uo(SIMULATION_DIR,METADATA_CSV,feature_file_zip, clean_report_flag)
+    initialize_uo(SIMULATION_DIR,feature_file_zip)
     
