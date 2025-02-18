@@ -104,11 +104,11 @@ def clean_corrupted_simulation(CORRUPTED_SIMULATION_DIR, asset_id):
         logger.debug(f"Asset {asset_id} was never proccesed")
 
 ############################################################################################################
-# Name: simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, METADATA_CSV_PATH, batch_id, num_cores)
+# Name: simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, batch_id, num_cores)
 # Description: This function recovers a corrupted simulation by removing assets that are "Processing" or "Not Processed Yet"
 #   from the feature_files directory and re-running the UO simulation.
 ############################################################################################################
-def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, RECOVERY_DIR_LOCAL, METADATA_CSV_PATH, batch_id, num_cores):    
+def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, RECOVERY_DIR_LOCAL, batch_id, num_cores):    
     logger.info(f"Recovering simulation: {CORRUPTED_SIMULATION_DIR}")
 
 
@@ -167,18 +167,17 @@ def simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, RECOVERY_DIR_LOC
     # Continue with the recovery process
     asset_analysis(RECOVERY_DIR, RECOVERY_DIR_LOCAL, num_cores, location)
     
-    initialize_uo(RECOVERY_DIR,RECOVERY_DIR_LOCAL,METADATA_CSV_PATH,FEATURE_FILE_ZIP_PATH, clean_report_flag=True)
+    initialize_uo(RECOVERY_DIR,RECOVERY_DIR_LOCAL,FEATURE_FILE_ZIP_PATH)
 
 
 if __name__ == "__main__":
     USERFILES_DIR = os.path.join('powertwin-solver-pg', 'user_files')
-    METADATA_CSV_PATH = os.path.join(USERFILES_DIR, 'example_simulation_recovery_metadata.csv')
     CORRUPTED_SIMULATION_DIR = 'example_simulation'
     RECOVERY_DIR = 'example_recovery'
     RECOVERY_DIR_LOCAL = 'example_recovery'
     batch_id = 1
     num_cores = 4
-    simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, RECOVERY_DIR_LOCAL, METADATA_CSV_PATH, batch_id, num_cores)
+    simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, RECOVERY_DIR_LOCAL, batch_id, num_cores)
         
     
         

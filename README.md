@@ -1,4 +1,4 @@
-# PowerTwin Solver v1.2
+# PowerTwin Solver v1.3
 
 ## HOW TO RUN
 ```sh
@@ -118,7 +118,7 @@ solver logs
 │   └── script.js
 ├── templates/
 │   ├── base.html
-│   └── testing.html
+│   └── logs.html
 ├── upload/
 │   ├── demo_data
 │   └── simulation.json
@@ -127,7 +127,10 @@ solver logs
 │   ├── PowerTwin.rb
 │   └── weather_map.csv
 ├── app.py
-└── cli.py
+├── cli.py
+├── Dockerfile
+├── requirements.txt
+└── setup.py
 
 ```
 
@@ -145,9 +148,6 @@ solver logs
         |   ├── 0_status.csv
         |   └── ...
         └── urbanopt_simulation/
-            ├── batch_0
-            |   ├── <asset_id>
-            |   └── ...
             └── ...
 ```
 
@@ -184,4 +184,4 @@ The powertwin-db is a shared volume between the powertwin-db and powertwin-solve
 - Occupancy assumptions are currently being made relative to the building subtype with a set value for each
 - Only select few weather locations supported (automation requires all weather file data)
 - Include all options for feature file configuration for my precise measures
-- Restructure Flask app to follow expected best practice structure (utilize Blueprints)
+- Restructure Flask app to follow expected best practice structure
