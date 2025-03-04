@@ -1,4 +1,4 @@
-# PowerTwin Solver v1.3
+# PowerTwin Solver v1.0
 
 ## HOW TO RUN
 ```sh
@@ -108,29 +108,24 @@ solver logs
 ## General Tree
 ```
 🏠 app/
-├── database
-├── scripts/
+├── data
+├── modules/
 │   ├── diagnostics
-│   ├── helper
+│   ├── utils
 │   └── simulation
 ├── static/
 │   ├── json
-│   └── script.js
+│   └── index.js
 ├── templates/
 │   ├── base.html
 │   └── logs.html
-├── upload/
-│   ├── demo_data
-│   └── simulation.json
 ├── urbanopt/
 │   ├── weather_files
-│   ├── PowerTwin.rb
 │   └── weather_map.csv
-├── app.py
 ├── cli.py
-├── Dockerfile
-├── requirements.txt
-└── setup.py
+├── routes.py
+├── setup.py
+└── views.py
 
 ```
 
@@ -140,13 +135,9 @@ solver logs
 └── user_files/
     └── <simulation_name>/
         ├── feature_files.zip
-        ├── uosim_time.csv
         ├── feature_files/
         │   ├── <asset_id>_<id_name>.json
         │   └── ...
-        ├── batch_status/
-        |   ├── 0_status.csv
-        |   └── ...
         └── urbanopt_simulation/
             └── ...
 ```
@@ -160,10 +151,6 @@ solver logs
         ├── <simulation_name>_metadata.csv
         ├── <simulation_name>_geojson.json
         ├── <simulation_name>_config.json
-        ├── uosim_time.csv
-        ├── batch_status/
-        |   ├── 0_status.csv
-        |   └── ...
         ├── cleaned_reports/
         |   ├── <asset_id>
         |   └── ...
@@ -175,13 +162,11 @@ solver logs
 ```
 The runtime generation tree describes the expected files create during runtime.
 The powertwin-db is a shared volume between the powertwin-db and powertwin-solver container, this volume is then saved locally into powertwin_data.
-*Plans to move uosim_time.csv and possibly the cleaned reports into a PostgreSQL db for efficiency 
 
 
 ## TODO
-- Migrate csv files into Postgres DB
 - Currently this program does not support Mixed use, Laboratory, Single Family Detached, Vacant subtypes, and due to UrbanOpt restraints, cannot support Multifamily, Multifamily (2 to 4 units), Multifamily (5 or more units) subtypes
 - Occupancy assumptions are currently being made relative to the building subtype with a set value for each
 - Only select few weather locations supported (automation requires all weather file data)
 - Include all options for feature file configuration for my precise measures
-- Restructure Flask app to follow expected best practice structure
+

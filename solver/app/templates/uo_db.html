@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assets</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+            position: relative; /* For positioning the arrow */
+        }
+        th:after {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+            color: #888;
+        }
+        th.asc:before {
+            content: "▲"; /* Up arrow */
+        }
+        th.desc:before {
+            content: "▼"; /* Down arrow */
+        }
+    </style>
+</head>
+<body>
+    <h1>Assets</h1>
+    <table id="assetsTable">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">Asset ID</th>
+                <th onclick="sortTable(1)">Batch</th>
+                <th onclick="sortTable(2)">Order Rank</th>
+                <th onclick="sortTable(3)">Simulation Name</th>
+                <th onclick="sortTable(4)">Location</th>
+                <th onclick="sortTable(5)">Floor Area</th>
+                <th onclick="sortTable(6)">Number of Stories</th>
+                <th onclick="sortTable(7)">Geometric Complexity</th>
+                <th onclick="sortTable(8)">UORun Time(s)</th>
+                <th onclick="sortTable(9)">UOProcess Time(s)</th>
+                <th onclick="sortTable(10)">Asset Name</th>
+                <th onclick="sortTable(11)">Status</th>
+                <th onclick="sortTable(12)">Total Time(s)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset in assets %}
+            <tr>
+                <td>{{ asset.asset_id }}</td>
+                <td>{{ asset.batch }}</td>
+                <td>{{ asset.order_rank }}</td>
+                <td>{{ asset.simulation_name }}</td>
+                <td>{{ asset.location }}</td>
+                <td>{{ asset.floor_area }}</td>
+                <td>{{ asset.number_of_stories }}</td>
+                <td>{{ asset.complexity }}</td>
+                <td>{{ asset.uorun_time }}</td>
+                <td>{{ asset.uoprocess_time }}</td>
+                <td>{{ asset.asset_name }}</td>
+                <td>{{ asset.status }}</td>
+                <td>{{ asset.total_time }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        let currentSortColumn = null;
+        let currentSortDirection = "asc";
+
+        const numericColumns = [1, 2, 5, 6, 7, 8, 9, 12];
+
+
+        function sortTable(columnIndex) {
+            var table, rows, switching, i, x, y, shouldSwitch;
+            table = document.getElementById("assetsTable");
+            switching = true;
+
+            // Get all table headers
+            const tableHeaders = table.getElementsByTagName("TH");
+
+            // Remove asc and desc classes from all headers
+            for (let k = 0; k < tableHeaders.length; k++) {
+                tableHeaders[k].classList.remove("asc", "desc");
+            }
+
+            // If the current column is already being sorted, reverse the direction
+            if (columnIndex === currentSortColumn) {
+                currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
+            } else {
+                currentSortDirection = "asc"; // Default to ascending
+            }
+
+            // Set the current sort column
+            currentSortColumn = columnIndex;
+
+            // Add the appropriate class to the current header
+            tableHeaders[columnIndex].classList.add(currentSortDirection);
+
+            const isNumeric = numericColumns.includes(columnIndex);
+
+
+            while (switching) {
+                switching = false;
+                rows = table.rows;
+                
+                for (i = 1; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+                    x = rows[i].getElementsByTagName("TD")[columnIndex];
+                    y = rows[i + 1].getElementsByTagName("TD")[columnIndex];
+                    
+                    // Convert to numbers if it's a numeric column
+                    let xValue, yValue;
+                    
+                    if (isNumeric) {
+                        // Parse as numbers, handling empty or non-numeric values
+                        xValue = parseFloat(x.innerHTML) || 0;
+                        yValue = parseFloat(y.innerHTML) || 0;
+                    } else {
+                        // Use lowercase string comparison for text
+                        xValue = x.innerHTML.toLowerCase();
+                        yValue = y.innerHTML.toLowerCase();
+                    }
+
+                    if (currentSortDirection === "asc") {
+                        if (xValue > yValue) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    } else {
+                        if (xValue < yValue) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
