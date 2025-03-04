@@ -5,4 +5,4 @@
 node_modules
 tippecanoe
 __pycache__
-app/test/
+solver/app/test/
