@@ -158,14 +158,6 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     
     # Update the postgres
     update_time(asset_id, uo_run_time, uo_process_time, total_time)
-    
-    # Clean up - only remove the specific scenario directory for this asset
-    asset_dir = os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_index}', asset_id)
-    if os.path.exists(asset_dir):
-        logger.debug(f"BATCH {batch_index}: Cleaning up directory: {asset_dir}")
-        shutil.rmtree(asset_dir)
-    else:
-        logger.warning(f"BATCH {batch_index}: Directory not found for cleanup: {asset_dir}")
 
 ############################################################################################################
 # Name: run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name)

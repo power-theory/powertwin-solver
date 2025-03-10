@@ -169,4 +169,6 @@ The powertwin-db is a shared volume between the powertwin-db and powertwin-solve
 - Occupancy assumptions are currently being made relative to the building subtype with a set value for each
 - Only select few weather locations supported (automation requires all weather file data)
 - Include all options for feature file configuration for my precise measures
+- Move cleaned data into a postgres report using capabilities provided by uo process command
+- Parallelception! Add ability to parallelize batches (would require bulk processing of feature files may interfere with status reader and other asset based loops) 
 

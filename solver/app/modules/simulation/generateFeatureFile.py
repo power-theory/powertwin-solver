@@ -128,12 +128,23 @@ def read_metadata(metadata_csv):
                 continue
 
             # Exclude big residential buildings (Lodging and low highrise Multifamily are an exceptions) (Limited by UrbanOpt)
+            # https://docs.urbanopt.net/workflows/residential_workflows/building_types.html
             # *Note - The Mixed use building type can accommodate up to 4 building types and their corresponding fractions of total floor area. 
             # If the number of building types is fewer than 4, additional building use types must be added but the fraction of total area can be
             # entered as 0.
-            # # TODO: Mixed use requires a lot more detail to undestand what is mixed and what it contains, Laborartoy requires elevator support
-            if asset_subtype_name in ["Multifamily", "Multifamily (2 to 4 units)", "Multifamily (5 or more units)", "Mixed use","Laboratory"]:
-                continue
+            # TODO: Mixed use requires a lot more detail to undestand what is mixed and what it contains, Laborartoy requires elevator support
+            # Multi/Single-family requires multi geojson assets
+            # Temporarily setting these types to other types
+            if asset_subtype_name in ["Single-Family Detached", "Single-Family Attached"]:
+                asset_subtype_name = "Single-Family"
+            elif asset_subtype_name == "Mixed use":
+                asset_subtype_name = "Office"  # Mixed use buildings temporarily mapped to Office
+            elif asset_subtype_name == "Laboratory":
+                asset_subtype_name = "Education"  # Laboratory buildings temporarily mapped to Education
+            elif asset_subtype_name in ["Multifamily", "Multifamily (2 to 4 units)", "Multifamily (5 or more units)"]:
+                asset_subtype_name = "Lodging"  # All multifamily buildings mapped to Lodging
+            
+            
 
             processed_building_ids.add(building_id)
             
@@ -302,6 +313,45 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     
 
     return final_json, building_id, building_name
+
+############################################################################################################
+# Name: create_single_featurefile()
+# Description: This function creates a single feature file for the specified asset ID.
+############################################################################################################
+def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_DIR, simulation_name):
+    FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
+    LOCAL_FEATURE_FILES_DIR = os.path.join(LOCAL_DIR, 'feature_files')
+    os.makedirs(FEATURE_FILES_DIR, exist_ok=True)
+    
+    METADATA_CSV = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_metadata.csv')
+    ASSET_GEOJSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_geojson.json')
+    CONFIG_JSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_config.json')
+    
+    location = get_weather(simulation_name=simulation_name)
+
+    
+    # Metadata requires the area, subtype and name of the building to be present from the metadata
+    building_area_list, building_type_list, building_name_list, = read_metadata(METADATA_CSV)
+    
+    with open(asset_geojson, 'r') as file:
+        ASSET_GEOJSON = json.load(file)
+    
+    with open(config_json, 'r') as file:
+        CONFIG_JSON = json.load(file)
+
+
+    # Process each feature in the GeoJSON data 
+    for feature in geojson_data['features']:
+        result = process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location)
+        # If the result is not None, write the feature file
+        if result and building_id == asset_id:
+            final_json, building_id, building_name = result
+            new_building_name = building_name.replace(' ', '_')
+            feature_file_path = os.path.join(FEATURE_FILES_DIR, f'{building_id}_{new_building_name}.json')
+            with open(feature_file_path, 'w') as feature_file:
+                json.dump(final_json, feature_file, indent=4)
+
+    logger.info(f"Feature file for {asset_id} created successfully.")
 
 ############################################################################################################
 # Name: create_featurefiles()
