@@ -362,15 +362,16 @@ def recovery():
         return jsonify({'error': 'Metadata CSV file not found in the corrupted simulation directory'}), 404
 
     # Copy and rename the metadata CSV, geojson, and config file to the recovery directory
-    new_metadata_csv_path_local = os.path.join(RECOVERY_DIR_LOCAL, f'{recover_simulation_name}_metadata.csv')
+    new_metadata_csv_path = os.path.join(RECOVERY_DIR_LOCAL, f'{recover_simulation_name}_metadata.csv')
     new_geojson_name_path = os.path.join(RECOVERY_DIR_LOCAL, f'{recover_simulation_name}_asset.geojson')
     new_config_name_path = os.path.join(RECOVERY_DIR_LOCAL, f'{recover_simulation_name}_config.json')
     
-    shutil.copy(metadata_csv_path, new_metadata_csv_path_local)
+    shutil.copy(metadata_csv_path, new_metadata_csv_path)
     shutil.copy(geojson_path, new_geojson_name_path)
     shutil.copy(config_path, new_config_name_path)
     
     try:
+        
         logger.debug("Calling simulation_recovery from recovery()")
         simulation_recovery(RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, CORRUPTED_SIMULATION_DIR, corrupted_simulation_name, recover_simulation_name, batch_id, num_cores)
         

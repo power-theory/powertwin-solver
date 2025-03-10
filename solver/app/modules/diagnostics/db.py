@@ -379,7 +379,30 @@ def get_asset_total(simulation_name, batch_id=None):
     finally:
         cur.close()
         conn.close()
+
+def get_failed_assets(simulation_name, batch_id=None):
+    logger.debug('Within get_failed_assets()')
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        if batch_id is None:
+            cur.execute('SELECT asset_id FROM powertwin_solver WHERE simulation_name = %s AND status = %s', 
+                        (simulation_name, 'Failed'))
+        else:
+            cur.execute('SELECT asset_id FROM powertwin_solver WHERE simulation_name = %s AND batch = %s AND status = %s', 
+                        (simulation_name, batch_id, 'Failed'))
         
+        failed_assets = cur.fetchall()
+        return [asset[0] for asset in failed_assets]
+    
+    except Exception as e:
+        logger.error(f'Error getting failed assets from {simulation_name}: {e}')
+        return []
+    finally:
+        cur.close()
+        conn.close()
+
 def view_assets():
     logger.debug('Within view_assets()')
     conn = get_db_connection()
