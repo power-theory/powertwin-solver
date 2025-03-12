@@ -32,6 +32,16 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
         
     # Unzip feature_file.zip from the corrupted simulation into the recovery directory
     logger.info("Recovering feature files...")    
+    if os.path.exists(CORRUPTED_FEATURE_FILE_ZIP):
+        logger.info(f"Extracting {CORRUPTED_FEATURE_FILE_ZIP} to {FEATURE_FILES_DIR}")
+        try:
+            with zipfile.ZipFile(CORRUPTED_FEATURE_FILE_ZIP, 'r') as zip_ref:
+                zip_ref.extractall(FEATURE_FILES_DIR)
+            logger.info("Feature files extracted successfully")
+        except Exception as e:
+            logger.error(f"Error extracting feature files: {str(e)}")
+    else:
+        logger.warning(f"Corrupted feature file zip not found: {CORRUPTED_FEATURE_FILE_ZIP}")
     
     # Collect assets to transfer
     all_asset_ids = []  
