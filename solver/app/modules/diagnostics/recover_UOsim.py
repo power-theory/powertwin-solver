@@ -43,8 +43,16 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     else:
         logger.warning(f"Corrupted feature file zip not found: {CORRUPTED_FEATURE_FILE_ZIP}")
     
+    
+    # Check if feature_files exist
+    feature_files = [f for f in os.listdir(FEATURE_FILES_DIR) if f.endswith('.json')]    
+    if not feature_files:
+        logger.error("No feature files found in the directory. Recovery cannot proceed. No changes made to database")
+        return False
+    
     # Collect assets to transfer
     all_asset_ids = []  
+    
     if batch_id is None:
         batch_list = get_bulk_batchids(CORRUPTED_SIMULATION_NAME)
         
@@ -70,12 +78,7 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     failed_assets = []
     failed_assets = get_failed_assets(simulation_name=CORRUPTED_SIMULATION_NAME)
     logger.info(f"Total failed assets: {len(failed_assets)}")
-    
 
-    feature_files = [f for f in os.listdir(FEATURE_FILES_DIR) if f.endswith('.json')]    
-    if not feature_files:
-        logger.error("No feature files found in the directory. Recovery cannot proceed.")
-        return False
         
     # Remove feature files that aren't in the specified asset IDs
     for file_name in feature_files:
