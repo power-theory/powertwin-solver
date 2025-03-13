@@ -142,9 +142,9 @@ def main():
     parser_get_config.set_defaults(func=get_asset_config)
 
     # Get simulation stats command
-    parser_get_config = subparsers.add_parser('get_stats', help='Get simulation stats')
-    parser_get_config.add_argument('simulation_name', type=str, help='Name of the simulation')
-    parser_get_config.set_defaults(func=get_simulation_stats)
+    parser_get_stats = subparsers.add_parser('get_stats', help='Get simulation stats')
+    parser_get_stats.add_argument('simulation_name', type=str, help='Name of the simulation')
+    parser_get_stats.set_defaults(func=get_simulation_stats)
 
     # Recovery command
     parser_recovery = subparsers.add_parser('recover', help='Recover a simulation')
