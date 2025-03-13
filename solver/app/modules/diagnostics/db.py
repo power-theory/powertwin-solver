@@ -1,5 +1,7 @@
 import psycopg
-
+import csv
+import os
+from datetime import datetime
 from modules.utils import initialize_logger
 from flask import render_template
 
@@ -432,3 +434,53 @@ def view_assets():
         })
 
     return render_template('uo_db.html', assets=assets_list)
+
+def get_asset_stats(simulation_name=None):
+    logger.debug(f'Exporting assets to CSV for simulation: {simulation_name if simulation_name else "all"}')
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        if simulation_name:
+            cur.execute('SELECT * FROM powertwin_solver WHERE simulation_name = %s ORDER BY batch, order_rank', (simulation_name,))
+            filename = f"{simulation_name}_assets_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        else:
+            cur.execute('SELECT * FROM powertwin_solver ORDER BY simulation_name, batch, order_rank')
+            filename = f"all_assets_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        assets = cur.fetchall()
+        
+        if not assets:
+            logger.warning(f"No assets found for simulation: {simulation_name}")
+            return [], None
+            
+        
+        # Convert to list of dictionaries for easier use by caller
+        assets_list = []
+        for asset in assets:
+            assets_list.append({
+                'asset_id': asset[0],
+                'batch': asset[1],
+                'order_rank': asset[2],
+                'simulation_name': asset[3],
+                'location': asset[4],
+                'floor_area': asset[5],
+                'number_of_stories': asset[6],
+                'complexity': asset[7],
+                'uorun_time': asset[8],
+                'uoprocess_time': asset[9],
+                'asset_name': asset[10],
+                'status': asset[11],
+                'total_time': asset[12]
+            })
+        
+        logger.info(f"Successfully retrieved stats for {len(assets_list)} assets")
+        return assets_list, filename
+        
+    except Exception as e:
+        logger.error(f"Error exporting assets to CSV: {e}")
+        return [], None
+    finally:
+        cur.close()
+        conn.close()

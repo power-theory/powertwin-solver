@@ -311,6 +311,80 @@ def get_asset_config(simulation_name, asset_id):
         send_error_to_mss('get_asset_config', str(e))
         return jsonify({'error': str(e)}), 500
 
+
+############################################################################################################
+# Name: def get_simulation_stats()
+# Description: This function reads the simulation statistics and returns the statistics of the simulation.
+# Calls the get_asset_stats function to get the asset statistics from the database.
+# Returns the statistics as a CSV file in the requested_files directory.
+############################################################################################################
+def get_simulation_stats(simulation_name):
+    from modules.diagnostics import get_asset_stats
+    
+    logger.debug("Within get_simulation_stats()")
+    
+    if not simulation_name:
+        logger.warning("No simulation name, getting all simulation data")
+           
+    try:
+        # Get asset statistics from the database
+        assets_list, filename = get_asset_stats(simulation_name)
+        
+        if not assets_list:
+            return jsonify({'error': 'No assets found for the specified simulation'}), 404
+            
+        # Create directory for requested files if it doesn't exist
+        requested_files_dir = os.path.join(LOCAL_DIR, 'requested_files')
+        os.makedirs(requested_files_dir, exist_ok=True)
+        
+        # Define the full path for the CSV file
+        csv_path = os.path.join(requested_files_dir, filename)
+        
+        # Write data to CSV file
+        with open(csv_path, 'w', newline='') as csvfile:
+            # Create CSV writer
+            csvwriter = csv.writer(csvfile)
+            
+            # Write header row
+            csvwriter.writerow([
+                'Asset ID', 'Batch', 'Order Rank', 'Simulation Name', 'Location', 
+                'Floor Area', 'Number of Stories', 'Complexity', 'UO Run Time', 
+                'UO Process Time', 'Asset Name', 'Status', 'Total Time'
+            ])
+            
+            # Write data rows - extract values from dictionaries in proper order
+            for asset in assets_list:
+                csvwriter.writerow([
+                    asset['asset_id'],
+                    asset['batch'],
+                    asset['order_rank'],
+                    asset['simulation_name'],
+                    asset['location'],
+                    asset['floor_area'],
+                    asset['number_of_stories'],
+                    asset['complexity'],
+                    asset['uorun_time'],
+                    asset['uoprocess_time'],
+                    asset['asset_name'],
+                    asset['status'],
+                    asset['total_time']
+                ])
+        
+        logger.info(f"Successfully created CSV file with {len(assets_list)} assets at {csv_path}")
+        
+        # Return success response with file path
+        return jsonify({
+            'message': 'Simulation stats exported successfully',
+            'file_path': csv_path,
+            'asset_count': len(assets_list)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Exception: {str(e)}")
+        send_error_to_mss('get_simulation_stats', str(e))
+        return jsonify({'error': str(e)}), 500
+    
+
 # 3. Diagnostics and Logs
 
 ############################################################################################################
@@ -387,6 +461,7 @@ def recovery():
         return jsonify({'error': str(e)}), 500
 
 
+
 ############################################################################################################
 # Name: def get_logs()
 # Description: This function zips the logs directory and sends the zip file as a response for download.
@@ -422,6 +497,7 @@ def get_logs():
         logs = file.read()
     # Render the logs in the template
     return render_template('logs.html', logs=logs)
+
 
 
 ############################################################################################################
