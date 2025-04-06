@@ -87,7 +87,7 @@ variables:
 deploy_dev_db:
   stage: deploy_dev_db
   tags:
-    - tank
+    - solver
   variables:
     FLASK_PORT: 5443
     PG_DB_PORT: 5333
@@ -103,7 +103,7 @@ deploy_dev_db:
 deploy_dev_flask:
   stage: deploy_dev_flask
   tags:
-    - tank
+    - solver
   variables:
     FLASK_PORT: 5443
     PG_DB_PORT: 5333
@@ -119,7 +119,7 @@ deploy_dev_flask:
 deploy_dev_mss:
   stage: deploy_dev_mss
   tags:
-    - tank
+    - solver
   variables:
     FLASK_PORT: 5443
     PG_DB_PORT: 5333
@@ -136,7 +136,7 @@ deploy_dev_mss:
 deploy_prev_db:
   stage: deploy_prev_db
   tags:
-    - tank
+    - solver
   variables:
     FLASK_PORT: 5444
     PG_DB_PORT: 5334
@@ -152,7 +152,7 @@ deploy_prev_db:
 deploy_prev_flask:
   stage: deploy_prev_flask
   tags:
-    - tank
+    - solver
   variables:
     FLASK_PORT: 5444
     PG_DB_PORT: 5334
@@ -168,7 +168,7 @@ deploy_prev_flask:
 deploy_prev_mss:
   stage: deploy_prev_mss
   tags:
-    - tank
+    - solver
   variables:
     FLASK_PORT: 5444
     PG_DB_PORT: 5334
@@ -185,7 +185,7 @@ deploy_prev_mss:
 deploy_main_db:
   stage: deploy_main_db
   tags:
-    - tank
+    - solver
   variables:
     FLASK_PORT: 5445
     PG_DB_PORT: 5335
@@ -201,7 +201,7 @@ deploy_main_db:
 deploy_main_flask:
   stage: deploy_main_flask
   tags:
-    - tank
+    - solver
   variables:
     FLASK_PORT: 5445
     PG_DB_PORT: 5335
@@ -217,7 +217,7 @@ deploy_main_flask:
 deploy_main_mss:
   stage: deploy_main_mss
   tags:
-    - tank
+    - solver
   variables:
     FLASK_PORT: 5445
     PG_DB_PORT: 5335
