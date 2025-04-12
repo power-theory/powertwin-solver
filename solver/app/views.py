@@ -2,6 +2,7 @@ import shutil
 import os
 import json
 import datetime
+import csv
 
 from flask import request, jsonify, render_template, send_file
 
@@ -318,7 +319,7 @@ def get_asset_config(simulation_name, asset_id):
 # Calls the get_asset_stats function to get the asset statistics from the database.
 # Returns the statistics as a CSV file in the requested_files directory.
 ############################################################################################################
-def get_simulation_stats(simulation_name):
+def get_simulation_stats(simulation_name=None):
     from modules.diagnostics import get_asset_stats
     
     logger.debug("Within get_simulation_stats()")
@@ -337,7 +338,7 @@ def get_simulation_stats(simulation_name):
         requested_files_dir = os.path.join(LOCAL_DIR, 'requested_files')
         os.makedirs(requested_files_dir, exist_ok=True)
         
-        # Define the full path for the CSV file
+        # Define CSV file path
         csv_path = os.path.join(requested_files_dir, filename)
         
         # Write data to CSV file
@@ -377,11 +378,12 @@ def get_simulation_stats(simulation_name):
             'message': 'Simulation stats exported successfully',
             'file_path': csv_path,
             'asset_count': len(assets_list)
-        }), 200
+        }), 20
         
     except Exception as e:
         logger.error(f"Exception: {str(e)}")
-        send_error_to_mss('get_simulation_stats', str(e))
+        if os.path.exists(csv_path):
+            os.rmdir(csv_path)  # Remove the directory if an error occurs
         return jsonify({'error': str(e)}), 500
     
 
