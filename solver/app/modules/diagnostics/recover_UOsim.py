@@ -5,7 +5,7 @@ import zipfile
 from modules.utils import initialize_logger
 from modules.simulation import initialize_uo
 from .runtime_analysis import asset_analysis
-from .db import get_weather, update_simulation_name, get_bulk_assets, get_bulk_batchids, get_failed_assets
+from .db import get_weather, update_simulation_name, get_bulk_assets, get_bulk_batchids, get_failed_assets, update_status
 
 logger = initialize_logger('Recover UOSim')
 
@@ -17,7 +17,7 @@ logger = initialize_logger('Recover UOSim')
 #   The function returns the total number of assets processed.
 ############################################################################################################
 def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPTED_SIMULATION_NAME, RECOVERY_SIMULATION_NAME, batch_id, num_cores):  
-    from modules.simulation import create_single_featurefile, update_status  
+    from modules.simulation import create_single_featurefile  
     logger.info(f"Recovering simulation: {CORRUPTED_SIMULATION_NAME} for batch {batch_id}")
 
     location = get_weather(simulation_name=CORRUPTED_SIMULATION_NAME)
