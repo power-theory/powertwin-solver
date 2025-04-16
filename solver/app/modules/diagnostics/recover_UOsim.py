@@ -17,7 +17,7 @@ logger = initialize_logger('Recover UOSim')
 #   The function returns the total number of assets processed.
 ############################################################################################################
 def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPTED_SIMULATION_NAME, RECOVERY_SIMULATION_NAME, batch_id, num_cores):  
-    from modules.simulation import create_single_featurefile  
+    from modules.simulation import create_single_featurefile, update_status  
     logger.info(f"Recovering simulation: {CORRUPTED_SIMULATION_NAME} for batch {batch_id}")
 
     location = get_weather(simulation_name=CORRUPTED_SIMULATION_NAME)
@@ -97,6 +97,7 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
             asset_path = os.path.join(FEATURE_FILES_DIR, file_name)
             logger.info(f"Updating failed asset {file_name}")
             create_single_featurefile(file_asset_id, RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME)
+            update_status("Processing", asset_id=file_asset_id)
             logger.info(f"Failed asset {file_name} updated")
         
     # Zip the feature_files directory
