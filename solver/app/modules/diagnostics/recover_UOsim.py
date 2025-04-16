@@ -48,6 +48,8 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     feature_files = [f for f in os.listdir(FEATURE_FILES_DIR) if f.endswith('.json')]    
     if not feature_files:
         logger.error("No feature files found in the directory. Recovery cannot proceed. No changes made to database")
+        shutil.rmtree(RECOVERY_DIR)
+        shutil.rmtree(LOCAL_RECOVERY_DIR) 
         return False
     
     # Collect assets to transfer
@@ -76,36 +78,36 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
 
     # Get failed assets
     failed_assets = []
-    failed_assets = get_failed_assets(simulation_name=CORRUPTED_SIMULATION_NAME)
+    failed_assets = get_failed_assets(simulation_name=RECOVERY_SIMULATION_NAME)
     logger.info(f"Total failed assets: {len(failed_assets)}")
-
         
     # Remove feature files that aren't in the specified asset IDs
     for file_name in feature_files:
-        # Extract asset_id from filename (assuming format "asset_id_name.json")
-        file_asset_id = file_name.split('_')[0]
+        # Extract asset_id from filename (assuming format "assetID_name.json")
+        file_asset_id = int(file_name.split('_')[0])
         
         # If this asset ID is not in our list of assets to keep delete it
         if file_asset_id not in all_asset_ids:
             asset_path = os.path.join(FEATURE_FILES_DIR, file_name)
-            logger.debug(f"Removing file not in recovery list: {file_name}")
             os.remove(asset_path)
         
         # If this asset ID is in our list of failed assets update its content
+        # TODO: Workout a way to bulk update failed assets, current method is slow
         if file_asset_id in failed_assets:
             asset_path = os.path.join(FEATURE_FILES_DIR, file_name)
-            logger.debug(f"Updating failed asset... {file_name}")
+            logger.info(f"Updating failed asset {file_name}")
             create_single_featurefile(file_asset_id, RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME)
+            logger.info(f"Failed asset {file_name} updated")
         
-        # Zip the feature_files directory
-        logger.debug(f"Zipping {FEATURE_FILES_DIR} into {FEATURE_FILE_ZIP_PATH} and {FEATURE_FILE_ZIP_PATH_LOCAL}")
-        shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH)[0], 'zip', FEATURE_FILES_DIR)
-        shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH_LOCAL)[0], 'zip', FEATURE_FILES_DIR)
+    # Zip the feature_files directory
+    logger.debug(f"Zipping {FEATURE_FILES_DIR} into {FEATURE_FILE_ZIP_PATH} and {FEATURE_FILE_ZIP_PATH_LOCAL}")
+    shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH)[0], 'zip', FEATURE_FILES_DIR)
+    shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH_LOCAL)[0], 'zip', FEATURE_FILES_DIR)
 
-        # Continue with the recovery process
-        asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME)
-        
-        initialize_uo(RECOVERY_DIR,LOCAL_RECOVERY_DIR,RECOVERY_SIMULATION_NAME)
+    # Continue with the recovery process
+    asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME)
+    
+    initialize_uo(RECOVERY_DIR,LOCAL_RECOVERY_DIR,RECOVERY_SIMULATION_NAME)
 
 
 if __name__ == "__main__":

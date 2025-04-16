@@ -314,22 +314,20 @@ def get_asset_config(simulation_name, asset_id):
 
 
 ############################################################################################################
-# Name: def get_simulation_stats()
+# Name: def get_simulation_data()
 # Description: This function reads the simulation statistics and returns the statistics of the simulation.
 # Calls the get_asset_stats function to get the asset statistics from the database.
 # Returns the statistics as a CSV file in the requested_files directory.
 ############################################################################################################
-def get_simulation_stats(simulation_name=None):
+def get_simulation_data():
     from modules.diagnostics import get_asset_stats
     
-    logger.debug("Within get_simulation_stats()")
+    logger.debug("Within get_simulation_data()")
+    csv_path = None  # Define outside try block so it's available in except
     
-    if not simulation_name:
-        logger.warning("No simulation name, getting all simulation data")
-           
     try:
         # Get asset statistics from the database
-        assets_list, filename = get_asset_stats(simulation_name)
+        assets_list, filename = get_asset_stats()
         
         if not assets_list:
             return jsonify({'error': 'No assets found for the specified simulation'}), 404
@@ -350,7 +348,7 @@ def get_simulation_stats(simulation_name=None):
             csvwriter.writerow([
                 'Asset ID', 'Batch', 'Order Rank', 'Simulation Name', 'Location', 
                 'Floor Area', 'Number of Stories', 'Complexity', 'UO Run Time', 
-                'UO Process Time', 'Asset Name', 'Status', 'Total Time'
+                'UO Process Time', 'Asset Name', 'Subtype','Status', 'Total Time'
             ])
             
             # Write data rows - extract values from dictionaries in proper order
@@ -367,6 +365,7 @@ def get_simulation_stats(simulation_name=None):
                     asset['uorun_time'],
                     asset['uoprocess_time'],
                     asset['asset_name'],
+                    asset['subtype'],
                     asset['status'],
                     asset['total_time']
                 ])
@@ -378,12 +377,12 @@ def get_simulation_stats(simulation_name=None):
             'message': 'Simulation stats exported successfully',
             'file_path': csv_path,
             'asset_count': len(assets_list)
-        }), 20
+        }), 200  # Fixed status code
         
     except Exception as e:
         logger.error(f"Exception: {str(e)}")
-        if os.path.exists(csv_path):
-            os.rmdir(csv_path)  # Remove the directory if an error occurs
+        if csv_path and os.path.exists(csv_path):
+            os.remove(csv_path)  # Use remove() for files, not rmdir()
         return jsonify({'error': str(e)}), 500
     
 

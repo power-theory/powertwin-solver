@@ -40,6 +40,7 @@ def create_table():
                 uorun_time NUMERIC,
                 uoprocess_time NUMERIC,
                 asset_name VARCHAR(255),
+                subtype VARCHAR(255),
                 status VARCHAR(255),
                 total_time NUMERIC
             )
@@ -53,12 +54,14 @@ def create_table():
         conn.close()
         
 
-def insert_asset(asset_id, location, floor_area, number_of_stories, complexity, asset_name, simulation_name):
+def insert_asset(asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name):
+    ensure_columns_exist()
+
     conn = get_db_connection()
     cur = conn.cursor()
     try:
         cur.execute("""
-            INSERT INTO powertwin_solver (asset_id, location, floor_area, number_of_stories, complexity, asset_name, simulation_name)
+            INSERT INTO powertwin_solver (asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (asset_id) DO UPDATE SET
                 location = EXCLUDED.location,
@@ -66,8 +69,9 @@ def insert_asset(asset_id, location, floor_area, number_of_stories, complexity, 
                 number_of_stories = EXCLUDED.number_of_stories,
                 complexity = EXCLUDED.complexity,
                 asset_name = EXCLUDED.asset_name,
+                subtype = EXCLUDED.subtype,
                 simulation_name = EXCLUDED.simulation_name
-        """, (asset_id, location, floor_area, number_of_stories, complexity, asset_name, simulation_name))
+        """, (asset_id, location, floor_area, number_of_stories, complexity, asset_name,subtype, simulation_name))
         conn.commit()
     except Exception as e:
         print(f"Error inserting asset ID {asset_id}: {e}")
@@ -84,21 +88,24 @@ def insert_bulk_assets(asset_data_list):
         
     logger.debug(f'Bulk inserting {len(asset_data_list)} assets')
     
+    ensure_columns_exist()
+
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        
         values_parts = []
         all_params = []
         
         for asset in asset_data_list:
-            values_parts.append("(%s, %s, %s, %s, %s, %s, %s)")
+            values_parts.append("(%s, %s, %s, %s, %s, %s, %s, %s)")
             all_params.extend(asset)
         
         values_clause = ", ".join(values_parts)
         
         query = f"""
             INSERT INTO powertwin_solver 
-            (asset_id, location, floor_area, number_of_stories, complexity, asset_name, simulation_name)
+            (asset_id, location, floor_area, number_of_stories, complexity, asset_name,subtype, simulation_name)
             VALUES {values_clause}
             ON CONFLICT (asset_id) DO UPDATE SET
                 location = EXCLUDED.location,
@@ -106,6 +113,7 @@ def insert_bulk_assets(asset_data_list):
                 number_of_stories = EXCLUDED.number_of_stories,
                 complexity = EXCLUDED.complexity,
                 asset_name = EXCLUDED.asset_name,
+                subtype = EXCLUDED.subtype,
                 simulation_name = EXCLUDED.simulation_name
             WHERE powertwin_solver.status IS NULL OR powertwin_solver.status != 'Finished'
         """
@@ -383,20 +391,38 @@ def get_asset_total(simulation_name, batch_id=None):
         conn.close()
 
 def get_failed_assets(simulation_name, batch_id=None):
-    logger.debug('Within get_failed_assets()')
+    logger.debug(f'Getting failed assets for simulation: {simulation_name}, batch: {batch_id}')
     
     conn = get_db_connection()
     cur = conn.cursor()
     try:
         if batch_id is None:
-            cur.execute('SELECT asset_id FROM powertwin_solver WHERE simulation_name = %s AND status = %s', 
-                        (simulation_name, 'Failed'))
+            # Get all failed assets for the simulation
+            cur.execute("""
+                SELECT asset_id 
+                FROM powertwin_solver 
+                WHERE simulation_name = %s 
+                AND status ILIKE 'Failed'
+                ORDER BY batch, order_rank
+            """, (simulation_name,))
         else:
-            cur.execute('SELECT asset_id FROM powertwin_solver WHERE simulation_name = %s AND batch = %s AND status = %s', 
-                        (simulation_name, batch_id, 'Failed'))
+            # Get failed assets for specific batch
+            cur.execute("""
+                SELECT asset_id 
+                FROM powertwin_solver 
+                WHERE simulation_name = %s 
+                AND batch = %s 
+                AND status ILIKE 'Failed'
+                ORDER BY order_rank
+            """, (simulation_name, batch_id))
         
         failed_assets = cur.fetchall()
-        return [asset[0] for asset in failed_assets]
+        
+        # Convert list of tuples to list of asset IDs
+        asset_ids = [asset[0] for asset in failed_assets]
+        
+        logger.info(f"Found {len(asset_ids)} failed assets")
+        return asset_ids
     
     except Exception as e:
         logger.error(f'Error getting failed assets from {simulation_name}: {e}')
@@ -405,82 +431,119 @@ def get_failed_assets(simulation_name, batch_id=None):
         cur.close()
         conn.close()
 
-def view_assets():
-    logger.debug('Within view_assets()')
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM powertwin_solver')
-    assets = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    # Convert the data to a list of dictionaries for JSON serialization
-    assets_list = []
-    for asset in assets:
-        assets_list.append({
-            'asset_id': asset[0],
-            'batch': asset[1],
-            'order_rank': asset[2],
-            'simulation_name': asset[3],
-            'location': asset[4],
-            'floor_area': asset[5],
-            'number_of_stories': asset[6],
-            'complexity': asset[7],
-            'uorun_time': asset[8],
-            'uoprocess_time': asset[9],
-            'asset_name': asset[10],
-            'status': asset[11],
-            'total_time': asset[12]
-        })
-
-    return render_template('uo_db.html', assets=assets_list)
-
 def get_asset_stats(simulation_name=None):
-    logger.debug(f'Exporting assets to CSV for simulation: {simulation_name if simulation_name else "all"}')
-    
-    conn = get_db_connection()
-    cur = conn.cursor()
+    logger.debug(f'Getting asset stats for simulation: {simulation_name if simulation_name else "all"}')
+    conn = None
+    cur = None
     
     try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        query = """
+            SELECT 
+                asset_id::integer,
+                batch::integer,
+                order_rank::integer,
+                simulation_name,
+                location,
+                floor_area::numeric,
+                number_of_stories::integer,
+                complexity::integer,
+                COALESCE(uorun_time::numeric, 0) as uorun_time,
+                COALESCE(uoprocess_time::numeric, 0) as uoprocess_time,
+                asset_name,
+                subtype,
+                status,
+                COALESCE(total_time::numeric, 0) as total_time
+            FROM powertwin_solver
+        """
+        
+        params = []
         if simulation_name:
-            cur.execute('SELECT * FROM powertwin_solver WHERE simulation_name = %s ORDER BY batch, order_rank', (simulation_name,))
+            query += " WHERE simulation_name = %s"
+            params.append(simulation_name)
             filename = f"{simulation_name}_assets_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         else:
-            cur.execute('SELECT * FROM powertwin_solver ORDER BY simulation_name, batch, order_rank')
             filename = f"all_assets_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+        query += " ORDER BY simulation_name, batch, order_rank"
         
+        cur.execute(query, params)
         assets = cur.fetchall()
         
         if not assets:
-            logger.warning(f"No assets found for simulation: {simulation_name}")
+            logger.warning(f"No assets found for simulation: {simulation_name if simulation_name else 'all'}")
             return [], None
             
+        # Get column names from cursor description
+        columns = [desc[0] for desc in cur.description]
         
-        # Convert to list of dictionaries for easier use by caller
-        assets_list = []
-        for asset in assets:
-            assets_list.append({
-                'asset_id': asset[0],
-                'batch': asset[1],
-                'order_rank': asset[2],
-                'simulation_name': asset[3],
-                'location': asset[4],
-                'floor_area': asset[5],
-                'number_of_stories': asset[6],
-                'complexity': asset[7],
-                'uorun_time': asset[8],
-                'uoprocess_time': asset[9],
-                'asset_name': asset[10],
-                'status': asset[11],
-                'total_time': asset[12]
-            })
+        # Convert to list of dictionaries
+        assets_list = [dict(zip(columns, asset)) for asset in assets]
         
         logger.info(f"Successfully retrieved stats for {len(assets_list)} assets")
         return assets_list, filename
         
-    except Exception as e:
-        logger.error(f"Error exporting assets to CSV: {e}")
+    except psycopg.Error as e:
+        logger.error(f"Database error retrieving assets: {str(e)}")
         return [], None
+    except Exception as e:
+        logger.error(f"Error retrieving asset stats: {str(e)}")
+        return [], None
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+            
+
+def ensure_columns_exist():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        # First check which columns exist
+        cur.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'powertwin_solver'
+        """)
+        existing_columns = {row[0] for row in cur.fetchall()}
+        
+        # Define expected columns with their types
+        expected_columns = {
+            'asset_id': 'SERIAL PRIMARY KEY',
+            'batch': 'INTEGER',
+            'order_rank': 'INTEGER',
+            'simulation_name': 'VARCHAR(255)',
+            'location': 'VARCHAR(255)',
+            'floor_area': 'NUMERIC',
+            'number_of_stories': 'INTEGER',
+            'complexity': 'INTEGER',
+            'uorun_time': 'NUMERIC',
+            'uoprocess_time': 'NUMERIC',
+            'asset_name': 'VARCHAR(255)',
+            'subtype': 'VARCHAR(255)',
+            'status': 'VARCHAR(255)',
+            'total_time': 'NUMERIC'
+        }
+        
+        # Add missing columns
+        for column, data_type in expected_columns.items():
+            if column.lower() not in {col.lower() for col in existing_columns}:
+                # Skip asset_id if it doesn't exist as it should be handled during table creation
+                if column != 'asset_id':
+                    logger.info(f'Adding missing column: {column}')
+                    cur.execute(f"""
+                        ALTER TABLE powertwin_solver 
+                        ADD COLUMN {column} {data_type}
+                    """)
+        
+        conn.commit()
+        
+    except Exception as e:
+        logger.error(f"Error checking/adding columns: {e}")
+        conn.rollback()
     finally:
         cur.close()
         conn.close()
