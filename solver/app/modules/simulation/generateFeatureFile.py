@@ -11,7 +11,7 @@ import os
 import shutil
 import pandas as pd
 
-from modules.diagnostics import asset_analysis
+from modules.diagnostics import asset_analysis, get_weather
 from modules.utils import initialize_logger
 
 logger = initialize_logger('Generate Feature Files')
@@ -110,7 +110,6 @@ def read_metadata(metadata_csv):
     building_name_list = {}
     processed_building_ids = set()
 
-    logger.debug("Reading metadata CSV file...")
     with open(metadata_csv, 'r') as metadata_file:
         reader = csv.DictReader(metadata_file)
         
@@ -135,7 +134,7 @@ def read_metadata(metadata_csv):
             # TODO: Mixed use requires a lot more detail to undestand what is mixed and what it contains, Laborartoy requires elevator support
             # Multi/Single-family requires multi geojson assets
             # Temporarily setting these types to other types
-            if asset_subtype_name in ["Single-Family Detached", "Single-Family Attached"]:
+            if asset_subtype_name == "Single-Family Detached":
                 asset_subtype_name = "Single-Family"
             elif asset_subtype_name == "Mixed use":
                 asset_subtype_name = "Office"  # Mixed use buildings temporarily mapped to Office
@@ -151,8 +150,6 @@ def read_metadata(metadata_csv):
             building_name_list[building_id] = asset_name
             building_area_list[building_id] = int(floor_area)
             building_type_list[building_id] = asset_subtype_name
-
-    logger.debug("Metadata CSV file read successfully.")
     
     # Return the building area, type, and name data
     return building_area_list, building_type_list, building_name_list
@@ -183,7 +180,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     floor_area = building_area_list[building_id]
     building_type = building_type_list[building_id]
     # Replace special characters in building name
-    building_name = building_name_list[building_id].replace('/', ' ').replace('&', ' ')
+    building_name = building_name_list[building_id].replace('/', ' ').replace('&', ' ').replace("'",'')
 
     #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
     occupancy_subtype = BUILDING_SUBTYPES.get(building_type, "Unknown")
@@ -318,13 +315,12 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 # Name: create_single_featurefile()
 # Description: This function creates a single feature file for the specified asset ID.
 ############################################################################################################
-def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_DIR, simulation_name):
+def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simulation_name):
     FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
-    LOCAL_FEATURE_FILES_DIR = os.path.join(LOCAL_DIR, 'feature_files')
     os.makedirs(FEATURE_FILES_DIR, exist_ok=True)
     
     METADATA_CSV = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_metadata.csv')
-    ASSET_GEOJSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_geojson.json')
+    ASSET_GEOJSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_asset.geojson')
     CONFIG_JSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_config.json')
     
     location = get_weather(simulation_name=simulation_name)
@@ -332,26 +328,32 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_DIR, simulation_na
     
     # Metadata requires the area, subtype and name of the building to be present from the metadata
     building_area_list, building_type_list, building_name_list, = read_metadata(METADATA_CSV)
-    
-    with open(asset_geojson, 'r') as file:
-        ASSET_GEOJSON = json.load(file)
-    
-    with open(config_json, 'r') as file:
-        CONFIG_JSON = json.load(file)
+    with open(ASSET_GEOJSON, 'r') as geojson_file, open(CONFIG_JSON, 'r') as config_file:
+        geojson_data = json.load(geojson_file)
+        custom_config_data = json.load(config_file)
 
 
     # Process each feature in the GeoJSON data 
     for feature in geojson_data['features']:
-        result = process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location)
-        # If the result is not None, write the feature file
-        if result and building_id == asset_id:
-            final_json, building_id, building_name = result
-            new_building_name = building_name.replace(' ', '_')
-            feature_file_path = os.path.join(FEATURE_FILES_DIR, f'{building_id}_{new_building_name}.json')
-            with open(feature_file_path, 'w') as feature_file:
-                json.dump(final_json, feature_file, indent=4)
-
-    logger.info(f"Feature file for {asset_id} created successfully.")
+        # Extract building_id from feature properties
+        properties = feature.get('properties', {})
+        building_id = int(properties.get('id'))  
+        
+        # Process feature only if it matches the asset_id
+        if building_id == int(asset_id): 
+            result = process_feature(feature, building_area_list, building_type_list, 
+                                  building_name_list, custom_config_data, location)
+            if result:
+                final_json, _, building_name = result
+                new_building_name = building_name.replace(' ', '_')
+                feature_file_path = os.path.join(FEATURE_FILES_DIR, f'{asset_id}_{new_building_name}.json')
+                with open(feature_file_path, 'w') as feature_file:
+                    json.dump(final_json, feature_file, indent=4)
+                logger.debug(f"Feature file created for asset_id: {asset_id}")
+                return True
+    
+    logger.debug(f"No matching feature found for asset_id: {asset_id}")
+    return False
 
 ############################################################################################################
 # Name: create_featurefiles()

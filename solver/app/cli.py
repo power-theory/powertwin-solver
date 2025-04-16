@@ -67,13 +67,12 @@ def get_asset_config(args):
         print(f"Error: {response.status_code}")
         print(response.json())
 
-def get_simulation_stats(args):
-    base_url = "http://localhost:8080/api/simulation/stats"
-    url = f"{base_url}/{args.simulation_name}" if args.simulation_name else base_url
-    
+def get_data(args):
+    url = "http://localhost:8080/api/simulation/data"
+
     response = requests.get(url)
     if response.status_code == 200:
-        print("get_simulation_stats function worked, check the user_files/requested_files directory for simulation stats")
+        print("get_simulation_data function worked, check the user_files/requested_files directory for simulation stats")
     else:
         print(f"Error: {response.status_code}")
         print(response.json())
@@ -143,11 +142,9 @@ def main():
     parser_get_config.add_argument('asset_id', type=str, help='ID of the asset')
     parser_get_config.set_defaults(func=get_asset_config)
 
-    # Get simulation stats command
-    parser_get_stats = subparsers.add_parser('get_stats', help='Get simulation stats')
-    parser_get_stats.add_argument('simulation_name', type=str, nargs='?', 
-                            help='Optional: Name of the simulation. If not provided, gets stats for all simulations')
-    parser_get_stats.set_defaults(func=get_simulation_stats)
+    # Get data command
+    parser_get_data = subparsers.add_parser('get_data', help='Get simulation data')
+    parser_get_data.set_defaults(func=get_data)
 
     # Recovery command
     parser_recovery = subparsers.add_parser('recover', help='Recover a simulation')

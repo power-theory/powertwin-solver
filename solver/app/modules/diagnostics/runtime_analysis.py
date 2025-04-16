@@ -80,8 +80,8 @@ def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name):
                     # Extract the values
                     floor_area = data['features'][0]['properties']['floor_area']
                     number_of_stories = data['features'][0]['properties']['number_of_stories']
+                    subtype = data['features'][0]['properties']['building_type']
                     name = data['project']['name']
-                    
                     # Count the number of lines in the coordinates section
                     coordinate_lines = count_coordinate_lines(json_string)
 
@@ -93,6 +93,7 @@ def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name):
                         number_of_stories,       # number_of_stories
                         coordinate_lines,        # complexity
                         name,                    # asset_name
+                        subtype,                 # subtype
                         simulation_name          # simulation_name
                     ))
                     asset_count += 1

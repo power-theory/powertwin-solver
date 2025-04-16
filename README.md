@@ -99,6 +99,12 @@ solver get_config <simulation_name> <asset_id>
 - `simulation_name`: Name of the simulation.
 - `asset_id`: ID of the asset.
 
+### Get Data
+Retrieve the data from the database of the simulation.
+```sh
+solver get_data
+```
+
 ### Get Logs
 Retrieve the logs of the simulation.
 ```sh
