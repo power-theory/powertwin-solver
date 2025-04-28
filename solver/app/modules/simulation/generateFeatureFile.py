@@ -180,7 +180,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     floor_area = building_area_list[building_id]
     building_type = building_type_list[building_id]
     # Replace special characters in building name
-    building_name = building_name_list[building_id].replace('/', ' ').replace('&', ' ').replace("'",'').replace("`"," ").replace('"','').replace(" ","_").replace("(","_").replace(")","_").replace(",","_").replace(".","_")
+    building_name = building_name_list[building_id].replace('/', ' ').replace('&', ' ').replace("'",' ').replace("`"," ").replace('"',' ').replace("("," ").replace(")"," ").replace(","," ").replace("."," ").replace("`",' ')
 
     #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
     occupancy_subtype = BUILDING_SUBTYPES.get(building_type, "Unknown")
