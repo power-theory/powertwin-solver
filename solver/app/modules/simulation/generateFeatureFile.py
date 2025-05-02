@@ -9,6 +9,7 @@ import csv
 import json
 import os
 import shutil
+import re
 import pandas as pd
 
 from modules.diagnostics import asset_analysis, get_weather
@@ -179,9 +180,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 
     floor_area = building_area_list[building_id]
     building_type = building_type_list[building_id]
-    # Replace special characters in building name
-    building_name = building_name_list[building_id].replace('/', '_').replace('&', '_').replace("'",'_').replace("`","_").replace('"','_').replace("(","_").replace(")","_").replace(",","_").replace(".","_").replace("`",'_')
-
+    building_name = re.sub(r'[\/&\'"`(),.\s]', '_', building_name_list[building_id])
+    
     #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
     occupancy_subtype = BUILDING_SUBTYPES.get(building_type, "Unknown")
     number_of_occupants = OCCUPANTS_MAPPING.get(occupancy_subtype, 0)
