@@ -38,6 +38,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN gem install rchardet -v 1.8.0
 RUN gem install public_suffix -v 5.1.1
 RUN gem install urbanopt-cli -v 0.13
+RUN gem uninstall multipart-post
+RUN gem install multipart-post -v 2.1.1
 
 # Copy application code and set environment variables
 COPY . .
