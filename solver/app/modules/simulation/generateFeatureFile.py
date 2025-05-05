@@ -100,6 +100,12 @@ def get_weather_data(city):
         "electricity_emissions_annual_historical_subregion": city_data['Subregion']
     }
 
+def sanitize_filename(name):
+    sanitized = name.replace("'", "")
+    sanitized = re.sub(r'[^\w\-]', '_', sanitized)
+    sanitized = re.sub(r'_+', '_', sanitized)
+    sanitized = sanitized.strip('_')
+    return sanitized
 
 ############################################################################################################
 # Name: read_metadata()
@@ -180,8 +186,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 
     floor_area = building_area_list[building_id]
     building_type = building_type_list[building_id]
-    building_name = re.sub(r'[\/&\'"`(),.\s]', '_', building_name_list[building_id])
-    
+    building_name = sanitize_filename(building_name_list[building_id])
+        
     #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
     occupancy_subtype = BUILDING_SUBTYPES.get(building_type, "Unknown")
     number_of_occupants = OCCUPANTS_MAPPING.get(occupancy_subtype, 0)
@@ -345,7 +351,7 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
                                   building_name_list, custom_config_data, location)
             if result:
                 final_json, _, building_name = result
-                new_building_name = building_name.replace(' ', '_')
+                new_building_name = sanitize_filename(building_name)
                 feature_file_path = os.path.join(FEATURE_FILES_DIR, f'{asset_id}_{new_building_name}.json')
                 with open(feature_file_path, 'w') as feature_file:
                     json.dump(final_json, feature_file, indent=4)
@@ -385,7 +391,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
         # If the result is not None, write the feature file
         if result:
             final_json, building_id, building_name = result
-            new_building_name = building_name.replace(' ', '_')
+            new_building_name = sanitize_filename(building_name)
             feature_file_path = os.path.join(FEATURE_FILES_DIR, f'{building_id}_{new_building_name}.json')
             with open(feature_file_path, 'w') as feature_file:
                 json.dump(final_json, feature_file, indent=4)
