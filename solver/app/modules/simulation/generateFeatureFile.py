@@ -130,7 +130,8 @@ def read_metadata(metadata_csv):
             floor_area = asset_metadata.get('area')
             building_id = str(asset_geometries_properties.get('id'))
 
-            if not floor_area or not building_id or not asset_subtype_name or asset_subtype_name == "NULL" or asset_subtype_name == "null" or building_id in processed_building_ids:
+            # Skipping Vacant type since they do not produce any electricity
+            if not floor_area or not building_id or not asset_subtype_name or asset_subtype_name == "NULL" or asset_subtype_name == "null" or asset_subtype_name == "Vacant" or building_id in processed_building_ids:
                 continue
 
             # Exclude big residential buildings (Lodging and low highrise Multifamily are an exceptions) (Limited by UrbanOpt)
