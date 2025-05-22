@@ -150,67 +150,67 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
             
             sensor_id_list[sensor_type_id] = sensor_id
     
-# Read the CSV file into a DataFrame
-df = pd.read_csv(UNCLEAN_REPORT_CSV)
+    # Read the CSV file into a DataFrame
+    df = pd.read_csv(UNCLEAN_REPORT_CSV)
 
-# Convert the datetime format to UTC
-df['Datetime'] = pd.to_datetime(df['Datetime'], format='%Y/%m/%d %H:%M:%S')
-df['Datetime'] = df['Datetime'].dt.tz_localize('UTC').dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+    # Convert the datetime format to UTC
+    df['Datetime'] = pd.to_datetime(df['Datetime'], format='%Y/%m/%d %H:%M:%S')
+    df['Datetime'] = df['Datetime'].dt.tz_localize('UTC').dt.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-for data_id, data_info in data_mapping.items():
-    data_header = data_info["name"]
-    unclean_columns = data_info["columns"]
-    
-    # Check if all required columns exist in the DataFrame
-    missing_columns = [col for col in unclean_columns if col not in df.columns]
-    if missing_columns:
-        logger.debug(f"Skipping {data_header} due to missing columns: {missing_columns}")
-        continue
-    
-    # Skip if no columns to process
-    if not unclean_columns:
-        logger.debug(f"Skipping {data_header} as no columns are defined")
-        continue
-    
-    # Skip if sensor_id is not available for this data_id
-    if data_id not in sensor_id_list:
-        logger.debug(f"Skipping {data_header} as no sensor ID found for data_id {data_id}")
-        continue
+    for data_id, data_info in data_mapping.items():
+        data_header = data_info["name"]
+        unclean_columns = data_info["columns"]
         
-    # Filter the relevant columns and make a copy of the DataFrame
-    try:
-        clean_df = df[["Datetime"] + unclean_columns].copy()
-        
-        # Rename columns to include section name
-        clean_df.columns = ["ts"] + [f"{col}" for col in unclean_columns]
-        
-        # Add id and metadata columns
-        clean_df['id'] = sensor_id_list[data_id]
-        clean_df['metadata'] = "{}"
-        
-        # Sum the columns together and name the result 'value'
-        clean_df['value'] = clean_df[unclean_columns].sum(axis=1)
-        
-        # Reorder columns 
-        columns_order = ["id", "ts", "value", "metadata"]
-        clean_df = clean_df[columns_order]
-        
-        # Check if the entire DataFrame contains 0 for all values in the measure or has no measures
-        if clean_df['value'].eq(0).all() or clean_df['value'].isna().all():
-            logger.debug(f"Skipping {data_header} as all values are 0 or NA")
+        # Check if all required columns exist in the DataFrame
+        missing_columns = [col for col in unclean_columns if col not in df.columns]
+        if missing_columns:
+            logger.debug(f"Skipping {data_header} due to missing columns: {missing_columns}")
             continue
         
-        # Save the section DataFrame to a new CSV file
-        output_file = os.path.join(CLEANED_REPORT_DEST, f'cleaned_predicted_{data_header.lower().replace(" ", "_")}.csv')
-        logger.debug(f"Saving cleaned section report to: {output_file}")
-        clean_df.to_csv(output_file, index=False)
-    
-    except Exception as e:
-        logger.error(f"Error processing {data_header}: {str(e)}")
-        continue
-    
-# Clean the asset directory    
-clean_asset_dir(ASSET_DIR, LOCAL_ASSET_DIR)
+        # Skip if no columns to process
+        if not unclean_columns:
+            logger.debug(f"Skipping {data_header} as no columns are defined")
+            continue
+        
+        # Skip if sensor_id is not available for this data_id
+        if data_id not in sensor_id_list:
+            logger.debug(f"Skipping {data_header} as no sensor ID found for data_id {data_id}")
+            continue
+            
+        # Filter the relevant columns and make a copy of the DataFrame
+        try:
+            clean_df = df[["Datetime"] + unclean_columns].copy()
+            
+            # Rename columns to include section name
+            clean_df.columns = ["ts"] + [f"{col}" for col in unclean_columns]
+            
+            # Add id and metadata columns
+            clean_df['id'] = sensor_id_list[data_id]
+            clean_df['metadata'] = "{}"
+            
+            # Sum the columns together and name the result 'value'
+            clean_df['value'] = clean_df[unclean_columns].sum(axis=1)
+            
+            # Reorder columns 
+            columns_order = ["id", "ts", "value", "metadata"]
+            clean_df = clean_df[columns_order]
+            
+            # Check if the entire DataFrame contains 0 for all values in the measure or has no measures
+            if clean_df['value'].eq(0).all() or clean_df['value'].isna().all():
+                logger.debug(f"Skipping {data_header} as all values are 0 or NA")
+                continue
+            
+            # Save the section DataFrame to a new CSV file
+            output_file = os.path.join(CLEANED_REPORT_DEST, f'cleaned_predicted_{data_header.lower().replace(" ", "_")}.csv')
+            logger.debug(f"Saving cleaned section report to: {output_file}")
+            clean_df.to_csv(output_file, index=False)
+        
+        except Exception as e:
+            logger.error(f"Error processing {data_header}: {str(e)}")
+            continue
+        
+    # Clean the asset directory    
+    clean_asset_dir(ASSET_DIR, LOCAL_ASSET_DIR)
 
 ############################################################################################################
 # Main script:
