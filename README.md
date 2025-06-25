@@ -2,8 +2,8 @@
 
 ## HOW TO RUN
 ```sh
-docker-compose -f docker-compose.yml build
-docker-compose -f docker-compose.yml up
+docker compose -f docker-compose.yml build
+docker compose -f docker-compose.yml up
 ```
 ## Autorun Simulation
 1. Modify the simulation.json located in app/upload prior to building (demo has been provided)
