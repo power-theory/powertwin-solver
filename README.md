@@ -36,103 +36,89 @@ docker top <container_id>
 5. Allocate however many cores, does not have to be the same amount
 6. Start the recovery
 
-## CLI Commands
-This CLI tool allows you to manage simulations and related tasks for the PowerTwin Solver. Below are the available commands and their usage. Open a new terminal with the follow command: 
+## Command Line Interface
+
+Access the PowerTwin Solver CLI by opening a new terminal session in your container:
+
 ```sh
 docker exec -it <container_id_or_name> /bin/bash
 ```
 
-### Autorun Simulation
-Automatically run a simulation using the configuration defined in simulation.json.
-```sh
-solver autorun
-```
+### Available Commands
 
-### Start Simulation
+| Command | Description | Usage |
+|---------|-------------|-------|
+| `solver autorun` | Run simulation using `simulation.json` | `solver autorun` |
+| `solver start` | Start a new simulation | `solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_json_path> <location> <num_cores>` |
+| `solver status` | Check simulation status | `solver status <simulation_name> [-b <batch_id>]` |
+| `solver stop` | Stop running simulation | `solver stop` |
+| `solver delete` | Delete a simulation | `solver delete <simulation_name>` |
+| `solver recover` | Recover corrupted simulation | `solver recover <corrupted_simulation_name> <recovery_simulation_name> <num_cores> [-b <batch_id>]` |
+| `solver get_config` | Get asset configuration | `solver get_config <simulation_name> <asset_id>` |
+| `solver get_data` | Export database data | `solver get_data` |
+| `solver logs` | View simulation logs | `solver logs [--follow]` |
+| `solver db_status` | Check database health | `solver db_status` |
+| `solver verify` | Verify simulation integrity | `solver verify <simulation_name>` |
+
+### Command Details
+
+#### Start Simulation
 ```sh
 solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_json_path> <location> <num_cores>
 ```
-- `simulation_name`: Name of the simulation.
-- `asset_geojson_path`: Path to the asset geojson file.
-- `metadata_csv_path`: Path to the metadata CSV file.
-- `config_json_path`: Path to the config JSON file.
-- `location`: Location of the simulation.
-- `num_cores`: Number of cores to use.
+- Starts a new simulation with specified parameters
+- Required files:
+  - Asset GeoJSON file with geometry and properties
+  - Metadata CSV with building information
+  - Configuration JSON for custom settings
+- Supports multiple locations and core allocation
 
-### Get Simulation Status
-Get the status of a simulation.
+#### Recovery Process
 ```sh
-solver status <simulation_name> [-b <batch_id>]
+solver recover <corrupted_simulation_name> <recovery_simulation_name> <num_cores> [-b <batch_id>]
 ```
-- `simulation_name`: Name of the simulation.
-- `-b or --batch_id`: (Optional) ID of the batch.
+- Recovers simulations from interruptions
+- Optional batch recovery with `-b` flag
+- Flexible core reallocation
+- Preserves existing progress
 
-### Delete Simulation
-Delete a simulation.
+#### Monitoring and Debugging
 ```sh
-solver delete <simulation_name>
-```
-- `simulation_name`: Name of the simulation.
+# Real-time log monitoring
+solver logs --follow
 
-### Stop Simulation
-Stop the currently running simulation.
-```sh
-solver stop
-```
+# Status check with batch details
+solver status my_simulation -b 2
 
-### Recover Simulation
-Recover a simulation from a corrupted state.
-```sh
-solver recover <corrupted_simulation_name> <recover_simulation_name> <num_cores> [-b <batch_id>]
-```
-- `corrupted_simulation_name`: Name of the corrupted simulation.
-- `recover_simulation_name`: Name of the recovery simulation.
-- `num_cores`: Number of cores to use.
-- `-b or --batch_id`: (Optional) ID of the batch.
-
-
-### Get Asset Configuration
-Get the configuration of a specific asset in a simulation.
-```sh
-solver get_config <simulation_name> <asset_id>
-```
-- `simulation_name`: Name of the simulation.
-- `asset_id`: ID of the asset.
-
-### Get Data
-Retrieve the data from the database of the simulation.
-```sh
-solver get_data
+# Database health verification
+solver db_status
 ```
 
-### Get Logs
-Retrieve the logs of the simulation.
-```sh
-solver logs
-```
+## Project Structure
 
-## General Tree
+### Core Application Structure
 ```
 🏠 app/
-├── data
-├── modules/
-│   ├── diagnostics
-│   ├── utils
-│   └── simulation
-├── static/
-│   ├── json
-│   └── index.js
-├── templates/
-│   ├── base.html
-│   └── logs.html
-├── urbanopt/
-│   ├── weather_files
-│   └── weather_map.csv
-├── cli.py
-├── routes.py
-├── setup.py
-└── views.py
-
+├── data/                          # Application data storage
+├── modules/                       # Core functionality modules
+│   ├── diagnostics/              # System diagnostics and monitoring
+│   ├── simulation/               # Simulation processing logic
+│   └── utils/                    # Utility functions and helpers
+├── static/                       # Static web assets
+│   ├── json/                     # Configuration JSON files
+│   ├── style.css                # CSS stylesheets
+│   └── index.js                 # Frontend JavaScript
+├── templates/                    # HTML templates
+│   ├── base.html                # Base template
+│   ├── logs.html                # Log viewer template
+│   └── uo_db.html               # Database viewer template
+├── urbanopt/                     # URBANopt configuration
+│   ├── weather_files/           # Weather data files
+│   └── weather_map.csv          # Weather location mappings
+├── cli.py                       # Command-line interface
+├── routes.py                    # API routes
+├── setup.py                     # Package setup
+└── views.py                     # View controllers
 ```
 
 ## Runtime Generation Tree
@@ -170,11 +156,39 @@ The runtime generation tree describes the expected files create during runtime.
 The powertwin-db is a shared volume between the powertwin-db and powertwin-solver container, this volume is then saved locally into powertwin_data.
 
 
-## TODO
-- Currently this program does not support Mixed use, Laboratory, Single Family Detached, Vacant subtypes, and due to UrbanOpt restraints, cannot support Multifamily, Multifamily (2 to 4 units), Multifamily (5 or more units) subtypes
-- Occupancy assumptions are currently being made relative to the building subtype with a set value for each
-- Only select few weather locations supported (automation requires all weather file data)
-- Include all options for feature file configuration for my precise measures
-- Move cleaned data into a postgres report using capabilities provided by uo process command
-- Parallelception! Add ability to parallelize batches (would require bulk processing of feature files may interfere with status reader and other asset based loops) 
+## Future Development Roadmap
+
+### Building Type Support
+- Implement support for additional building types:
+  - Mixed-use buildings with multiple function spaces
+  - Laboratory facilities with specialized equipment requirements
+  - Single Family Detached homes
+  - Various Multifamily configurations (2-4 units, 5+ units)
+  - Vacant buildings with minimal systems
+
+### Occupancy Modeling
+- Develop dynamic occupancy modeling system
+- Replace static subtype-based occupancy values with data-driven estimates
+- Implement time-of-day and seasonal occupancy variations
+
+### Weather and Location Support
+- Expand weather file database to support additional locations
+- Automate weather file acquisition and processing
+- Implement regional climate zone adjustments
+
+### Feature Configuration
+- Enhance feature file configuration options
+- Add support for precise measurement specifications
+- Implement validation for configuration parameters
+
+### Data Management
+- Migrate cleaned simulation data to PostgreSQL database
+- Utilize URBANopt process command capabilities
+- Implement automated data backup and archiving
+
+### Performance Optimization
+- Implement parallel batch processing capabilities
+- Optimize feature file bulk processing
+- Enhance status monitoring for parallel operations
+- Balance resource allocation for multi-batch simulations
 
