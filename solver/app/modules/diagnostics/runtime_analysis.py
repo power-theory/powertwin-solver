@@ -1,11 +1,31 @@
 import os
 import json
 import multiprocessing
+import psutil
 
 from modules.utils import initialize_logger
 from .db import insert_bulk_assets, distribute_assets_to_batches
 
 logger = initialize_logger('Runtime Analysis')
+
+#############################################################################################################
+# Name: get_available_cores()
+# Description: This function determines the number of available CPU cores for processing.
+#   It checks the CPU usage per core and returns the number of cores that are below a certain threshold (70%).
+#   If it fails to get the CPU usage, it falls back to using half of the total CPU cores available.
+#############################################################################################################
+def get_available_cores():
+    try:
+        # Get CPU usage per core
+        cpu_usage = psutil.cpu_percent(interval=1, percpu=True)
+        # Count cores with usage less than 70%
+        available_cores = sum(1 for usage in cpu_usage if usage < 70.0)
+        # Ensure at least one core is returned
+        return max(1, available_cores)
+    except Exception as e:
+        logger.warning(f"Failed to get CPU usage: {e}. Falling back to default method.")
+        return max(1, multiprocessing.cpu_count() // 2)
+
 
 ############################################################################################################
 # Name: count_coordinate_lines(json_string)
@@ -48,12 +68,17 @@ def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name):
 
     FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
     
-    if num_cores > multiprocessing.cpu_count():
-        logger.warning(f"Warning: Number of cores ({num_cores}) is greater than the number of available cores ({multiprocessing.cpu_count()}).")
-        logger.critical("Using all available cores.")
+    # Replace the existing core check with:
+    if num_cores <= 0:
         num_cores = multiprocessing.cpu_count()
+
+    available_cores = get_available_cores()
+    if num_cores > available_cores:
+        logger.warning(f"Requested cores ({num_cores}) exceeds available cores ({available_cores})")
+        logger.info(f"Adjusting to use {available_cores} available cores")
+        num_cores = available_cores
     else:
-        logger.info(f"Number of cores: {num_cores}")
+        logger.info(f"Using {num_cores} of {available_cores} available cores")
     
 
 

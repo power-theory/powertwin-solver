@@ -162,11 +162,36 @@ def read_metadata(metadata_csv):
     return building_area_list, building_type_list, building_name_list
 
 ############################################################################################################
+# Name: flatten_geometry()
+# Description: Flattens MultiPolygon geometries into single Polygons by merging all rings.
+#   Returns True if geometry was modified, False otherwise.
+############################################################################################################
+def flatten_geometry(geom):
+    if not geom or 'type' not in geom or 'coordinates' not in geom:
+        return False
+        
+    gt = geom['type']
+    coords = geom['coordinates']
+    
+    if gt == 'MultiPolygon':
+        # merge every ring from every polygon into one Polygon
+        rings = [ring for poly in coords for ring in poly]
+        geom['type'] = 'Polygon'
+        geom['coordinates'] = rings
+        logger.debug("Converted MultiPolygon to Polygon")
+        return True
+    return False
+
+############################################################################################################
 # Name: process_feature()
 # Description: This function processes each feature and creates a new feature structure with additional properties.
 #   It returns the new feature structure.
 ############################################################################################################
 def process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location):
+    # Flatten nested geometries if present
+    if 'geometry' in feature:
+        flatten_geometry(feature['geometry'])
+
     properties = feature['properties']
     #logger.debug(f"Processing feature with properties: {properties}")
     asset_id = str(properties.get('asset_id'))
