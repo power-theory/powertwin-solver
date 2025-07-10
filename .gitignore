@@ -6,3 +6,5 @@ node_modules
 tippecanoe
 __pycache__
 solver/app/test/
+powertwin_data
+postgres_data
