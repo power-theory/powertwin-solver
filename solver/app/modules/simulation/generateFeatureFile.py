@@ -197,7 +197,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     asset_id = str(properties.get('asset_id'))
     building_id = str(properties.get('id'))
 
-    floor_count = properties.get('floorCount')
+    floor_count = properties.get('floor_count')
     if floor_count == str(floor_count):
         floor_count = int(floor_count)
 
@@ -291,7 +291,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # Remove useless properties
     new_properties.pop('height', None)
     new_properties.pop('base', None)
-    new_properties.pop('floorCount', None)
+    new_properties.pop('floor_count', None)
 
     # Combine geometry and properties
     new_feature = {

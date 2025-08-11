@@ -11,7 +11,7 @@ docker compose -f docker-compose.yml up
 
 ## Starting a Simulation
 To begin a simulation there are 2 required files. The geojson file and the metadata csv.
-Geojson must contain all the geometry and required properties id, asset_id, and floorCount.
+Geojson must contain all the geometry and required properties id, asset_id, and floor_count.
 Metadata csv for the simluation must contain building area, building type, and building name however clean report will require additional features.
 
 1. Upload Geojson and Metadata csv files
