@@ -1,0 +1,22 @@
+{
+    "type": "Building",
+    "number_of_stories": 5,
+    "windows": [],
+    "weekday_start_time": "08:00",
+    "weekday_duration": "10:00",
+    "weekend_start_time": "10:00",
+    "weekend_duration": "8:00",
+    "number_of_occupants": 355,
+    "system_type": "VAV district chilled water with district hot water reheat",
+    "heating_system_fuel_type": "electricity",
+    "constructions": {
+        "wall": {
+            "material": "Super Insulated Wall",
+            "r_value": 10.0
+        },
+        "roof": {
+            "material": "Super Insulated Roof",
+            "r_value": 15.0
+        }
+    }
+}

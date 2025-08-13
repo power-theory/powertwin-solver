@@ -1,0 +1,16 @@
+matplotlib==3.10.0
+pandas==2.2.3
+seaborn==0.13.2
+flask==3.1.0
+flask-cors==5.0.0
+flask_socketio==5.5.1
+gunicorn==21.0.0
+joblib==1.4.2
+joblib-progress==1.0.6
+colorlog==6.9.0
+rich==13.9.4
+python-dotenv==1.0.1
+setuptools==75.8.0
+psutil==5.9.4
+psycopg[binary,pool]==3.2.4
+mpi4py==4.0.1
