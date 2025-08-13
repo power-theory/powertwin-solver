@@ -1,7 +1,0 @@
-State,City,ClimateZone,Subregion,FutureSubregion,AVERT_Region,WeatherFile,
-WY,Laramie,6B,RMPA,RMPAc,Rocky Mountains,USA_WY_Laramie-General.Brees.Field.725645_TMY3,
-WY,Cheyenne,5B,RMPA,RMPAc,Rocky Mountains,USA_WY_Cheyenne.Muni.AP.725640_TMY3,
-WY,Jackson,7,NWPP,NWPPc,Northwest,USA_WY_Jackson.Hole.AP.725776_TMY3,
-AZ,Phoenix-SkyHarbor,2B,AZNM,AZNMc,Southwest,USA_AZ_Phoenix-Sky.Harbor.Intl.AP.722780_TMY3,
-CO,Denver,5B,RMPA,RMPAc,Rocky Mountains,USA_CO_Denver-Stapleton.724690_TMY,
-CO,FortCollins,4B,RMPA,RMPAc,Rocky Mountains,USA_CO_Fort.Collins.AWOS.724769_TMY3,
