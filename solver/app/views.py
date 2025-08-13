@@ -41,6 +41,8 @@ def start_simulation():
     simulation_name = request.form.get('simulation_name')
     location = request.form.get('location')
     num_cores = int(request.form.get('num_cores', 1))
+    hpc_mode = request.form.get('hpc_mode', 'false').lower() == 'true'
+    shared_storage = request.form.get('shared_storage')
 
     # Reference the volume directory where the local files will be stored
     # TODO: Set as global variable for consistency across all LOCAL_DIR references 
@@ -51,6 +53,11 @@ def start_simulation():
     if not ASSET_GEOJSON or not METADATA_CSV or not config_data or not simulation_name or not location or num_cores <= 0:
         logger.error("Error: missing or invalid parameter.")
         return jsonify({'error': 'missing or invalid parameter'}), 400
+    
+    # HPC mode validation
+    if hpc_mode and not shared_storage:
+        logger.error("Error: shared_storage is required when hpc_mode is enabled.")
+        return jsonify({'error': 'shared_storage is required when hpc_mode is enabled'}), 400
     
     # Define and create Simulation directory (container) and Local directory (saved on host)
     # Local directory stores all necessary files for recovery and completed asset files
@@ -81,11 +88,11 @@ def start_simulation():
     try:
         create_table()
         logger.debug("Calling create_feature_files from start_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, location, simulation_name)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, location, simulation_name, hpc_mode, shared_storage)
         logger.debug("Exited create_feature_files to start_simulation()")
         
         logger.debug("Calling initialize_uo from start_simulation()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode, shared_storage)
         logger.debug("Exited initialize_uo to start_simulation()")
         
         logger.debug("Deleting simulation directory, within the container")
@@ -166,11 +173,11 @@ def autorun_simulation():
     try:
         create_table()
         logger.debug("Calling create_feature_files from start_simulation_from_json()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location, simulation_name)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location, simulation_name, False, None)
         logger.debug("Exited create_feature_files to start_simulation_from_json()")
                 
         logger.debug("Calling initialize_uo from start_simulation_from_json()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, False, None)
         logger.debug("Exited initialize_uo to start_simulation_from_json()")
         
         logger.debug("Deleting simulation directory, within the container")

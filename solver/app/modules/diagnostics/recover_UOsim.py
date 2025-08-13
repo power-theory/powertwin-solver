@@ -106,9 +106,9 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH_LOCAL)[0], 'zip', FEATURE_FILES_DIR)
 
     # Continue with the recovery process
-    asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME)
+    asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME, False, None)
     
-    initialize_uo(RECOVERY_DIR,LOCAL_RECOVERY_DIR,RECOVERY_SIMULATION_NAME)
+    initialize_uo(RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME, False, None)
 
 
 if __name__ == "__main__":

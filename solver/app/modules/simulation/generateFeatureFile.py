@@ -392,7 +392,7 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
 #   metadata file. It processes each feature and creates a new feature structure with additional properties.
 #   It writes the new feature structure to individual feature files in the output directory.
 ############################################################################################################
-def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, location, simulation_name):
+def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, location, simulation_name, hpc_mode=False, shared_storage=None):
     logger.info("Creating feature files...")
 
     FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
@@ -423,7 +423,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
 
     logger.info("Feature files created successfully.")
     # Run the asset analysis to organize the assets to their batch
-    asset_analysis(SIMULATION_DIR,num_cores, location, simulation_name)
+    asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name, hpc_mode, shared_storage)
 
     logger.debug("Zipping the output directory...")
     shutil.make_archive(LOCAL_FEATURE_FILES_DIR, 'zip', FEATURE_FILES_DIR)

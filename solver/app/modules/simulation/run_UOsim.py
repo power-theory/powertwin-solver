@@ -7,6 +7,8 @@ import pandas as pd
 
 from .clean_report import clean_single_report
 from modules.utils import initialize_logger, run_command
+from modules.utils.hpc_parallel import get_local_cores_per_task, get_hpc_environment
+from joblib import Parallel, delayed
 
 
 logger = initialize_logger('Run UOSim')
@@ -160,6 +162,30 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     update_time(asset_id, uo_run_time, uo_process_time, total_time)
 
 ############################################################################################################
+# Name: process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num)
+# Description: Wrapper function to process a single asset - used for parallel processing within batches
+############################################################################################################
+def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
+    from modules.diagnostics import update_status
+    
+    asset_id, asset_name = asset_data
+    new_asset_name = asset_name.replace(' ', '_')
+    feature_file = os.path.join(SIMULATION_DIR, "feature_files", f"{asset_id}_{new_asset_name}.json")
+    
+    # Update status to Processing
+    update_status("Processing", asset_id=asset_id)
+    
+    logger.debug(f"BATCH {batch_num}: Starting processing asset {asset_id}...")        
+    try:
+        run_uosimulation(SIMULATION_DIR, LOCAL_DIR, feature_file, batch_num)
+        update_status("Finished", asset_id=asset_id)
+        return True, asset_id, None
+    except Exception as e:
+        logger.error(f"BATCH {batch_num}: Failed to process asset {asset_id}: {str(e)}")
+        update_status("Failed", asset_id=asset_id)
+        return False, asset_id, str(e)
+
+############################################################################################################
 # Name: run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name)
 # Description: This function runs the batch of assets for the simulation. The function updates the status of
 #   the assets to Processing and then runs the UrbanOpt simulation for each asset. The function then updates
@@ -178,20 +204,43 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     # Get all assets for this batch, ordered by order_rank
     assets = get_bulk_assets(simulation_name, batch_num)
 
-    for asset_id, asset_name in assets:
-        new_asset_name = asset_name.replace(' ', '_')
-        feature_file = os.path.join(SIMULATION_DIR, "feature_files", f"{asset_id}_{new_asset_name}.json")
+    # Determine number of cores to use for parallel processing within this batch
+    hpc_env = get_hpc_environment()
+    if hpc_env['is_hpc']:
+        # In HPC mode, use cores per task for intra-batch parallelization
+        local_cores = get_local_cores_per_task()
+        logger.info(f"BATCH {batch_num}: Using {local_cores} cores for parallel asset processing (HPC mode)")
+    else:
+        # In local mode, use fewer cores to avoid oversubscription since batches run in parallel
+        import multiprocessing
+        local_cores = max(1, multiprocessing.cpu_count() // 4)  # Conservative to avoid conflicts
+        logger.info(f"BATCH {batch_num}: Using {local_cores} cores for parallel asset processing (Local mode)")
+
+    # Process assets in parallel within this batch
+    if len(assets) > 1 and local_cores > 1:
+        logger.info(f"BATCH {batch_num}: Processing {len(assets)} assets in parallel using {local_cores} cores")
         
-        # Update status to Processing
-        update_status("Processing", asset_id=asset_id)
-        
-        logger.debug(f"BATCH {batch_num}: Starting processing asset {asset_id}...")        
         try:
-            run_uosimulation(SIMULATION_DIR, LOCAL_DIR, feature_file, batch_num)
-            update_status("Finished", asset_id=asset_id)
+            results = Parallel(n_jobs=local_cores, backend='threading')(
+                delayed(process_single_asset)(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num) 
+                for asset_data in assets
+            )
+            
+            # Log results
+            successful = sum(1 for success, _, _ in results if success)
+            failed = len(results) - successful
+            logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed")
+            
         except Exception as e:
-            logger.error(f"BATCH {batch_num}: Failed to process asset {asset_id}: {str(e)}")
-            update_status("Failed", asset_id=asset_id)
+            logger.error(f"BATCH {batch_num}: Parallel processing failed, falling back to sequential: {e}")
+            # Fall back to sequential processing
+            for asset_data in assets:
+                process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num)
+    else:
+        # Sequential processing for small batches or single core
+        logger.info(f"BATCH {batch_num}: Processing {len(assets)} assets sequentially")
+        for asset_data in assets:
+            process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num)
     
     # Clean up - delete finished batch
     batch_dir = os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_num}')

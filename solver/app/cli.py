@@ -2,6 +2,10 @@ import argparse
 import requests
 
 def start_simulation(args):
+    if args.hpc and not args.shared_storage:
+        print("Error: --shared-storage is required when using --hpc mode")
+        return
+    
     url = "http://localhost:8080/api/simulation/start"
     files = {
         'asset_geojson_file': open(args.asset_geojson_path, 'rb'),
@@ -11,7 +15,9 @@ def start_simulation(args):
         'simulation_name': args.simulation_name,
         'config_data': args.config_json_path,
         'location': args.location,
-        'num_cores': args.num_cores
+        'num_cores': args.num_cores,
+        'hpc_mode': args.hpc,
+        'shared_storage': args.shared_storage if args.hpc else None
     }
     response = requests.post(url, files=files, data=data)
     if response.status_code == 200:
@@ -115,6 +121,8 @@ def main():
     parser_start.add_argument('config_json_path', type=str, help='Path to the config JSON file')
     parser_start.add_argument('location', type=str, help='Location of the simulation')
     parser_start.add_argument('num_cores', type=int, help='Number of cores to use')
+    parser_start.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
+    parser_start.add_argument('--shared-storage', type=str, help='Path to shared storage for HPC mode (required with --hpc)')
     parser_start.set_defaults(func=start_simulation)
 
     # Get simulation status command
