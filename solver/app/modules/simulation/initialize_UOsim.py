@@ -5,9 +5,9 @@ import zipfile
 import subprocess
 import shutil
 
-from joblib import Parallel, delayed, parallel_backend
 from .run_UOsim import run_batch
 from modules.utils import initialize_logger
+from modules.utils.hpc_parallel import run_parallel_batches
 
 logger = initialize_logger('Initialize UOSim')
 
@@ -22,7 +22,7 @@ MAPPER_FILE = os.path.join('upload', 'PowerTwin.rb')
 #   It then runs the simulations in parallel.
 #   The function returns the total number of batches and assets.
 ############################################################################################################
-def prepare_record(SIMULATION_DIR,LOCAL_DIR, simulation_name):
+def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False, shared_storage=None):
     from modules.diagnostics import get_asset_total, get_batch_total
 
     
@@ -32,6 +32,13 @@ def prepare_record(SIMULATION_DIR,LOCAL_DIR, simulation_name):
     logger.debug(f"Total batches: {batches}, Total assets in database: {assets}\n" 
                         f"Preparing to run simulations..."
     )
+    
+    # Adjust paths for shared storage in HPC mode
+    if hpc_mode and shared_storage:
+        SIMULATION_DIR = os.path.join(shared_storage, os.path.basename(SIMULATION_DIR))
+        LOCAL_DIR = os.path.join(shared_storage, 'local_work')
+        os.makedirs(LOCAL_DIR, exist_ok=True)
+        logger.info(f"HPC mode: Using shared storage at {SIMULATION_DIR}")
     
     UO_SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
     MAPPER_DESTINATION = os.path.join(UO_SIMULATION_DIR, 'mappers')
@@ -56,11 +63,18 @@ def prepare_record(SIMULATION_DIR,LOCAL_DIR, simulation_name):
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
     
-    # Run simulations in parallel
+    # Run simulations in parallel (HPC or local mode)
     try:
-        with parallel_backend('loky', n_jobs=batches, verbose=10):
-            Parallel()(delayed(run_batch)(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name) 
-                        for batch_num in range(batches))
+        batch_range = list(range(batches))
+        run_parallel_batches(
+            run_batch, 
+            batch_range, 
+            SIMULATION_DIR, 
+            LOCAL_DIR, 
+            simulation_name, 
+            hpc_mode=hpc_mode, 
+            shared_storage=shared_storage
+        )
     except Exception as e:
         logger.error(f"Error running simulations: {e}")
         return
@@ -72,7 +86,7 @@ def prepare_record(SIMULATION_DIR,LOCAL_DIR, simulation_name):
 #   The function then runs the simulations in parallel.
 #   The function returns the total number of batches and assets.
 ############################################################################################################
-def initialize_uo(SIMULATION_DIR,LOCAL_DIR, simulation_name):
+def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False, shared_storage=None):
     start_time = time.time()
     
     FEATURE_FILE_ZIP = os.path.join(SIMULATION_DIR, 'feature_files.zip')
@@ -95,7 +109,7 @@ def initialize_uo(SIMULATION_DIR,LOCAL_DIR, simulation_name):
         return
 
     # Update the CSV file with simulation times
-    prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name)      
+    prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode, shared_storage)      
 
     end_time = time.time()
     duration_seconds = end_time - start_time
