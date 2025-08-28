@@ -165,6 +165,7 @@ The powertwin-db is a shared volume between the powertwin-db and powertwin-solve
 
 ```
 Download the docker images as sif files and run the hpc_submit.sh command with your adjust directories.
+Save sif files into sif_contaiers and in the same directory create an upload directory for your metadata, geojson, and config files.
 
 
 ## Future Development Roadmap

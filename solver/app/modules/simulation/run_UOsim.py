@@ -7,11 +7,9 @@ import pandas as pd
 
 from .clean_report import clean_single_report
 from modules.utils import initialize_logger, run_command
-from modules.utils.hpc_parallel import get_local_cores_per_task, get_hpc_environment
-from joblib import Parallel, delayed
 
-
-logger = initialize_logger('Run UOSim')
+external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+logger = initialize_logger('Run UOSim', external_log_dir)
 
 URBANOPT_DIR = os.path.join('app','urbanopt')
 
@@ -130,6 +128,21 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     # Move the feature file to the project directory
     try:
         logger.debug(f"BATCH {batch_index}: Moving feature file {FEATURE_FILE_JSON} to {SIMULATION_DIR}")
+        
+        # Make sure we're looking in the right place for the feature file
+        if not os.path.exists(FEATURE_FILE_JSON):
+            # Try to find the feature file in the runtime_files path
+            if 'runtime_files' not in FEATURE_FILE_JSON:
+                # Construct a path with runtime_files
+                parent_dir = os.path.dirname(os.path.dirname(FEATURE_FILE_JSON))
+                potential_path = os.path.join(parent_dir, "runtime_files", os.path.basename(os.path.dirname(FEATURE_FILE_JSON)), 
+                                           "feature_files", os.path.basename(FEATURE_FILE_JSON))
+                logger.info(f"Feature file not found at {FEATURE_FILE_JSON}. Trying {potential_path}")
+                if os.path.exists(potential_path):
+                    FEATURE_FILE_JSON = potential_path
+                    logger.info(f"Found feature file at corrected path: {FEATURE_FILE_JSON}")
+        
+        # Now try to move the file
         shutil.move(FEATURE_FILE_JSON, SIMULATION_DIR)
     except shutil.Error as e:
         logger.error(f"BATCH {batch_index}: Failed to move feature file: {e}")
@@ -183,15 +196,15 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     ASSET_RUN_DIR = os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_index}')
         
     # Clean Report 
-    metadata_files = [f for f in os.listdir(LOCAL_DIR) if f.endswith('_metadata.csv')]
+    metadata_files = [f for f in os.listdir(LOCAL_DIR) if f.endswith('metadata.csv')]
     if metadata_files:
         METADATA_CSV = os.path.join(LOCAL_DIR, metadata_files[0])
         logger.debug(f"BATCH {batch_index}: Cleaning report for {asset_id}:{asset_name}...") 
         clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,ASSET_RUN_DIR, METADATA_CSV, asset_id)
     else:
-        logger.error("No metadata file found with pattern *_metadata.csv, not cleaning report")
-    
-    
+        logger.error(f"No metadata file found with pattern *metadata.csv in f'{LOCAL_DIR}', not cleaning report")
+
+
     feature_end_time = time.time()
     feature_duration = feature_end_time - feature_start_time
 
@@ -214,7 +227,20 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
     
     asset_id, asset_name = asset_data
     new_asset_name = asset_name.replace(' ', '_')
-    feature_file = os.path.join(SIMULATION_DIR, "feature_files", f"{asset_id}_{new_asset_name}.json")
+    
+    # Make sure we're using the correct feature files path
+    if 'runtime_files' in SIMULATION_DIR:
+        feature_files_dir = os.path.join(SIMULATION_DIR, "feature_files")
+    else:
+        # If runtime_files is not in the path, it may have been stripped
+        # Add it back to ensure we find the files
+        parent_dir = os.path.dirname(SIMULATION_DIR)
+        feature_files_dir = os.path.join(parent_dir, "runtime_files", os.path.basename(SIMULATION_DIR), "feature_files")
+    
+    feature_file = os.path.join(feature_files_dir, f"{asset_id}_{new_asset_name}.json")
+    
+    # Log the feature file path for debugging
+    logger.info(f"BATCH {batch_num}: Looking for feature file at: {feature_file}")
     
     # Update status to Processing
     update_status("Processing", asset_id=asset_id)
@@ -238,6 +264,22 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
 ############################################################################################################
 def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     from modules.diagnostics import update_status,get_asset_total,get_bulk_assets
+
+    # Log the simulation directory for debugging
+    logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")
+    
+    # Check if we need to adjust the path to include runtime_files
+    if 'runtime_files' not in SIMULATION_DIR:
+        parent_dir = os.path.dirname(SIMULATION_DIR)
+        original_dir = SIMULATION_DIR
+        SIMULATION_DIR = os.path.join(parent_dir, "runtime_files", os.path.basename(SIMULATION_DIR))
+        logger.info(f"BATCH {batch_num}: Adjusted simulation directory: {SIMULATION_DIR}")
+        
+        # Verify the adjusted directory exists
+        if not os.path.exists(SIMULATION_DIR):
+            logger.warning(f"BATCH {batch_num}: Adjusted directory doesn't exist: {SIMULATION_DIR}")
+            logger.warning(f"BATCH {batch_num}: Falling back to original directory: {original_dir}")
+            SIMULATION_DIR = original_dir
 
     # Change all assets in batch to be Not Processed Yet
     update_status("Not Processed Yet",simulation_name=simulation_name)

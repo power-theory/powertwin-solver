@@ -1,11 +1,10 @@
 import psycopg
-import csv
 import os
 from datetime import datetime
 from modules.utils import initialize_logger
-from flask import render_template
 
-logger = initialize_logger('Database')
+external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+logger = initialize_logger('Database',external_log_dir)
 
 # Database connection configuration
 username = "postgres"
@@ -13,17 +12,22 @@ password = "admin"
 
 
 def get_db_connection():
-    conn = psycopg.connect(
-        dbname='powertwin',
-        user=username,
-        password=password,
-        host='powertwin-solver-pg',  # This must match the hostname of the container
-        port='5432'
-    )
-    return conn
+    try:
+        # Use explicit connection parameters instead of relying on environment variables
+        conn = psycopg.connect(
+            host="localhost",  # Use localhost explicitly
+            user=os.environ.get("PGUSER", "postgres"),
+            password=os.environ.get("PGPASSWORD", "admin"),
+            dbname=os.environ.get("PGDATABASE", "powertwin")
+        )
+        return conn
+    except Exception as e:
+        logger.error(f"Database connection error: {e}")
+        raise
 
 def create_table():
     logger.debug('Within create_table()')
+    logger.debug(f"DB Connection parameters: PGHOST={os.environ.get('PGHOST')}, PGUSER={os.environ.get('PGUSER')}, PGDATABASE={os.environ.get('PGDATABASE')}")
     conn = get_db_connection()
     cur = conn.cursor()
     try:

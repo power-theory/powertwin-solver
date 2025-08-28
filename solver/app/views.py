@@ -10,8 +10,8 @@ from modules.simulation import initialize_uo, create_featurefiles, stop_UOsimula
 from modules.diagnostics import read_simulation_status, simulation_recovery, create_table
 from modules.utils import initialize_logger, send_error_to_mss
 
-
-logger = initialize_logger('Views')
+external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+logger = initialize_logger('Views', external_log_dir)
 
 
 # Define the output directory for the simulation files
@@ -92,7 +92,7 @@ def start_simulation():
         logger.debug("Exited create_feature_files to start_simulation()")
         
         logger.debug("Calling initialize_uo from start_simulation()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode, shared_storage)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode)
         logger.debug("Exited initialize_uo to start_simulation()")
         
         logger.debug("Deleting simulation directory, within the container")
@@ -172,12 +172,19 @@ def autorun_simulation():
     # delete the simulation directory (container)
     try:
         create_table()
+        
+        # Extract HPC-related parameters from the simulation.json
+        hpc_mode = data.get('hpc_mode', False)
+        shared_storage = data.get('shared_storage', None)
+        
+        logger.debug(f"HPC Mode: {hpc_mode}, Shared Storage: {shared_storage}")
+        
         logger.debug("Calling create_feature_files from start_simulation_from_json()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location, simulation_name, False, None)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location, simulation_name, hpc_mode, shared_storage)
         logger.debug("Exited create_feature_files to start_simulation_from_json()")
                 
         logger.debug("Calling initialize_uo from start_simulation_from_json()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, False, None)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode)
         logger.debug("Exited initialize_uo to start_simulation_from_json()")
         
         logger.debug("Deleting simulation directory, within the container")
@@ -473,22 +480,35 @@ def recovery():
 ############################################################################################################
 # Name: def get_logs()
 # Description: This function zips the logs directory and sends the zip file as a response for download.
-# Calls the get_logs function to zip the logs directory.
+# Supports HPC mode by using shared storage when specified.
 ############################################################################################################
-def get_logs():
+def get_logs(hpc_mode=False, shared_storage=None):
     logger.debug("Within get_logs()")
     
-    REQUESTED_FILES_DIR = os.path.join(LOCAL_DIR, 'requested_files')
+    # Set up paths differently based on whether we're in HPC mode
+    if hpc_mode and shared_storage:
+        logger.debug(f"Running in HPC mode with shared storage: {shared_storage}")
+        # In HPC mode, we'll write logs to the shared storage directory
+        REQUESTED_FILES_DIR = os.path.join(shared_storage, 'logs', 'requested_files')
+        LOGS_DIR = os.path.join(shared_storage, 'logs')
+    else:
+        # Regular container mode
+        REQUESTED_FILES_DIR = os.path.join(LOCAL_DIR, 'requested_files')
+        LOGS_DIR = os.path.join('logs')
+    
+    # Create directories if they don't exist
     os.makedirs(REQUESTED_FILES_DIR, exist_ok=True)
+    os.makedirs(LOGS_DIR, exist_ok=True)
+    
     REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.txt')
-
-    LOGS_DIR = os.path.join('logs')
     LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
     
     if not os.path.exists(LOG_FILE):
-        logger.error("Log file does not exist")
-        return jsonify({'error': 'Log file does not exist'}), 404
-
+        logger.warning(f"Log file does not exist at {LOG_FILE}, creating empty file")
+        # Create empty log file if it doesn't exist
+        with open(LOG_FILE, 'w') as file:
+            file.write(f"Log file created at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    
     try:
         with open(LOG_FILE, 'r') as file:
             logs = file.read()
@@ -498,14 +518,16 @@ def get_logs():
 
         logger.debug(f"Log file saved to {REQUESTED_LOG_FILE}")
     except Exception as e:
-        logger.error(f"Exception while reading log file: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Exception while reading/writing log file: {str(e)}")
+        if not hpc_mode:  # Only return response in non-HPC mode
+            return jsonify({'error': str(e)}), 500
     
-    with open(REQUESTED_LOG_FILE, 'r') as file:
-        logs = file.read()
-    # Render the logs in the template
-    return render_template('logs.html', logs=logs)
-
+    # Only try to render template in non-HPC mode
+    if not hpc_mode:
+        with open(REQUESTED_LOG_FILE, 'r') as file:
+            logs = file.read()
+        # Render the logs in the template
+        return render_template('logs.html', logs=logs)
 
 
 ############################################################################################################

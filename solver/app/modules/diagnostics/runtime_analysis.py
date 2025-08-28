@@ -4,10 +4,10 @@ import multiprocessing
 import psutil
 
 from modules.utils import initialize_logger
-from modules.utils.hpc_parallel import get_effective_core_count, get_hpc_environment
 from .db import insert_bulk_assets, distribute_assets_to_batches
 
-logger = initialize_logger('Runtime Analysis')
+external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+logger = initialize_logger('Runtime Analysis', external_log_dir)
 
 #############################################################################################################
 # Name: get_available_cores()
@@ -63,25 +63,13 @@ def count_coordinate_lines(json_string):
 #   The number of assets is then distributed to batches based on the number of cores.
 #   The function returns the total number of assets processed.
 ############################################################################################################
-def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name, hpc_mode=False, shared_storage=None):
+def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name, hpc_mode=False):
     logger.debug("Within asset_analysis()")
     
-
-    # Adjust paths for shared storage in HPC mode
-    if hpc_mode and shared_storage:
-        SIMULATION_DIR = os.path.join(shared_storage, os.path.basename(SIMULATION_DIR))
-        FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
-        logger.info(f"HPC mode: Using shared storage at {SIMULATION_DIR}")
-    else:
-        FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
+    FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
     
-    # Get effective core count for HPC or local mode
-    effective_cores = get_effective_core_count(hpc_mode, num_cores)
-    hpc_env = get_hpc_environment()
-    
-    if hpc_mode and hpc_env['is_hpc']:
-        logger.info(f"HPC mode: Using {effective_cores} tasks across {hpc_env['slurm_nodes']} nodes")
-        num_cores = effective_cores
+    if hpc_mode:
+        logger.warning(f"HPC mode: Using {num_cores} as instructed, check with an administrator to ensure this many cores is practical")
     else:
         if num_cores <= 0:
             num_cores = multiprocessing.cpu_count()
