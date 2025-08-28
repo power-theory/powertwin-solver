@@ -1,8 +1,9 @@
 from modules.utils import initialize_logger
+import os
 from .db import get_status_stats, get_batch_total, get_asset_total, get_bulk_batchids
 
-
-logger = initialize_logger('Read Batch Status')
+external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+logger = initialize_logger('Read Batch Status', external_log_dir)
 
 
 ############################################################################################################

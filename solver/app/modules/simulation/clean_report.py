@@ -18,8 +18,8 @@ import shutil
 from glob import glob
 from modules.utils import initialize_logger
 
-
-logger = initialize_logger('Clean Report')
+external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+logger = initialize_logger('Clean Report', external_log_dir)
 
 
 # Define the column mapping for different sections of the report

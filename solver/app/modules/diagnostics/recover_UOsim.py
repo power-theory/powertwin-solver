@@ -7,7 +7,8 @@ from modules.simulation import initialize_uo
 from .runtime_analysis import asset_analysis
 from .db import get_weather, update_simulation_name, get_bulk_assets, get_bulk_batchids, get_failed_assets, update_status
 
-logger = initialize_logger('Recover UOSim')
+external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+logger = initialize_logger('Recover UOSim', external_log_dir)
 
 ############################################################################################################
 # Name: simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, batch_id, num_cores, location)
@@ -106,7 +107,7 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH_LOCAL)[0], 'zip', FEATURE_FILES_DIR)
 
     # Continue with the recovery process
-    asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME, False, None)
+    asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME, False)
     
     initialize_uo(RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME, False, None)
 

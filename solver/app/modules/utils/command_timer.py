@@ -1,9 +1,11 @@
 import time
 import subprocess
+import os
 
 from modules.utils import initialize_logger
 
-logger = initialize_logger("Run Command")
+external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+logger = initialize_logger("Run Command", external_log_dir)
 
 ############################################################################################################
 # Name: run_command(command)

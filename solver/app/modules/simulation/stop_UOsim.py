@@ -4,7 +4,8 @@ import time
 
 from modules.utils import initialize_logger
 
-logger = initialize_logger('Stop UOSim')
+external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+logger = initialize_logger('Stop UOSim', external_log_dir)
 
 ########################################################################################
 # Name: get_processes
