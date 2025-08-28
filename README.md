@@ -155,17 +155,69 @@ solver db_status
 The runtime generation tree describes the expected files create during runtime.
 The powertwin-db is a shared volume between the powertwin-db and powertwin-solver container, this volume is then saved locally into powertwin_data.
 
-## HPC Development
-```
-  module load apptainer
+## HPC Deployment Guide
 
-  apptainer build flask.sif docker://nicotegui/powertwin-solver-flask:latest
-  apptainer build mss.sif docker://nicotegui/powertwin-solver-mss:latest
-  apptainer build postgres.sif docker://postgres:latest
+### Prerequisites
 
+- Access to an HPC environment with SLURM scheduler
+- Apptainer/Singularity module available
+- Adequate storage allocation in your HPC project directory
+
+### Step 1: Set Up Directory Structure
+
+Create the following directory structure in your HPC shared storage:
+
+```bash
+/project/<your-allocation>/powertwin/
+├── sif_containers/     # Container images
+├── upload/             # Input files
+│   └── <simulation_name>/
+│       ├── asset-geometries.geojson
+│       ├── metadata.csv
+│       └── default_config.json
+├── powertwin_data/     # Simulation data
+└── logs/               # Log files
 ```
-Download the docker images as sif files and run the hpc_submit.sh command with your adjust directories.
-Save sif files into sif_contaiers and in the same directory create an upload directory for your metadata, geojson, and config files.
+
+### Step 2: Build Container Images
+
+Convert the Docker images to Apptainer/Singularity format:
+
+```bash
+# Load the Apptainer module
+module load apptainer
+
+# Build container images in your sif_containers directory
+cd /project/<your-allocation>/powertwin/sif_containers
+apptainer build flask.sif docker://nicotegui/powertwin-solver-flask:latest
+apptainer build mss.sif docker://nicotegui/powertwin-solver-mss:latest
+apptainer build postgres17.sif docker://postgres:17
+```
+
+### Step 3: Configure and Run Simulations
+
+1. Modify simulation parameters in the HPC scripts as needed
+2. Submit jobs using SLURM:
+
+```bash
+# Initialize the database (first-time setup only)
+sbatch hpc-build-db.sh
+
+# Run the simulation
+sbatch hpc-start.sh
+```
+
+### Step 4: Monitor Progress
+
+Check simulation status with:
+
+```bash
+# View job status
+squeue -u $USER
+
+# Check log files
+tail -f powertwin_*_<job_id>.out
+```
 
 
 ## Future Development Roadmap
