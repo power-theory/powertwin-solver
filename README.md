@@ -161,7 +161,7 @@ The powertwin-db is a shared volume between the powertwin-db and powertwin-solve
 
   apptainer build flask.sif docker://nicotegui/powertwin-solver-flask:latest
   apptainer build mss.sif docker://nicotegui/powertwin-solver-mss:latest
-  apptainer build postgres.sif docker://nicotegui/postgres:latest
+  apptainer build postgres.sif docker://postgres:latest
 
 ```
 Download the docker images as sif files and run the hpc_submit.sh command with your adjust directories.
