@@ -70,9 +70,6 @@ def initialize_logger(logger_name, external_log_dir=None):
             logger.addHandler(file_handler)
             logger.addHandler(file_handler_no_debug)
             
-            # Log the paths being used
-            logger.info(f"Logging to: {dev_log_path} and {user_log_path}")
-            
         except (PermissionError, OSError) as e:
             # If we can't write to the log files, just use console logging
             print(f"Warning: Could not create log files in {log_dir}: {str(e)}", file=sys.stderr)

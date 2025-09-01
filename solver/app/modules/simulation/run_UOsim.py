@@ -11,7 +11,10 @@ from modules.utils import initialize_logger, run_command
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Run UOSim', external_log_dir)
 
-URBANOPT_DIR = os.path.join('app','urbanopt')
+if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
+    URBANOPT_DIR = os.path.join('/solver', 'app', 'urbanopt')
+else:
+    URBANOPT_DIR = os.path.join('app', 'urbanopt')
 
 ############################################################################################################
 # Name: create_scenario_file(FEATURE_FILE_JSON, MAPPER_FILE, SCENARIO_FILE_CSV)
@@ -117,30 +120,59 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     # Check if PowerTwin.rb exists in the mappers directory, if not copy it from upload directory
     MAPPER_FILE = os.path.join(MAPPERS_DIR, 'PowerTwin.rb')
     if not os.path.exists(MAPPER_FILE):
-        UPLOAD_MAPPER = os.path.join('upload', 'PowerTwin.rb')
+        # Use absolute path for HPC environment, relative path otherwise
+        if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
+            UPLOAD_MAPPER = os.path.join('/solver', 'upload', 'PowerTwin.rb')
+        else:
+            UPLOAD_MAPPER = os.path.join('upload', 'PowerTwin.rb')
+            
+        logger.debug(f"BATCH {batch_index}: Looking for mapper at: {UPLOAD_MAPPER}")
+        logger.debug(f"BATCH {batch_index}: Current directory: {os.getcwd()}")
+        
         if os.path.exists(UPLOAD_MAPPER):
+            logger.info(f"BATCH {batch_index}: Found mapper file, copying to {MAPPER_FILE}")
             shutil.copy(UPLOAD_MAPPER, MAPPER_FILE)
         else:
-            logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found in upload directory")
-            raise FileNotFoundError("PowerTwin.rb mapper file not found")
+            logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found at {UPLOAD_MAPPER}")
+            
+            # # Try to find the mapper in other common locations
+            # alternative_locations = [
+            #     os.path.join('/powertwin_data', 'upload', 'PowerTwin.rb'),
+            #     os.path.join('/solver', 'upload', 'PowerTwin.rb'),
+            #     os.path.join(os.getcwd(), 'upload', 'PowerTwin.rb')
+            # ]
+            
+            # for alt_path in alternative_locations:
+            #     logger.debug(f"BATCH {batch_index}: Checking alternative location: {alt_path}")
+            #     if os.path.exists(alt_path):
+            #         logger.info(f"BATCH {batch_index}: Found mapper at alternative location: {alt_path}")
+            #         shutil.copy(alt_path, MAPPER_FILE)
+            #         break
+            # else:  # This executes if the for loop completes without a break
+            #     logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found in any location")
+            #     if os.path.exists('/solver'):
+            #         logger.debug(f"BATCH {batch_index}: Contents of /solver: {os.listdir('/solver')}")
+            #     if os.path.exists('/solver/upload'):
+            #         logger.debug(f"BATCH {batch_index}: Contents of /solver/upload: {os.listdir('/solver/upload')}")
+            #     raise FileNotFoundError("PowerTwin.rb mapper file not found")
         
     
     # Move the feature file to the project directory
     try:
         logger.debug(f"BATCH {batch_index}: Moving feature file {FEATURE_FILE_JSON} to {SIMULATION_DIR}")
         
-        # Make sure we're looking in the right place for the feature file
-        if not os.path.exists(FEATURE_FILE_JSON):
-            # Try to find the feature file in the runtime_files path
-            if 'runtime_files' not in FEATURE_FILE_JSON:
-                # Construct a path with runtime_files
-                parent_dir = os.path.dirname(os.path.dirname(FEATURE_FILE_JSON))
-                potential_path = os.path.join(parent_dir, "runtime_files", os.path.basename(os.path.dirname(FEATURE_FILE_JSON)), 
-                                           "feature_files", os.path.basename(FEATURE_FILE_JSON))
-                logger.info(f"Feature file not found at {FEATURE_FILE_JSON}. Trying {potential_path}")
-                if os.path.exists(potential_path):
-                    FEATURE_FILE_JSON = potential_path
-                    logger.info(f"Found feature file at corrected path: {FEATURE_FILE_JSON}")
+        # # Make sure we're looking in the right place for the feature file
+        # if not os.path.exists(FEATURE_FILE_JSON):
+        #     # Try to find the feature file in the powertwin_data path
+        #     if 'powertwin_data' not in FEATURE_FILE_JSON:
+        #         # Construct a path with powertwin_data
+        #         parent_dir = os.path.dirname(os.path.dirname(FEATURE_FILE_JSON))
+        #         potential_path = os.path.join(parent_dir, "powertwin_data", os.path.basename(os.path.dirname(FEATURE_FILE_JSON)), 
+        #                                    "feature_files", os.path.basename(FEATURE_FILE_JSON))
+        #         logger.info(f"Feature file not found at {FEATURE_FILE_JSON}. Trying {potential_path}")
+        #         if os.path.exists(potential_path):
+        #             FEATURE_FILE_JSON = potential_path
+        #             logger.info(f"Found feature file at corrected path: {FEATURE_FILE_JSON}")
         
         # Now try to move the file
         shutil.move(FEATURE_FILE_JSON, SIMULATION_DIR)
@@ -228,15 +260,17 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
     asset_id, asset_name = asset_data
     new_asset_name = asset_name.replace(' ', '_')
     
-    # Make sure we're using the correct feature files path
-    if 'runtime_files' in SIMULATION_DIR:
-        feature_files_dir = os.path.join(SIMULATION_DIR, "feature_files")
-    else:
-        # If runtime_files is not in the path, it may have been stripped
-        # Add it back to ensure we find the files
-        parent_dir = os.path.dirname(SIMULATION_DIR)
-        feature_files_dir = os.path.join(parent_dir, "runtime_files", os.path.basename(SIMULATION_DIR), "feature_files")
+    feature_files_dir = os.path.join(SIMULATION_DIR, "feature_files")
     
+    # # Make sure we're using the correct feature files path
+    # if 'powertwin_data' in SIMULATION_DIR:
+    #     feature_files_dir = os.path.join(SIMULATION_DIR, "feature_files")
+    # else:
+    #     # If powertwin_data is not in the path, it may have been stripped
+    #     # Add it back to ensure we find the files
+    #     parent_dir = os.path.dirname(SIMULATION_DIR)
+    #     feature_files_dir = os.path.join(parent_dir, "powertwin_data", os.path.basename(SIMULATION_DIR), "feature_files")
+
     feature_file = os.path.join(feature_files_dir, f"{asset_id}_{new_asset_name}.json")
     
     # Log the feature file path for debugging
@@ -267,19 +301,6 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
 
     # Log the simulation directory for debugging
     logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")
-    
-    # Check if we need to adjust the path to include runtime_files
-    if 'runtime_files' not in SIMULATION_DIR:
-        parent_dir = os.path.dirname(SIMULATION_DIR)
-        original_dir = SIMULATION_DIR
-        SIMULATION_DIR = os.path.join(parent_dir, "runtime_files", os.path.basename(SIMULATION_DIR))
-        logger.info(f"BATCH {batch_num}: Adjusted simulation directory: {SIMULATION_DIR}")
-        
-        # Verify the adjusted directory exists
-        if not os.path.exists(SIMULATION_DIR):
-            logger.warning(f"BATCH {batch_num}: Adjusted directory doesn't exist: {SIMULATION_DIR}")
-            logger.warning(f"BATCH {batch_num}: Falling back to original directory: {original_dir}")
-            SIMULATION_DIR = original_dir
 
     # Change all assets in batch to be Not Processed Yet
     update_status("Not Processed Yet",simulation_name=simulation_name)

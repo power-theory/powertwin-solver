@@ -34,7 +34,7 @@ def _setup_simulation_directories(simulation_name, asset_geojson_path, metadata_
         tuple: (SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path, local_config_path)
     """
     # Define directories
-    DATA_DIR = os.path.join(shared_storage, 'data')
+    DATA_DIR = os.path.join(shared_storage, 'powertwin_data')
     LOCAL_DIR = os.path.join(shared_storage, 'user_files')
     SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
     LOCAL_SIMULATION_DIR = os.path.join(LOCAL_DIR, simulation_name)
@@ -145,7 +145,7 @@ def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, 
     try:
         # Initialize UrbanOpt simulation
         logger.info("Initializing UrbanOpt simulation...")
-        initialize_uo(
+        result = initialize_uo(
             SIMULATION_DIR,
             LOCAL_SIMULATION_DIR,
             simulation_name,
@@ -153,11 +153,94 @@ def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, 
             shared_storage
         )
         
+        # In HPC mode, initialize_uo returns the batch range
+        if hpc_mode and isinstance(result, list):
+            logger.info(f"UrbanOpt initialization for {simulation_name} completed successfully, returned {len(result)} batches")
+            return result
+        
         logger.info(f"UrbanOpt initialization for {simulation_name} completed successfully")
         return True
         
     except Exception as e:
         logger.error(f"Error initializing UrbanOpt: {str(e)}")
+        return False
+
+def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, batch_range=None, hpc_mode=True):
+    """
+    Run parallel batches for a PowerTwin simulation
+    
+    Args:
+        SIMULATION_DIR: Path to the simulation directory
+        LOCAL_SIMULATION_DIR: Path to the local simulation directory
+        simulation_name: Name of the simulation
+        batch_range: Range of batches to process (if None, will use all batches)
+        hpc_mode: Whether running in HPC mode (default True)
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    from modules.simulation.run_UOsim import run_batch
+    from modules.utils.hpc_parallel import run_parallel_batches
+    
+    logger.info(f"Running parallel batches for: {simulation_name}")
+    
+    try:
+        # If batch_range is not provided, determine it from the database
+        if batch_range is None:
+            from modules.diagnostics import get_batch_total
+            batches = get_batch_total(simulation_name)
+            batch_range = list(range(batches))
+            
+        logger.info(f"Processing {len(batch_range)} batches in parallel")
+        
+        # Run the batches in parallel
+        run_parallel_batches(
+            run_batch,
+            batch_range,
+            SIMULATION_DIR,
+            LOCAL_SIMULATION_DIR,
+            simulation_name,
+            hpc_mode=hpc_mode
+        )
+        
+        logger.info(f"Parallel batch processing for {simulation_name} completed successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error in parallel batch processing: {str(e)}")
+        return False
+
+def direct_run_specific_batch(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, batch_num):
+    """
+    Run a specific batch for a PowerTwin simulation, designed for SLURM direct parallelism
+    
+    Args:
+        SIMULATION_DIR: Path to the simulation directory
+        LOCAL_SIMULATION_DIR: Path to the local simulation directory
+        simulation_name: Name of the simulation
+        batch_num: Specific batch number to process
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    from modules.simulation.run_UOsim import run_batch
+    
+    logger.info(f"Running specific batch {batch_num} for simulation: {simulation_name}")
+    
+    try:
+        # Run the specific batch
+        run_batch(
+            batch_num,
+            SIMULATION_DIR,
+            LOCAL_SIMULATION_DIR,
+            simulation_name
+        )
+        
+        logger.info(f"Batch {batch_num} processing for {simulation_name} completed successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error processing batch {batch_num}: {str(e)}")
         return False
 
 def main():
@@ -184,6 +267,21 @@ def main():
     init_uo_parser.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
     init_uo_parser.add_argument('--shared-storage', type=str, help='Path to shared storage for HPC mode (optional)')
 
+    # Run parallel batches command
+    run_batch_parser = subparsers.add_parser('run-parallel-batches', help='Run parallel batches for simulation')
+    run_batch_parser.add_argument('simulation_dir', type=str, help='Path to the simulation directory')
+    run_batch_parser.add_argument('local_simulation_dir', type=str, help='Path to the local simulation directory')
+    run_batch_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
+    run_batch_parser.add_argument('--batch-start', type=int, help='Start of batch range (optional)')
+    run_batch_parser.add_argument('--batch-end', type=int, help='End of batch range (optional)')
+    
+    # Run specific batch command (for SLURM direct parallelism)
+    run_specific_batch_parser = subparsers.add_parser('run-specific-batch', help='Run a specific batch for simulation (for SLURM direct parallelism)')
+    run_specific_batch_parser.add_argument('simulation_dir', type=str, help='Path to the simulation directory')
+    run_specific_batch_parser.add_argument('local_simulation_dir', type=str, help='Path to the local simulation directory')
+    run_specific_batch_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
+    run_specific_batch_parser.add_argument('batch_num', type=int, help='Specific batch number to process')
+
     args = parser.parse_args()
     
     if args.command == 'create-feature-files':
@@ -209,8 +307,32 @@ def main():
             hpc_mode=args.hpc,
             shared_storage=args.shared_storage
         )
-        # Return success (0) if the function returned True, otherwise error (1)
+        # Return success (0) if the function returned True or a list, otherwise error (1)
         result = 0 if result else 1
+    elif args.command == 'run-parallel-batches':
+        # Process batch range if provided
+        batch_range = None
+        if args.batch_start is not None and args.batch_end is not None:
+            batch_range = list(range(args.batch_start, args.batch_end + 1))
+            
+        # Run the parallel batches function directly
+        success = direct_run_parallel_batches(
+            SIMULATION_DIR=args.simulation_dir,
+            LOCAL_SIMULATION_DIR=args.local_simulation_dir,
+            simulation_name=args.simulation_name,
+            batch_range=batch_range,
+            hpc_mode=True  # Always use HPC mode for this command
+        )
+        result = 0 if success else 1
+    elif args.command == 'run-specific-batch':
+        # Run a specific batch (for SLURM direct parallelism)
+        success = direct_run_specific_batch(
+            SIMULATION_DIR=args.simulation_dir,
+            LOCAL_SIMULATION_DIR=args.local_simulation_dir,
+            simulation_name=args.simulation_name,
+            batch_num=args.batch_num
+        )
+        result = 0 if success else 1
     else:
         parser.print_help()
         result = 1

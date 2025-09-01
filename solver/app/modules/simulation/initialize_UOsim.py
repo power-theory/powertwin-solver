@@ -12,7 +12,11 @@ from modules.utils.hpc_parallel import run_parallel_batches
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Initialize UOSim', external_log_dir)
 
-MAPPER_FILE = os.path.join('upload', 'PowerTwin.rb')
+# Set the mapper file path based on the environment
+if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
+    MAPPER_FILE = os.path.join('/solver', 'upload', 'PowerTwin.rb')
+else:
+    MAPPER_FILE = os.path.join('upload', 'PowerTwin.rb')
 
 
             
@@ -34,80 +38,20 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
                         f"Preparing to run simulations..."
     )
     
-    # # Adjust paths for shared storage in HPC mode
-    # if hpc_mode and shared_storage:
-    #     # Keep the original SIMULATION_DIR which includes data in the path
-    #     # We need to ensure data is in the path
-    #     if 'data' not in SIMULATION_DIR:
-    #         logger.warning(f"data not found in simulation path: {SIMULATION_DIR}")
-    #         if simulation_name in SIMULATION_DIR:
-    #             SIMULATION_DIR = os.path.join(os.path.dirname(SIMULATION_DIR), simulation_name, 'data')
-    #             logger.info(f"Adjusted SIMULATION_DIR to include data: {SIMULATION_DIR}")
-        
-    #     LOCAL_DIR = os.path.join(shared_storage, 'local_work')
-    #     os.makedirs(LOCAL_DIR, exist_ok=True)
-    #     logger.info(f"HPC mode: Using shared storage at {shared_storage}")
-    
     UO_SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
     MAPPER_DESTINATION = os.path.join(UO_SIMULATION_DIR, 'mappers')
     WEATHER_DESTINATION = os.path.join(UO_SIMULATION_DIR, 'weather')
 
+    
     # Create PowerTwin UrbanOpt Project if it doesn't exist (it shouldnt)
     if not os.path.exists(UO_SIMULATION_DIR):
         logger.debug(f"Creating UrbanOpt project at {UO_SIMULATION_DIR}")
 
-        # Make sure current directory is writable
-        current_dir = os.getcwd()
-        logger.debug(f"Current working directory: {current_dir}")
+        subprocess.run(f"uo create -p {UO_SIMULATION_DIR}", shell=True, check=True, capture_output=True, text=True)
+        os.makedirs(MAPPER_DESTINATION, exist_ok=True)
         
-        # Create the UrbanOpt simulation directory with explicit permissions
-        os.makedirs(UO_SIMULATION_DIR, exist_ok=True)
-        os.chmod(UO_SIMULATION_DIR, 0o777)  # Full permissions
-        
-        # Create a temporary directory for UrbanOpt project creation
-        temp_dir = os.path.join(os.environ.get('TMPDIR', '/tmp'), f'uo_project_{os.getpid()}')
-        os.makedirs(temp_dir, exist_ok=True)
-        os.chmod(temp_dir, 0o777)  # Full permissions
-        
-        # Use absolute path with the uo create command and change to parent directory first
-        os.chdir(temp_dir)
-        try:
-            # Create project in temporary directory first
-            logger.debug(f"Creating temporary UrbanOpt project in: {temp_dir}")
-            result = subprocess.run("uo create -p .", 
-                             shell=True, check=True, capture_output=True, text=True)
-            logger.debug(f"UrbanOpt create output: {result.stdout}")
-            
-            # Copy project files to final destination
-            logger.debug(f"Copying project files to {UO_SIMULATION_DIR}")
-            for item in os.listdir(temp_dir):
-                item_path = os.path.join(temp_dir, item)
-                dest_path = os.path.join(UO_SIMULATION_DIR, item)
-                if os.path.isdir(item_path):
-                    shutil.copytree(item_path, dest_path, dirs_exist_ok=True)
-                else:
-                    shutil.copy2(item_path, dest_path)
-            
-            # Ensure mappers directory exists
-            os.makedirs(MAPPER_DESTINATION, exist_ok=True)
-            os.chmod(MAPPER_DESTINATION, 0o777)  # Full permissions
-            
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to create UrbanOpt project: {e}")
-            logger.error(f"Command output: {e.stdout}")
-            logger.error(f"Command error: {e.stderr}")
-            raise
-        finally:
-            # Clean up temporary directory
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            # Change back to original directory
-            os.chdir(current_dir)
-            
-        # Recreate weather directory with proper permissions
-        if os.path.exists(WEATHER_DESTINATION):
-            shutil.rmtree(WEATHER_DESTINATION)
-        os.makedirs(WEATHER_DESTINATION, exist_ok=True)
-        os.chmod(WEATHER_DESTINATION, 0o777)  # Full permissions
+        # Deleting the pre loaded content of the weather dir
+        shutil.rmtree(WEATHER_DESTINATION)
 
         # WARNING: Baseline ruby file should never be deleted, it is the parent file
         for rb_file in glob.glob(os.path.join(MAPPER_DESTINATION, "*.rb")):
@@ -118,7 +62,12 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
     
-    # Run simulations in parallel (HPC or local mode)
+    # In HPC mode, we'll just return the batch range and let the caller handle parallelization
+    if hpc_mode:
+        logger.info(f"HPC mode active - returning batch range for external parallel execution")
+        return list(range(batches))
+        
+    # Run simulations in parallel (local mode only - HPC mode is handled separately)
     try:
         batch_range = list(range(batches))
         run_parallel_batches(
@@ -167,8 +116,13 @@ def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False, sh
         logger.error(f"No zip file found named: {FEATURE_FILE_ZIP}")
         return
 
-    # Update the database with simulation times
-    prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode)
+    # Prepare the database and setup UrbanOpt project
+    batch_range = prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode)
+    
+    # In HPC mode, we return the batch range for external parallel execution
+    if hpc_mode:
+        logger.info(f"HPC mode active - returning batch range for external parallel execution")
+        return batch_range
 
     end_time = time.time()
     duration_seconds = end_time - start_time
