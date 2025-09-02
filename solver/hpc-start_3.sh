@@ -435,6 +435,9 @@ EOF
         mkdir -p "${TASK_TEMP_DIR}"
         chmod 777 "${TASK_TEMP_DIR}"
         
+        # Add a staggered delay to prevent UrbanOpt initialization conflicts
+        sleep $((i*3))
+        
         print_status "info" "Launching task for batch ${i}..."
         
         # Use srun to launch each batch task with proper SLURM_PROCID
