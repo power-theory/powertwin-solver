@@ -24,7 +24,10 @@ def start_simulation(args):
         print("start_simulation function worked")
     else:
         print(f"Error: {response.status_code}")
-        print(response.json())
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"No JSON response body or invalid JSON returned. Response text: {response.text}")
 
 
 def get_simulation_status(args):
@@ -35,7 +38,10 @@ def get_simulation_status(args):
         print("get_simulation_status function worked")
     else:
         print(f"Error: {response.status_code}")
-        print(response.json())
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"No JSON response body or invalid JSON returned. Response text: {response.text}")
 
 def delete_simulation(args):
     url = f"http://localhost:8080/api/simulation/delete/{args.simulation_name}"
@@ -44,7 +50,10 @@ def delete_simulation(args):
         print("delete_simulation function worked")
     else:
         print(f"Error: {response.status_code}")
-        print(response.json())
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"No JSON response body or invalid JSON returned. Response text: {response.text}")
 
 def stop_simulation(args):
     url = "http://localhost:8080/api/simulation/stop"
@@ -53,7 +62,10 @@ def stop_simulation(args):
         print("stop_simulation function worked")
     else:
         print(f"Error: {response.status_code}")
-        print(response.json())
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"No JSON response body or invalid JSON returned. Response text: {response.text}")
 
 def autorun_simulation(args):
     url = "http://localhost:8080/api/simulation/autorun_simulation"
@@ -62,7 +74,10 @@ def autorun_simulation(args):
         print("autorun_simulation function worked")
     else:
         print(f"Error: {response.status_code}")
-        print(response.json())
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"No JSON response body or invalid JSON returned. Response text: {response.text}")
 
 def get_asset_config(args):
     url = f"http://localhost:8080/api/asset/config/{args.simulation_name}/{args.asset_id}"
@@ -71,7 +86,10 @@ def get_asset_config(args):
         print("get_asset_config function worked, check the user_files/requested_files directory for asset config")
     else:
         print(f"Error: {response.status_code}")
-        print(response.json())
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"No JSON response body or invalid JSON returned. Response text: {response.text}")
 
 def get_data(args):
     url = "http://localhost:8080/api/simulation/data"
@@ -81,7 +99,10 @@ def get_data(args):
         print("get_simulation_data function worked, check the user_files/requested_files directory for simulation stats")
     else:
         print(f"Error: {response.status_code}")
-        print(response.json())
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"No JSON response body or invalid JSON returned. Response text: {response.text}")
 
 
 def recovery(args):
@@ -97,7 +118,10 @@ def recovery(args):
         print("recovery function worked")
     else:
         print(f"Error: {response.status_code}")
-        print(response.json())
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"No JSON response body or invalid JSON returned. Response text: {response.text}")
 
 def logs(args):
     url = "http://localhost:8080/logs"
@@ -106,7 +130,10 @@ def logs(args):
         print("logs function worked")
     else:
         print(f"Error: {response.status_code}")
-        print(response.json())
+        try:
+            print(response.json())
+        except requests.exceptions.JSONDecodeError:
+            print(f"No JSON response body or invalid JSON returned. Response text: {response.text}")
 
 
 def main():

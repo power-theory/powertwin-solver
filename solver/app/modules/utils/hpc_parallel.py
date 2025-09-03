@@ -1,7 +1,5 @@
 import os
 
-from mpi4py import MPI
-from joblib import Parallel, delayed, parallel_backend
 from modules.utils import initialize_logger
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
@@ -11,6 +9,8 @@ def get_hpc_environment():
     """
     Detect if running in HPC environment and get MPI configuration
     """
+    from mpi4py import MPI
+
     hpc_env = {
         'is_hpc': False,
         'rank': 0,
@@ -68,14 +68,12 @@ def run_parallel_batches(batch_function, batch_range, simulation_dir, local_dir,
     """
     Run batch processing either with MPI (HPC mode) or joblib (local mode)
     """
-    hpc_env = get_hpc_environment()
     
-    if hpc_mode and (hpc_env['is_hpc'] or hpc_env['size'] > 1):
+    if hpc_mode:
+        hpc_env = get_hpc_environment()
         logger.info(f"Running in HPC mode: Rank {hpc_env['rank']}/{hpc_env['size']}")
         return _run_mpi_parallel(batch_function, batch_range, simulation_dir, local_dir, simulation_name)
     else:
-        if hpc_mode:
-            logger.warning("HPC mode requested but MPI/SLURM not available, falling back to joblib")
         logger.info("Running in local mode with joblib")
         return _run_joblib_parallel(batch_function, batch_range, simulation_dir, local_dir, simulation_name)
 
@@ -83,6 +81,9 @@ def _run_mpi_parallel(batch_function, batch_range, simulation_dir, local_dir, si
     """
     MPI-based parallel execution with explicit node mapping
     """
+    from mpi4py import MPI
+
+    
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
@@ -173,6 +174,8 @@ def _run_joblib_parallel(batch_function, batch_range, simulation_dir, local_dir,
     """
     Joblib-based parallel execution for local machines
     """
+    from joblib import Parallel, delayed, parallel_backend
+
     num_batches = len(batch_range)
     
     try:

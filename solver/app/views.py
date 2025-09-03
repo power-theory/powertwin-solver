@@ -88,7 +88,7 @@ def start_simulation():
     try:
         create_table()
         logger.debug("Calling create_feature_files from start_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, location, simulation_name, hpc_mode, shared_storage)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, location, simulation_name, hpc_mode)
         logger.debug("Exited create_feature_files to start_simulation()")
         
         logger.debug("Calling initialize_uo from start_simulation()")
@@ -180,7 +180,7 @@ def autorun_simulation():
         logger.debug(f"HPC Mode: {hpc_mode}, Shared Storage: {shared_storage}")
         
         logger.debug("Calling create_feature_files from start_simulation_from_json()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location, simulation_name, hpc_mode, shared_storage)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location, simulation_name, hpc_mode)
         logger.debug("Exited create_feature_files to start_simulation_from_json()")
                 
         logger.debug("Calling initialize_uo from start_simulation_from_json()")

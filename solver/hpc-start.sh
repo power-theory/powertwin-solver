@@ -435,8 +435,10 @@ EOF
         mkdir -p "${TASK_TEMP_DIR}"
         chmod 777 "${TASK_TEMP_DIR}"
         
-        # Add a staggered delay to prevent UrbanOpt initialization conflicts
-        sleep $((i*3))
+        # Create task-specific Ruby environment directory
+        RUBY_ENV_DIR="${TASK_TEMP_DIR}/ruby_env"
+        mkdir -p "${RUBY_ENV_DIR}"
+        chmod 777 "${RUBY_ENV_DIR}"
         
         print_status "info" "Launching task for batch ${i}..."
         
@@ -466,8 +468,21 @@ EOF
             --env "PGUSER=${PG_USER}" \
             --env "PGPASSWORD=${PG_PASSWORD}" \
             --env "PGDATABASE=${PG_DB}" \
+            --env "GEM_HOME=/tmp/powertwin/ruby_env" \
+            --env "GEM_PATH=/tmp/powertwin/ruby_env:/usr/local/lib/ruby/gems/2.7.0" \
+            --env "BUNDLE_USER_HOME=/tmp/powertwin/ruby_env" \
+            --env "BUNDLE_APP_CONFIG=/tmp/powertwin/ruby_env" \
+            --env "BUNDLE_DISABLE_SHARED_GEMS=true" \
             --workdir /solver \
-            "${SOLVER_SIF}" bash -c "echo 'Task ${i} starting batch ${i}' && python3 -m app.direct_runner run-specific-batch '${SIMULATION_DIR}' '${LOCAL_SIMULATION_DIR}' '${SIMULATION_NAME}' ${i} && echo ${i} >> ${COMPLETION_FILE}" \
+            "${SOLVER_SIF}" bash -c "
+                # Setup isolated Ruby environment
+                echo 'Task ${i} starting batch ${i} with isolated Ruby environment'
+                mkdir -p /tmp/powertwin/ruby_env
+                
+                # Run the batch with isolated Ruby environment
+                python3 -m app.direct_runner run-specific-batch '${SIMULATION_DIR}' '${LOCAL_SIMULATION_DIR}' '${SIMULATION_NAME}' ${i} && 
+                echo ${i} >> ${COMPLETION_FILE}
+            " \
             2>&1 | tee "${LOG_DIR}/powertwin_batch${i}_${SLURM_JOB_ID}.log" &
     done
     

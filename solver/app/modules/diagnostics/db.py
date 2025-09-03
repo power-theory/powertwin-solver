@@ -6,19 +6,22 @@ from modules.utils import initialize_logger
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Database',external_log_dir)
 
-# Database connection configuration
-username = "postgres"
-password = "admin"
+
+# Get the database name from environment or use default
+DB_NAME = os.environ.get("PGDATABASE", "powertwin")
+PASSWORD = os.environ.get("PGPASSWORD", "admin")
+USER = os.environ.get("PGUSER", "postgres")
+HOST = os.environ.get("PGHOST", "powertwin-solver-pg")
+DB_NAME = DB_NAME
 
 
 def get_db_connection():
     try:
-        # Use explicit connection parameters instead of relying on environment variables
         conn = psycopg.connect(
-            host="localhost",  # Use localhost explicitly
-            user=os.environ.get("PGUSER", "postgres"),
-            password=os.environ.get("PGPASSWORD", "admin"),
-            dbname=os.environ.get("PGDATABASE", "powertwin")
+            host=HOST,
+            user=USER,
+            password=PASSWORD,
+            dbname=DB_NAME
         )
         return conn
     except Exception as e:
@@ -27,12 +30,12 @@ def get_db_connection():
 
 def create_table():
     logger.debug('Within create_table()')
-    logger.debug(f"DB Connection parameters: PGHOST={os.environ.get('PGHOST')}, PGUSER={os.environ.get('PGUSER')}, PGDATABASE={os.environ.get('PGDATABASE')}")
+    logger.debug(f"DB Connection parameters: PGHOST={HOST}, PGUSER={USER}, PGDATABASE={DB_NAME}")
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS powertwin_solver (
+        cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS {DB_NAME} (
                 asset_id SERIAL PRIMARY KEY,
                 batch INTEGER,
                 order_rank INTEGER,
@@ -64,9 +67,9 @@ def insert_asset(asset_id, location, floor_area, number_of_stories, complexity, 
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("""
-            INSERT INTO powertwin_solver (asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        cur.execute(f"""
+            INSERT INTO {DB_NAME} (asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (asset_id) DO UPDATE SET
                 location = EXCLUDED.location,
                 floor_area = EXCLUDED.floor_area,
@@ -75,7 +78,7 @@ def insert_asset(asset_id, location, floor_area, number_of_stories, complexity, 
                 asset_name = EXCLUDED.asset_name,
                 subtype = EXCLUDED.subtype,
                 simulation_name = EXCLUDED.simulation_name
-        """, (asset_id, location, floor_area, number_of_stories, complexity, asset_name,subtype, simulation_name))
+        """, (asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name))
         conn.commit()
     except Exception as e:
         print(f"Error inserting asset ID {asset_id}: {e}")
@@ -108,8 +111,8 @@ def insert_bulk_assets(asset_data_list):
         values_clause = ", ".join(values_parts)
         
         query = f"""
-            INSERT INTO powertwin_solver 
-            (asset_id, location, floor_area, number_of_stories, complexity, asset_name,subtype, simulation_name)
+            INSERT INTO {DB_NAME} 
+            (asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
             VALUES {values_clause}
             ON CONFLICT (asset_id) DO UPDATE SET
                 location = EXCLUDED.location,
@@ -119,7 +122,7 @@ def insert_bulk_assets(asset_data_list):
                 asset_name = EXCLUDED.asset_name,
                 subtype = EXCLUDED.subtype,
                 simulation_name = EXCLUDED.simulation_name
-            WHERE powertwin_solver.status IS NULL OR powertwin_solver.status != 'Finished'
+            WHERE {DB_NAME}.status IS NULL OR {DB_NAME}.status != 'Finished'
         """
         
         cur.execute(query, all_params)
@@ -139,7 +142,7 @@ def distribute_assets_to_batches(num_cores, simulation_name):
     cur = conn.cursor()
     try:
         # SQL query to assign batches AND store the order in order_rank column
-        cur.execute("""
+        cur.execute(f"""
         WITH ordered_assets AS (
             SELECT 
                 asset_id,
@@ -147,10 +150,10 @@ def distribute_assets_to_batches(num_cores, simulation_name):
                     PARTITION BY simulation_name
                     ORDER BY complexity::INTEGER DESC, number_of_stories::INTEGER DESC, floor_area::NUMERIC DESC
                 ) - 1 as row_num
-            FROM powertwin_solver
+            FROM {DB_NAME}
             WHERE simulation_name = %s
         )
-        UPDATE powertwin_solver AS t
+        UPDATE {DB_NAME} AS t
         SET 
             batch = (oa.row_num %% %s),
             order_rank = oa.row_num
@@ -175,7 +178,7 @@ def update_batch(asset_id, batch):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute('UPDATE powertwin_solver SET batch = %s WHERE asset_id = %s', (batch, asset_id))
+        cur.execute(f'UPDATE {DB_NAME} SET batch = %s WHERE asset_id = %s', (batch, asset_id))
         conn.commit()
     except Exception as e:
         print(f"Error updating batch for asset ID {asset_id}: {e}")
@@ -189,8 +192,8 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("""
-            UPDATE powertwin_solver SET uorun_time = %s, uoprocess_time = %s, total_time = %s WHERE asset_id = %s
+        cur.execute(f"""
+            UPDATE {DB_NAME} SET uorun_time = %s, uoprocess_time = %s, total_time = %s WHERE asset_id = %s
         """, (uorun_time, uoprocess_time, total_time, asset_id))
         conn.commit()
     except Exception as e:
@@ -200,14 +203,14 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time):
         cur.close()
         conn.close()
     
-def update_status(status,asset_id=None, simulation_name=None):
+def update_status(status, asset_id=None, simulation_name=None):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
         if simulation_name is not None:
-            cur.execute('UPDATE powertwin_solver SET status = %s WHERE simulation_name = %s', (status, simulation_name))
+            cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE simulation_name = %s', (status, simulation_name))
         else:
-            cur.execute('UPDATE powertwin_solver SET status = %s WHERE asset_id = %s', (status, asset_id))
+            cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE asset_id = %s', (status, asset_id))
         conn.commit()
     except Exception as e:
         print(f"Error updating status for asset ID {asset_id}: {e}")
@@ -221,8 +224,8 @@ def update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, 
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("""
-            UPDATE powertwin_solver SET simulation_name = %s 
+        cur.execute(f"""
+            UPDATE {DB_NAME} SET simulation_name = %s 
             WHERE batch = %s AND simulation_name = %s AND status != 'Finished'
         """, (RECOVERY_SIMULATION_NAME, batch_id, CORRUPTED_SIMULATION_NAME))
         conn.commit()
@@ -233,16 +236,16 @@ def update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, 
         cur.close()
         conn.close()
 
-def delete_table(table_name):
+def delete_table(DB_NAME):
     logger.debug('Within delete_table()')
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute('DROP TABLE IF EXISTS %s', (table_name,))
+        cur.execute(f'DROP TABLE IF EXISTS {DB_NAME}')
         conn.commit()
-        print(f"Table '{table_name}' deleted successfully.")
+        print(f"Table '{DB_NAME}' deleted successfully.")
     except Exception as e:
-        print(f"Error deleting table '{table_name}': {e}")
+        print(f"Error deleting table '{DB_NAME}': {e}")
         conn.rollback()
     finally:
         cur.close()
@@ -256,20 +259,20 @@ def get_status_stats(simulation_name, batch_id=None):
     try:
         if batch_id is not None:
             # Get stats for specific batch
-            cur.execute("""
+            cur.execute(f"""
                 SELECT 
                     SUM(CASE WHEN status IN ('Finished', 'Failed') THEN 1 ELSE 0 END) as finished_assets,
                     SUM(CASE WHEN status = 'Failed' THEN 1 ELSE 0 END) as failed_assets
-                FROM powertwin_solver
+                FROM {DB_NAME}
                 WHERE simulation_name = %s AND batch = %s
             """, (simulation_name, batch_id))
         else:
             # Get stats for entire simulation
-            cur.execute("""
+            cur.execute(f"""
                 SELECT 
                     SUM(CASE WHEN status IN ('Finished', 'Failed') THEN 1 ELSE 0 END) as finished_assets,
                     SUM(CASE WHEN status = 'Failed' THEN 1 ELSE 0 END) as failed_assets
-                FROM powertwin_solver
+                FROM {DB_NAME}
                 WHERE simulation_name = %s
             """, (simulation_name,))
             
@@ -298,9 +301,9 @@ def get_weather(asset_id=None, simulation_name=None):
     cur = conn.cursor()
     try:
         if asset_id is None:
-            cur.execute('SELECT location FROM powertwin_solver WHERE simulation_name = %s LIMIT 1', (simulation_name,))
+            cur.execute(f'SELECT location FROM {DB_NAME} WHERE simulation_name = %s LIMIT 1', (simulation_name,))
         else:
-            cur.execute('SELECT location FROM powertwin_solver WHERE asset_id = %s', (asset_id,))
+            cur.execute(f'SELECT location FROM {DB_NAME} WHERE asset_id = %s', (asset_id,))
         location = cur.fetchone()
         return location[0]
     except Exception as e:
@@ -316,14 +319,14 @@ def get_bulk_assets(simulation_name, batch=None):
     cur = conn.cursor()
     try:
         if batch is None:
-            cur.execute('SELECT asset_id FROM powertwin_solver WHERE simulation_name = %s', (simulation_name,))
+            cur.execute(f'SELECT asset_id FROM {DB_NAME} WHERE simulation_name = %s', (simulation_name,))
             rows = cur.fetchall()
             
             # Return a list of asset IDs
             return [row[0] for row in rows]
         else:
-            cur.execute("""
-                SELECT asset_id, asset_name FROM powertwin_solver 
+            cur.execute(f"""
+                SELECT asset_id, asset_name FROM {DB_NAME} 
                 WHERE simulation_name = %s AND batch = %s
                 ORDER BY order_rank
             """, (simulation_name, batch))
@@ -343,7 +346,7 @@ def get_bulk_batchids(simulation_name):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute('SELECT DISTINCT batch FROM powertwin_solver WHERE simulation_name = %s ORDER BY batch', (simulation_name,))
+        cur.execute(f'SELECT DISTINCT batch FROM {DB_NAME} WHERE simulation_name = %s ORDER BY batch', (simulation_name,))
         rows = cur.fetchall()
         
         # Return a list of asset IDs
@@ -360,7 +363,7 @@ def get_batch_total(simulation_name):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute('SELECT COUNT(DISTINCT batch) FROM powertwin_solver WHERE simulation_name = %s', 
+        cur.execute(f'SELECT COUNT(DISTINCT batch) FROM {DB_NAME} WHERE simulation_name = %s', 
                    (simulation_name,))
         batch_count = cur.fetchone()[0]
 
@@ -379,9 +382,9 @@ def get_asset_total(simulation_name, batch_id=None):
     cur = conn.cursor()
     try:
         if batch_id is None:
-            cur.execute('SELECT COUNT(*) FROM powertwin_solver WHERE simulation_name = %s', (simulation_name,))
+            cur.execute(f'SELECT COUNT(*) FROM {DB_NAME} WHERE simulation_name = %s', (simulation_name,))
         else:
-            cur.execute('SELECT COUNT(*) FROM powertwin_solver WHERE simulation_name = %s AND batch = %s', 
+            cur.execute(f'SELECT COUNT(*) FROM {DB_NAME} WHERE simulation_name = %s AND batch = %s', 
                        (simulation_name, batch_id))
         
         asset_count = cur.fetchone()[0]
@@ -402,18 +405,18 @@ def get_failed_assets(simulation_name, batch_id=None):
     try:
         if batch_id is None:
             # Get all failed assets for the simulation
-            cur.execute("""
+            cur.execute(f"""
                 SELECT asset_id 
-                FROM powertwin_solver 
+                FROM {DB_NAME} 
                 WHERE simulation_name = %s 
                 AND status ILIKE 'Failed'
                 ORDER BY batch, order_rank
             """, (simulation_name,))
         else:
             # Get failed assets for specific batch
-            cur.execute("""
+            cur.execute(f"""
                 SELECT asset_id 
-                FROM powertwin_solver 
+                FROM {DB_NAME} 
                 WHERE simulation_name = %s 
                 AND batch = %s 
                 AND status ILIKE 'Failed'
@@ -444,7 +447,7 @@ def get_asset_stats(simulation_name=None):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        query = """
+        query = f"""
             SELECT 
                 asset_id::integer,
                 batch::integer,
@@ -460,7 +463,7 @@ def get_asset_stats(simulation_name=None):
                 subtype,
                 status,
                 COALESCE(total_time::numeric, 0) as total_time
-            FROM powertwin_solver
+            FROM {DB_NAME}
         """
         
         params = []
@@ -507,10 +510,10 @@ def ensure_columns_exist():
     cur = conn.cursor()
     try:
         # First check which columns exist
-        cur.execute("""
+        cur.execute(f"""
             SELECT column_name 
             FROM information_schema.columns 
-            WHERE table_name = 'powertwin_solver'
+            WHERE table_name = '{DB_NAME}'
         """)
         existing_columns = {row[0] for row in cur.fetchall()}
         
@@ -539,7 +542,7 @@ def ensure_columns_exist():
                 if column != 'asset_id':
                     logger.info(f'Adding missing column: {column}')
                     cur.execute(f"""
-                        ALTER TABLE powertwin_solver 
+                        ALTER TABLE {DB_NAME} 
                         ADD COLUMN {column} {data_type}
                     """)
         

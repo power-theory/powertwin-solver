@@ -135,44 +135,9 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
         else:
             logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found at {UPLOAD_MAPPER}")
             
-            # # Try to find the mapper in other common locations
-            # alternative_locations = [
-            #     os.path.join('/powertwin_data', 'upload', 'PowerTwin.rb'),
-            #     os.path.join('/solver', 'upload', 'PowerTwin.rb'),
-            #     os.path.join(os.getcwd(), 'upload', 'PowerTwin.rb')
-            # ]
-            
-            # for alt_path in alternative_locations:
-            #     logger.debug(f"BATCH {batch_index}: Checking alternative location: {alt_path}")
-            #     if os.path.exists(alt_path):
-            #         logger.info(f"BATCH {batch_index}: Found mapper at alternative location: {alt_path}")
-            #         shutil.copy(alt_path, MAPPER_FILE)
-            #         break
-            # else:  # This executes if the for loop completes without a break
-            #     logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found in any location")
-            #     if os.path.exists('/solver'):
-            #         logger.debug(f"BATCH {batch_index}: Contents of /solver: {os.listdir('/solver')}")
-            #     if os.path.exists('/solver/upload'):
-            #         logger.debug(f"BATCH {batch_index}: Contents of /solver/upload: {os.listdir('/solver/upload')}")
-            #     raise FileNotFoundError("PowerTwin.rb mapper file not found")
-        
-    
     # Move the feature file to the project directory
     try:
         logger.debug(f"BATCH {batch_index}: Moving feature file {FEATURE_FILE_JSON} to {SIMULATION_DIR}")
-        
-        # # Make sure we're looking in the right place for the feature file
-        # if not os.path.exists(FEATURE_FILE_JSON):
-        #     # Try to find the feature file in the powertwin_data path
-        #     if 'powertwin_data' not in FEATURE_FILE_JSON:
-        #         # Construct a path with powertwin_data
-        #         parent_dir = os.path.dirname(os.path.dirname(FEATURE_FILE_JSON))
-        #         potential_path = os.path.join(parent_dir, "powertwin_data", os.path.basename(os.path.dirname(FEATURE_FILE_JSON)), 
-        #                                    "feature_files", os.path.basename(FEATURE_FILE_JSON))
-        #         logger.info(f"Feature file not found at {FEATURE_FILE_JSON}. Trying {potential_path}")
-        #         if os.path.exists(potential_path):
-        #             FEATURE_FILE_JSON = potential_path
-        #             logger.info(f"Found feature file at corrected path: {FEATURE_FILE_JSON}")
         
         # Now try to move the file
         shutil.move(FEATURE_FILE_JSON, SIMULATION_DIR)
