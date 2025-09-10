@@ -138,7 +138,7 @@ def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_cs
         logger.error(f"Error creating feature files: {str(e)}")
         return None
 
-def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, hpc_mode=False, shared_storage=None):
+def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, hpc_mode=False):
 
     logger.info(f"Initializing UrbanOpt for: {SIMULATION_DIR}")
     
@@ -149,8 +149,7 @@ def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, 
             SIMULATION_DIR,
             LOCAL_SIMULATION_DIR,
             simulation_name,
-            hpc_mode,
-            shared_storage
+            hpc_mode
         )
         
         # In HPC mode, initialize_uo returns the batch range
@@ -265,7 +264,6 @@ def main():
     init_uo_parser.add_argument('local_simulation_dir', type=str, help='Path to the local simulation directory')
     init_uo_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
     init_uo_parser.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
-    init_uo_parser.add_argument('--shared-storage', type=str, help='Path to shared storage for HPC mode (optional)')
 
     # Run parallel batches command
     run_batch_parser = subparsers.add_parser('run-parallel-batches', help='Run parallel batches for simulation')
@@ -274,6 +272,7 @@ def main():
     run_batch_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
     run_batch_parser.add_argument('--batch-start', type=int, help='Start of batch range (optional)')
     run_batch_parser.add_argument('--batch-end', type=int, help='End of batch range (optional)')
+    run_batch_parser.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
     
     # Run specific batch command (for SLURM direct parallelism)
     run_specific_batch_parser = subparsers.add_parser('run-specific-batch', help='Run a specific batch for simulation (for SLURM direct parallelism)')
@@ -305,7 +304,6 @@ def main():
             LOCAL_SIMULATION_DIR=args.local_simulation_dir,
             simulation_name=args.simulation_name,
             hpc_mode=args.hpc,
-            shared_storage=args.shared_storage
         )
         # Return success (0) if the function returned True or a list, otherwise error (1)
         result = 0 if result else 1
@@ -321,7 +319,7 @@ def main():
             LOCAL_SIMULATION_DIR=args.local_simulation_dir,
             simulation_name=args.simulation_name,
             batch_range=batch_range,
-            hpc_mode=True  # Always use HPC mode for this command
+            hpc_mode=args.hpc # Always use HPC mode for this command
         )
         result = 0 if success else 1
     elif args.command == 'run-specific-batch':

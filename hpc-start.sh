@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name=powertwin
 #SBATCH --nodes=1                    # Request 1 node
-#SBATCH --ntasks-per-node=4         # Request 4 tasks per node
-#SBATCH --cpus-per-task=1            # 1 CPU per task (sequential asset processing)
-#SBATCH --time=0-01:00:00            # 1-hour runtime
+#SBATCH --ntasks-per-node=1         # Request 4 tasks per node
+#SBATCH --cpus-per-task=3            # 1 CPU per task (sequential asset processing)
+#SBATCH --time=0-02:00:00            # 1-hour runtime
 #SBATCH --mem-per-cpu=2G             # Memory per CPU core
 #SBATCH --account=cowy-ptheory
 #SBATCH --partition=teton            # Teton partition
 #SBATCH --output=%x_%j.out
-#SBATCH --qos=debug                  #debug or long
+#SBATCH --qos=normal                  #debug or long
 
 # PowerTwin HPC Container Orchestration Script with Direct SLURM Parallelism
 # This script uses a job array approach with proper SLURM step management
@@ -347,7 +347,6 @@ main() {
     
     # Run UrbanOpt initialization
     apptainer exec \
-      --cleanenv \
       --bind "${DATA_DIR}:/powertwin_data:rw" \
       --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files:rw" \
       --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}:rw" \
@@ -371,7 +370,7 @@ main() {
       set -e
       SIM_NAME="${SIMULATION_NAME}"
       SIM_DIR="/powertwin_data/${SIM_NAME}"
-      ALT_DIR="'${HPC_SHARED_STORAGE}'/data/${SIM_NAME}"
+      ALT_DIR="${HPC_SHARED_STORAGE}/data/${SIM_NAME}"
       ZIP="${SIM_DIR}/feature_files.zip"
       ALT_ZIP="${ALT_DIR}/feature_files.zip"
 
@@ -404,14 +403,12 @@ EOF
         echo "[ERROR] feature_files.zip not found in $SIM_DIR or $ALT_DIR" >&2
         exit 2
       fi
-
+      
+      # Run initialize-uo in standard mode (without --hpc flag)
       /usr/bin/python3 /solver/app/direct_runner.py initialize-uo \
         "$SIM_DIR" \
         "/powertwin-solver-pg/user_files/${SIM_NAME}" \
-        "${SIM_NAME}" \
-        --hpc \
-        --shared-storage="'${HPC_SHARED_STORAGE}'"
-      ' 2>&1 | tee "${LOG_DIR}/powertwin_init_${SLURM_JOB_ID}.log"
+        "${SIM_NAME}"' 2>&1 | tee "${LOG_DIR}/powertwin_init_${SLURM_JOB_ID}.log"
     
     INIT_UO_EXIT_CODE=$?
     if [ $INIT_UO_EXIT_CODE -ne 0 ]; then
@@ -419,84 +416,8 @@ EOF
         stop_postgres
         exit 1
     fi
-    
-    # STEP 3: Run parallel batch processing with proper SLURM task distribution
-    print_status "info" "STEP 3: Running parallel batch processing..."
-    
-    # Create a file to track task completion
-    COMPLETION_FILE="${TEMP_DIR}/completed_tasks.txt"
-    touch "${COMPLETION_FILE}"
-    
-    # Launch batch processing tasks in parallel using srun
-    # This properly distributes tasks across nodes and manages dependencies
-    for i in $(seq 0 $((SLURM_NTASKS-1))); do
-        # Create task-specific temp directory
-        TASK_TEMP_DIR="${TEMP_DIR}/task_${i}"
-        mkdir -p "${TASK_TEMP_DIR}"
-        chmod 777 "${TASK_TEMP_DIR}"
-        
-        # Create task-specific Ruby environment directory
-        RUBY_ENV_DIR="${TASK_TEMP_DIR}/ruby_env"
-        mkdir -p "${RUBY_ENV_DIR}"
-        chmod 777 "${RUBY_ENV_DIR}"
-        
-        print_status "info" "Launching task for batch ${i}..."
-        
-        # Use srun to launch each batch task with proper SLURM_PROCID
-        srun --ntasks=1 --exclusive \
-            apptainer exec \
-            --cleanenv \
-            --bind "${DATA_DIR}:/powertwin_data:rw" \
-            --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files:rw" \
-            --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}:rw" \
-            --bind "${DB_DATA_DIR}:/postgres_data:rw" \
-            --bind "${LOG_DIR}:/solver/logs:rw" \
-            --bind "${TASK_TEMP_DIR}:/tmp/powertwin:rw" \
-            --env "SIMULATION_NAME=${SIMULATION_NAME}" \
-            --env "SLURM_JOB_ID=${SLURM_JOB_ID}" \
-            --env "SLURM_JOB_NUM_NODES=${SLURM_JOB_NUM_NODES}" \
-            --env "SLURM_NTASKS=${SLURM_NTASKS}" \
-            --env "SLURM_PROCID=${i}" \
-            --env "PYTHONPATH=/solver" \
-            --env "PYTHONDONTWRITEBYTECODE=1" \
-            --env "POWERTWIN_LOG_DIR=/solver/logs" \
-            --env "TMPDIR=/tmp/powertwin" \
-            --env "POSTGRES_USER=${PG_USER}" \
-            --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
-            --env "POSTGRES_DB=${PG_DB}" \
-            --env "PGHOST=localhost" \
-            --env "PGUSER=${PG_USER}" \
-            --env "PGPASSWORD=${PG_PASSWORD}" \
-            --env "PGDATABASE=${PG_DB}" \
-            --env "GEM_HOME=/tmp/powertwin/ruby_env" \
-            --env "GEM_PATH=/tmp/powertwin/ruby_env:/usr/local/lib/ruby/gems/2.7.0" \
-            --env "BUNDLE_USER_HOME=/tmp/powertwin/ruby_env" \
-            --env "BUNDLE_APP_CONFIG=/tmp/powertwin/ruby_env" \
-            --env "BUNDLE_DISABLE_SHARED_GEMS=true" \
-            --workdir /solver \
-            "${SOLVER_SIF}" bash -c "
-                # Setup isolated Ruby environment
-                echo 'Task ${i} starting batch ${i} with isolated Ruby environment'
-                mkdir -p /tmp/powertwin/ruby_env
-                
-                # Run the batch with isolated Ruby environment
-                python3 -m app.direct_runner run-specific-batch '${SIMULATION_DIR}' '${LOCAL_SIMULATION_DIR}' '${SIMULATION_NAME}' ${i} && 
-                echo ${i} >> ${COMPLETION_FILE}
-            " \
-            2>&1 | tee "${LOG_DIR}/powertwin_batch${i}_${SLURM_JOB_ID}.log" &
-    done
-    
-    # Wait for all background tasks to complete
-    wait
-    
-    # Check if all tasks completed successfully
-    COMPLETED_TASKS=$(wc -l < "${COMPLETION_FILE}")
-    if [ "${COMPLETED_TASKS}" -eq "${SLURM_NTASKS}" ]; then
-        print_status "info" "All ${SLURM_NTASKS} batch tasks completed successfully."
-    else
-        print_status "warning" "Only ${COMPLETED_TASKS} of ${SLURM_NTASKS} batch tasks completed successfully."
-    fi
-    
+
+
     # Clean up
     print_status "info" "Cleaning up resources..."
     stop_postgres

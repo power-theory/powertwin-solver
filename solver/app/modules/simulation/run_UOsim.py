@@ -150,7 +150,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     SCENARIO_FILE_CSV = os.path.join(SIMULATION_DIR, f"powertwin_scenario_{batch_index}.csv")
     
     # Create the scenario
-    # Created custom function to create the scenario file rather then using uo create -s
+    # NOTE Created custom function to create the scenario file rather then using uo create -s
     try:
         logger.info(f"BATCH {batch_index}: Creating scenario for feature file: {feature_file_name}")
         create_scenario_file(FEATURE_FILE_JSON, MAPPER_FILE, SCENARIO_FILE_CSV)
@@ -160,7 +160,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     
 
     # Run the run and process commands and record their times
-    # FEATURE FILE MUST BE IN THE SIMULATION DIRECTORY ALONG WITH THE SCENARIO FILE
+    # NOTE FEATURE FILE MUST BE IN THE SIMULATION DIRECTORY ALONG WITH THE SCENARIO FILE
     logger.info(f"BATCH {batch_index}: Running UrbanOpt simulation for: {asset_id}")
     try:
         # Before running, let's verify all files exist
@@ -176,9 +176,18 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
         with open(SCENARIO_FILE_CSV, 'r') as f:
             for line in f:
                 logger.debug(line.strip())
-                
-        uo_run_time = run_command(f"uo run -s {SCENARIO_FILE_CSV} -f {FEATURE_FILE_JSON}")
         
+        # Check UrbanOpt CLI location and version for debugging
+        logger.info(f"BATCH {batch_index}: Checking UrbanOpt CLI location and version")
+        run_command("which uo")
+        run_command("uo --version")
+        
+        # Fix bundler configuration to allow platform additions
+        # logger.info(f"BATCH {batch_index}: Configuring bundler for UrbanOpt")
+        # run_command("bundle config unset deployment")
+
+        uo_run_time = run_command(f"uo run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
+
         logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
         uo_process_time = run_command(f"uo process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
         total_time = uo_run_time + uo_process_time
@@ -227,15 +236,6 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
     
     feature_files_dir = os.path.join(SIMULATION_DIR, "feature_files")
     
-    # # Make sure we're using the correct feature files path
-    # if 'powertwin_data' in SIMULATION_DIR:
-    #     feature_files_dir = os.path.join(SIMULATION_DIR, "feature_files")
-    # else:
-    #     # If powertwin_data is not in the path, it may have been stripped
-    #     # Add it back to ensure we find the files
-    #     parent_dir = os.path.dirname(SIMULATION_DIR)
-    #     feature_files_dir = os.path.join(parent_dir, "powertwin_data", os.path.basename(SIMULATION_DIR), "feature_files")
-
     feature_file = os.path.join(feature_files_dir, f"{asset_id}_{new_asset_name}.json")
     
     # Log the feature file path for debugging

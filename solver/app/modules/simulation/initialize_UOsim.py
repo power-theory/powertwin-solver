@@ -63,12 +63,11 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
     
     # In HPC mode, we'll just return the batch range and let the caller handle parallelization
-    if hpc_mode:
-        logger.info(f"HPC mode active - returning batch range for external parallel execution")
-        return list(range(batches))
+    if hpc_mode: return list(range(batches))
         
     # Run simulations in parallel (local mode only - HPC mode is handled separately)
     try:
+        logger.info(f"Running {batches} batches of simulations in local mode...")
         batch_range = list(range(batches))
         run_parallel_batches(
             run_batch, 
@@ -89,7 +88,7 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
 #   The function then runs the simulations in parallel.
 #   The function returns the total number of batches and assets.
 ############################################################################################################
-def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False, shared_storage=None):
+def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
     start_time = time.time()
     
 
