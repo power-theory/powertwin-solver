@@ -1,5 +1,5 @@
-FROM nrel/openstudio:3.9.0
-ARG OPENSTUDIO_VERSION=3.9.0
+FROM nrel/openstudio:3.7.0
+ARG OPENSTUDIO_VERSION=3.7.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
@@ -21,7 +21,6 @@ RUN apt-get update && apt-get -y upgrade && apt-get install -y \
   mpich \
   libmpich-dev
 
-
 # Add deadsnakes PPA for Python 3.10 and install Python 3.10
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
@@ -34,16 +33,15 @@ RUN ln -sf /usr/bin/python3.10 /usr/bin/python && \
 # Upgrade pip and install Python dependencies
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python
 COPY ./requirements.txt /solver/requirements.txt
-RUN pip install --no-cache-dir --ignore-installed -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Ruby dependencies
 RUN gem install rchardet -v 1.8.0
 RUN gem install public_suffix -v 5.1.1
-
 RUN gem uninstall multipart-post --force --all && \
     gem install multipart-post -v 2.1.1
 
-RUN gem install urbanopt-cli -v 1.0.2
+RUN gem install urbanopt-cli -v 0.13
 
 # Copy application code and set environment variables
 COPY . .

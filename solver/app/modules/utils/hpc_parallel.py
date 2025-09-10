@@ -3,7 +3,7 @@ import os
 from modules.utils import initialize_logger
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
-logger = initialize_logger('HPC Parallel', external_log_dir)
+logger = initialize_logger('Parallel', external_log_dir)
 
 def get_hpc_environment():
     """

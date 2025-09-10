@@ -109,7 +109,7 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     # Continue with the recovery process
     asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME, False)
     
-    initialize_uo(RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME, False, None)
+    initialize_uo(RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME, False)
 
 
 if __name__ == "__main__":
