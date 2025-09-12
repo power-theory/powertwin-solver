@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=powertwin
-#SBATCH --nodes=1                    # Request 1 node
-#SBATCH --ntasks-per-node=1         # Request 4 tasks per node
-#SBATCH --cpus-per-task=3            # 1 CPU per task (sequential asset processing)
-#SBATCH --time=0-02:00:00            # 1-hour runtime
+#SBATCH --nodes=4                    # Request 4 nodes
+#SBATCH --ntasks-per-node=1         # Request 1 tasks per node
+#SBATCH --cpus-per-task=5            # 5 CPUs per task (sequential asset processing)
+#SBATCH --time=0-01:00:00            # 1-hour runtime
 #SBATCH --mem-per-cpu=2G             # Memory per CPU core
 #SBATCH --account=cowy-ptheory
 #SBATCH --partition=teton            # Teton partition
@@ -295,7 +295,12 @@ main() {
     print_status "info" "Number of tasks: ${SLURM_NTASKS}"
     print_status "info" "Tasks per node: ${SLURM_NTASKS_PER_NODE}"
     print_status "info" "==================================="
-    
+
+    # Determine DB host (the node running this script) and export for all tasks
+    DB_HOST="$(hostname -f)"
+    export PGHOST="${DB_HOST}"
+    print_status "info" "Database host for tasks: ${DB_HOST}"
+
     # Create temp directory for tasks
     mkdir -p "${TEMP_DIR}"
     chmod 777 "${TEMP_DIR}"
@@ -313,7 +318,7 @@ main() {
         --env "POSTGRES_USER=${PG_USER}" \
         --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
         --env "POSTGRES_DB=${PG_DB}" \
-        --env "PGHOST=localhost" \
+        --env "PGHOST=${DB_HOST}" \
         --env "PGUSER=${PG_USER}" \
         --env "PGPASSWORD=${PG_PASSWORD}" \
         --env "PGDATABASE=${PG_DB}" \
@@ -337,22 +342,13 @@ main() {
     
     # STEP 2: Run UrbanOpt initialization as a separate SLURM step
     print_status "info" "STEP 2: Initializing UrbanOpt..."
-    
-    # Make directories writable
-    mkdir -p "${SIMULATION_DIR}/feature_files"
-    chmod 777 "${SIMULATION_DIR}/feature_files"
-    chmod 777 "${SIMULATION_DIR}"
-    chmod 777 "${LOCAL_SIMULATION_DIR}"
-    chmod 777 "${DATA_DIR}"
-    
-    # Run UrbanOpt initialization
-    apptainer exec \
+
+    INIT_UO_OUTPUT=$(apptainer exec \
       --bind "${DATA_DIR}:/powertwin_data:rw" \
       --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files:rw" \
       --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}:rw" \
       --bind "${DB_DATA_DIR}:/postgres_data:rw" \
       --bind "${LOG_DIR}:/solver/logs:rw" \
-      --bind "${TEMP_DIR}:/tmp/powertwin:rw" \
       --env "SIMULATION_NAME=${SIMULATION_NAME}" \
       --env "SLURM_JOB_ID=${SLURM_JOB_ID}" \
       --env "PYTHONPATH=/solver" \
@@ -361,63 +357,61 @@ main() {
       --env "POSTGRES_USER=${PG_USER}" \
       --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
       --env "POSTGRES_DB=${PG_DB}" \
-      --env "PGHOST=localhost" \
+      --env "PGHOST=${DB_HOST}" \
       --env "PGUSER=${PG_USER}" \
       --env "PGPASSWORD=${PG_PASSWORD}" \
       --env "PGDATABASE=${PG_DB}" \
       --workdir /powertwin_data \
-      "${SOLVER_SIF}" bash -lc '
-      set -e
-      SIM_NAME="${SIMULATION_NAME}"
-      SIM_DIR="/powertwin_data/${SIM_NAME}"
-      ALT_DIR="${HPC_SHARED_STORAGE}/data/${SIM_NAME}"
-      ZIP="${SIM_DIR}/feature_files.zip"
-      ALT_ZIP="${ALT_DIR}/feature_files.zip"
+      "${SOLVER_SIF}" python -m app.direct_runner initialize-uo \
+        "${SIMULATION_DIR}" \
+        "${LOCAL_SIMULATION_DIR}" \
+        "${SIMULATION_NAME}" \
+        --hpc 2>&1 | tee "${LOG_DIR}/powertwin_init_${SLURM_JOB_ID}.log")
 
-      mkdir -p "$SIM_DIR"
-
-      if [ ! -f "$ZIP" ]; then
-        if [ -f "$ALT_ZIP" ]; then
-          ln -sf "$ALT_ZIP" "$ZIP"
-        else
-          for BASE in "$SIM_DIR" "$ALT_DIR"; do
-            if [ -d "$BASE/feature_files" ]; then
-              mkdir -p /tmp/powertwin/locks
-              if mkdir /tmp/powertwin/locks/zip_"$SIM_NAME" 2>/dev/null; then
-                ( cd "$BASE" && /usr/bin/python3 - <<EOF
-import shutil, os
-src = "feature_files"
-shutil.make_archive("feature_files", "zip", src)
-print("Zipped", os.path.abspath(os.path.join(os.getcwd(), "feature_files.zip")))
-EOF
-                )
-              fi
-              [ -f "$BASE/feature_files.zip" ] && ln -sf "$BASE/feature_files.zip" "$ZIP"
-              break
-            fi
-          done
-        fi
-      fi
-
-      if [ ! -f "$ZIP" ]; then
-        echo "[ERROR] feature_files.zip not found in $SIM_DIR or $ALT_DIR" >&2
-        exit 2
-      fi
-      
-      # Run initialize-uo in standard mode (without --hpc flag)
-      /usr/bin/python3 /solver/app/direct_runner.py initialize-uo \
-        "$SIM_DIR" \
-        "/powertwin-solver-pg/user_files/${SIM_NAME}" \
-        "${SIM_NAME}"' 2>&1 | tee "${LOG_DIR}/powertwin_init_${SLURM_JOB_ID}.log"
-    
-    INIT_UO_EXIT_CODE=$?
-    if [ $INIT_UO_EXIT_CODE -ne 0 ]; then
-        print_status "error" "Failed to initialize UrbanOpt"
+    TOTAL_BATCHES=$(echo "$INIT_UO_OUTPUT" | grep -oP 'returned \K[0-9]+(?= batches)' | tail -1)
+    if [[ -z "$TOTAL_BATCHES" ]]; then
+        print_status "error" "Could not determine total batch count from UrbanOpt initialization."
         stop_postgres
         exit 1
     fi
 
+    print_status "info" "UrbanOpt initialization returned ${TOTAL_BATCHES} batches."
 
+    # STEP 3: Run parallel batch processing with proper SLURM task distribution
+    print_status "info" "STEP 3: Running parallel batch processing..."
+
+    BATCHES_PER_TASK=$((TOTAL_BATCHES / SLURM_NTASKS))
+    REMAINDER=$((TOTAL_BATCHES % SLURM_NTASKS))
+
+    srun --mpi=pmix --exclusive \
+    apptainer exec \
+        --bind "${DATA_DIR}:/powertwin_data:rw" \
+        --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files:rw" \
+        --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}:rw" \
+        --bind "${DB_DATA_DIR}:/postgres_data:rw" \
+        --bind "${LOG_DIR}:/solver/logs:rw" \
+        --env "GEM_HOME=/usr/local/lib/ruby/gems/2.7.0" \
+        --env "GEM_PATH=/usr/local/lib/ruby/gems/2.7.0" \
+        --env "SIMULATION_NAME=${SIMULATION_NAME}" \
+        --env "PYTHONPATH=/solver" \
+        --env "PYTHONDONTWRITEBYTECODE=1" \
+        --env "POWERTWIN_LOG_DIR=/solver/logs" \
+        --env "POSTGRES_USER=${PG_USER}" \
+        --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
+        --env "POSTGRES_DB=${PG_DB}" \
+        --env "PGHOST=${DB_HOST}" \
+        --env "PGUSER=${PG_USER}" \
+        --env "PGPASSWORD=${PG_PASSWORD}" \
+        --env "PGDATABASE=${PG_DB}" \
+        --workdir /solver \
+        "${SOLVER_SIF}" python -m app.direct_runner run-parallel-batches \
+        "${SIMULATION_DIR}" \
+        "${LOCAL_SIMULATION_DIR}" \
+        "${SIMULATION_NAME}" \
+    2>&1 | tee "${LOG_DIR}/powertwin_batches_${SLURM_JOB_ID}.log"
+
+
+    
     # Clean up
     print_status "info" "Cleaning up resources..."
     stop_postgres
