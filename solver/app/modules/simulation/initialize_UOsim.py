@@ -72,8 +72,8 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
         
-        if hpc_mode:
-            update_runner_conf(UO_SIMULATION_DIR)
+        # if hpc_mode:
+        #     update_runner_conf(UO_SIMULATION_DIR)
     
     # In HPC mode, we'll just return the batch range and let the caller handle parallelization
     if hpc_mode: return list(range(batches))
