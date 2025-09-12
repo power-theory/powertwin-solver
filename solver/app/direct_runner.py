@@ -89,7 +89,6 @@ def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_cs
     Returns:
         tuple: (SIMULATION_DIR, LOCAL_SIMULATION_DIR) or None if error
     """
-    logger.info(f"Creating feature files for: {simulation_name}")
     
     # Validate inputs
     if hpc_mode and not shared_storage:
@@ -119,7 +118,6 @@ def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_cs
         )
         
         # Create feature files (normally done by views.py)
-        logger.info("Creating feature files...")
         create_featurefiles(
             SIMULATION_DIR, 
             LOCAL_SIMULATION_DIR,
@@ -313,13 +311,13 @@ def main():
         if args.batch_start is not None and args.batch_end is not None:
             batch_range = list(range(args.batch_start, args.batch_end + 1))
             
-        # Run the parallel batches function directly
+        # Run the parallel batches function directly - always use HPC mode
         success = direct_run_parallel_batches(
             SIMULATION_DIR=args.simulation_dir,
             LOCAL_SIMULATION_DIR=args.local_simulation_dir,
             simulation_name=args.simulation_name,
             batch_range=batch_range,
-            hpc_mode=args.hpc # Always use HPC mode for this command
+            hpc_mode=True  # Always use HPC mode for this command
         )
         result = 0 if success else 1
     elif args.command == 'run-specific-batch':

@@ -181,10 +181,6 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
         logger.info(f"BATCH {batch_index}: Checking UrbanOpt CLI location and version")
         run_command("which uo")
         run_command("uo --version")
-        
-        # Fix bundler configuration to allow platform additions
-        # logger.info(f"BATCH {batch_index}: Configuring bundler for UrbanOpt")
-        # run_command("bundle config unset deployment")
 
         uo_run_time = run_command(f"uo run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
 
@@ -297,7 +293,7 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
         logger.debug(f"BATCH {batch_num}: Cleaning up directory: {batch_dir}")
         shutil.rmtree(batch_dir)
     else:
-        logger.warning(f"BATCH {batch_num}: Directory not found for cleanup: {batch_dir}")
+        logger.warning(f"BATCH {batch_num}: Directory not found for cleanup (unneccesary for hpc mode): {batch_dir}")
     
     
     logger.info(f"\n{'='*47}\n"

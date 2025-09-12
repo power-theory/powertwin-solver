@@ -499,10 +499,8 @@ def get_asset_stats(simulation_name=None):
         logger.error(f"Error retrieving asset stats: {str(e)}")
         return [], None
     finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
+        cur.close()
+        conn.close()
             
 
 def ensure_columns_exist():

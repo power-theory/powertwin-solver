@@ -130,10 +130,10 @@ EOF
 listen_addresses = '*'
 port = 5432
 unix_socket_directories = '/tmp'
-max_connections = 32
-shared_buffers = 256MB
-work_mem = 16MB
-maintenance_work_mem = 64MB
+max_connections = 1000
+shared_buffers = 2GB
+work_mem = 32MB
+maintenance_work_mem = 128MB
 dynamic_shared_memory_type = posix
 max_wal_size = 1GB
 min_wal_size = 80MB

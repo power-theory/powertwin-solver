@@ -4,6 +4,7 @@ import time
 import zipfile
 import subprocess
 import shutil
+import json
 
 from .run_UOsim import run_batch
 from modules.utils import initialize_logger
@@ -19,7 +20,16 @@ else:
     MAPPER_FILE = os.path.join('upload', 'PowerTwin.rb')
 
 
-            
+def update_runner_conf(uo_simulation_dir):
+    conf_path = os.path.join(uo_simulation_dir, "runner.conf")
+    if os.path.exists(conf_path):
+        with open(conf_path, "r") as f:
+            conf = json.load(f)
+        conf["gemfile_path"] = "/usr/local/lib/ruby/gems/2.7.0/Gemfile"
+        conf["bundle_install_path"] = "/usr/local/lib/ruby/gems/2.7.0"
+        with open(conf_path, "w") as f:
+            json.dump(conf, f, indent=2)
+        logger.info(f"Patched runner.conf with correct Ruby gem paths.")
 
 ############################################################################################################
 # Name: prepare_record(SIMULATION_DIR,LOCAL_DIR,simulation_name)
@@ -61,6 +71,9 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
         # Adding custom mapper (map be modified to include more features)
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
+        
+        if hpc_mode:
+            update_runner_conf(UO_SIMULATION_DIR)
     
     # In HPC mode, we'll just return the batch range and let the caller handle parallelization
     if hpc_mode: return list(range(batches))
