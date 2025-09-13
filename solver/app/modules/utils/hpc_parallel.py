@@ -3,7 +3,6 @@ import multiprocessing
 from joblib import Parallel, delayed, parallel_backend
 from modules.utils import initialize_logger
 
-
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Parallel', external_log_dir)
 
@@ -97,6 +96,7 @@ def run_parallel_batches(batch_function, batch_range, simulation_dir, local_dir,
     
     # Get total number of batches
     total_batches = len(batch_range)
+    
 
     # HPC mode
     if hpc_mode:

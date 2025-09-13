@@ -6,7 +6,7 @@ import json
 import pandas as pd
 
 from .clean_report import clean_single_report
-from modules.utils import initialize_logger, run_command
+from modules.utils import initialize_logger, run_command, check_storage
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Run UOSim', external_log_dir)
@@ -227,6 +227,14 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
 def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
     from modules.diagnostics import update_status
     
+    hpc_storage = os.environ.get("HPC_SHARED_STORAGE", SIMULATION_DIR)
+    try:
+        check_storage(hpc_storage, min_free_gb=5)
+    except RuntimeError as e:
+        logger.error(f"BATCH {batch_num}: {str(e)}")
+        return
+
+    
     asset_id, asset_name = asset_data
     new_asset_name = asset_name.replace(' ', '_')
     
@@ -264,7 +272,6 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")
 
     # Change all assets in batch to be Not Processed Yet
-    update_status("Not Processed Yet",simulation_name=simulation_name)
     total_assets = get_asset_total(simulation_name,batch_num)
     
     logger.debug(f"BATCH {batch_num}: Processing {total_assets} assets...")
@@ -301,6 +308,7 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     f"Total assets processed: {total_assets}\n"
     f"{'='*47}"
 )
+    
 
 
 

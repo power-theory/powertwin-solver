@@ -204,6 +204,7 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time):
         conn.close()
     
 def update_status(status, asset_id=None, simulation_name=None):
+    # TODO: concerning that asset_id can be updated without simulation_name
     conn = get_db_connection()
     cur = conn.cursor()
     try:

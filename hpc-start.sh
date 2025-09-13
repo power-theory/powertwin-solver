@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name=powertwin
-#SBATCH --nodes=4                    # Request 4 nodes
+#SBATCH --nodes=40                    # Request 40 nodes
 #SBATCH --ntasks-per-node=1         # Request 1 tasks per node
-#SBATCH --cpus-per-task=5            # 5 CPUs per task (sequential asset processing)
-#SBATCH --time=0-01:00:00            # 1-hour runtime
+#SBATCH --cpus-per-task=25            # 25 CPUs per task (sequential asset processing)
+#SBATCH --time=7-00:00:00            # 1-hour runtime
 #SBATCH --mem-per-cpu=2G             # Memory per CPU core
 #SBATCH --account=cowy-ptheory
 #SBATCH --partition=teton            # Teton partition
 #SBATCH --output=%x_%j.out
-#SBATCH --qos=normal                  #debug or long
+#SBATCH --qos=long                  #debug or long
 
 # PowerTwin HPC Container Orchestration Script with Direct SLURM Parallelism
 # This script uses a job array approach with proper SLURM step management
@@ -26,13 +26,13 @@ module load apptainer/1.4.1
 # =====================================================
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
-SIMULATION_NAME="test1"
+SIMULATION_NAME="wyoming1"
 HPC_SHARED_STORAGE="/project/cowy-ptheory/powertwin"
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload"
-ASSET_GEOJSON_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/asu-asset-geometries.geojson"
-METADATA_CSV_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/asu_metadata.csv"
+ASSET_GEOJSON_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/wyo_asset_geometries.geojson"
+METADATA_CSV_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/wyo-sensors-assets-geometries-types.csv"
 CONFIG_JSON_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/default_config.json"
-LOCATION="Phoenix-SkyHarbor"
+LOCATION="Jackson"
 
 # Container configuration
 PG_USER="postgres"
@@ -47,6 +47,9 @@ export PGUSER="${PG_USER}"
 export PGPASSWORD="${PG_PASSWORD}"
 export PGDATABASE="${PG_DB}"
 export POSTGRES_HOST_AUTH_METHOD="trust"
+export GEM_HOME=/usr/local/lib/ruby/gems/2.7.0
+export GEM_PATH=/usr/local/lib/ruby/gems/2.7.0
+export PATH=/usr/local/bin:$PATH
 
 # SIF files location
 SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"

@@ -5,6 +5,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
 ENV LANGUAGE=C.UTF-8
 ENV LC_ALL=C.UTF-8
+ENV GEM_HOME=/usr/local/lib/ruby/gems/2.7.0
+ENV GEM_PATH=/usr/local/lib/ruby/gems/2.7.0
+ENV PATH="/usr/local/bin:${PATH}"
 
 WORKDIR /solver
 
@@ -41,8 +44,7 @@ RUN gem install public_suffix -v 5.1.1
 RUN gem uninstall multipart-post --force --all && \
     gem install multipart-post -v 2.1.1
 
-RUN gem install urbanopt-cli -v 0.13
-
+RUN gem install --no-user-install urbanopt-cli -v 0.13
 # Copy application code and set environment variables
 COPY . .
 
