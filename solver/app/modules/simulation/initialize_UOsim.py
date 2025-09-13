@@ -38,7 +38,8 @@ def update_runner_conf(uo_simulation_dir):
 #   The function returns the total number of batches and assets.
 ############################################################################################################
 def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
-    from modules.diagnostics import get_asset_total, get_batch_total
+    from modules.diagnostics import get_asset_total, get_batch_total, update_status
+    
 
     
     batches = get_batch_total(simulation_name)
@@ -71,10 +72,10 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
         # Adding custom mapper (map be modified to include more features)
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
-        
-        # if hpc_mode:
-        #     update_runner_conf(UO_SIMULATION_DIR)
+
     
+    update_status("Not Processed Yet",simulation_name=simulation_name)
+
     # In HPC mode, we'll just return the batch range and let the caller handle parallelization
     if hpc_mode: return list(range(batches))
         
@@ -130,6 +131,7 @@ def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
 
     # Prepare the database and setup UrbanOpt project
     batch_range = prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode)
+    
     
     # In HPC mode, we return the batch range for external parallel execution
     if hpc_mode:
