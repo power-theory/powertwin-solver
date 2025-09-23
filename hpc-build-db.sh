@@ -24,7 +24,7 @@ module load apptainer/1.4.1
 # =====================================================
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
-HPC_SHARED_STORAGE="/project/cowy-ptheory/powertwin"
+HPC_SHARED_STORAGE="/project/cowy-ptheory/colorado_powertwin"
 PG_USER="postgres"
 PG_PASSWORD="admin"
 PG_DB="powertwin"
@@ -38,20 +38,6 @@ DB_DATA_DIR="${HPC_SHARED_STORAGE}/powertwin_data/postgres_data"
 LOG_DIR="${HPC_SHARED_STORAGE}/logs"
 PG_SOCKET_DIR="/tmp/pg_socket_${SLURM_JOB_ID}"
 
-# Clean existing directories first
-print_status() {
-    # Temporary simple print function for cleanup logs
-    case $1 in
-        "info") echo "[INFO] $2" ;;
-        "warning") echo "[WARNING] $2" ;;
-        "error") echo "[ERROR] $2" ;;
-        *) echo "$2" ;;
-    esac
-}
-
-print_status "info" "Cleaning existing directories..."
-rm -fr "${HPC_SHARED_STORAGE}/powertwin_data" "${HPC_SHARED_STORAGE}/logs" "${HPC_SHARED_STORAGE}/user_files"
-print_status "info" "Directories cleaned successfully."
 
 # Function to print colored output
 print_status() {

@@ -462,7 +462,7 @@ def recovery():
     try:
         
         logger.debug("Calling simulation_recovery from recovery()")
-        simulation_recovery(RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, CORRUPTED_SIMULATION_DIR, corrupted_simulation_name, recover_simulation_name, batch_id, num_cores)
+        simulation_recovery(RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, CORRUPTED_SIMULATION_DIR, corrupted_simulation_name, recover_simulation_name, num_cores, batch_id)
         
         logger.debug("Exited simulation_recovery to recovery(), deleting recovery directory within the container")
         get_logs()

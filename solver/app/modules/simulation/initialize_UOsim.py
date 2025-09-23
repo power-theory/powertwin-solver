@@ -136,6 +136,7 @@ def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
     # In HPC mode, we return the batch range for external parallel execution
     if hpc_mode:
         logger.info(f"HPC mode active - returning batch range for external parallel execution")
+        
         return batch_range
 
     end_time = time.time()

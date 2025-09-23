@@ -104,6 +104,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     
         
     if not os.path.exists(WEATHER_DESTINATION):
+        logger.warning(f"Weather destination not found, creating weather directory at {WEATHER_DESTINATION}")
         os.makedirs(WEATHER_DESTINATION, exist_ok=True)
 
         WEATHER_BASE_NAME = os.path.join(URBANOPT_DIR, 'weather_files',weather_file, weather_file)
@@ -178,9 +179,9 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
                 logger.debug(line.strip())
         
         # Check UrbanOpt CLI location and version for debugging
-        logger.info(f"BATCH {batch_index}: Checking UrbanOpt CLI location and version")
-        run_command("which uo")
-        run_command("uo --version")
+        # logger.info(f"BATCH {batch_index}: Checking UrbanOpt CLI location and version")
+        # run_command("which uo")
+        # run_command("uo --version")
 
         uo_run_time = run_command(f"uo run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
 
