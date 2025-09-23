@@ -12,14 +12,18 @@ import shutil
 import re
 import pandas as pd
 
-from modules.diagnostics import asset_analysis, get_weather
+from modules.diagnostics import asset_analysis
+from modules.diagnostics.db import get_weather
 from modules.utils import initialize_logger
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
 
 # TODO: Modify the way weather information is gathered from asset metadata
-WEATHER_MAP_CSV = 'app/urbanopt/weather_map.csv'
+if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
+    WEATHER_MAP_CSV=os.path.join('/solver','app','urbanopt','weather_map.csv')
+else:
+    WEATHER_MAP_CSV = os.path.join('app','urbanopt','weather_map.csv')
 
 # TODO: Move these to a separate file
 OCCUPANTS_MAPPING = {

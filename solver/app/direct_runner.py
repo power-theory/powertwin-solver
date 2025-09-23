@@ -18,6 +18,7 @@ logger = utils.initialize_logger("DirectRunner", os.environ.get('POWERTWIN_LOG_D
 # Import simulation modules
 from modules.simulation import initialize_uo, create_featurefiles
 from modules.diagnostics import create_table
+from modules.diagnostics.recover_UOsim import simulation_recovery
 
 def _setup_simulation_directories(simulation_name, asset_geojson_path, metadata_csv_path, config_json_path, shared_storage):
     """
@@ -200,44 +201,72 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
             hpc_mode=hpc_mode
         )
         
-        logger.info(f"Parallel batch processing for {simulation_name} completed successfully")
+        logger.info(f"Parallel batch processing for {simulation_name} completed")
         return True
         
     except Exception as e:
         logger.error(f"Error in parallel batch processing: {str(e)}")
         return False
 
-def direct_run_specific_batch(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, batch_num):
+def direct_simulation_recovery(recovery_dir, local_recovery_dir, corrupted_dir, corrupted_simulation_name, recovery_simulation_name, batch_id, num_cores):
     """
-    Run a specific batch for a PowerTwin simulation, designed for SLURM direct parallelism
+    Recover a corrupted simulation
     
     Args:
-        SIMULATION_DIR: Path to the simulation directory
-        LOCAL_SIMULATION_DIR: Path to the local simulation directory
+        recovery_dir: Path to the recovery directory
+        local_recovery_dir: Path to the local recovery directory
+        corrupted_dir: Path to the corrupted simulation directory
+        corrupted_simulation_name: Name of the corrupted simulation
+        recovery_simulation_name: Name for the recovered simulation
+        batch_id: Batch ID to recover (None for all batches)
+        num_cores: Number of cores to use
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """    
+    try:
+        # Ensure recovery directories exist
+        os.makedirs(recovery_dir, exist_ok=True)
+        os.makedirs(local_recovery_dir, exist_ok=True)
+        
+        # Call the recovery function
+        result = simulation_recovery(
+            recovery_dir,
+            local_recovery_dir,
+            corrupted_dir,
+            corrupted_simulation_name,
+            recovery_simulation_name,
+            batch_id,
+            num_cores
+        )
+        
+        logger.info(f"Simulation recovery for {corrupted_simulation_name} to {recovery_simulation_name} completed")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in simulation recovery: {str(e)}")
+        return False
+
+def direct_simulation_status(simulation_name, batch_id=None):
+    """
+    Get the status of a PowerTwin simulation
+    
+    Args:
         simulation_name: Name of the simulation
-        batch_num: Specific batch number to process
+        batch_id: Specific batch ID to check (optional, None for all batches)
         
     Returns:
         bool: True if successful, False otherwise
     """
-    from modules.simulation.run_UOsim import run_batch
+    from modules.diagnostics.read_status import read_simulation_status
     
-    logger.info(f"Running specific batch {batch_num} for simulation: {simulation_name}")
+    logger.info(f"Getting status for simulation: {simulation_name}")
     
     try:
-        # Run the specific batch
-        run_batch(
-            batch_num,
-            SIMULATION_DIR,
-            LOCAL_SIMULATION_DIR,
-            simulation_name
-        )
-        
-        logger.info(f"Batch {batch_num} processing for {simulation_name} completed successfully")
+        read_simulation_status(simulation_name, batch_id)
         return True
-        
     except Exception as e:
-        logger.error(f"Error processing batch {batch_num}: {str(e)}")
+        logger.error(f"Error getting simulation status: {str(e)}")
         return False
 
 def main():
@@ -272,12 +301,20 @@ def main():
     run_batch_parser.add_argument('--batch-end', type=int, help='End of batch range (optional)')
     run_batch_parser.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
     
-    # Run specific batch command (for SLURM direct parallelism)
-    run_specific_batch_parser = subparsers.add_parser('run-specific-batch', help='Run a specific batch for simulation (for SLURM direct parallelism)')
-    run_specific_batch_parser.add_argument('simulation_dir', type=str, help='Path to the simulation directory')
-    run_specific_batch_parser.add_argument('local_simulation_dir', type=str, help='Path to the local simulation directory')
-    run_specific_batch_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
-    run_specific_batch_parser.add_argument('batch_num', type=int, help='Specific batch number to process')
+    # Simulation recovery command
+    recovery_parser = subparsers.add_parser('recover-simulation', help='Recover a corrupted simulation')
+    recovery_parser.add_argument('recovery_dir', type=str, help='Path to the recovery directory')
+    recovery_parser.add_argument('local_recovery_dir', type=str, help='Path to the local recovery directory')
+    recovery_parser.add_argument('corrupted_dir', type=str, help='Path to the corrupted simulation directory')
+    recovery_parser.add_argument('corrupted_simulation_name', type=str, help='Name of the corrupted simulation')
+    recovery_parser.add_argument('recovery_simulation_name', type=str, help='Name for the recovered simulation')
+    recovery_parser.add_argument('--batch-id', type=int, help='Specific batch ID to recover (optional, None for all batches)')
+    recovery_parser.add_argument('num_cores', type=int, help='Number of cores to use')
+    
+    # Simulation status command
+    status_parser = subparsers.add_parser('simulation-status', help='Get status of a simulation')
+    status_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
+    status_parser.add_argument('--batch-id', type=int, help='Specific batch ID to check (optional, None for all batches)')
 
     args = parser.parse_args()
     
@@ -320,13 +357,23 @@ def main():
             hpc_mode=True  # Always use HPC mode for this command
         )
         result = 0 if success else 1
-    elif args.command == 'run-specific-batch':
-        # Run a specific batch (for SLURM direct parallelism)
-        success = direct_run_specific_batch(
-            SIMULATION_DIR=args.simulation_dir,
-            LOCAL_SIMULATION_DIR=args.local_simulation_dir,
+    elif args.command == 'recover-simulation':
+        # Run the simulation recovery function
+        success = direct_simulation_recovery(
+            recovery_dir=args.recovery_dir,
+            local_recovery_dir=args.local_recovery_dir,
+            corrupted_dir=args.corrupted_dir,
+            corrupted_simulation_name=args.corrupted_simulation_name,
+            recovery_simulation_name=args.recovery_simulation_name,
+            batch_id=args.batch_id if hasattr(args, 'batch_id') else None,
+            num_cores=args.num_cores
+        )
+        result = 0 if success else 1
+    elif args.command == 'simulation-status':
+        # Run the simulation status function
+        success = direct_simulation_status(
             simulation_name=args.simulation_name,
-            batch_num=args.batch_num
+            batch_id=args.batch_id if hasattr(args, 'batch_id') else None
         )
         result = 0 if success else 1
     else:

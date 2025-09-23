@@ -37,7 +37,21 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
         logger.info(f"Extracting {CORRUPTED_FEATURE_FILE_ZIP} to {FEATURE_FILES_DIR}")
         try:
             with zipfile.ZipFile(CORRUPTED_FEATURE_FILE_ZIP, 'r') as zip_ref:
-                zip_ref.extractall(FEATURE_FILES_DIR)
+                # Extract the contents, preserving paths
+                for file_info in zip_ref.infolist():
+                    # Strip any leading directories (like 'feature_files/')
+                    filename = file_info.filename
+                    # If the file is inside a 'feature_files' directory, extract just the file
+                    if '/' in filename:
+                        filename = filename.split('/', 1)[1]
+                        if filename:  # Only extract if there's a filename after the directory
+                            source = zip_ref.read(file_info.filename)
+                            target_path = os.path.join(FEATURE_FILES_DIR, filename)
+                            with open(target_path, 'wb') as f:
+                                f.write(source)
+                    else:
+                        # Direct files in the zip root
+                        zip_ref.extract(file_info, FEATURE_FILES_DIR)
             logger.info("Feature files extracted successfully")
         except Exception as e:
             logger.error(f"Error extracting feature files: {str(e)}")
@@ -48,7 +62,7 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     # Check if feature_files exist
     feature_files = [f for f in os.listdir(FEATURE_FILES_DIR) if f.endswith('.json')]    
     if not feature_files:
-        logger.error("No feature files found in the directory. Recovery cannot proceed. No changes made to database")
+        logger.error(f"No feature files found in {FEATURE_FILES_DIR}. Recovery cannot proceed. No changes made to database")
         shutil.rmtree(RECOVERY_DIR)
         shutil.rmtree(LOCAL_RECOVERY_DIR) 
         return False
@@ -97,7 +111,7 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
         if file_asset_id in failed_assets:
             asset_path = os.path.join(FEATURE_FILES_DIR, file_name)
             logger.info(f"Updating failed asset {file_name}")
-            create_single_featurefile(file_asset_id, RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME)
+            #create_single_featurefile(file_asset_id, RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME)
             update_status("Processing", asset_id=file_asset_id)
             logger.info(f"Failed asset {file_name} updated")
         
@@ -105,11 +119,21 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     logger.debug(f"Zipping {FEATURE_FILES_DIR} into {FEATURE_FILE_ZIP_PATH} and {FEATURE_FILE_ZIP_PATH_LOCAL}")
     shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH)[0], 'zip', FEATURE_FILES_DIR)
     shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH_LOCAL)[0], 'zip', FEATURE_FILES_DIR)
+    
+    # Enable HPC mode if running within a SLURM job
+    if os.environ.get('SLURM_JOB_ID'):
+        hpc_mode = True
+    else:
+        hpc_mode = False
 
     # Continue with the recovery process
-    asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME, False)
+    asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME, hpc_mode)
+
+    batch_range = initialize_uo(RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME, hpc_mode)
     
-    initialize_uo(RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME, False)
+    if hpc_mode:
+        return batch_range
+    
 
 
 if __name__ == "__main__":

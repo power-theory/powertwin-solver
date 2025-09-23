@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=powertwin
-#SBATCH --nodes=40                    # Request 40 nodes
-#SBATCH --ntasks-per-node=1         # Request 1 tasks per node
-#SBATCH --cpus-per-task=25            # 25 CPUs per task (sequential asset processing)
-#SBATCH --time=7-00:00:00            # 1-hour runtime
-#SBATCH --mem-per-cpu=2G             # Memory per CPU core
+#SBATCH --job-name=pt-colorado
+#SBATCH --nodes=20                    
+#SBATCH --ntasks-per-node=1         
+#SBATCH --cpus-per-task=30          
+#SBATCH --time=7-00:00:00           
+#SBATCH --mem-per-cpu=6G            
 #SBATCH --account=cowy-ptheory
 #SBATCH --partition=teton            # Teton partition
 #SBATCH --output=%x_%j.out
@@ -26,20 +26,18 @@ module load apptainer/1.4.1
 # =====================================================
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
-SIMULATION_NAME="wyoming1"
-HPC_SHARED_STORAGE="/project/cowy-ptheory/powertwin"
+SIMULATION_NAME="colorado1"
+HPC_SHARED_STORAGE="/project/cowy-ptheory/colorado_powertwin"
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload"
-ASSET_GEOJSON_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/wyo_asset_geometries.geojson"
-METADATA_CSV_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/wyo-sensors-assets-geometries-types.csv"
+ASSET_GEOJSON_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/co_asset_geometries.geojson"
+METADATA_CSV_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/co-sensors-assets-geometries-types.csv"
 CONFIG_JSON_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/default_config.json"
-LOCATION="Jackson"
+LOCATION="Denver"
 
 # Container configuration
 PG_USER="postgres"
 PG_PASSWORD="admin"
 PG_DB="powertwin"
-MSS_PORT="8000"
-SOLVER_PORT="8080"
 
 # PostgreSQL environment variables (used by client tools and applications)
 export PGHOST="localhost"
@@ -47,9 +45,6 @@ export PGUSER="${PG_USER}"
 export PGPASSWORD="${PG_PASSWORD}"
 export PGDATABASE="${PG_DB}"
 export POSTGRES_HOST_AUTH_METHOD="trust"
-export GEM_HOME=/usr/local/lib/ruby/gems/2.7.0
-export GEM_PATH=/usr/local/lib/ruby/gems/2.7.0
-export PATH=/usr/local/bin:$PATH
 
 # SIF files location
 SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
@@ -58,12 +53,19 @@ SOLVER_SIF="${SIF_DIR}/flask.sif"
 
 # Shared directories
 DATA_DIR="${HPC_SHARED_STORAGE}/powertwin_data"
-LOG_DIR="${HPC_SHARED_STORAGE}/logs"
-TEMP_DIR="/tmp/powertwin_${SLURM_JOB_ID}"
-
-DB_DATA_DIR="${DATA_DIR}/postgres_data"  # Use existing PostgreSQL data directory
 USER_FILES_DIR="${HPC_SHARED_STORAGE}/user_files"
-NETWORK_DIR="/tmp/apptainer_network_${SLURM_JOB_ID}"
+LOG_DIR="${HPC_SHARED_STORAGE}/logs"
+
+TMP_BASE="${HPC_SHARED_STORAGE}/tmp"
+export GEM_HOME="${TMP_BASE}/gems_${SLURM_JOB_ID}_${SLURM_PROCID}"
+export HOME="${TMP_BASE}/home_${SLURM_JOB_ID}_${SLURM_PROCID}"
+NETWORK_DIR="${TMP_BASE}/apptainer_network_${SLURM_JOB_ID}"
+PG_PID_FILE="${TMP_BASE}/postgres_${SLURM_JOB_ID}.pid"
+STATUS_MONITOR_PID_FILE="${TMP_BASE}/status_monitor_${SLURM_JOB_ID}.pid"
+
+mkdir -p "$GEM_HOME" "$HOME" "$NETWORK_DIR"
+DB_DATA_DIR="${DATA_DIR}/postgres_data"  # Use existing PostgreSQL data directory
+
 
 # Export variables for access in child processes
 export POWERTWIN_LOG_DIR="${LOG_DIR}"
@@ -198,10 +200,7 @@ check_postgres_data() {
 # Start PostgreSQL server
 start_postgres() {
     print_status "info" "Starting PostgreSQL server..."
-    
-    # Define PID file to track PostgreSQL server process
-    PG_PID_FILE="/tmp/postgres_${SLURM_JOB_ID}.pid"
-    
+        
     # Make sure we're using a compatible container
     # Check PostgreSQL version in the container
     PG_SIF="${SIF_DIR}/postgres17.sif"
@@ -241,8 +240,6 @@ start_postgres() {
 stop_postgres() {
     print_status "info" "Stopping PostgreSQL server..."
     
-    # Path to the PID file
-    PG_PID_FILE="/tmp/postgres_${SLURM_JOB_ID}.pid"
     
     if [ -f "${PG_PID_FILE}" ]; then
         PG_PID=$(cat "${PG_PID_FILE}")
@@ -276,8 +273,153 @@ stop_postgres() {
     fi
 }
 
+# Function to clean up temporary files created during simulation
+cleanup_temp_files() {
+    print_status "info" "Cleaning up temporary files in /tmp..."
+    
+    # Remove apptainer network directory
+    if [ -d "${NETWORK_DIR}" ]; then
+        rm -rf "${NETWORK_DIR}"
+        print_status "info" "Removed apptainer network directory: ${NETWORK_DIR}"
+    fi
+    
+    # Clean up PostgreSQL PID file if it exists
+    if [ -f "${PG_PID_FILE}" ]; then
+        rm -f "${PG_PID_FILE}"
+        print_status "info" "Removed PostgreSQL PID file: ${PG_PID_FILE}"
+    fi
+    
+    # Clean up any temporary files containing the SLURM job ID
+    if [ -n "${SLURM_JOB_ID}" ]; then
+        # Remove any temporary files with the job ID pattern in /tmp
+        find /tmp -name "*${SLURM_JOB_ID}*" -type f -delete 2>/dev/null
+        find /tmp -name "*${SLURM_JOB_ID}*" -type d -exec rm -rf {} \; 2>/dev/null
+        print_status "info" "Removed temporary files containing job ID: ${SLURM_JOB_ID}"
+    fi
+    
+    # Expand cleanup for GEM_HOME and HOME directories
+    if [ -d "$GEM_HOME" ]; then
+        rm -rf "$GEM_HOME"
+        print_status "info" "Removed GEM_HOME: ${GEM_HOME}"
+    fi
+    
+    if [ -d "$HOME" ] && [[ "$HOME" == /tmp/home_* ]]; then
+        rm -rf "$HOME"
+        print_status "info" "Removed temporary HOME: ${HOME}"
+    fi
+    
+    # Clean up OpenStudio temporary directories
+    if [ -d "/tmp/OpenStudio" ]; then
+        rm -rf /tmp/OpenStudio* 2>/dev/null
+        print_status "info" "Removed OpenStudio temporary directories"
+    fi
+    
+    # Clean up EnergyPlus temporary directories
+    if [ -d "/tmp/Temp-" ]; then
+        rm -rf /tmp/Temp-* 2>/dev/null
+        print_status "info" "Removed EnergyPlus temporary directories"
+    fi
+    
+    # Clean up UrbanOpt temporary directories
+    if [ -d "/tmp/urbanopt" ]; then
+        rm -rf /tmp/urbanopt* 2>/dev/null
+        print_status "info" "Removed UrbanOpt temporary directories"
+    fi
+    
+    # Clean up any Ruby temporary directories that might be created
+    if [ -d "/tmp/ruby" ]; then
+        rm -rf /tmp/ruby* 2>/dev/null
+        print_status "info" "Removed Ruby temporary directories"
+    fi
+
+    if [ -f "${STATUS_MONITOR_PID_FILE}" ]; then
+        rm -f "${STATUS_MONITOR_PID_FILE}"
+        print_status "info" "Removed status monitor PID file"
+    fi
+    
+    # Clean up any remaining apptainer temporary files
+    find /tmp -name "apptainer-*" -type d -delete 2>/dev/null
+    
+    print_status "info" "Temporary file cleanup completed"
+}
+
+# Function to handle termination signals
+handle_termination() {
+    local signal_name=$1
+    print_status "warning" "Received ${signal_name} signal. Performing emergency cleanup..."
+    
+    # Stop PostgreSQL gracefully
+    stop_postgres
+    
+    # Clean up temporary files
+    cleanup_temp_files
+    
+    # Kill status monitoring if it's running
+    if [ -f "${STATUS_MONITOR_PID_FILE}" ]; then
+        MONITOR_PID=$(cat "${STATUS_MONITOR_PID_FILE}")
+        if kill -0 ${MONITOR_PID} 2>/dev/null; then
+            kill ${MONITOR_PID}
+            rm -f "${STATUS_MONITOR_PID_FILE}"
+        fi
+    fi
+    
+    print_status "warning" "Emergency cleanup completed. Exiting due to ${signal_name} signal."
+    
+    # Return the appropriate exit code
+    if [ "$signal_name" = "EXIT" ]; then
+        exit 0
+    else
+        exit 1
+    fi
+}
+
+# Add this function to the script, before the main() function
+monitor_simulation_status() {
+    local simulation_name=$1
+    local interval_seconds=$2
+    local log_file=$3
+    
+    print_status "info" "Starting simulation status monitoring every $((interval_seconds/60)) minutes..."
+    
+    while true; do
+        # Get current timestamp
+        local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+        
+        print_status "info" "[$timestamp] Running periodic status check..."
+        
+        # Run the status command using the same container setup
+        apptainer exec \
+            --bind "${DATA_DIR}:/powertwin_data" \
+            --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files" \
+            --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}" \
+            --bind "${DB_DATA_DIR}:/postgres_data" \
+            --bind "${LOG_DIR}:/solver/logs" \
+            --env "SIMULATION_NAME=${RECOVERY_SIMULATION_NAME}" \
+            --env "PYTHONPATH=/solver" \
+            --env "POWERTWIN_LOG_DIR=/solver/logs" \
+            --env "POSTGRES_USER=${PG_USER}" \
+            --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
+            --env "POSTGRES_DB=${PG_DB}" \
+            --env "PGHOST=${DB_HOST}" \
+            --env "PGUSER=${PG_USER}" \
+            --env "PGPASSWORD=${PG_PASSWORD}" \
+            --env "PGDATABASE=${PG_DB}" \
+            --workdir /solver \
+            "${SOLVER_SIF}" python -c "
+from modules.diagnostics.read_status import read_simulation_status
+import os
+simulation_name = '${RECOVERY_SIMULATION_NAME}'
+read_simulation_status(simulation_name)
+" >> "${log_file}" 2>&1
+        
+        # Sleep for the specified interval
+        sleep ${interval_seconds}
+    done
+}
+
 # Main script execution
 main() {
+    
     # Define simulation directories directly
     SIMULATION_DIR="${DATA_DIR}/${SIMULATION_NAME}"
     LOCAL_SIMULATION_DIR="${USER_FILES_DIR}/${SIMULATION_NAME}"
@@ -297,6 +439,8 @@ main() {
     print_status "info" "Number of nodes: ${SLURM_JOB_NUM_NODES}"
     print_status "info" "Number of tasks: ${SLURM_NTASKS}"
     print_status "info" "Tasks per node: ${SLURM_NTASKS_PER_NODE}"
+    print_status "info" "CPUs per task: ${SLURM_CPUS_PER_TASK}"
+    print_status "info" "Total cores: ${TOTAL_CORES}"
     print_status "info" "==================================="
 
     # Determine DB host (the node running this script) and export for all tasks
@@ -304,9 +448,6 @@ main() {
     export PGHOST="${DB_HOST}"
     print_status "info" "Database host for tasks: ${DB_HOST}"
 
-    # Create temp directory for tasks
-    mkdir -p "${TEMP_DIR}"
-    chmod 777 "${TEMP_DIR}"
     
     # STEP 1: Run initialization as a separate SLURM step (feature files creation)
     print_status "info" "STEP 1: Creating feature files..."
@@ -380,11 +521,30 @@ main() {
 
     print_status "info" "UrbanOpt initialization returned ${TOTAL_BATCHES} batches."
 
+    
+    # Set up signal traps for graceful termination
+    trap 'handle_termination SIGTERM' SIGTERM
+    trap 'handle_termination SIGINT' SIGINT
+    trap 'handle_termination SIGHUP' SIGHUP
+    trap 'handle_termination EXIT' EXIT
+
+    # Create a specific log file for status updates
+    STATUS_LOG_FILE="${LOG_DIR}/powertwin_status_${SLURM_JOB_ID}.log"
+    touch "${STATUS_LOG_FILE}"
+
+    # Start status monitoring in the background (every 15 minutes)
+    monitor_simulation_status "${RECOVERY_SIMULATION_NAME}" 900 "${STATUS_LOG_FILE}" &
+    MONITOR_PID=$!
+
+    # Store the PID for later cleanup
+    echo ${MONITOR_PID} > "${STATUS_MONITOR_PID_FILE}"
+
+    print_status "info" "Status monitoring started with PID ${MONITOR_PID}, logs at ${STATUS_LOG_FILE}"
+
+    
     # STEP 3: Run parallel batch processing with proper SLURM task distribution
     print_status "info" "STEP 3: Running parallel batch processing..."
 
-    BATCHES_PER_TASK=$((TOTAL_BATCHES / SLURM_NTASKS))
-    REMAINDER=$((TOTAL_BATCHES % SLURM_NTASKS))
 
     srun --mpi=pmix --exclusive \
     apptainer exec \
@@ -393,8 +553,8 @@ main() {
         --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}:rw" \
         --bind "${DB_DATA_DIR}:/postgres_data:rw" \
         --bind "${LOG_DIR}:/solver/logs:rw" \
-        --env "GEM_HOME=/usr/local/lib/ruby/gems/2.7.0" \
-        --env "GEM_PATH=/usr/local/lib/ruby/gems/2.7.0" \
+        --env "GEM_HOME=${GEM_HOME}" \
+        --env "GEM_PATH=${GEM_PATH}" \
         --env "SIMULATION_NAME=${SIMULATION_NAME}" \
         --env "PYTHONPATH=/solver" \
         --env "PYTHONDONTWRITEBYTECODE=1" \
@@ -414,10 +574,50 @@ main() {
     2>&1 | tee "${LOG_DIR}/powertwin_batches_${SLURM_JOB_ID}.log"
 
 
+    # Stop the status monitoring
+    if [ -f "${STATUS_MONITOR_PID_FILE}" ]; then
+        MONITOR_PID=$(cat "${STATUS_MONITOR_PID_FILE}")
+        if kill -0 ${MONITOR_PID} 2>/dev/null; then
+            print_status "info" "Stopping status monitoring (PID ${MONITOR_PID})..."
+            kill ${MONITOR_PID}
+            
+            # One final status update after completion
+            print_status "info" "Running final status check..."
+            apptainer exec \
+                --bind "${DATA_DIR}:/powertwin_data" \
+                --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files" \
+                --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}" \
+                --bind "${DB_DATA_DIR}:/postgres_data" \
+                --bind "${LOG_DIR}:/solver/logs" \
+                --env "SIMULATION_NAME=${RECOVERY_SIMULATION_NAME}" \
+                --env "PYTHONPATH=/solver" \
+                --env "POWERTWIN_LOG_DIR=/solver/logs" \
+                --env "POSTGRES_USER=${PG_USER}" \
+                --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
+                --env "POSTGRES_DB=${PG_DB}" \
+                --env "PGHOST=${DB_HOST}" \
+                --env "PGUSER=${PG_USER}" \
+                --env "PGPASSWORD=${PG_PASSWORD}" \
+                --env "PGDATABASE=${PG_DB}" \
+                --workdir /solver \
+                "${SOLVER_SIF}" python -c "
+    from modules.diagnostics.read_status import read_simulation_status
+    import os
+    simulation_name = '${RECOVERY_SIMULATION_NAME}'
+    read_simulation_status(simulation_name)
+    " >> "${STATUS_LOG_FILE}" 2>&1
+        fi
+        rm -f "${STATUS_MONITOR_PID_FILE}"
+    fi
+
     
     # Clean up
     print_status "info" "Cleaning up resources..."
     stop_postgres
+    
+    # Clean up any temporary files
+    print_status "info" "Cleaning up temporary files..."
+    cleanup_temp_files
     
     print_status "info" "PowerTwin simulation completed."
     return 0
