@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=recover
-#SBATCH --nodes=8       
+#SBATCH --nodes=40       
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=30
+#SBATCH --cpus-per-task=15
 #SBATCH --time=7-00:00:00            
 #SBATCH --mem-per-cpu=8G             
 #SBATCH --account=cowy-ptheory
@@ -26,11 +26,11 @@ module load apptainer/1.4.1
 # =====================================================
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
-RECOVERY_SIMULATION_NAME="wyoming29"
-CORRUPTED_SIMULATION_NAME="wyoming28"
+RECOVERY_SIMULATION_NAME="colorado4"
+CORRUPTED_SIMULATION_NAME="colorado3"
 # Batch ID is optional - leave empty to recover all batches, or specify a batch number
 BATCH_ID=""
-HPC_SHARED_STORAGE="/project/cowy-ptheory/powertwin"
+HPC_SHARED_STORAGE="/project/cowy-ptheory/colorado_powertwin"
 
 # Container configuration
 PG_USER="postgres"
@@ -263,34 +263,76 @@ start_postgres() {
         apptainer build "${PG_SIF}" docker://postgres:17
     fi
     
+    # Check if PostgreSQL is already running by looking for postmaster.pid
+    if [ -f "${DB_DATA_DIR}/postmaster.pid" ]; then
+        print_status "warning" "PostgreSQL appears to be already running. Attempting to stop it first..."
+        # Try to stop any existing PostgreSQL process
+        if [ -f "${DB_DATA_DIR}/postmaster.pid" ]; then
+            EXISTING_PID=$(head -n 1 "${DB_DATA_DIR}/postmaster.pid" 2>/dev/null)
+            if [ -n "$EXISTING_PID" ] && kill -0 "$EXISTING_PID" 2>/dev/null; then
+                print_status "info" "Stopping existing PostgreSQL process (PID: $EXISTING_PID)..."
+                kill -TERM "$EXISTING_PID"
+                sleep 5
+                if kill -0 "$EXISTING_PID" 2>/dev/null; then
+                    kill -9 "$EXISTING_PID"
+                fi
+            fi
+            rm -f "${DB_DATA_DIR}/postmaster.pid"
+        fi
+    fi
+    
+    # Start PostgreSQL with proper configuration
     apptainer exec \
         --bind "${DB_DATA_DIR}:/data" \
         --bind "${PG_SOCKET_DIR}:/pg_socket" \
-        "${PG_SIF}" bash -c "postgres -D /data -h 0.0.0.0 -k /pg_socket" &
+        "${PG_SIF}" bash -c "
+            # Ensure proper permissions on data directory
+            chmod 0700 /data
+            # Start PostgreSQL with both TCP and Unix socket support
+            postgres -D /data -h 0.0.0.0 -k /pg_socket -p 5432
+        " &
     
     # Save PID for later cleanup
     echo $! > "${PG_PID_FILE}"
     
-    # Update connection environment variables to use the custom socket
-    export PGHOST="${PG_SOCKET_DIR}"
-    
-    # Wait for PostgreSQL to start up (max 30 seconds)
+    # Wait for PostgreSQL to start up (max 60 seconds)
     print_status "info" "Waiting for PostgreSQL to start..."
-    for i in {1..30}; do
+    for i in {1..60}; do
+        # Check if PostgreSQL is ready using both socket and TCP
         if apptainer exec \
             --bind "${PG_SOCKET_DIR}:/pg_socket" \
-            "${PG_SIF}" bash -c "pg_isready -h /pg_socket" &>/dev/null; then
-            print_status "info" "PostgreSQL server started successfully."
+            "${PG_SIF}" bash -c "pg_isready -h /pg_socket -p 5432" &>/dev/null; then
+            print_status "info" "PostgreSQL server started successfully (socket connection)."
+            break
+        elif apptainer exec \
+            "${PG_SIF}" bash -c "pg_isready -h localhost -p 5432" &>/dev/null; then
+            print_status "info" "PostgreSQL server started successfully (TCP connection)."
             break
         fi
         
-        if [ $i -eq 30 ]; then
-            print_status "error" "PostgreSQL failed to start within 30 seconds."
+        # Check if the process is still running
+        if ! kill -0 $(cat "${PG_PID_FILE}") 2>/dev/null; then
+            print_status "error" "PostgreSQL process died during startup."
+            return 1
+        fi
+        
+        if [ $i -eq 60 ]; then
+            print_status "error" "PostgreSQL failed to start within 60 seconds."
+            # Print PostgreSQL logs for debugging
+            if [ -f "${DB_DATA_DIR}/log/postgresql.log" ]; then
+                print_status "error" "PostgreSQL log:"
+                tail -20 "${DB_DATA_DIR}/log/postgresql.log"
+            fi
             return 1
         fi
         
         sleep 1
     done
+    
+    # Set connection parameters for the rest of the script
+    # Use TCP connection since it's more reliable across nodes
+    export PGHOST="localhost"
+    export PGPORT="5432"
     
     return 0
 }
@@ -471,6 +513,7 @@ monitor_simulation_status() {
             --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
             --env "POSTGRES_DB=${PG_DB}" \
             --env "PGHOST=${DB_HOST}" \
+            --env "PGPORT=${DB_PORT}" \
             --env "PGUSER=${PG_USER}" \
             --env "PGPASSWORD=${PG_PASSWORD}" \
             --env "PGDATABASE=${PG_DB}" \
@@ -549,8 +592,10 @@ main() {
 
     # Determine DB host (the node running this script) and export for all tasks
     DB_HOST="$(hostname -f)"
+    DB_PORT="5432"
     export PGHOST="${DB_HOST}"
-    print_status "info" "Database host for tasks: ${DB_HOST}"
+    export PGPORT="${DB_PORT}"
+    print_status "info" "Database host for tasks: ${DB_HOST}:${DB_PORT}"
 
     # # Count total rows in the main powertwin table
     # apptainer exec ${SIF_DIR}/postgres17.sif \
@@ -611,6 +656,7 @@ main() {
         --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
         --env "POSTGRES_DB=${PG_DB}" \
         --env "PGHOST=${DB_HOST}" \
+        --env "PGPORT=${DB_PORT}" \
         --env "PGUSER=${PG_USER}" \
         --env "PGPASSWORD=${PG_PASSWORD}" \
         --env "PGDATABASE=${PG_DB}" \
@@ -656,6 +702,7 @@ print(get_batch_total(simulation_name))
         --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
         --env "POSTGRES_DB=${PG_DB}" \
         --env "PGHOST=${DB_HOST}" \
+        --env "PGPORT=${DB_PORT}" \
         --env "PGUSER=${PG_USER}" \
         --env "PGPASSWORD=${PG_PASSWORD}" \
         --env "PGDATABASE=${PG_DB}" \
@@ -731,6 +778,7 @@ print(get_batch_total(simulation_name))
         --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
         --env "POSTGRES_DB=${PG_DB}" \
         --env "PGHOST=${DB_HOST}" \
+        --env "PGPORT=${DB_PORT}" \
         --env "PGUSER=${PG_USER}" \
         --env "PGPASSWORD=${PG_PASSWORD}" \
         --env "PGDATABASE=${PG_DB}" \

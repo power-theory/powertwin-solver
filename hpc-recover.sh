@@ -11,10 +11,10 @@
 #==============================================================================
 # SLURM CONFIGURATION
 #==============================================================================
-#SBATCH --job-name=recover
-#SBATCH --nodes=8       
+#SBATCH --job-name=co-recover
+#SBATCH --nodes=40       
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=30
+#SBATCH --cpus-per-task=15
 #SBATCH --time=7-00:00:00            
 #SBATCH --mem-per-cpu=8G             
 #SBATCH --account=cowy-ptheory
@@ -38,12 +38,12 @@ module load apptainer/1.4.1
 # CONFIGURATION
 #==============================================================================
 # Simulation parameters
-RECOVERY_SIMULATION_NAME="wyoming29"
-CORRUPTED_SIMULATION_NAME="wyoming28"
+RECOVERY_SIMULATION_NAME="colorado4"
+CORRUPTED_SIMULATION_NAME="colorado3"
 BATCH_ID=""  # Optional - leave empty to recover all batches, or specify a batch number
 
 # Storage locations
-HPC_SHARED_STORAGE="/project/cowy-ptheory/powertwin"
+HPC_SHARED_STORAGE="/project/cowy-ptheory/colorado_powertwin"
 DATA_DIR="${HPC_SHARED_STORAGE}/powertwin_data"
 USER_FILES_DIR="${HPC_SHARED_STORAGE}/user_files"
 LOG_DIR="${HPC_SHARED_STORAGE}/logs"
@@ -67,10 +67,28 @@ SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
 MSS_SIF="${SIF_DIR}/mss.sif"
 SOLVER_SIF="${SIF_DIR}/flask.sif"
 PG_SIF="${SIF_DIR}/postgres17.sif"
+PGB_SIF="${SIF_DIR}/pgbouncer.sif"
+
+# PgBouncer configuration
+PGB_PORT=6432  # PgBouncer listening port
+PGB_MAX_CLIENT_CONN=1000  # Maximum number of client connections per node
+PGB_DEFAULT_POOL_SIZE=40  # Default pool size per user per database
+PGB_MIN_POOL_SIZE=10     # Minimum pool size per user per database
+PGB_RESERVE_POOL_SIZE=20 # Additional connections for when pool is full
+PGB_MAX_DB_CONNECTIONS=60 # Maximum server connections per database
 
 # Create a node-specific temp directory to avoid /tmp disk space issues
 export NODE_ID=$(hostname -s)
 export NODE_TMP_DIR="${TMP_BASE}/node_${NODE_ID}_${SLURM_JOB_ID}"
+
+# Clean up any leftover files from previous runs with the same job ID pattern
+if [ -d "${NODE_TMP_DIR}" ]; then
+    print_status "warning" "Found existing node temp directory, cleaning up leftover files..."
+    find "${NODE_TMP_DIR}" -name "*.pid" -type f -delete 2>/dev/null
+    # Remove any leftover PgBouncer processes that might be running
+    pkill -f "pgbouncer.*${SLURM_JOB_ID}" 2>/dev/null || true
+fi
+
 mkdir -p "${NODE_TMP_DIR}"
 
 # Redirect temporary files to our custom location
@@ -162,6 +180,16 @@ check_sif_files() {
     
     if [ ! -f "$SOLVER_SIF" ]; then
         print_status "error" "Solver SIF file not found at: $SOLVER_SIF"
+        return 1
+    fi
+    
+    if [ ! -f "$PG_SIF" ]; then
+        print_status "error" "PostgreSQL SIF file not found at: $PG_SIF"
+        return 1
+    fi
+    
+    if [ ! -f "$PGB_SIF" ]; then
+        print_status "error" "PgBouncer SIF file not found at: $PGB_SIF"
         return 1
     fi
     
@@ -327,6 +355,145 @@ start_postgres() {
     return 0
 }
 
+#------------------------------------------------------------------------------
+# FUNCTION: start_pgbouncer
+# Description: Configures and starts PgBouncer connection pooler
+# Arguments: None
+# Returns: 0 on success, 1 on failure
+#------------------------------------------------------------------------------
+start_pgbouncer() {
+    print_status "info" "Setting up PgBouncer connection pooler..."
+    
+    # Ensure PgBouncer SIF exists
+    if [ ! -f "${PGB_SIF}" ]; then
+        print_status "error" "PgBouncer SIF file not found at: ${PGB_SIF}"
+        return 1
+    fi
+    
+    # Define PgBouncer directories using NODE_TMP_DIR
+    PGB_CONFIG_DIR="${NODE_TMP_DIR}/pgbouncer_config"
+    PGB_LOG_DIR="${NODE_TMP_DIR}/pgbouncer_logs"
+    PGB_SOCKET_DIR="${NODE_TMP_DIR}/pgbouncer_run"
+    PGB_PID_FILE="${NODE_TMP_DIR}/pgbouncer_${SLURM_JOB_ID}.pid"
+    
+    # Clean up any existing PID file from previous runs
+    if [ -f "${PGB_PID_FILE}" ]; then
+        print_status "warning" "Found existing PgBouncer PID file, removing it..."
+        rm -f "${PGB_PID_FILE}"
+    fi
+    
+    # Create required directories with proper permissions
+    mkdir -p "${PGB_CONFIG_DIR}" "${PGB_LOG_DIR}" "${PGB_SOCKET_DIR}"
+    chmod 700 "${PGB_CONFIG_DIR}" "${PGB_LOG_DIR}" "${PGB_SOCKET_DIR}"
+    
+    # Create pgbouncer.ini configuration file with best practices
+    cat > "${PGB_CONFIG_DIR}/pgbouncer.ini" << EOF
+[databases]
+${PG_DB} = host=${PGHOST} port=5432 dbname=${PG_DB} user=${PG_USER} password=${PG_PASSWORD}
+
+[pgbouncer]
+; Network settings
+listen_addr = 0.0.0.0
+listen_port = ${PGB_PORT}
+unix_socket_dir = ${PGB_SOCKET_DIR}
+
+; Authentication settings
+auth_type = md5
+auth_file = ${PGB_CONFIG_DIR}/userlist.txt
+auth_query = SELECT usename, passwd FROM pg_shadow WHERE usename=$1
+
+; Connection pooling
+pool_mode = transaction
+max_client_conn = ${PGB_MAX_CLIENT_CONN}
+default_pool_size = ${PGB_DEFAULT_POOL_SIZE}
+min_pool_size = ${PGB_MIN_POOL_SIZE}
+reserve_pool_size = ${PGB_RESERVE_POOL_SIZE}
+reserve_pool_timeout = 3
+max_db_connections = ${PGB_MAX_DB_CONNECTIONS}
+max_user_connections = ${PGB_MAX_DB_CONNECTIONS}
+
+; Server connection settings
+server_reset_query = DISCARD ALL
+server_check_delay = 30
+server_check_query = SELECT 1
+server_lifetime = 3600
+server_idle_timeout = 600
+server_connect_timeout = 15
+server_login_retry = 15
+
+; Client connection settings
+client_login_timeout = 60
+client_idle_timeout = 0
+
+; Connection sanitation
+ignore_startup_parameters = extra_float_digits,geqo
+
+; Logging settings
+logfile = ${PGB_LOG_DIR}/pgbouncer.log
+pidfile = ${PGB_PID_FILE}
+log_connections = 1
+log_disconnections = 1
+log_pooler_errors = 1
+stats_period = 60
+
+; Administrative settings
+admin_users = ${PG_USER}
+stats_users = ${PG_USER}
+application_name_add_host = 1
+EOF
+
+    # Create userlist.txt for authentication
+    cat > "${PGB_CONFIG_DIR}/userlist.txt" << EOF
+"${PG_USER}" "${PG_PASSWORD}"
+EOF
+
+    # Start PgBouncer in the background
+    print_status "info" "Starting PgBouncer on port ${PGB_PORT}..."
+    apptainer exec \
+        --bind "${PGB_CONFIG_DIR}:/etc/pgbouncer" \
+        --bind "${PGB_LOG_DIR}:/var/log/pgbouncer" \
+        "${PGB_SIF}" pgbouncer /etc/pgbouncer/pgbouncer.ini &
+    
+    # Save PID for later cleanup
+    PGB_PID=$!
+    echo $PGB_PID > "${PGB_PID_FILE}"
+    
+    # Wait for PgBouncer to start (max 10 seconds)
+    print_status "info" "Waiting for PgBouncer to start..."
+    for i in {1..10}; do
+        # Check if the process is still running
+        if ! kill -0 $PGB_PID 2>/dev/null; then
+            print_status "error" "PgBouncer process died unexpectedly. Check logs at: ${PGB_LOG_DIR}/pgbouncer.log"
+            return 1
+        fi
+        
+        # Check if the port is accessible
+        if nc -z localhost ${PGB_PORT} 2>/dev/null; then
+            print_status "info" "PgBouncer started successfully on port ${PGB_PORT}"
+            
+            # Update connection settings to use PgBouncer
+            export PGHOST="localhost"
+            export PGPORT="${PGB_PORT}"
+            
+            return 0
+        fi
+        
+        if [ $i -eq 10 ]; then
+            print_status "error" "PgBouncer failed to start within 10 seconds"
+            # Show the last few lines of the log for debugging
+            if [ -f "${PGB_LOG_DIR}/pgbouncer.log" ]; then
+                print_status "error" "PgBouncer log tail:"
+                tail -5 "${PGB_LOG_DIR}/pgbouncer.log" 2>/dev/null
+            fi
+            return 1
+        fi
+        
+        sleep 1
+    done
+    
+    return 1
+}
+
 # Function to stop the PostgreSQL server gracefully
 stop_postgres() {
     print_status "info" "Stopping PostgreSQL server..."
@@ -365,6 +532,52 @@ stop_postgres() {
     fi
 }
 
+#------------------------------------------------------------------------------
+# FUNCTION: stop_pgbouncer
+# Description: Stops the PgBouncer connection pooler
+# Arguments: None
+# Returns: 0 on success
+#------------------------------------------------------------------------------
+stop_pgbouncer() {
+    print_status "info" "Stopping PgBouncer..."
+    
+    # Define PGB_PID_FILE using NODE_TMP_DIR (same as in start_pgbouncer)
+    PGB_PID_FILE="${NODE_TMP_DIR}/pgbouncer_${SLURM_JOB_ID}.pid"
+    
+    if [ -f "${PGB_PID_FILE}" ]; then
+        PGB_PID=$(cat "${PGB_PID_FILE}" 2>/dev/null)
+        
+        if [ -n "${PGB_PID}" ] && kill -0 "${PGB_PID}" &>/dev/null; then
+            kill -TERM "${PGB_PID}"
+            
+            for i in {1..5}; do
+                if ! kill -0 "${PGB_PID}" &>/dev/null; then
+                    print_status "info" "PgBouncer stopped successfully"
+                    break
+                fi
+                
+                if [ $i -eq 5 ]; then
+                    print_status "warning" "PgBouncer did not stop gracefully, forcing shutdown..."
+                    kill -9 "${PGB_PID}" &>/dev/null
+                fi
+                
+                sleep 1
+            done
+        else
+            print_status "warning" "PgBouncer process (PID: ${PGB_PID}) not found or invalid PID"
+        fi
+        
+        # Always remove the PID file regardless
+        rm -f "${PGB_PID_FILE}"
+    else
+        # Try to kill any PgBouncer processes that might be running for this job ID
+        pkill -f "pgbouncer.*${SLURM_JOB_ID}" 2>/dev/null && print_status "info" "Killed orphaned PgBouncer processes"
+        print_status "warning" "PgBouncer PID file not found"
+    fi
+    
+    return 0
+}
+
 # Function to clean up temporary files created during simulation
 cleanup_temp_files() {
     print_status "info" "Cleaning up temporary files..."
@@ -396,6 +609,9 @@ cleanup_temp_files() {
     
     # Clean up the node-specific temp directory
     if [ -d "${NODE_TMP_DIR}" ]; then
+        # First remove any PID files that might be left
+        find "${NODE_TMP_DIR}" -name "*.pid" -type f -delete 2>/dev/null
+        
         # Keep a list of problematic directories that might be in use
         find "${NODE_TMP_DIR}" -type d -name "OpenStudio*" -o -name "Temp-*" -o -name "urbanopt*" -o -name "ruby*" -o -name "xmlvalidation-*" -o -name "apptainer-*" | while read dir; do
             rm -rf "$dir" 2>/dev/null
@@ -465,6 +681,9 @@ handle_error() {
 handle_termination() {
     local signal_name=$1
     print_status "warning" "Received ${signal_name} signal. Performing emergency cleanup..."
+    
+    # Stop PgBouncer first
+    stop_pgbouncer
     
     # Stop PostgreSQL gracefully
     stop_postgres
@@ -613,6 +832,9 @@ initialize_environment() {
     
     # Start PostgreSQL server
     start_postgres || handle_error "PostgreSQL server failed to start" 1
+    
+    # Start PgBouncer connection pooler on the head node
+    #start_pgbouncer || handle_error "PgBouncer connection pooler failed to start" 1
     
     # Display SLURM job information
     print_status "info" "======= SLURM Job Information ======="
@@ -780,6 +1002,76 @@ process_batches() {
         echo \"\${NODE_ID}: Node temp directory created at \${NODE_TMP}\"
     "
 
+    # Set up PgBouncer on each compute node
+    print_status "info" "Setting up PgBouncer on each compute node..."
+    srun --mpi=pmix --exclusive bash -c "
+        NODE_ID=\$(hostname -s)
+        NODE_TMP=\"${HPC_SHARED_STORAGE}/tmp/node_\${NODE_ID}_${SLURM_JOB_ID}\"
+        PGB_SOCKET_DIR=\"\${NODE_TMP}/pgbouncer_run\"
+        PGB_CONFIG_DIR=\"\${NODE_TMP}/pgbouncer_config\"
+        PGB_LOG_DIR=\"\${NODE_TMP}/pgbouncer_logs\"
+        PGB_PID_FILE=\"\${NODE_TMP}/pgbouncer_${SLURM_JOB_ID}.pid\"
+        
+        # Create directories with proper permissions
+        mkdir -p \"\${PGB_CONFIG_DIR}\" \"\${PGB_LOG_DIR}\" \"\${PGB_SOCKET_DIR}\"
+        chmod 700 \"\${PGB_CONFIG_DIR}\" \"\${PGB_LOG_DIR}\" \"\${PGB_SOCKET_DIR}\"
+        
+        # Create pgbouncer.ini with connection to head node's PostgreSQL
+        cat > \"\${PGB_CONFIG_DIR}/pgbouncer.ini\" << EOF
+[databases]
+${PG_DB} = host=${PGHOST} port=5432 dbname=${PG_DB} user=${PG_USER} password=${PG_PASSWORD}
+
+[pgbouncer]
+listen_addr = 0.0.0.0
+listen_port = ${PGB_PORT}
+auth_type = md5
+auth_file = \${PGB_CONFIG_DIR}/userlist.txt
+logfile = \${PGB_LOG_DIR}/pgbouncer.log
+pidfile = \${PGB_PID_FILE}
+admin_users = ${PG_USER}
+stats_users = ${PG_USER}
+pool_mode = transaction
+max_client_conn = 1000
+default_pool_size = 40
+min_pool_size = 10
+reserve_pool_size = 20
+reserve_pool_timeout = 3
+max_db_connections = 60
+max_user_connections = 60
+server_reset_query = DISCARD ALL
+server_check_delay = 30
+server_check_query = SELECT 1
+server_lifetime = 3600
+server_idle_timeout = 600
+idle_transaction_timeout = 600
+EOF
+
+        # Create userlist.txt for authentication
+        cat > \"\${PGB_CONFIG_DIR}/userlist.txt\" << EOF
+\"${PG_USER}\" \"${PG_PASSWORD}\"
+EOF
+
+        # Start PgBouncer using apptainer
+        apptainer exec \
+            --bind \"\${PGB_CONFIG_DIR}:/etc/pgbouncer\" \
+            --bind \"\${PGB_LOG_DIR}:/var/log/pgbouncer\" \
+            --bind \"\${PGB_SOCKET_DIR}:/var/run/pgbouncer\" \
+            \"${PGB_SIF}\" pgbouncer /etc/pgbouncer/pgbouncer.ini &
+        
+        # Save PID for later cleanup
+        echo \$! > \"\${PGB_PID_FILE}\"
+        
+        # Wait for PgBouncer to start
+        for i in {1..10}; do
+            if nc -z localhost ${PGB_PORT} 2>/dev/null; then
+                echo \"\${NODE_ID}: PgBouncer started successfully on port ${PGB_PORT}\"
+                break
+            fi
+            sleep 1
+        done
+    "
+
+    # Batch processing using srun with MPI support
     srun --mpi=pmix --exclusive --kill-on-bad-exit=0 \
     apptainer exec \
         --bind "${DATA_DIR}:/powertwin_data:rw" \
@@ -800,7 +1092,8 @@ process_batches() {
         --env "POSTGRES_USER=${PG_USER}" \
         --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
         --env "POSTGRES_DB=${PG_DB}" \
-        --env "PGHOST=${DB_HOST}" \
+        --env "PGHOST=localhost" \
+        --env "PGPORT=${PGB_PORT}" \
         --env "PGUSER=${PG_USER}" \
         --env "PGPASSWORD=${PG_PASSWORD}" \
         --env "PGDATABASE=${PG_DB}" \
@@ -810,6 +1103,23 @@ process_batches() {
         "${RECOVERY_DIR_LOCAL}" \
         "${RECOVERY_SIMULATION_NAME}" \
     2>&1 | tee "${LOG_DIR}/powertwin_batches_${SLURM_JOB_ID}.log"
+    
+    # Cleanup PgBouncer on each node after batch processing
+    print_status "info" "Cleaning up PgBouncer on each compute node..."
+    srun --mpi=pmix --exclusive bash -c "
+        NODE_ID=\$(hostname -s)
+        NODE_TMP=\"${HPC_SHARED_STORAGE}/tmp/node_\${NODE_ID}_${SLURM_JOB_ID}\"
+        PGB_PID_FILE=\"\${NODE_TMP}/pgbouncer_${SLURM_JOB_ID}.pid\"
+        
+        if [ -f \"\${PGB_PID_FILE}\" ]; then
+            PGB_PID=\$(cat \"\${PGB_PID_FILE}\")
+            if kill -0 \${PGB_PID} 2>/dev/null; then
+                kill -TERM \${PGB_PID}
+                echo \"\${NODE_ID}: PgBouncer stopped\"
+            fi
+            rm -f \"\${PGB_PID_FILE}\"
+        fi
+    "
     
     return 0
 }
@@ -875,8 +1185,9 @@ read_simulation_status(simulation_name)
         rm -f "${XML_CLEANUP_PID_FILE}"
     fi
     
-    # Clean up PostgreSQL and temporary files
+    # Clean up PostgreSQL, PgBouncer, and temporary files
     print_status "info" "Cleaning up resources..."
+    #stop_pgbouncer
     stop_postgres
     cleanup_temp_files
     
