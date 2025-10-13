@@ -32,7 +32,9 @@ def read_batch_status(simulation_name, batch_id):
     total_assets = get_asset_total(simulation_name,batch_id)
     finished_batches = 1 if total_assets > 0 and total_assets == finished_assets else 0
     progress = (finished_assets / total_assets) * 100
-    print_assets_progress(f'Batch {batch_id}', finished_assets, total_assets, progress)
+    
+    if not os.environ.get('SLURM_JOB_ID'):
+        print_assets_progress(f'Batch {batch_id}', finished_assets, total_assets, progress)
     
     return finished_batches,total_assets,failed_assets,finished_assets
 

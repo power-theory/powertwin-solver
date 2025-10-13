@@ -20,17 +20,6 @@ else:
     MAPPER_FILE = os.path.join('upload', 'PowerTwin.rb')
 
 
-def update_runner_conf(uo_simulation_dir):
-    conf_path = os.path.join(uo_simulation_dir, "runner.conf")
-    if os.path.exists(conf_path):
-        with open(conf_path, "r") as f:
-            conf = json.load(f)
-        conf["gemfile_path"] = "/usr/local/lib/ruby/gems/2.7.0/Gemfile"
-        conf["bundle_install_path"] = "/usr/local/lib/ruby/gems/2.7.0"
-        with open(conf_path, "w") as f:
-            json.dump(conf, f, indent=2)
-        logger.info(f"Patched runner.conf with correct Ruby gem paths.")
-
 ############################################################################################################
 # Name: prepare_record(SIMULATION_DIR,LOCAL_DIR,simulation_name)
 # Description: This function prepares the record for the simulation by creating the UrbanOpt project and copying the mapper file.

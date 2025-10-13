@@ -12,6 +12,7 @@ DB_NAME = os.environ.get("PGDATABASE", "powertwin")
 PASSWORD = os.environ.get("PGPASSWORD", "admin")
 USER = os.environ.get("PGUSER", "postgres")
 HOST = os.environ.get("PGHOST", "powertwin-solver-pg")
+PORT = os.environ.get("PGPORT", "5432")
 DB_NAME = DB_NAME
 
 
@@ -19,9 +20,14 @@ def get_db_connection():
     try:
         conn = psycopg.connect(
             host=HOST,
+            port=int(PORT),
             user=USER,
             password=PASSWORD,
-            dbname=DB_NAME
+            dbname=DB_NAME,
+            # PgBouncer-specific optimizations
+            application_name=f"powertwin-{os.environ.get('SLURM_PROCID', 'unknown')}",
+            # Disable prepared statements for PgBouncer transaction mode
+            prepare_threshold=0
         )
         return conn
     except Exception as e:
@@ -204,7 +210,7 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time):
         conn.close()
     
 def update_status(status, asset_id=None, simulation_name=None):
-    # TODO: concerning that asset_id can be updated without simulation_name
+    # TODO: concerning that asset_id can be updated without simulation_name althought all Failed assets will be transferred to new simulation, this should be handled
     conn = get_db_connection()
     cur = conn.cursor()
     try:
