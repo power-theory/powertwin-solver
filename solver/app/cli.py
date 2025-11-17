@@ -1,5 +1,6 @@
 import argparse
 import requests
+import os
 
 def start_simulation(args):
     if args.hpc and not args.shared_storage:
@@ -17,7 +18,8 @@ def start_simulation(args):
         'location': args.location,
         'num_cores': args.num_cores,
         'hpc_mode': args.hpc,
-        'shared_storage': args.shared_storage if args.hpc else None
+        'shared_storage': args.shared_storage if args.hpc else None,
+        'keep_dirs': args.keep
     }
     response = requests.post(url, files=files, data=data)
     if response.status_code == 200:
@@ -111,7 +113,8 @@ def recovery(args):
         'corrupted_simulation_name': args.corrupted_simulation_name,
         'recover_simulation_name': args.recover_simulation_name,
         'recover_batch_id': args.batch_id,
-        'recover_num_cores': args.num_cores
+        'recover_num_cores': args.num_cores,
+        'keep_dirs': args.keep
     }
     response = requests.post(url, data=data)
     if response.status_code == 200:
@@ -150,6 +153,7 @@ def main():
     parser_start.add_argument('num_cores', type=int, help='Number of cores to use')
     parser_start.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
     parser_start.add_argument('--shared-storage', type=str, help='Path to shared storage for HPC mode (required with --hpc)')
+    parser_start.add_argument('-k', '--keep', action='store_true', help='Keep additional directories (feature_reports, generated_files) during asset cleanup')
     parser_start.set_defaults(func=start_simulation)
 
     # Get simulation status command
@@ -187,6 +191,7 @@ def main():
     parser_recovery.add_argument('recover_simulation_name', type=str, help='Name of the recovery simulation')
     parser_recovery.add_argument('num_cores', type=int, help='Number of cores to use')
     parser_recovery.add_argument('-b','--batch_id', type=int, help='ID of the batch')
+    parser_recovery.add_argument('-k', '--keep', action='store_true', help='Keep additional directories (feature_reports, generated_files) during asset cleanup')
     parser_recovery.set_defaults(func=recovery)
 
     # Get logs command

@@ -1,16 +1,60 @@
 services:
   powertwin-solver-pg:
-    image: postgres:latest
+    image: postgres:17
     container_name: powertwin-solver-pg
     environment:
       - POSTGRES_DB=powertwin
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=admin
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
     ports:
-      - "5432:5432"
+      - "5433:5432"  # PostgreSQL on 5433 to avoid conflicts
     volumes:
       - ./powertwin_data:/solver/powertwin-solver-pg
       - ./postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d powertwin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  pgbouncer:
+    image: pgbouncer/pgbouncer:1.15.0
+    container_name: powertwin-pgbouncer
+    environment:
+      # Required environment variables for the container
+      - DATABASES_HOST=powertwin-solver-pg
+      - DATABASES_PORT=5432
+      - DATABASES_USER=postgres
+      - DATABASES_PASSWORD=admin
+      - DATABASES_DBNAME=powertwin
+      # PgBouncer specific settings
+      - LISTEN_ADDR=0.0.0.0
+      - LISTEN_PORT=6432
+      - AUTH_TYPE=scram-sha-256
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=25
+      - MAX_DB_CONNECTIONS=100
+      - ADMIN_USERS=postgres
+      - STATS_USERS=postgres
+      - LOG_CONNECTIONS=1
+      - LOG_DISCONNECTIONS=1
+      - LOG_POOLER_ERRORS=1
+      - IGNORE_STARTUP_PARAMETERS=extra_float_digits,application_name
+    ports:
+      - "6432:6432"
+    depends_on:
+      powertwin-solver-pg:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "psql -h localhost -p 6432 -U postgres -d powertwin -c 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   powertwin-solver-flask:
     container_name: powertwin-solver-flask
@@ -21,8 +65,16 @@ services:
     volumes:
       - ./powertwin_data:/solver/powertwin-solver-pg
     depends_on:
-      - powertwin-solver-pg
-    tty: true 
+      pgbouncer:
+        condition: service_healthy
+    environment:
+      - PGHOST=pgbouncer
+      - PGPORT=6432
+      - PGUSER=postgres
+      - PGPASSWORD=admin
+      - PGDATABASE=powertwin
+    tty: true
+    restart: unless-stopped
 
 volumes:
   powertwin-solver-flask:

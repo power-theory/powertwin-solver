@@ -11,12 +11,16 @@ logger = initialize_logger('Database',external_log_dir)
 DB_NAME = os.environ.get("PGDATABASE", "powertwin")
 PASSWORD = os.environ.get("PGPASSWORD", "admin")
 USER = os.environ.get("PGUSER", "postgres")
-HOST = os.environ.get("PGHOST", "powertwin-solver-pg")
+HOST = os.environ.get("PGHOST", "pgbouncer")
 PORT = os.environ.get("PGPORT", "5432")
 DB_NAME = DB_NAME
 
 
 def get_db_connection():
+    
+    logger.info(f"Attempting connection with HOST={HOST}, PORT={PORT}, USER={USER}, DB={DB_NAME}")
+
+    
     try:
         conn = psycopg.connect(
             host=HOST,

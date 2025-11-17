@@ -11,10 +11,10 @@
 #==============================================================================
 # SLURM CONFIGURATION
 #==============================================================================
-#SBATCH --job-name=co-recover
-#SBATCH --nodes=40       
+#SBATCH --job-name=test-recover
+#SBATCH --nodes=4       
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=15
+#SBATCH --cpus-per-task=5
 #SBATCH --time=7-00:00:00            
 #SBATCH --mem-per-cpu=8G             
 #SBATCH --account=cowy-ptheory
@@ -38,12 +38,12 @@ module load apptainer/1.4.1
 # CONFIGURATION
 #==============================================================================
 # Simulation parameters
-RECOVERY_SIMULATION_NAME="colorado4"
-CORRUPTED_SIMULATION_NAME="colorado3"
+RECOVERY_SIMULATION_NAME="test1"
+CORRUPTED_SIMULATION_NAME="test2"
 BATCH_ID=""  # Optional - leave empty to recover all batches, or specify a batch number
 
 # Storage locations
-HPC_SHARED_STORAGE="/project/cowy-ptheory/colorado_powertwin"
+HPC_SHARED_STORAGE="/project/cowy-ptheory/test"
 DATA_DIR="${HPC_SHARED_STORAGE}/powertwin_data"
 USER_FILES_DIR="${HPC_SHARED_STORAGE}/user_files"
 LOG_DIR="${HPC_SHARED_STORAGE}/logs"
@@ -64,7 +64,6 @@ export POSTGRES_HOST_AUTH_METHOD="trust"
 
 # Container images
 SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
-MSS_SIF="${SIF_DIR}/mss.sif"
 SOLVER_SIF="${SIF_DIR}/flask.sif"
 PG_SIF="${SIF_DIR}/postgres17.sif"
 PGB_SIF="${SIF_DIR}/pgbouncer.sif"
@@ -356,141 +355,150 @@ start_postgres() {
 }
 
 #------------------------------------------------------------------------------
+# FUNCTION: generate_pgbouncer_config
+# Description: Generates PgBouncer configuration consistent with Docker Compose
+# Arguments: None
+# Returns: 0 on success, 1 on failure
+#------------------------------------------------------------------------------
+generate_pgbouncer_config() {
+    local config_dir="$1"
+    
+    # Use the same environment variables as Docker Compose for consistency
+    local databases_host="${DATABASES_HOST:-localhost}"
+    local databases_port="${DATABASES_PORT:-5432}"
+    local databases_user="${DATABASES_USER:-postgres}"
+    local databases_password="${DATABASES_PASSWORD:-admin}"
+    local databases_dbname="${DATABASES_DBNAME:-powertwin}"
+    local listen_addr="${LISTEN_ADDR:-0.0.0.0}"
+    local listen_port="${LISTEN_PORT:-6432}"
+    local auth_type="${AUTH_TYPE:-scram-sha-256}"
+    local pool_mode="${POOL_MODE:-transaction}"
+    local max_client_conn="${MAX_CLIENT_CONN:-1000}"
+    local default_pool_size="${DEFAULT_POOL_SIZE:-25}"
+    local max_db_connections="${MAX_DB_CONNECTIONS:-100}"
+    
+    # Generate configuration that mirrors Docker Compose behavior
+    cat > "${config_dir}/pgbouncer.ini" << EOF
+; PowerTwin PgBouncer Configuration
+; Generated to match Docker Compose environment variables
+
+[databases]
+${databases_dbname} = host=${databases_host} port=${databases_port} dbname=${databases_dbname} user=${databases_user} password=${databases_password}
+
+[pgbouncer]
+; Network settings (matches Docker Compose LISTEN_* vars)
+listen_addr = ${listen_addr}
+listen_port = ${listen_port}
+unix_socket_dir = ${PGB_SOCKET_DIR}
+
+; Authentication (matches Docker Compose AUTH_TYPE)
+auth_type = ${auth_type}
+auth_file = ${config_dir}/userlist.txt
+
+; Connection pooling (matches Docker Compose POOL_* vars)
+pool_mode = ${pool_mode}
+max_client_conn = ${max_client_conn}
+default_pool_size = ${default_pool_size}
+min_pool_size = ${MIN_POOL_SIZE:-10}
+reserve_pool_size = ${RESERVE_POOL_SIZE:-20}
+max_db_connections = ${max_db_connections}
+
+; UrbanOpt/OpenStudio optimization settings
+server_reset_query = DISCARD ALL
+server_check_delay = 30
+server_lifetime = 3600
+server_idle_timeout = 600
+ignore_startup_parameters = ${IGNORE_STARTUP_PARAMETERS:-extra_float_digits,application_name}
+
+; Administrative settings (matches Docker Compose ADMIN_USERS)
+admin_users = ${ADMIN_USERS:-postgres}
+stats_users = ${STATS_USERS:-postgres}
+
+; Logging (matches Docker Compose LOG_* vars)
+logfile = ${PGB_LOG_DIR}/pgbouncer.log
+pidfile = ${PGB_PID_FILE}
+log_connections = ${LOG_CONNECTIONS:-1}
+log_disconnections = ${LOG_DISCONNECTIONS:-1}
+log_pooler_errors = ${LOG_POOLER_ERRORS:-1}
+EOF
+
+    # Generate userlist for authentication
+    cat > "${config_dir}/userlist.txt" << EOF
+"${databases_user}" "${databases_password}"
+EOF
+
+    return 0
+}
+
+#------------------------------------------------------------------------------
 # FUNCTION: start_pgbouncer
-# Description: Configures and starts PgBouncer connection pooler
+# Description: Starts PgBouncer with Docker Compose-compatible configuration
 # Arguments: None
 # Returns: 0 on success, 1 on failure
 #------------------------------------------------------------------------------
 start_pgbouncer() {
-    print_status "info" "Setting up PgBouncer connection pooler..."
+    print_status "info" "Setting up PgBouncer with Docker Compose-compatible configuration..."
     
-    # Ensure PgBouncer SIF exists
-    if [ ! -f "${PGB_SIF}" ]; then
-        print_status "error" "PgBouncer SIF file not found at: ${PGB_SIF}"
-        return 1
-    fi
+    # Set environment variables to match Docker Compose exactly
+    export DATABASES_HOST="${PGHOST}"
+    export DATABASES_PORT="5432"
+    export DATABASES_USER="${PG_USER}"
+    export DATABASES_PASSWORD="${PG_PASSWORD}"
+    export DATABASES_DBNAME="${PG_DB}"
+    export LISTEN_ADDR="0.0.0.0"
+    export LISTEN_PORT="${PGB_PORT}"
+    export AUTH_TYPE="scram-sha-256"
+    export POOL_MODE="transaction"
+    export MAX_CLIENT_CONN="${PGB_MAX_CLIENT_CONN}"
+    export DEFAULT_POOL_SIZE="${PGB_DEFAULT_POOL_SIZE}"
+    export MAX_DB_CONNECTIONS="${PGB_MAX_DB_CONNECTIONS}"
+    export ADMIN_USERS="${PG_USER}"
+    export STATS_USERS="${PG_USER}"
+    export LOG_CONNECTIONS="1"
+    export LOG_DISCONNECTIONS="1" 
+    export LOG_POOLER_ERRORS="1"
+    export IGNORE_STARTUP_PARAMETERS="extra_float_digits,application_name"
     
-    # Define PgBouncer directories using NODE_TMP_DIR
+    # Define directories
     PGB_CONFIG_DIR="${NODE_TMP_DIR}/pgbouncer_config"
     PGB_LOG_DIR="${NODE_TMP_DIR}/pgbouncer_logs"
     PGB_SOCKET_DIR="${NODE_TMP_DIR}/pgbouncer_run"
     PGB_PID_FILE="${NODE_TMP_DIR}/pgbouncer_${SLURM_JOB_ID}.pid"
     
-    # Clean up any existing PID file from previous runs
-    if [ -f "${PGB_PID_FILE}" ]; then
-        print_status "warning" "Found existing PgBouncer PID file, removing it..."
-        rm -f "${PGB_PID_FILE}"
-    fi
-    
-    # Create required directories with proper permissions
+    # Create directories
     mkdir -p "${PGB_CONFIG_DIR}" "${PGB_LOG_DIR}" "${PGB_SOCKET_DIR}"
     chmod 700 "${PGB_CONFIG_DIR}" "${PGB_LOG_DIR}" "${PGB_SOCKET_DIR}"
     
-    # Create pgbouncer.ini configuration file with best practices
-    cat > "${PGB_CONFIG_DIR}/pgbouncer.ini" << EOF
-[databases]
-${PG_DB} = host=${PGHOST} port=5432 dbname=${PG_DB} user=${PG_USER} password=${PG_PASSWORD}
-
-[pgbouncer]
-; Network settings
-listen_addr = 0.0.0.0
-listen_port = ${PGB_PORT}
-unix_socket_dir = ${PGB_SOCKET_DIR}
-
-; Authentication settings
-auth_type = md5
-auth_file = ${PGB_CONFIG_DIR}/userlist.txt
-auth_query = SELECT usename, passwd FROM pg_shadow WHERE usename=$1
-
-; Connection pooling
-pool_mode = transaction
-max_client_conn = ${PGB_MAX_CLIENT_CONN}
-default_pool_size = ${PGB_DEFAULT_POOL_SIZE}
-min_pool_size = ${PGB_MIN_POOL_SIZE}
-reserve_pool_size = ${PGB_RESERVE_POOL_SIZE}
-reserve_pool_timeout = 3
-max_db_connections = ${PGB_MAX_DB_CONNECTIONS}
-max_user_connections = ${PGB_MAX_DB_CONNECTIONS}
-
-; Server connection settings
-server_reset_query = DISCARD ALL
-server_check_delay = 30
-server_check_query = SELECT 1
-server_lifetime = 3600
-server_idle_timeout = 600
-server_connect_timeout = 15
-server_login_retry = 15
-
-; Client connection settings
-client_login_timeout = 60
-client_idle_timeout = 0
-
-; Connection sanitation
-ignore_startup_parameters = extra_float_digits,geqo
-
-; Logging settings
-logfile = ${PGB_LOG_DIR}/pgbouncer.log
-pidfile = ${PGB_PID_FILE}
-log_connections = 1
-log_disconnections = 1
-log_pooler_errors = 1
-stats_period = 60
-
-; Administrative settings
-admin_users = ${PG_USER}
-stats_users = ${PG_USER}
-application_name_add_host = 1
-EOF
-
-    # Create userlist.txt for authentication
-    cat > "${PGB_CONFIG_DIR}/userlist.txt" << EOF
-"${PG_USER}" "${PG_PASSWORD}"
-EOF
-
-    # Start PgBouncer in the background
-    print_status "info" "Starting PgBouncer on port ${PGB_PORT}..."
+    # Generate configuration using the same logic as Docker Compose
+    generate_pgbouncer_config "${PGB_CONFIG_DIR}" || {
+        print_status "error" "Failed to generate PgBouncer configuration"
+        return 1
+    }
+    
+    print_status "info" "Generated PgBouncer configuration consistent with Docker Compose"
+    
+    # Start PgBouncer with the generated configuration
     apptainer exec \
         --bind "${PGB_CONFIG_DIR}:/etc/pgbouncer" \
         --bind "${PGB_LOG_DIR}:/var/log/pgbouncer" \
+        --bind "${PGB_SOCKET_DIR}:/var/run/pgbouncer" \
         "${PGB_SIF}" pgbouncer /etc/pgbouncer/pgbouncer.ini &
     
-    # Save PID for later cleanup
     PGB_PID=$!
     echo $PGB_PID > "${PGB_PID_FILE}"
     
-    # Wait for PgBouncer to start (max 10 seconds)
-    print_status "info" "Waiting for PgBouncer to start..."
+    # Wait for startup and validate
     for i in {1..10}; do
-        # Check if the process is still running
-        if ! kill -0 $PGB_PID 2>/dev/null; then
-            print_status "error" "PgBouncer process died unexpectedly. Check logs at: ${PGB_LOG_DIR}/pgbouncer.log"
-            return 1
-        fi
-        
-        # Check if the port is accessible
-        if nc -z localhost ${PGB_PORT} 2>/dev/null; then
-            print_status "info" "PgBouncer started successfully on port ${PGB_PORT}"
-            
-            # Update connection settings to use PgBouncer
+        if nc -z localhost ${LISTEN_PORT} 2>/dev/null; then
+            print_status "info" "PgBouncer started successfully with Docker Compose-compatible settings"
             export PGHOST="localhost"
-            export PGPORT="${PGB_PORT}"
-            
+            export PGPORT="${LISTEN_PORT}"
             return 0
         fi
-        
-        if [ $i -eq 10 ]; then
-            print_status "error" "PgBouncer failed to start within 10 seconds"
-            # Show the last few lines of the log for debugging
-            if [ -f "${PGB_LOG_DIR}/pgbouncer.log" ]; then
-                print_status "error" "PgBouncer log tail:"
-                tail -5 "${PGB_LOG_DIR}/pgbouncer.log" 2>/dev/null
-            fi
-            return 1
-        fi
-        
         sleep 1
     done
     
+    print_status "error" "PgBouncer failed to start"
     return 1
 }
 
@@ -800,23 +808,6 @@ clean_xml_validation_dirs() {
     done
 }
 
-# Add a database diagnostics function that can be called when needed
-run_database_diagnostics() {
-    print_status "info" "Running database diagnostics..."
-    
-    apptainer exec ${SIF_DIR}/postgres17.sif \
-        psql -h ${PGHOST} -U ${PGUSER} -d ${PG_DB} -c "
-        SELECT COUNT(*) as total_assets FROM powertwin;
-        SELECT simulation_name, COUNT(*) as asset_count
-        FROM powertwin
-        GROUP BY simulation_name
-        ORDER BY simulation_name;
-        SELECT simulation_name, status, COUNT(*)
-        FROM powertwin
-        GROUP BY simulation_name, status
-        ORDER BY simulation_name, status;
-        "
-}
 
 #------------------------------------------------------------------------------
 # FUNCTION: initialize_environment
@@ -850,6 +841,41 @@ initialize_environment() {
     DB_HOST="$(hostname -f)"
     export PGHOST="${DB_HOST}"
     print_status "info" "Database host for tasks: ${DB_HOST}"
+
+        # STEP 1: Run initialization as a separate SLURM step (feature files creation)
+    print_status "info" "STEP 1: Creating feature files..."
+    
+    apptainer exec \
+        --bind "${DATA_DIR}:/powertwin_data" \
+        --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files" \
+        --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}" \
+        --bind "${DB_DATA_DIR}:/postgres_data" \
+        --bind "${LOG_DIR}:/solver/logs" \
+        --env "POWERTWIN_LOG_DIR=/solver/logs" \
+        --env "POSTGRES_USER=${PG_USER}" \
+        --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
+        --env "POSTGRES_DB=${PG_DB}" \
+        --env "PGHOST=${DB_HOST}" \
+        --env "PGUSER=${PG_USER}" \
+        --env "PGPASSWORD=${PG_PASSWORD}" \
+        --env "PGDATABASE=${PG_DB}" \
+        "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner create-feature-files \
+        \"${SIMULATION_NAME}\" \
+        \"${ASSET_GEOJSON_PATH}\" \
+        \"${METADATA_CSV_PATH}\" \
+        \"${CONFIG_JSON_PATH}\" \
+        \"${LOCATION}\" \
+        \"${TOTAL_CORES}\" \
+        --hpc \
+        --shared-storage \"${HPC_SHARED_STORAGE}\"" \
+        2>&1 | tee "${LOG_DIR}/powertwin_ff_${SLURM_JOB_ID}.log"
+    
+    FEATURE_FILES_EXIT_CODE=${PIPESTATUS[0]}
+    if [ $FEATURE_FILES_EXIT_CODE -ne 0 ]; then
+        print_status "error" "Feature files creation failed with exit code ${FEATURE_FILES_EXIT_CODE}"
+        stop_postgres
+        exit 1
+    fi
     
     return 0
 }
