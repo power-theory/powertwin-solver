@@ -2,9 +2,10 @@
 
 ## HOW TO RUN
 ```sh
-docker compose -f docker-compose.yml build
-docker compose -f docker-compose.yml up
+docker compose -f docker-compose-local.yml build
+docker compose -f docker-compose-local.yml up
 ```
+
 ## Autorun Simulation
 1. Modify the simulation.json located in app/upload prior to building (demo has been provided)
 2. Click autorun at the top of homepage or run autorun command
@@ -56,9 +57,7 @@ docker exec -it <container_id_or_name> /bin/bash
 | `solver recover` | Recover corrupted simulation | `solver recover <corrupted_simulation_name> <recovery_simulation_name> <num_cores> [-b <batch_id>]` |
 | `solver get_config` | Get asset configuration | `solver get_config <simulation_name> <asset_id>` |
 | `solver get_data` | Export database data | `solver get_data` |
-| `solver logs` | View simulation logs | `solver logs [--follow]` |
-| `solver db_status` | Check database health | `solver db_status` |
-| `solver verify` | Verify simulation integrity | `solver verify <simulation_name>` |
+| `solver logs` | View simulation logs | `solver logs` |
 
 ### Command Details
 
@@ -84,14 +83,16 @@ solver recover <corrupted_simulation_name> <recovery_simulation_name> <num_cores
 
 #### Monitoring and Debugging
 ```sh
-# Real-time log monitoring
-solver logs --follow
 
-# Status check with batch details
-solver status my_simulation -b 2
+# Export database data
+solver get_data
 
-# Database health verification
-solver db_status
+# Export logs
+solver logs 
+
+# Check simulation status
+solver status <simulation_name>
+
 ```
 
 ## Project Structure
@@ -170,13 +171,11 @@ Create the following directory structure in your HPC shared storage:
 ```bash
 /project/<your-allocation>/powertwin/
 ├── sif_containers/     # Container images
-├── upload/             # Input files
-│   └── <simulation_name>/
-│       ├── asset-geometries.geojson
-│       ├── metadata.csv
-│       └── default_config.json
-├── powertwin_data/     # Simulation data
-└── logs/               # Log files
+└── upload/             # Input files
+    └── <simulation_name>/
+        ├── asset-geometries.geojson
+        ├── metadata.csv
+        └── default_config.json
 ```
 
 ### Step 2: Build Container Images
@@ -190,8 +189,8 @@ module load apptainer
 # Build container images in your sif_containers directory
 cd /project/<your-allocation>/powertwin/sif_containers
 apptainer build flask.sif docker://nicotegui/powertwin-solver-flask:latest
-apptainer build mss.sif docker://nicotegui/powertwin-solver-mss:latest
 apptainer build postgres17.sif docker://postgres:17
+apptainer build pgbouncer.sif docker://pgbouncer:1.15.0
 ```
 
 ### Step 3: Configure and Run Simulations

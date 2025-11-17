@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=pt-colorado
-#SBATCH --nodes=20                    
-#SBATCH --ntasks-per-node=1         
+#SBATCH --job-name=test-start
+#SBATCH --nodes=4                    
+#SBATCH --ntasks-per-node=4         
 #SBATCH --cpus-per-task=30          
 #SBATCH --time=7-00:00:00           
 #SBATCH --mem-per-cpu=6G            
@@ -13,6 +13,9 @@
 # PowerTwin HPC Container Orchestration Script with Direct SLURM Parallelism
 # This script uses a job array approach with proper SLURM step management
 # where each step has a clear purpose and dependencies are properly handled
+#
+# This script includes integrated PostgreSQL database initialization functionality
+# that was previously in hpc-build-db.sh, creating a unified workflow
 
 set -e  # Exit immediately if a command exits with a non-zero status
 
@@ -26,11 +29,11 @@ module load apptainer/1.4.1
 # =====================================================
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
-SIMULATION_NAME="colorado1"
-HPC_SHARED_STORAGE="/project/cowy-ptheory/colorado_powertwin"
+SIMULATION_NAME="test1"
+HPC_SHARED_STORAGE="/project/cowy-ptheory/test"
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload"
-ASSET_GEOJSON_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/co_asset_geometries.geojson"
-METADATA_CSV_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/co-sensors-assets-geometries-types.csv"
+ASSET_GEOJSON_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/asu-asset-geometries.geojson"
+METADATA_CSV_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/asu-metadata.csv"
 CONFIG_JSON_PATH="${UPLOAD_DIR}/${SIMULATION_NAME}/default_config.json"
 LOCATION="Denver"
 
@@ -48,7 +51,6 @@ export POSTGRES_HOST_AUTH_METHOD="trust"
 
 # SIF files location
 SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
-MSS_SIF="${SIF_DIR}/mss.sif"
 SOLVER_SIF="${SIF_DIR}/flask.sif"
 
 # Shared directories
@@ -62,6 +64,7 @@ export HOME="${TMP_BASE}/home_${SLURM_JOB_ID}_${SLURM_PROCID}"
 NETWORK_DIR="${TMP_BASE}/apptainer_network_${SLURM_JOB_ID}"
 PG_PID_FILE="${TMP_BASE}/postgres_${SLURM_JOB_ID}.pid"
 STATUS_MONITOR_PID_FILE="${TMP_BASE}/status_monitor_${SLURM_JOB_ID}.pid"
+PG_SOCKET_DIR="/tmp/pg_socket_${SLURM_JOB_ID}"
 
 mkdir -p "$GEM_HOME" "$HOME" "$NETWORK_DIR"
 DB_DATA_DIR="${DATA_DIR}/postgres_data"  # Use existing PostgreSQL data directory
@@ -111,11 +114,6 @@ print_status() {
 # Check if SIF files exist
 check_sif_files() {
     print_status "info" "Checking SIF container files..."
-    
-    if [ ! -f "$MSS_SIF" ]; then
-        print_status "error" "MSS SIF file not found at: $MSS_SIF"
-        return 1
-    fi
     
     if [ ! -f "$SOLVER_SIF" ]; then
         print_status "error" "Solver SIF file not found at: $SOLVER_SIF"
@@ -173,13 +171,13 @@ check_postgres_data() {
     
     # Check if the PostgreSQL data directory exists and has data files
     if [ ! -d "${DB_DATA_DIR}" ]; then
-        print_status "error" "PostgreSQL data directory not found at: ${DB_DATA_DIR}"
+        print_status "warning" "PostgreSQL data directory not found. Will initialize new database."
         return 1
     fi
     
     # Check for critical PostgreSQL files
     if [ ! -f "${DB_DATA_DIR}/PG_VERSION" ]; then
-        print_status "error" "Invalid PostgreSQL data directory: ${DB_DATA_DIR}/PG_VERSION not found"
+        print_status "warning" "Invalid PostgreSQL data directory: ${DB_DATA_DIR}/PG_VERSION not found. Will initialize new database."
         return 1
     fi
     
@@ -194,6 +192,164 @@ check_postgres_data() {
     export PGDATABASE="${PG_DB}"
     
     print_status "info" "PostgreSQL data directory validated."
+    return 0
+}
+
+# =====================================================
+# Database Initialization Functions (integrated from hpc-build-db.sh)
+# =====================================================
+
+# Initialize PostgreSQL data directory
+initialize_pg_data_dir() {
+    print_status "info" "Initializing PostgreSQL data directory..."
+    
+    # Check if directory already exists with PG_VERSION
+    if [ -f "${DB_DATA_DIR}/PG_VERSION" ]; then
+        print_status "warning" "PostgreSQL data directory already exists. Skipping initialization."
+        return 0
+    fi
+    
+    # Create database directory
+    mkdir -p "${DB_DATA_DIR}"
+    chmod 700 "${DB_DATA_DIR}"  # PostgreSQL requires strict permissions
+    
+    # Create socket directory for PostgreSQL
+    mkdir -p "${PG_SOCKET_DIR}"
+    chmod 777 "${PG_SOCKET_DIR}"
+    
+    # Create log directory
+    mkdir -p "${LOG_DIR}"
+    
+    # Initialize PostgreSQL data directory using apptainer
+    print_status "info" "Creating new PostgreSQL database cluster..."
+    
+    # Check if PostgreSQL SIF file exists
+    PG_SIF="${SIF_DIR}/postgres17.sif"
+    if [ ! -f "${PG_SIF}" ]; then
+        print_status "warning" "PostgreSQL 17 container not found. Creating it..."
+        apptainer build "${PG_SIF}" docker://postgres:17
+    fi
+    
+    # Use a PostgreSQL container to initialize the database
+    apptainer exec \
+        --bind "${DB_DATA_DIR}:/data" \
+        "${PG_SIF}" bash -c "mkdir -p /data && initdb -D /data -U ${PG_USER} --pwfile=<(echo '${PG_PASSWORD}') -E UTF8 --locale=C.UTF-8"
+    
+    # Configure PostgreSQL to allow connections
+    cat > "${DB_DATA_DIR}/pg_hba.conf" << EOF
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+host    all             all             0.0.0.0/0               trust
+EOF
+    
+    # Update postgresql.conf to listen on all interfaces
+    cat > "${DB_DATA_DIR}/postgresql.conf" << EOF
+listen_addresses = '*'
+port = 5432
+unix_socket_directories = '/tmp'
+max_connections = 1000
+shared_buffers = 2GB
+work_mem = 32MB
+maintenance_work_mem = 128MB
+dynamic_shared_memory_type = posix
+max_wal_size = 1GB
+min_wal_size = 80MB
+log_timezone = 'UTC'
+datestyle = 'iso, mdy'
+timezone = 'UTC'
+lc_messages = 'C.UTF-8'
+lc_monetary = 'C.UTF-8'
+lc_numeric = 'C.UTF-8'
+lc_time = 'C.UTF-8'
+default_text_search_config = 'pg_catalog.english'
+EOF
+    
+    print_status "info" "PostgreSQL data directory initialized successfully."
+    return 0
+}
+
+# Create database and required tables
+create_database_schema() {
+    print_status "info" "Creating database and schema..."
+    
+    # Get the PostgreSQL SIF file
+    PG_SIF="${SIF_DIR}/postgres17.sif"
+    
+    # Create PowerTwin database if it doesn't exist
+    apptainer exec \
+        --bind "${DB_DATA_DIR}:/data" \
+        "${PG_SIF}" bash -c "createdb -U ${PG_USER} -h localhost ${PG_DB} || echo 'Database already exists'"
+    
+    # Create powertwin_solver table and required schema
+    apptainer exec \
+        --bind "${DB_DATA_DIR}:/data" \
+        "${PG_SIF}" bash -c "PGPASSWORD=${PG_PASSWORD} psql -U ${PG_USER} -h localhost -d ${PG_DB} -c \"
+        CREATE TABLE IF NOT EXISTS powertwin_solver (
+            id SERIAL PRIMARY KEY,
+            simulation_name VARCHAR(255) NOT NULL,
+            asset_id VARCHAR(255) NOT NULL,
+            batch INTEGER,
+            order_rank INTEGER,
+            status VARCHAR(50) DEFAULT 'pending',
+            uorun_time DECIMAL(10,2) DEFAULT 0,
+            uoprocess_time DECIMAL(10,2) DEFAULT 0,
+            start_time TIMESTAMP,
+            end_time TIMESTAMP,
+            complexity INTEGER DEFAULT 0,
+            floor_area DECIMAL(10,2) DEFAULT 0,
+            number_of_stories INTEGER DEFAULT 0,
+            asset_name VARCHAR(255),
+            subtype VARCHAR(50),
+            location VARCHAR(255),
+            error_message TEXT,
+            UNIQUE(simulation_name, asset_id),
+            UNIQUE(asset_id)
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_powertwin_solver_simulation_name ON powertwin_solver(simulation_name);
+        CREATE INDEX IF NOT EXISTS idx_powertwin_solver_asset_id ON powertwin_solver(asset_id);
+        CREATE INDEX IF NOT EXISTS idx_powertwin_solver_status ON powertwin_solver(status);
+        CREATE INDEX IF NOT EXISTS idx_powertwin_solver_batch ON powertwin_solver(batch);
+        \""
+    
+    # Check if table was created successfully
+    TABLE_CHECK=$(apptainer exec \
+        --bind "${DB_DATA_DIR}:/data" \
+        "${PG_SIF}" bash -c "PGPASSWORD=${PG_PASSWORD} psql -U ${PG_USER} -h localhost -d ${PG_DB} -c \"SELECT to_regclass('public.powertwin_solver');\"")
+    
+    if echo "$TABLE_CHECK" | grep -q "powertwin_solver"; then
+        print_status "info" "powertwin_solver table created successfully."
+    else
+        print_status "error" "Failed to create powertwin_solver table."
+        return 1
+    fi
+    
+    # List all tables to verify
+    print_status "info" "Listing all tables in database:"
+    apptainer exec \
+        --bind "${DB_DATA_DIR}:/data" \
+        "${PG_SIF}" bash -c "PGPASSWORD=${PG_PASSWORD} psql -U ${PG_USER} -h localhost -d ${PG_DB} -c \"SELECT table_name FROM information_schema.tables WHERE table_schema='public';\""
+    
+    return 0
+}
+
+# Verify database connection
+verify_database() {
+    print_status "info" "Verifying database connection..."
+    
+    # Get the PostgreSQL SIF file
+    PG_SIF="${SIF_DIR}/postgres17.sif"
+    
+    # Try to connect to database and get version
+    DB_VERSION=$(apptainer exec \
+        --bind "${DB_DATA_DIR}:/data" \
+        "${PG_SIF}" bash -c "PGPASSWORD=${PG_PASSWORD} psql -U ${PG_USER} -h localhost -d ${PG_DB} -c \"SELECT version();\"")
+    
+    echo "$DB_VERSION"
+    
+    print_status "info" "Database connection verified successfully."
     return 0
 }
 
@@ -394,7 +550,7 @@ monitor_simulation_status() {
             --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}" \
             --bind "${DB_DATA_DIR}:/postgres_data" \
             --bind "${LOG_DIR}:/solver/logs" \
-            --env "SIMULATION_NAME=${RECOVERY_SIMULATION_NAME}" \
+            --env "SIMULATION_NAME=${simulation_name}" \
             --env "PYTHONPATH=/solver" \
             --env "POWERTWIN_LOG_DIR=/solver/logs" \
             --env "POSTGRES_USER=${PG_USER}" \
@@ -408,7 +564,7 @@ monitor_simulation_status() {
             "${SOLVER_SIF}" python -c "
 from modules.diagnostics.read_status import read_simulation_status
 import os
-simulation_name = '${RECOVERY_SIMULATION_NAME}'
+simulation_name = '${simulation_name}'
 read_simulation_status(simulation_name)
 " >> "${log_file}" 2>&1
         
@@ -418,17 +574,59 @@ read_simulation_status(simulation_name)
 }
 
 # Main script execution
+# This script now includes integrated database initialization that will:
+# 1. Check if PostgreSQL data directory exists
+# 2. If not, initialize a new PostgreSQL cluster 
+# 3. Create the required database and tables
+# 4. Then proceed with the normal PowerTwin simulation workflow
 main() {
-    
+
     # Define simulation directories directly
     SIMULATION_DIR="${DATA_DIR}/${SIMULATION_NAME}"
     LOCAL_SIMULATION_DIR="${USER_FILES_DIR}/${SIMULATION_NAME}"
     
+    
+    # Check if PostgreSQL data directory exists, initialize if needed
+    if ! check_postgres_data; then
+        print_status "info" "Initializing new PostgreSQL database..."
+        
+        # Initialize PostgreSQL data directory
+        if ! initialize_pg_data_dir; then
+            print_status "error" "Failed to initialize PostgreSQL data directory. Exiting."
+            exit 1
+        fi
+        
+        # Start PostgreSQL server for initialization
+        if ! start_postgres; then
+            print_status "error" "Failed to start PostgreSQL server for initialization. Exiting."
+            exit 1
+        fi
+        
+        # Create database and required tables
+        if ! create_database_schema; then
+            print_status "error" "Failed to create database schema. Exiting."
+            stop_postgres
+            exit 1
+        fi
+        
+        # Verify database connection
+        if ! verify_database; then
+            print_status "error" "Failed to verify database connection. Exiting."
+            stop_postgres
+            exit 1
+        fi
+        
+        # Stop PostgreSQL server after initialization
+        stop_postgres
+        
+        print_status "info" "PostgreSQL database initialization completed successfully!"
+    fi
+
+
     # All validation and setup happens in one place - the master script
     check_sif_files || exit 1
     create_shared_dirs || exit 1
     validate_input_files || exit 1
-    check_postgres_data || exit 1
     
     # Start PostgreSQL server
     start_postgres || exit 1
@@ -533,7 +731,7 @@ main() {
     touch "${STATUS_LOG_FILE}"
 
     # Start status monitoring in the background (every 15 minutes)
-    monitor_simulation_status "${RECOVERY_SIMULATION_NAME}" 900 "${STATUS_LOG_FILE}" &
+    monitor_simulation_status "${SIMULATION_NAME}" 900 "${STATUS_LOG_FILE}" &
     MONITOR_PID=$!
 
     # Store the PID for later cleanup
@@ -589,7 +787,7 @@ main() {
                 --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}" \
                 --bind "${DB_DATA_DIR}:/postgres_data" \
                 --bind "${LOG_DIR}:/solver/logs" \
-                --env "SIMULATION_NAME=${RECOVERY_SIMULATION_NAME}" \
+                --env "SIMULATION_NAME=${SIMULATION_NAME}" \
                 --env "PYTHONPATH=/solver" \
                 --env "POWERTWIN_LOG_DIR=/solver/logs" \
                 --env "POSTGRES_USER=${PG_USER}" \
@@ -603,7 +801,7 @@ main() {
                 "${SOLVER_SIF}" python -c "
     from modules.diagnostics.read_status import read_simulation_status
     import os
-    simulation_name = '${RECOVERY_SIMULATION_NAME}'
+    simulation_name = '${SIMULATION_NAME}'
     read_simulation_status(simulation_name)
     " >> "${STATUS_LOG_FILE}" 2>&1
         fi

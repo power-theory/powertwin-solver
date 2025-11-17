@@ -66,6 +66,16 @@ function toggleConfigurationSettings() {
     }
 }
 
+function toggleHpcSettings() {
+    var hpcSettings = document.getElementById('hpc-settings');
+    var checkbox = document.getElementById('startsim_hpc_mode');
+    if (checkbox.checked) {
+        hpcSettings.style.display = 'block';
+    } else {
+        hpcSettings.style.display = 'none';
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// API CALLS /////////////////////////////////////////////
@@ -97,6 +107,8 @@ async function startSimulation() {
     const simulation_name = document.getElementById('startsim_simulation_name').value;
     const num_cores = document.getElementById('startsim_num_cores').value;
     const location = document.querySelector('.location').value;
+    const hpc_mode = document.getElementById('startsim_hpc_mode').checked;
+    const shared_storage = document.getElementById('startsim_shared_storage').value;
 
     if (!(asset_geojson_file && metadata_csv_file)) {
         alert('Please upload both the GeoJSON and CSV files.');
@@ -107,6 +119,13 @@ async function startSimulation() {
     if (!simulation_name) {
         alert('Please enter a simulation name.');
         console.error("Please enter a simulation name.");
+        return;
+    }
+    
+    // HPC mode validation
+    if (hpc_mode && !shared_storage) {
+        alert('Shared storage path is required when HPC mode is enabled.');
+        console.error("Shared storage path is required when HPC mode is enabled.");
         return;
     }
     
@@ -139,6 +158,14 @@ async function startSimulation() {
     formData.append('config_data', JSON.stringify(configData));
     formData.append('location', location);
     formData.append('num_cores', num_cores);
+    formData.append('hpc_mode', hpc_mode);
+    if (hpc_mode && shared_storage) {
+        formData.append('shared_storage', shared_storage);
+    }
+    
+    // Add keep_dirs parameter
+    const keepDirs = document.getElementById('startsim_keep_dirs').checked;
+    formData.append('keep_dirs', keepDirs);
 
 
     try {
@@ -315,6 +342,10 @@ async function recoverSimulation() {
     if (batch_id) {
         formData.append('recover_batch_id', batch_id);
     }
+    
+    // Add keep_dirs parameter
+    const keepDirs = document.getElementById('recover_keep_dirs').checked;
+    formData.append('keep_dirs', keepDirs);
 
     try {
         console.log("Sending POST request to /api/diagnostics/recovery");

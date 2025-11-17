@@ -192,7 +192,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
         logger.error(f"BATCH {batch_index}: Error running UrbanOpt commands: {str(e)}")
         raise e
     
-    # Remove the feature file after being processed
+    # Remove the feature file after being processed for storage
     os.remove(FEATURE_FILE_JSON)
     
     # Rename SIMULATION_DIR to locate the asset file

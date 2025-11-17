@@ -43,6 +43,13 @@ def start_simulation():
     num_cores = int(request.form.get('num_cores', 1))
     hpc_mode = request.form.get('hpc_mode', 'false').lower() == 'true'
     shared_storage = request.form.get('shared_storage')
+    keep_dirs = request.form.get('keep_dirs', 'false').lower() == 'true'
+
+    # Set environment variable for keep directories flag
+    if keep_dirs:
+        os.environ['POWERTWIN_KEEP_DIRS'] = '1'
+    else:
+        os.environ.pop('POWERTWIN_KEEP_DIRS', None)
 
     # Reference the volume directory where the local files will be stored
     # TODO: Set as global variable for consistency across all LOCAL_DIR references 
@@ -415,6 +422,13 @@ def recovery():
     recover_simulation_name = request.form.get('recover_simulation_name')
     batch_id = request.form.get('recover_batch_id', default=None, type=int)
     num_cores = int(request.form.get('recover_num_cores', 1))
+    keep_dirs = request.form.get('keep_dirs', 'false').lower() == 'true'
+
+    # Set environment variable for keep directories flag
+    if keep_dirs:
+        os.environ['POWERTWIN_KEEP_DIRS'] = '1'
+    else:
+        os.environ.pop('POWERTWIN_KEEP_DIRS', None)
 
     if not corrupted_simulation_name:
         logger.error("Error: Simulation name is required.")

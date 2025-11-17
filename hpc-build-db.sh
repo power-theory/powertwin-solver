@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=build_db
+#SBATCH --job-name=test-db
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
@@ -24,7 +24,7 @@ module load apptainer/1.4.1
 # =====================================================
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
-HPC_SHARED_STORAGE="/project/cowy-ptheory/colorado_powertwin"
+HPC_SHARED_STORAGE="/project/cowy-ptheory/test"
 PG_USER="postgres"
 PG_PASSWORD="admin"
 PG_DB="powertwin"

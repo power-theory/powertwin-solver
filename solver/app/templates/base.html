@@ -73,8 +73,19 @@
                     <label for="startsim_num_cores">Number of Cores:</label>
                     <input type="number" id="startsim_num_cores" name="startsim_num_cores" value="1"><br>
 
+                    <label for="startsim_hpc_mode">Enable HPC Multi-node Execution:</label>
+                    <input type="checkbox" id="startsim_hpc_mode" name="startsim_hpc_mode" onchange="toggleHpcSettings()"><br>
+
+                    <div id="hpc-settings" style="display: none;">
+                        <label for="startsim_shared_storage">Shared Storage Path:</label>
+                        <input type="text" id="startsim_shared_storage" name="startsim_shared_storage" placeholder="Path to shared storage for HPC mode"><br>
+                    </div>
+
                     <label for="startsim_simulation_name">Simulation Name:</label>
                     <input type="text" id="startsim_simulation_name" name="startsim_simulation_name"><br>
+
+                    <label for="startsim_keep_dirs">Keep Additional Directories:</label>
+                    <input type="checkbox" id="startsim_keep_dirs" name="startsim_keep_dirs" title="Keep feature_reports and generated_files directories during asset cleanup"><br>
 
                     <button type="button" onclick="startSimulation()">Start Full Simulation</button>
                 </form>
@@ -91,6 +102,10 @@
                     <input type="text" id="recover_simulation_name" name="recover_simulation_name"><br>
                     <label for="recover_num_cores">Number of Cores:</label>
                     <input type="number" id="recover_num_cores" name="recover_num_cores" value="1"><br>
+                    
+                    <label for="recover_keep_dirs">Keep Additional Directories:</label>
+                    <input type="checkbox" id="recover_keep_dirs" name="recover_keep_dirs" title="Keep feature_reports and generated_files directories during asset cleanup"><br>
+                    
                     <button type="button" onclick="recoverSimulation()">Recover</button>
                 </form>
             </div>

@@ -86,7 +86,10 @@ def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
 
     # Define the files and directories to keep
     keep_files = {'in.osm', 'in.osw'}
-    keep_dirs = {'feature_reports', 'generated_files'}
+    
+    # Check environment variable to determine if we should keep additional directories
+    keep_additional_dirs = os.environ.get('POWERTWIN_KEEP_DIRS') == '1'
+    keep_dirs = {'feature_reports', 'generated_files'} if keep_additional_dirs else set()
 
     # Iterate through the files and directories in ASSET_REPORT_DIR
     for item in os.listdir(ASSET_DIR):
