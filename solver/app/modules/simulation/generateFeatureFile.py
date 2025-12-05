@@ -10,7 +10,6 @@ import json
 import os
 import shutil
 import re
-import pandas as pd
 
 from modules.diagnostics import asset_analysis
 from modules.diagnostics.db import get_weather
@@ -18,12 +17,6 @@ from modules.utils import initialize_logger
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
-
-# TODO: Modify the way weather information is gathered from asset metadata
-if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
-    WEATHER_MAP_CSV=os.path.join('/solver','app','urbanopt','weather_map.csv')
-else:
-    WEATHER_MAP_CSV = os.path.join('app','urbanopt','weather_map.csv')
 
 # TODO: Move these to a separate file
 OCCUPANTS_MAPPING = {
@@ -77,34 +70,6 @@ BUILDING_SUBTYPES = {
     "null": "Unknown"
 }
 
-
-
-############################################################################################################
-# Name: get_weather_data()
-# Description: This function reads the weather data from the weather map CSV file and returns the weather data for the city.
-# TODO: Modify the way weather information is gathered from asset metadata
-############################################################################################################
-def get_weather_data(city):
-    
-    weather_df = pd.read_csv(WEATHER_MAP_CSV)
-    
-    # Find city
-    city_data = weather_df[weather_df['City'].str.lower() == city.lower()]
-    
-    if city_data.empty:
-        raise ValueError(f"No weather data found for city: {city}")
-    
-    # Extract data
-    #https://docs.urbanopt.net/workflows/carbon_emissions.html
-    city_data = city_data.iloc[0]
-    return {
-        "climate_zone": city_data['ClimateZone'],
-        "weather_filename": city_data['WeatherFile'] + '.epw',
-        "electricity_emissions_future_subregion": city_data['FutureSubregion'],
-        "electricity_emissions_hourly_historical_subregion": city_data['AVERT_Region'],
-        "electricity_emissions_annual_historical_subregion": city_data['Subregion']
-    }
-
 def sanitize_filename(name):
     sanitized = name.replace("'", "")
     sanitized = re.sub(r'[^\w\-]', '_', sanitized)
@@ -117,10 +82,14 @@ def sanitize_filename(name):
 # Description: This function reads the metadata CSV file and returns the building area and type data.
 ############################################################################################################
 def read_metadata(metadata_csv):
+    from modules.utils.weather import get_location
+    
     building_area_list = {}
     building_type_list = {}
     building_name_list = {}
+    building_weather_list = {}
     processed_building_ids = set()
+
 
     with open(metadata_csv, 'r') as metadata_file:
         reader = csv.DictReader(metadata_file)
@@ -131,6 +100,7 @@ def read_metadata(metadata_csv):
             asset_subtype_name = row['asset_subtype_name']
             asset_geometries_properties = json.loads(row['asset_geometries_properties'])
             asset_metadata = json.loads(row['asset_metadata'])
+            
 
             floor_area = asset_metadata.get('area')
             building_id = str(asset_geometries_properties.get('id'))
@@ -143,7 +113,7 @@ def read_metadata(metadata_csv):
             # *Note - The Mixed use building type can accommodate up to 4 building types and their corresponding fractions of total floor area. 
             # If the number of building types is fewer than 4, additional building use types must be added but the fraction of total area can be
             # entered as 0.
-            # TODO: Mixed use requires a lot more detail to undestand what is mixed and what it contains, Laborartoy requires elevator support
+            # TODO: Mixed use requires a lot more detail to undestand what is mixed and what it contains, Laboratory requires elevator support
             # Multi/Single-family requires multi geojson assets
             # Temporarily setting these types to other types
             if asset_subtype_name == "Single-Family Detached":
@@ -162,9 +132,10 @@ def read_metadata(metadata_csv):
             building_name_list[building_id] = asset_name
             building_area_list[building_id] = int(floor_area)
             building_type_list[building_id] = asset_subtype_name
+            building_weather_list[building_id] = get_location(asset_metadata)
     
-    # Return the building area, type, and name data
-    return building_area_list, building_type_list, building_name_list
+    # Return the building area, type, name, and weather data
+    return building_area_list, building_type_list, building_name_list, building_weather_list
 
 ############################################################################################################
 # Name: flatten_geometry()
@@ -192,7 +163,7 @@ def flatten_geometry(geom):
 # Description: This function processes each feature and creates a new feature structure with additional properties.
 #   It returns the new feature structure.
 ############################################################################################################
-def process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location):
+def process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, custom_config_data):
     # Flatten nested geometries if present
     if 'geometry' in feature:
         flatten_geometry(feature['geometry'])
@@ -286,10 +257,9 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             "number_of_bedrooms": int(number_of_occupants / 2),
             "system_type": "Residential - electric resistance and central air conditioner"
         })
-    
-    
-    # Load the custom configuration data, the user can override the following configurations for all feature files:
-    #   weekday_start_time, weekday_duration, weekend_start_time, weekend_duration, system_type, heating_system_fuel_type, construction r values
+
+    # NOTE Load the custom configuration data, the user can override the following configurations for all feature files:
+    #   weekday_start_time, weekday_duration, weekend_start_time, weekend_duration, heating_system_fuel_type, construction r values
     # The rest of the properties may be modified to individual feature files but must be done before processesing the feature file
     new_properties.update(custom_config_data)
     
@@ -305,9 +275,80 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "properties": new_properties
     }
     
-    # Get weather data
-    weather_data = get_weather_data(location)
+    # Get weather data from building_weather_list
+    if building_id in building_weather_list:
+        state, weather_file = building_weather_list[building_id]
+        
+        # Check if weather data is valid
+        if state is None or weather_file is None:
+            logger.warning(f"Invalid weather data for building_id {building_id} (missing coordinates)")
+            return None
+            
+        weather_filename = weather_file + '.epw'
+    else:
+        # Fallback if weather data not found
+        logger.warning(f"No weather data found for building_id {building_id}")
+        return None
 
+    # Map state to emissions regions
+    future_emissions_mapping = {
+        'FL': 'FRCCc', 'MS': 'SRMVc', 'NE': 'MROWc', 'OR': 'NWPPc', 'CA': 'CAMXc',
+        'VA': 'SRVCc', 'AR': 'SRMVc', 'TX': 'ERCTc', 'OH': 'RFCWc', 'UT': 'NWPPc',
+        'MT': 'NWPPc', 'TN': 'SRTVc', 'ID': 'NWPPc', 'WI': 'MROEc', 'WV': 'RFCWc',
+        'NC': 'SRVCc', 'LA': 'SRMVc', 'IL': 'SRMWc', 'OK': 'SPSOc', 'IA': 'MROWc',
+        'WA': 'NWPPc', 'SD': 'MROWc', 'MN': 'MROWc', 'KY': 'SRTVc', 'MI': 'RFCMc',
+        'KS': 'SPNOc', 'NJ': 'RFCEc', 'NY': 'NYSTc', 'IN': 'RFCWc', 'VT': 'NEWEc',
+        'NM': 'AZNMc', 'WY': 'RMPAc', 'GA': 'SRSOc', 'MO': 'SRMWc', 'DC': 'RFCEc',
+        'SC': 'SRVCc', 'PA': 'RFCEc', 'CO': 'RMPAc', 'AZ': 'AZNMc', 'ME': 'NEWEc',
+        'AL': 'SRSOc', 'MD': 'RFCEc', 'NH': 'NEWEc', 'MA': 'NEWEc', 'ND': 'MROWc',
+        'NV': 'NWPPc', 'CT': 'NEWEc', 'DE': 'RFCEc', 'RI': 'NEWEc'
+    }
+    
+    hourly_historical_mapping = {
+        'FL': 'Florida', 'MS': 'Midwest', 'NE': 'Midwest', 'OR': 'Northwest', 'CA': 'California',
+        'VA': 'Carolinas', 'AR': 'Midwest', 'TX': 'Texas', 'OH': 'Midwest', 'UT': 'Northwest',
+        'MT': 'Northwest', 'TN': 'Tennessee', 'ID': 'Northwest', 'WI': 'Midwest', 'WV': 'Midwest',
+        'NC': 'Carolinas', 'LA': 'Midwest', 'IL': 'Midwest', 'OK': 'Central', 'IA': 'Midwest',
+        'WA': 'Northwest', 'SD': 'Midwest', 'MN': 'Midwest', 'KY': 'Tennessee', 'MI': 'Midwest',
+        'KS': 'Central', 'NJ': 'Mid-Atlantic', 'NY': 'New York', 'IN': 'Midwest', 'VT': 'New England',
+        'NM': 'Southwest', 'WY': 'Rocky Mountains', 'GA': 'Southeast', 'MO': 'Midwest', 'DC': 'Mid-Atlantic',
+        'SC': 'Carolinas', 'PA': 'Mid-Atlantic', 'CO': 'Rocky Mountains', 'AZ': 'Southwest', 'ME': 'New England',
+        'AL': 'Southeast', 'MD': 'Mid-Atlantic', 'NH': 'New England', 'MA': 'New England', 'ND': 'Midwest',
+        'NV': 'Northwest', 'CT': 'New England', 'DE': 'Mid-Atlantic', 'RI': 'New England'
+    }
+    
+    annual_historical_mapping = {
+        'FL': 'FRCC', 'MS': 'SRMV', 'NE': 'MROW', 'OR': 'NWPP', 'CA': 'CAMX',
+        'VA': 'SRVC', 'AR': 'SRMV', 'TX': 'ERCT', 'OH': 'RFCW', 'UT': 'NWPP',
+        'MT': 'NWPP', 'TN': 'SRTV', 'ID': 'NWPP', 'WI': 'MROE', 'WV': 'RFCW',
+        'NC': 'SRVC', 'LA': 'SRMV', 'IL': 'SRMW', 'OK': 'SPSO', 'IA': 'MROW',
+        'WA': 'NWPP', 'SD': 'MROW', 'MN': 'MROW', 'KY': 'SRTV', 'MI': 'RFCM',
+        'KS': 'SPNO', 'NJ': 'RFCE', 'NY': 'NYCW', 'IN': 'RFCW', 'VT': 'NEWE',
+        'NM': 'AZNM', 'WY': 'RMPA', 'GA': 'SRSO', 'MO': 'SRMW', 'DC': 'RFCE',
+        'SC': 'SRVC', 'PA': 'RFCE', 'CO': 'RMPA', 'AZ': 'AZNM', 'ME': 'NEWE',
+        'AL': 'SRSO', 'MD': 'RFCE', 'NH': 'NEWE', 'MA': 'NEWE', 'ND': 'MROW',
+        'NV': 'NWPP', 'CT': 'NEWE', 'DE': 'RFCE', 'RI': 'NEWE'
+    }
+    
+    climate_zone_mapping = {
+        'AL': '3A', 'AK': '7', 'AZ': '2B', 'AR': '3A', 'CA': '3B',
+        'CO': '5B', 'CT': '5A', 'DE': '4A', 'FL': '2A', 'GA': '3A',
+        'HI': '1A', 'ID': '5B', 'IL': '5A', 'IN': '5A', 'IA': '6A',
+        'KS': '4A', 'KY': '4A', 'LA': '2A', 'ME': '6A', 'MD': '4A',
+        'MA': '5A', 'MI': '6A', 'MN': '6A', 'MS': '3A', 'MO': '4A',
+        'MT': '6B', 'NE': '5A', 'NV': '3B', 'NH': '6A', 'NJ': '4A',
+        'NM': '4B', 'NY': '5A', 'NC': '4A', 'ND': '7', 'OH': '5A',
+        'OK': '3A', 'OR': '4C', 'PA': '5A', 'RI': '5A', 'SC': '3A',
+        'SD': '6A', 'TN': '4A', 'TX': '2A', 'UT': '5B', 'VT': '6A',
+        'VA': '4A', 'WA': '4C', 'WV': '5A', 'WI': '6A', 'WY': '6B',
+        'DC': '4A'
+    }
+    
+    future_subregion = future_emissions_mapping.get(state)
+    hourly_subregion = hourly_historical_mapping.get(state)
+    annual_subregion = annual_historical_mapping.get(state)
+    climate_zone = climate_zone_mapping.get(state)
+    
     # Create the final JSON structure
     final_json = {
         "type": "FeatureCollection",
@@ -325,11 +366,11 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             "tariff_filename": None,
             "timesteps_per_hour": 1,
             "emissions": True,
-            "climate_zone": weather_data["climate_zone"],
-            "weather_filename": weather_data["weather_filename"],
-            "electricity_emissions_future_subregion": weather_data["electricity_emissions_future_subregion"],
-            "electricity_emissions_hourly_historical_subregion": weather_data["electricity_emissions_hourly_historical_subregion"],
-            "electricity_emissions_annual_historical_subregion": weather_data["electricity_emissions_annual_historical_subregion"],
+            "climate_zone": climate_zone,
+            "weather_filename": weather_filename,
+            "electricity_emissions_future_subregion": future_subregion,
+            "electricity_emissions_hourly_historical_subregion": hourly_subregion,
+            "electricity_emissions_annual_historical_subregion": annual_subregion,
             "electricity_emissions_future_year": "2026",
             "electricity_emissions_hourly_historical_year": "2019",
             "electricity_emissions_annual_historical_year": "2019"
@@ -359,11 +400,8 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
     ASSET_GEOJSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_asset.geojson')
     CONFIG_JSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_config.json')
     
-    location = get_weather(simulation_name=simulation_name)
-
-    
     # Metadata requires the area, subtype and name of the building to be present from the metadata
-    building_area_list, building_type_list, building_name_list, = read_metadata(METADATA_CSV)
+    building_area_list, building_type_list, building_name_list, building_weather_list = read_metadata(METADATA_CSV)
     with open(ASSET_GEOJSON, 'r') as geojson_file, open(CONFIG_JSON, 'r') as config_file:
         geojson_data = json.load(geojson_file)
         custom_config_data = json.load(config_file)
@@ -378,7 +416,7 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
         # Process feature only if it matches the asset_id
         if building_id == int(asset_id): 
             result = process_feature(feature, building_area_list, building_type_list, 
-                                  building_name_list, custom_config_data, location)
+                                  building_name_list, building_weather_list, custom_config_data)
             if result:
                 final_json, _, building_name = result
                 new_building_name = sanitize_filename(building_name)
@@ -397,7 +435,7 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
 #   metadata file. It processes each feature and creates a new feature structure with additional properties.
 #   It writes the new feature structure to individual feature files in the output directory.
 ############################################################################################################
-def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, location, simulation_name, hpc_mode=False):
+def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, simulation_name, hpc_mode=False):
     logger.info("Creating feature files...")
 
 
@@ -406,7 +444,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
     os.makedirs(FEATURE_FILES_DIR, exist_ok=True)
     
     # Metadata requires the area, subtype and name of the building to be present from the metadata
-    building_area_list, building_type_list, building_name_list, = read_metadata(metadata_csv)
+    building_area_list, building_type_list, building_name_list, building_weather_list = read_metadata(metadata_csv)
     
     with open(asset_geojson, 'r') as file:
         geojson_data = json.load(file)
@@ -418,7 +456,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
     # Process each feature in the GeoJSON data 
     logger.info("Processing features...")   
     for feature in geojson_data['features']:
-        result = process_feature(feature, building_area_list, building_type_list, building_name_list, custom_config_data, location)
+        result = process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, custom_config_data)
         # If the result is not None, write the feature file
         if result:
             final_json, building_id, building_name = result
@@ -429,7 +467,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
 
     logger.info("Feature files created successfully.")
     # Run the asset analysis to organize the assets to their batch
-    asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name, hpc_mode=hpc_mode)
+    asset_analysis(SIMULATION_DIR, num_cores, simulation_name, hpc_mode=hpc_mode)
 
     logger.debug("Zipping the output directory...")
     shutil.make_archive(LOCAL_FEATURE_FILES_DIR, 'zip', FEATURE_FILES_DIR)
@@ -450,8 +488,7 @@ if __name__ == "__main__":
     config_json = 'powertwin-solver-pg/uploaded_files/custom_config.json'
     SIMULATION_DIR = 'powertwin-solver-pg/uploaded_files'
     LOCAL_DIR = 'powertwin-solver-pg/user_files'
-    location = 'Phoenix'
     num_cores = 1
     simulation_name = 'simulation'
     
-    create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, location, simulation_name)
+    create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, simulation_name)

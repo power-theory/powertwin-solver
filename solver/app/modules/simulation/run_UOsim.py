@@ -3,7 +3,6 @@ import shutil
 import time
 import csv
 import json
-import pandas as pd
 
 from .clean_report import clean_single_report
 from modules.utils import initialize_logger, run_command, check_storage
@@ -11,7 +10,7 @@ from modules.utils import initialize_logger, run_command, check_storage
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Run UOSim', external_log_dir)
 
-if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
+if os.environ.get('SLURM_JOB_ID'):  
     URBANOPT_DIR = os.path.join('/solver', 'app', 'urbanopt')
 else:
     URBANOPT_DIR = os.path.join('app', 'urbanopt')
@@ -83,31 +82,22 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     f"{'='*47}"
 )
 
-    city = get_weather(asset_id)
+    state, weather_file = get_weather(asset_id)
+    
+    # Remove .epw extension if present (database stores full filename with .epw)
+    if weather_file.endswith('.epw'):
+        weather_file = weather_file[:-4]
                 
     SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
     WEATHER_DESTINATION = os.path.join(SIMULATION_DIR, "weather")
-    
-    #TODO: change to read the location metadata rather then a csv file
-    WEATHER_MAP_CSV = os.path.join(URBANOPT_DIR,'weather_map.csv')
-
-    # TODO: Adjust so that copied weather files with the specified extensions are from the database server
-    # Weather files should be selected dependent on geolocation of building which can be found in the feature file
-    
-    # Read the CSV file
-    weather_df = pd.read_csv(WEATHER_MAP_CSV)
-    city_data = weather_df[weather_df['City'].str.lower() == city.lower()]
-    
-    # Extract the relevant data
-    city_data = city_data.iloc[0]
-    weather_file = city_data['WeatherFile']
-    
+    ASSET_WEATHER_DIR = os.path.join(WEATHER_DESTINATION, weather_file)
         
-    if not os.path.exists(WEATHER_DESTINATION):
+    if not os.path.exists(ASSET_WEATHER_DIR):
         logger.warning(f"Weather destination not found, creating weather directory at {WEATHER_DESTINATION}")
         os.makedirs(WEATHER_DESTINATION, exist_ok=True)
 
         WEATHER_BASE_NAME = os.path.join(URBANOPT_DIR, 'weather_files',weather_file, weather_file)
+        logger.info (f"BATCH {batch_index}: {asset_id} Copying weather files for {weather_file}")
         for ext in ["ddy", "stat", "epw"]:
             shutil.copy(f"{WEATHER_BASE_NAME}.{ext}", WEATHER_DESTINATION)
 
@@ -267,7 +257,7 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
 #   have been processed.
 ############################################################################################################
 def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
-    from modules.diagnostics import update_status,get_asset_total,get_bulk_assets
+    from modules.diagnostics import get_asset_total,get_bulk_assets
 
     # Log the simulation directory for debugging
     logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")

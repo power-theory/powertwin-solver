@@ -72,7 +72,7 @@ def _setup_simulation_directories(simulation_name, asset_geojson_path, metadata_
     return (SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path, local_config_path)
 
 def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_csv_path, 
-                          config_json_path, location, num_cores, hpc_mode=False, 
+                          config_json_path, num_cores, hpc_mode=False, 
                           shared_storage=None):
     """
     Directly create feature files for a PowerTwin simulation
@@ -82,7 +82,6 @@ def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_cs
         asset_geojson_path: Path to asset GeoJSON file
         metadata_csv_path: Path to metadata CSV file
         config_json_path: Path to configuration JSON file
-        location: Location name
         num_cores: Number of cores to use
         hpc_mode: Whether running in HPC mode
         shared_storage: Path to shared storage (required in HPC mode)
@@ -126,7 +125,6 @@ def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_cs
             local_metadata_path, 
             local_config_path, 
             num_cores, 
-            location, 
             simulation_name,
             hpc_mode
         )
@@ -280,7 +278,6 @@ def main():
     create_ff_parser.add_argument('asset_geojson_path', type=str, help='Path to the asset geojson file')
     create_ff_parser.add_argument('metadata_csv_path', type=str, help='Path to the metadata CSV file')
     create_ff_parser.add_argument('config_json_path', type=str, help='Path to the config JSON file')
-    create_ff_parser.add_argument('location', type=str, help='Location of the simulation')
     create_ff_parser.add_argument('num_cores', type=int, help='Number of cores to use')
     create_ff_parser.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
     create_ff_parser.add_argument('--shared-storage', type=str, help='Path to shared storage for HPC mode (required in HPC mode)')
@@ -325,7 +322,6 @@ def main():
             asset_geojson_path=args.asset_geojson_path,
             metadata_csv_path=args.metadata_csv_path,
             config_json_path=args.config_json_path,
-            location=args.location,
             num_cores=args.num_cores,
             hpc_mode=args.hpc,
             shared_storage=args.shared_storage

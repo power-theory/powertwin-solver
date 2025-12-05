@@ -3,6 +3,5 @@
     "asset_geojson_path": "upload/demo_data/asu-asset-geometries.geojson",
     "metadata_csv_path": "upload/demo_data/asu_metadata.csv",
     "config_json_path": "upload/demo_data/default_config.json",
-    "location": "Phoenix-SkyHarbor",
     "num_cores": 6
 }

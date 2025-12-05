@@ -11,7 +11,7 @@ external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Recover UOSim', external_log_dir)
 
 ############################################################################################################
-# Name: simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, batch_id, num_cores, location)
+# Name: simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, batch_id, num_cores)
 # Description: This function recovers a corrupted simulation by extracting the feature files from the corrupted simulation
 #   and zipping them into a new feature_files.zip in the recovery directory.
 #   The function then continues with the recovery process by analyzing the assets in the feature files.
@@ -20,8 +20,6 @@ logger = initialize_logger('Recover UOSim', external_log_dir)
 def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPTED_SIMULATION_NAME, RECOVERY_SIMULATION_NAME, batch_id, num_cores):  
     from modules.simulation import create_single_featurefile  
     logger.info(f"Recovering simulation: {CORRUPTED_SIMULATION_NAME} for batch {batch_id}")
-
-    location = get_weather(simulation_name=CORRUPTED_SIMULATION_NAME)
 
     CORRUPTED_FEATURE_FILE_ZIP = os.path.join(CORRUPTED_DIR, 'feature_files.zip')
 
@@ -127,7 +125,7 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
         hpc_mode = False
 
     # Continue with the recovery process
-    asset_analysis(RECOVERY_DIR, num_cores, location, RECOVERY_SIMULATION_NAME, hpc_mode)
+    asset_analysis(RECOVERY_DIR, num_cores, RECOVERY_SIMULATION_NAME, hpc_mode)
 
     batch_range = initialize_uo(RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME, hpc_mode)
     
