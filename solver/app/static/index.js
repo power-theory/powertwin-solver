@@ -32,22 +32,6 @@ fetch('/static/json/building_types.json')
     })
     .catch(error => console.error('Error loading building types:', error));
 
-// Load building types from JSON file and populate the dropdown
-fetch('/static/json/locations.json')
-    .then(response => response.json())
-    .then(data => {
-        const locationsSelects = document.querySelectorAll('.location');
-        locationsSelects.forEach(select => {
-            data.locations.forEach(type => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                select.appendChild(option);
-            });
-        });
-    })
-    .catch(error => console.error('Error loading locations:', error));
-
 function showTab(tabId) {
     console.log(`Showing tab: ${tabId}`);
     document.querySelectorAll('.tab').forEach(tab => {
@@ -106,7 +90,6 @@ async function startSimulation() {
     const metadata_csv_file = document.getElementById('startsim_metadata_csv_file').files[0];
     const simulation_name = document.getElementById('startsim_simulation_name').value;
     const num_cores = document.getElementById('startsim_num_cores').value;
-    const location = document.querySelector('.location').value;
     const hpc_mode = document.getElementById('startsim_hpc_mode').checked;
     const shared_storage = document.getElementById('startsim_shared_storage').value;
 
@@ -156,7 +139,6 @@ async function startSimulation() {
     formData.append('asset_geojson_file', asset_geojson_file);
     formData.append('metadata_csv_file', metadata_csv_file);
     formData.append('config_data', JSON.stringify(configData));
-    formData.append('location', location);
     formData.append('num_cores', num_cores);
     formData.append('hpc_mode', hpc_mode);
     if (hpc_mode && shared_storage) {

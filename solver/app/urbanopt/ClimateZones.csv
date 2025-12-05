@@ -1,0 +1,3221 @@
+GEOID;COUNTRY;STATE;IECC15;IECC21;BA15;BA21;MOISTURE15;MOISTURE21;CPU
+G37017;Bladen;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37167;Stanly;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39153;Summit;Ohio;5;5;Cold;Cold;A;A
+G42113;Sullivan;Pennsylvania;5;5;Cold;Cold;A;A
+G48459;Upshur;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48049;Brown;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G45021;Cherokee;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G01043;Cullman;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G54023;Grant;West Virginia;5;5;Cold;Cold;A;A
+G46055;Haakon;South Dakota;6;5;Cold;Cold;A;A
+G55061;Kewaunee;Wisconsin;6;6;Cold;Cold;A;A
+G18049;Fulton;Indiana;5;5;Cold;Cold;A;A
+G19083;Hardin;Iowa;6;5;Cold;Cold;A;A
+G20133;Neosho;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31133;Pawnee;Nebraska;5;5;Cold;Cold;A;A
+G01059;Franklin;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29175;Randolph;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G35028;Los Alamos;New Mexico;5;5;Cold;Cold;B;B
+G37105;Lee;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G39137;Putnam;Ohio;5;5;Cold;Cold;A;A
+G45039;Fairfield;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48021;Bastrop;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G55113;Sawyer;Wisconsin;7;6;Very Cold;Cold;;A
+G48233;Hutchinson;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G55031;Douglas;Wisconsin;7;6;Very Cold;Cold;;A
+G48095;Concho;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G51065;Fluvanna;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55041;Forest;Wisconsin;7;6;Very Cold;Cold;;A
+G26121;Muskegon;Michigan;5;5;Cold;Cold;A;A
+G27005;Becker;Minnesota;7;6;Very Cold;Cold;;A
+G40077;Latimer;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G22073;Ouachita;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G15005;Kalawao;Hawaii;1;1;Hot-Humid;Hot-Humid;A;A
+G01023;Choctaw;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G12123;Taylor;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G18127;Porter;Indiana;5;5;Cold;Cold;A;A
+G20075;Hamilton;Kansas;5;4;Cold;Mixed-Humid;A;A
+G26139;Ottawa;Michigan;5;5;Cold;Cold;A;A
+G26101;Manistee;Michigan;6;6;Cold;Cold;A;A
+G36005;Bronx;New York;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40025;Cimarron;Oklahoma;4;4;Mixed-Dry;Mixed-Dry;B;B
+G38019;Cavalier;North Dakota;7;7;Very Cold;Very Cold;;
+G38095;Towner;North Dakota;7;7;Very Cold;Very Cold;;
+G05145;White;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13081;Crisp;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G13043;Candler;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G18015;Carroll;Indiana;5;5;Cold;Cold;A;A
+G19141;O'Brien;Iowa;6;6;Cold;Cold;A;A
+G20123;Mitchell;Kansas;5;4;Cold;Mixed-Humid;A;A
+G17023;Clark;Illinois;5;4;Cold;Mixed-Humid;A;A
+G24047;Worcester;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26019;Benzie;Michigan;6;6;Cold;Cold;A;A
+G31135;Perkins;Nebraska;5;5;Cold;Cold;A;A
+G20189;Stevens;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46105;Perkins;South Dakota;6;6;Cold;Cold;A;A
+G51025;Brunswick;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G51141;Patrick;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01109;Pike;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G13013;Barrow;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18125;Pike;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19081;Hancock;Iowa;6;6;Cold;Cold;A;A
+G21215;Spencer;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26087;Lapeer;Michigan;5;5;Cold;Cold;A;A
+G27009;Benton;Minnesota;6;6;Cold;Cold;A;A
+G27007;Beltrami;Minnesota;7;7;Very Cold;Very Cold;;
+G28115;Pontotoc;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G01075;Lamar;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12061;Indian River;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G12073;Leon;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G26149;St. Joseph;Michigan;5;5;Cold;Cold;A;A
+G26031;Cheboygan;Michigan;6;6;Cold;Cold;A;A
+G31165;Sioux;Nebraska;5;5;Cold;Cold;A;A
+G39051;Fulton;Ohio;5;5;Cold;Cold;A;A
+G37007;Anson;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37185;Warren;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G01073;Jefferson;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G08047;Gilpin;Colorado;5;5;Cold;Cold;B;B
+G13089;DeKalb;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17093;Kendall;Illinois;5;5;Cold;Cold;A;A
+G19019;Buchanan;Iowa;6;5;Cold;Cold;A;A
+G26079;Kalkaska;Michigan;6;6;Cold;Cold;A;A
+G27097;Morrison;Minnesota;6;6;Cold;Cold;A;A
+G01079;Lawrence;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05059;Hot Spring;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G35011;De Baca;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G17009;Brown;Illinois;5;5;Cold;Cold;A;A
+G20155;Reno;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31151;Saline;Nebraska;5;5;Cold;Cold;A;A
+G29027;Callaway;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36099;Seneca;New York;5;5;Cold;Cold;A;A
+G28019;Choctaw;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40011;Blaine;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48375;Potter;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G48455;Trinity;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G55107;Rusk;Wisconsin;6;6;Cold;Cold;A;A
+G72145;Vega Baja;;;;;;;
+G53069;Wahkiakum;Washington;4;4;Marine;Marine;C;C
+G48103;Crane;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G47117;Marshall;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48381;Randall;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G48285;Lavaca;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G29097;Jasper;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17187;Warren;Illinois;5;5;Cold;Cold;A;A
+G18107;Montgomery;Indiana;5;5;Cold;Cold;A;A
+G28081;Lee;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G28087;Lowndes;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39113;Montgomery;Ohio;5;5;Cold;Cold;A;A
+G31137;Phelps;Nebraska;5;5;Cold;Cold;A;A
+G17181;Union;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01017;Chambers;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13073;Columbia;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17083;Jersey;Illinois;5;4;Cold;Mixed-Humid;A;A
+G26151;Sanilac;Michigan;6;5;Cold;Cold;A;A
+G29031;Cape Girardeau;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37055;Dare;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G47139;Polk;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22063;Livingston;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G21069;Fleming;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29117;Livingston;Missouri;5;5;Cold;Cold;A;A
+G29085;Hickory;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39173;Wood;Ohio;5;5;Cold;Cold;A;A
+G40107;Okfuskee;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51840;Winchester;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48441;Taylor;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G54095;Tyler;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55015;Calumet;Wisconsin;6;5;Cold;Cold;A;A
+G31143;Polk;Nebraska;5;5;Cold;Cold;A;A
+G31157;Scotts Bluff;Nebraska;5;5;Cold;Cold;A;A
+G05009;Boone;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G12103;Pinellas;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G16081;Teton;Idaho;6;6;Cold;Cold;B;B
+G20129;Morton;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26059;Hillsdale;Michigan;5;5;Cold;Cold;A;A
+G36101;Steuben;New York;6;5;Cold;Cold;A;A
+G39083;Knox;Ohio;5;5;Cold;Cold;A;A
+G40105;Nowata;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G47181;Wayne;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G54065;Morgan;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13067;Cobb;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13305;Wayne;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G17123;Marshall;Illinois;5;5;Cold;Cold;A;A
+G18031;Decatur;Indiana;5;4;Cold;Mixed-Humid;A;A
+G19023;Butler;Iowa;6;5;Cold;Cold;A;A
+G20073;Greenwood;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39169;Wayne;Ohio;5;5;Cold;Cold;A;A
+G40153;Woodward;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G46025;Clark;South Dakota;6;6;Cold;Cold;A;A
+G47169;Trousdale;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48025;Bee;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48151;Fisher;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48005;Angelina;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G56033;Sheridan;Wyoming;6;6;Cold;Cold;B;B
+G48383;Reagan;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G51159;Richmond;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54105;Wirt;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G56031;Platte;Wyoming;5;5;Cold;Cold;B;B
+G48161;Freestone;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G28155;Webster;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G20023;Cheyenne;Kansas;5;5;Cold;Cold;A;A
+G31179;Wayne;Nebraska;5;5;Cold;Cold;A;A
+G31109;Lancaster;Nebraska;5;5;Cold;Cold;A;A
+G38075;Renville;North Dakota;7;7;Very Cold;Very Cold;;
+G08125;Yuma;Colorado;5;5;Cold;Cold;B;B
+G27131;Rice;Minnesota;6;6;Cold;Cold;A;A
+G30065;Musselshell;Montana;6;6;Cold;Cold;B;B
+G31185;York;Nebraska;5;5;Cold;Cold;A;A
+G37063;Durham;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G47007;Bledsoe;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48341;Moore;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G49031;Piute;Utah;5;5;Cold;Cold;B;B
+G51580;Covington;Virginia;4;5;Mixed-Humid;Cold;A;A
+G01053;Escambia;Alabama;3;2;Hot-Humid;Hot-Humid;A;A
+G72061;Guaynabo;;;;;;;
+G72121;Sabana Grande;;;;;;;
+G20089;Jewell;Kansas;5;5;Cold;Cold;A;A
+G46099;Minnehaha;South Dakota;6;6;Cold;Cold;A;A
+G36097;Schuyler;New York;6;5;Cold;Cold;A;A
+G42015;Bradford;Pennsylvania;5;5;Cold;Cold;A;A
+G20059;Franklin;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13113;Fayette;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17171;Scott;Illinois;5;5;Cold;Cold;A;A
+G04003;Cochise;Arizona;3;3;Hot-Dry;Hot-Dry;B;B
+G06049;Modoc;California;5;5;Cold;Cold;B;B
+G17091;Kankakee;Illinois;5;5;Cold;Cold;A;A
+G19195;Worth;Iowa;6;6;Cold;Cold;A;A
+G19063;Emmet;Iowa;6;6;Cold;Cold;A;A
+G26053;Gogebic;Michigan;7;6;Very Cold;Cold;;A
+G20077;Harper;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47109;McNairy;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39003;Allen;Ohio;5;5;Cold;Cold;A;A
+G51199;York;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13109;Evans;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G05111;Poinsett;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13171;Lamar;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13123;Gilmer;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G18139;Rush;Indiana;5;4;Cold;Mixed-Humid;A;A
+G21067;Fayette;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21049;Clark;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26049;Genesee;Michigan;5;5;Cold;Cold;A;A
+G37015;Bertie;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G46121;Todd;South Dakota;5;5;Cold;Cold;A;A
+G55087;Outagamie;Wisconsin;6;5;Cold;Cold;A;A
+G72137;Toa Baja;;;;;;;
+G18105;Monroe;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08113;San Miguel;Colorado;6;6;Cold;Cold;B;B
+G19027;Carroll;Iowa;5;5;Cold;Cold;A;A
+G28141;Tishomingo;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13279;Toombs;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G39085;Lake;Ohio;5;5;Cold;Cold;A;A
+G21087;Green;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31035;Clay;Nebraska;5;5;Cold;Cold;A;A
+G04011;Greenlee;Arizona;3;3;Hot-Dry;Hot-Dry;B;B
+G21019;Boyd;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20011;Bourbon;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36015;Chemung;New York;5;5;Cold;Cold;A;A
+G40001;Adair;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48195;Hansford;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G51183;Sussex;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G46063;Harding;South Dakota;6;6;Cold;Cold;A;A
+G37199;Yancey;North Carolina;5;5;Cold;Cold;A;A
+G28045;Hancock;Mississippi;2;2;Hot-Humid;Hot-Humid;A;A
+G05065;Izard;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18157;Tippecanoe;Indiana;5;5;Cold;Cold;A;A
+G18011;Boone;Indiana;5;5;Cold;Cold;A;A
+G19121;Madison;Iowa;5;5;Cold;Cold;A;A
+G21217;Taylor;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20169;Saline;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26015;Barry;Michigan;5;5;Cold;Cold;A;A
+G27161;Waseca;Minnesota;6;6;Cold;Cold;A;A
+G27013;Blue Earth;Minnesota;6;6;Cold;Cold;A;A
+G37057;Davidson;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39141;Ross;Ohio;5;4;Cold;Mixed-Humid;A;A
+G47175;Van Buren;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48145;Falls;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48305;Lynn;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48117;Deaf Smith;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G72139;Trujillo Alto;;;;;;;
+G56009;Converse;Wyoming;6;6;Cold;Cold;B;B
+G51073;Gloucester;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48267;Kimble;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G35025;Lea;New Mexico;3;3;Hot-Dry;Hot-Dry;B;B
+G08023;Costilla;Colorado;6;6;Cold;Cold;B;B
+G19077;Guthrie;Iowa;5;5;Cold;Cold;A;A
+G28129;Smith;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G20165;Rush;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20097;Kiowa;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29217;Vernon;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37077;Granville;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G31077;Greeley;Nebraska;5;5;Cold;Cold;A;A
+G42099;Perry;Pennsylvania;5;4;Cold;Mixed-Humid;A;A
+G17071;Henderson;Illinois;5;5;Cold;Cold;A;A
+G48221;Hood;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G17087;Johnson;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51790;Staunton;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17011;Bureau;Illinois;5;5;Cold;Cold;A;A
+G19021;Buena Vista;Iowa;6;5;Cold;Cold;A;A
+G18087;LaGrange;Indiana;5;5;Cold;Cold;A;A
+G28153;Wayne;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G21171;Monroe;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G04019;Pima;Arizona;2;2;Hot-Dry;Hot-Dry;B;B
+G40053;Grant;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G48357;Ochiltree;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G40059;Harper;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G72151;Yabucoa;;;;;;;
+G17177;Stephenson;Illinois;5;5;Cold;Cold;A;A
+G18091;LaPorte;Indiana;5;5;Cold;Cold;A;A
+G36067;Onondaga;New York;5;5;Cold;Cold;A;A
+G16047;Gooding;Idaho;5;5;Cold;Cold;B;B
+G21055;Crittenden;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19007;Appanoose;Iowa;5;5;Cold;Cold;A;A
+G21063;Elliott;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G24011;Caroline;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22031;De Soto;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G24015;Cecil;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55078;Menominee;Wisconsin;6;6;Cold;Cold;A;A
+G19179;Wapello;Iowa;5;5;Cold;Cold;A;A
+G16055;Kootenai;Idaho;5;5;Cold;Cold;B;B
+G47075;Haywood;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G19003;Adams;Iowa;5;5;Cold;Cold;A;A
+G17155;Putnam;Illinois;5;5;Cold;Cold;A;A
+G17169;Schuyler;Illinois;5;5;Cold;Cold;A;A
+G47111;Macon;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19033;Cerro Gordo;Iowa;6;6;Cold;Cold;A;A
+G26023;Branch;Michigan;5;5;Cold;Cold;A;A
+G19041;Clay;Iowa;6;6;Cold;Cold;A;A
+G37159;Rowan;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G56001;Albany;Wyoming;6;6;Cold;Cold;B;B
+G02016;Aleutians West;Alaska;8;7;Very Cold;Very Cold;;
+G08013;Boulder;Colorado;5;5;Cold;Cold;B;B
+G13303;Washington;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18055;Greene;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20109;Logan;Kansas;5;5;Cold;Cold;A;A
+G21033;Caldwell;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26137;Otsego;Michigan;6;6;Cold;Cold;A;A
+G26143;Roscommon;Michigan;6;6;Cold;Cold;A;A
+G35043;Sandoval;New Mexico;5;5;Cold;Cold;B;B
+G39011;Auglaize;Ohio;5;5;Cold;Cold;A;A
+G46015;Brule;South Dakota;6;5;Cold;Cold;A;A
+G46005;Beadle;South Dakota;6;6;Cold;Cold;A;A
+G48091;Comal;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48393;Roberts;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G54005;Boone;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G72075;Juana Díaz;;;;;;;
+G72087;Loíza;;;;;;;
+G21223;Trimble;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27051;Grant;Minnesota;7;6;Very Cold;Cold;;A
+G28037;Franklin;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G29215;Texas;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21237;Wolfe;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48023;Baylor;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G47067;Hancock;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46081;Lawrence;South Dakota;6;6;Cold;Cold;A;A
+G46087;McCook;South Dakota;6;6;Cold;Cold;A;A
+G46073;Jerauld;South Dakota;6;6;Cold;Cold;A;A
+G42035;Clinton;Pennsylvania;5;5;Cold;Cold;A;A
+G51075;Goochland;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47101;Lewis;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G47113;Madison;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48255;Karnes;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G27083;Lyon;Minnesota;6;6;Cold;Cold;A;A
+G47135;Perry;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G47147;Robertson;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47155;Sevier;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55097;Portage;Wisconsin;6;6;Cold;Cold;A;A
+G55099;Price;Wisconsin;7;6;Very Cold;Cold;;A
+G51037;Charlotte;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48047;Brooks;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G55033;Dunn;Wisconsin;6;6;Cold;Cold;A;A
+G17075;Iroquois;Illinois;5;5;Cold;Cold;A;A
+G13181;Lincoln;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G24025;Harford;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31095;Jefferson;Nebraska;5;5;Cold;Cold;A;A
+G31145;Red Willow;Nebraska;5;5;Cold;Cold;A;A
+G31181;Webster;Nebraska;5;5;Cold;Cold;A;A
+G39017;Butler;Ohio;5;4;Cold;Mixed-Humid;A;A
+G17191;Wayne;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19107;Keokuk;Iowa;5;5;Cold;Cold;A;A
+G17199;Williamson;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G12049;Hardee;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G13187;Lumpkin;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G12043;Glades;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G13183;Long;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G13195;Madison;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48481;Wharton;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G13219;Oconee;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13225;Peach;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G48503;Young;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51013;Arlington;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G56025;Natrona;Wyoming;6;6;Cold;Cold;B;B
+G45083;Spartanburg;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G45081;Saluda;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G55131;Washington;Wisconsin;6;5;Cold;Cold;A;A
+G53023;Garfield;Washington;5;5;Cold;Cold;B;B
+G27117;Pipestone;Minnesota;6;6;Cold;Cold;A;A
+G27133;Rock;Minnesota;6;6;Cold;Cold;A;A
+G41031;Jefferson;Oregon;5;5;Cold;Cold;B;B
+G30107;Wheatland;Montana;6;6;Cold;Cold;B;B
+G51109;Louisa;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27147;Steele;Minnesota;6;6;Cold;Cold;A;A
+G29131;Miller;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27153;Todd;Minnesota;6;6;Cold;Cold;A;A
+G01057;Fayette;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G19071;Fremont;Iowa;5;5;Cold;Cold;A;A
+G18021;Clay;Indiana;5;4;Cold;Mixed-Humid;A;A
+G31013;Box Butte;Nebraska;5;5;Cold;Cold;A;A
+G28049;Hinds;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G18063;Hendricks;Indiana;5;4;Cold;Mixed-Humid;A;A
+G17145;Perry;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37181;Vance;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G20001;Allen;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48093;Comanche;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G20079;Harvey;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26057;Gratiot;Michigan;5;5;Cold;Cold;A;A
+G20111;Lyon;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47159;Smith;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26065;Ingham;Michigan;5;5;Cold;Cold;A;A
+G26067;Ionia;Michigan;5;5;Cold;Cold;A;A
+G21141;Logan;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48127;Dimmit;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G48325;Medina;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G21161;Mason;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26085;Lake;Michigan;6;6;Cold;Cold;A;A
+G27067;Kandiyohi;Minnesota;6;6;Cold;Cold;A;A
+G26107;Mecosta;Michigan;6;6;Cold;Cold;A;A
+G37123;Montgomery;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46037;Day;South Dakota;6;6;Cold;Cold;A;A
+G37093;Hoke;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37125;Moore;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21219;Todd;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27065;Kanabec;Minnesota;7;6;Very Cold;Cold;;A
+G17051;Fayette;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17065;Hamilton;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21233;Webster;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48129;Donley;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G27003;Anoka;Minnesota;6;6;Cold;Cold;A;A
+G48137;Edwards;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G40073;Kingfisher;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48149;Fayette;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G45003;Aiken;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46011;Brookings;South Dakota;6;6;Cold;Cold;A;A
+G46103;Pennington;South Dakota;6;6;Cold;Cold;A;A
+G48009;Archer;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G47029;Cocke;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48017;Bailey;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G47043;Dickson;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46019;Butte;South Dakota;6;6;Cold;Cold;A;A
+G45023;Chester;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G72133;Santa Isabel;;;;;;;
+G13105;Elbert;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G45041;Florence;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G27017;Carlton;Minnesota;7;7;Very Cold;Very Cold;;
+G12029;Dixie;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G27035;Crow Wing;Minnesota;7;7;Very Cold;Very Cold;;
+G26013;Baraga;Michigan;7;6;Very Cold;Cold;;A
+G38081;Sargent;North Dakota;6;6;Cold;Cold;A;A
+G20009;Barton;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18035;Delaware;Indiana;5;5;Cold;Cold;A;A
+G22093;St. James;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G26035;Clare;Michigan;6;6;Cold;Cold;A;A
+G38071;Ramsey;North Dakota;7;7;Very Cold;Very Cold;;
+G16001;Ada;Idaho;5;5;Cold;Cold;B;B
+G39097;Madison;Ohio;5;4;Cold;Mixed-Humid;A;A
+G20003;Anderson;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19039;Clarke;Iowa;5;5;Cold;Cold;A;A
+G51007;Amelia;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13319;Wilkinson;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48507;Zavala;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G39055;Geauga;Ohio;5;5;Cold;Cold;A;A
+G21071;Floyd;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48303;Lubbock;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G13273;Terrell;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G19035;Cherokee;Iowa;6;5;Cold;Cold;A;A
+G16015;Boise;Idaho;6;6;Cold;Cold;B;B
+G39071;Highland;Ohio;5;4;Cold;Mixed-Humid;A;A
+G17153;Pulaski;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27059;Isanti;Minnesota;6;6;Cold;Cold;A;A
+G13093;Dooly;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G27165;Watonwan;Minnesota;6;6;Cold;Cold;A;A
+G05073;Lafayette;Arkansas;3;3;Hot-Humid;Hot-Humid;A;A
+G37003;Alexander;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48425;Somervell;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G13301;Warren;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37119;Mecklenburg;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39101;Marion;Ohio;5;5;Cold;Cold;A;A
+G18111;Newton;Indiana;5;5;Cold;Cold;A;A
+G20091;Johnson;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19051;Davis;Iowa;5;5;Cold;Cold;A;A
+G08063;Kit Carson;Colorado;5;5;Cold;Cold;B;B
+G17105;Livingston;Illinois;5;5;Cold;Cold;A;A
+G13285;Troup;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G19065;Fayette;Iowa;6;5;Cold;Cold;A;A
+G20113;McPherson;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19069;Franklin;Iowa;6;5;Cold;Cold;A;A
+G01045;Dale;Alabama;3;2;Hot-Humid;Hot-Humid;A;A
+G48309;McLennan;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G12093;Okeechobee;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G17129;Menard;Illinois;5;5;Cold;Cold;A;A
+G51051;Dickenson;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08095;Phillips;Colorado;5;5;Cold;Cold;B;B
+G20193;Thomas;Kansas;5;5;Cold;Cold;A;A
+G16057;Latah;Idaho;5;5;Cold;Cold;B;B
+G19125;Marion;Iowa;5;5;Cold;Cold;A;A
+G13059;Clarke;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G19137;Montgomery;Iowa;5;5;Cold;Cold;A;A
+G19149;Plymouth;Iowa;6;5;Cold;Cold;A;A
+G19157;Poweshiek;Iowa;5;5;Cold;Cold;A;A
+G17179;Tazewell;Illinois;5;5;Cold;Cold;A;A
+G08039;Elbert;Colorado;5;5;Cold;Cold;B;B
+G21227;Warren;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19153;Polk;Iowa;5;5;Cold;Cold;A;A
+G48421;Sherman;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G35061;Valencia;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G72129;San Lorenzo;;;;;;;
+G72149;Villalba;;;;;;;
+G28123;Scott;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G31063;Frontier;Nebraska;5;5;Cold;Cold;A;A
+G01083;Limestone;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12035;Flagler;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G12053;Hernando;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G12091;Okaloosa;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G13095;Dougherty;Georgia;3;2;Hot-Humid;Hot-Humid;A;A
+G13253;Seminole;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G28113;Pike;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G28061;Jasper;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46045;Edmunds;South Dakota;6;6;Cold;Cold;A;A
+G47099;Lawrence;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G28047;Harrison;Mississippi;2;2;Hot-Humid;Hot-Humid;A;A
+G72093;Maricao;;;;;;;
+G72089;Luquillo;;;;;;;
+G72085;Las Piedras;;;;;;;
+G55137;Waushara;Wisconsin;6;5;Cold;Cold;A;A
+G47173;Union;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01001;Autauga;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G29089;Howard;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29115;Linn;Missouri;5;5;Cold;Cold;A;A
+G48363;Palo Pinto;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40129;Roger Mills;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13135;Gwinnett;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13167;Johnson;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G05077;Lee;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05123;St. Francis;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05037;Cross;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G55085;Oneida;Wisconsin;7;6;Very Cold;Cold;;A
+G55125;Vilas;Wisconsin;7;6;Very Cold;Cold;;A
+G46035;Davison;South Dakota;6;6;Cold;Cold;A;A
+G39125;Paulding;Ohio;5;5;Cold;Cold;A;A
+G42075;Lebanon;Pennsylvania;5;4;Cold;Mixed-Humid;A;A
+G46017;Buffalo;South Dakota;6;6;Cold;Cold;A;A
+G42007;Beaver;Pennsylvania;5;5;Cold;Cold;A;A
+G42039;Crawford;Pennsylvania;5;5;Cold;Cold;A;A
+G29061;Daviess;Missouri;5;5;Cold;Cold;A;A
+G29021;Buchanan;Missouri;5;4;Cold;Mixed-Humid;A;A
+G29199;Scotland;Missouri;5;5;Cold;Cold;A;A
+G37103;Jones;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48187;Guadalupe;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48293;Limestone;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G12121;Suwannee;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G53043;Lincoln;Washington;5;5;Cold;Cold;B;B
+G13017;Ben Hill;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G13019;Berrien;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G56041;Uinta;Wyoming;6;6;Cold;Cold;B;B
+G55071;Manitowoc;Wisconsin;6;6;Cold;Cold;A;A
+G50019;Orleans;Vermont;6;6;Cold;Cold;A;A
+G31173;Thurston;Nebraska;5;5;Cold;Cold;A;A
+G32027;Pershing;Nevada;5;5;Cold;Cold;B;B
+G48405;San Augustine;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G22037;East Feliciana;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G37029;Camden;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37041;Chowan;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48031;Blanco;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G51720;Norton;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37139;Pasquotank;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51700;Newport News;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48115;Dawson;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48317;Martin;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G06055;Napa;California;3;3;Marine;Marine;C;C
+G22067;Morehouse;Louisiana;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40015;Caddo;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G41037;Lake;Oregon;5;5;Cold;Cold;B;B
+G29077;Greene;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48247;Jim Hogg;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G18149;Starke;Indiana;5;5;Cold;Cold;A;A
+G42073;Lawrence;Pennsylvania;5;5;Cold;Cold;A;A
+G29105;Laclede;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29119;McDonald;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29121;Macon;Missouri;5;5;Cold;Cold;A;A
+G29127;Marion;Missouri;5;5;Cold;Cold;A;A
+G27163;Washington;Minnesota;6;6;Cold;Cold;A;A
+G31087;Hitchcock;Nebraska;5;5;Cold;Cold;A;A
+G22111;Union;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G29011;Barton;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31085;Hayes;Nebraska;5;5;Cold;Cold;A;A
+G39023;Clark;Ohio;5;5;Cold;Cold;A;A
+G37005;Alleghany;North Carolina;5;5;Cold;Cold;A;A
+G34021;Mercer;New Jersey;5;5;Cold;Cold;A;A
+G35021;Harding;New Mexico;5;5;Cold;Cold;B;B
+G48143;Erath;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48107;Crosby;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G47145;Roane;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26043;Dickinson;Michigan;6;6;Cold;Cold;A;A
+G20207;Woodson;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17041;Douglas;Illinois;5;5;Cold;Cold;A;A
+G42105;Potter;Pennsylvania;6;5;Cold;Cold;A;A
+G35037;Quay;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G27085;McLeod;Minnesota;6;6;Cold;Cold;A;A
+G29145;Newton;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31167;Stanton;Nebraska;5;5;Cold;Cold;A;A
+G51177;Spotsylvania;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G38045;LaMoure;North Dakota;6;6;Cold;Cold;A;A
+G27123;Ramsey;Minnesota;6;6;Cold;Cold;A;A
+G31007;Banner;Nebraska;5;5;Cold;Cold;A;A
+G37191;Wayne;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G38073;Ransom;North Dakota;6;6;Cold;Cold;A;A
+G48179;Gray;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G37045;Cleveland;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G42121;Venango;Pennsylvania;5;5;Cold;Cold;A;A
+G29209;Stone;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31023;Butler;Nebraska;5;5;Cold;Cold;A;A
+G05061;Howard;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51197;Wythe;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G38091;Steele;North Dakota;7;6;Very Cold;Cold;;A
+G51530;Buena Vista;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31053;Dodge;Nebraska;5;5;Cold;Cold;A;A
+G37109;Lincoln;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G05097;Montgomery;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51660;Harrisonburg;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20013;Brown;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19001;Adair;Iowa;5;5;Cold;Cold;A;A
+G01037;Coosa;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G38015;Burleigh;North Dakota;6;6;Cold;Cold;A;A
+G40097;Mayes;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G72009;Aibonito;;;;;;;
+G17109;McDonough;Illinois;5;5;Cold;Cold;A;A
+G20147;Phillips;Kansas;5;5;Cold;Cold;A;A
+G26055;Grand Traverse;Michigan;6;6;Cold;Cold;A;A
+G51735;Poquoson;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28059;Jackson;Mississippi;2;2;Hot-Humid;Hot-Humid;A;A
+G19011;Benton;Iowa;5;5;Cold;Cold;A;A
+G28161;Yalobusha;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37135;Orange;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48155;Foard;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G51149;Prince George;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19089;Howard;Iowa;6;5;Cold;Cold;A;A
+G13149;Heard;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12027;DeSoto;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G21205;Rowan;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48087;Collingsworth;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G55089;Ozaukee;Wisconsin;6;5;Cold;Cold;A;A
+G42069;Lackawanna;Pennsylvania;5;5;Cold;Cold;A;A
+G48175;Goliad;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G17113;McLean;Illinois;5;5;Cold;Cold;A;A
+G39149;Shelby;Ohio;5;5;Cold;Cold;A;A
+G48359;Oldham;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G32510;Carson City;Nevada;5;4;Cold;Mixed-Dry;B;B
+G36025;Delaware;New York;6;6;Cold;Cold;A;A
+G72049;Culebra;;;;;;;
+G18169;Wabash;Indiana;5;5;Cold;Cold;A;A
+G21145;McCracken;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05087;Madison;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51135;Nottoway;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01007;Bibb;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40033;Cotton;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G08025;Crowley;Colorado;5;5;Cold;Cold;B;B
+G48389;Reeves;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G28057;Itawamba;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13143;Haralson;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46009;Bon Homme;South Dakota;5;5;Cold;Cold;A;A
+G55105;Rock;Wisconsin;6;5;Cold;Cold;A;A
+G18101;Martin;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31117;McPherson;Nebraska;5;5;Cold;Cold;A;A
+G48081;Coke;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G45077;Pickens;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48243;Jeff Davis;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G26039;Crawford;Michigan;6;6;Cold;Cold;A;A
+G42059;Greene;Pennsylvania;5;5;Cold;Cold;A;A
+G32009;Esmeralda;Nevada;5;4;Cold;Mixed-Dry;B;B
+G51590;Danville;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G12007;Bradford;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G18137;Ripley;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G35051;Sierra;New Mexico;4;3;Mixed-Dry;Hot-Dry;B;B
+G51775;Salem;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08041;El Paso;Colorado;5;5;Cold;Cold;B;B
+G08101;Pueblo;Colorado;5;5;Cold;Cold;B;B
+G08043;Fremont;Colorado;5;5;Cold;Cold;B;B
+G48489;Willacy;Texas;2;1;Hot-Humid;Hot-Humid;A;A
+G48253;Jones;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48319;Mason;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G08119;Teller;Colorado;5;5;Cold;Cold;B;B
+G48173;Glasscock;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48433;Stonewall;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G29213;Taney;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20019;Chautauqua;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37043;Clay;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G36077;Otsego;New York;6;6;Cold;Cold;A;A
+G48449;Titus;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48467;Van Zandt;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G31071;Garfield;Nebraska;5;5;Cold;Cold;A;A
+G48063;Camp;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G22099;St. Martin;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G48213;Henderson;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G47127;Moore;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G36007;Broome;New York;6;5;Cold;Cold;A;A
+G51113;Madison;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36017;Chenango;New York;6;6;Cold;Cold;A;A
+G51157;Rappahannock;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51031;Campbell;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40147;Washington;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G51079;Greene;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54069;Ohio;West Virginia;5;5;Cold;Cold;A;A
+G01131;Wilcox;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G54045;Logan;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01119;Sumter;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51091;Highland;Virginia;4;5;Mixed-Humid;Cold;A;A
+G54073;Pleasants;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28043;Grenada;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29025;Caldwell;Missouri;5;4;Cold;Mixed-Humid;A;A
+G29197;Schuyler;Missouri;5;5;Cold;Cold;A;A
+G29211;Sullivan;Missouri;5;5;Cold;Cold;A;A
+G30091;Sheridan;Montana;6;6;Cold;Cold;B;B
+G54049;Marion;West Virginia;5;5;Cold;Cold;A;A
+G54033;Harrison;West Virginia;5;5;Cold;Cold;A;A
+G54021;Gilmer;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54007;Braxton;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G72019;Barranquitas;;;;;;;
+G54019;Fayette;West Virginia;5;4;Cold;Mixed-Humid;A;A
+G72063;Gurabo;;;;;;;
+G72039;Ciales;;;;;;;
+G37083;Halifax;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G19097;Jackson;Iowa;5;5;Cold;Cold;A;A
+G21077;Gallatin;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17175;Stark;Illinois;5;5;Cold;Cold;A;A
+G20027;Clay;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G38101;Ward;North Dakota;7;7;Very Cold;Very Cold;;
+G46077;Kingsbury;South Dakota;6;6;Cold;Cold;A;A
+G48079;Cochran;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G72135;Toa Alta;;;;;;;
+G20187;Stanton;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31171;Thomas;Nebraska;5;5;Cold;Cold;A;A
+G26011;Arenac;Michigan;6;6;Cold;Cold;A;A
+G39037;Darke;Ohio;5;5;Cold;Cold;A;A
+G08087;Morgan;Colorado;5;5;Cold;Cold;B;B
+G17053;Ford;Illinois;5;5;Cold;Cold;A;A
+G48349;Navarro;Texas;3;2;Hot-Humid;Hot-Humid;A;A
+G46097;Miner;South Dakota;6;6;Cold;Cold;A;A
+G17183;Vermilion;Illinois;5;5;Cold;Cold;A;A
+G20017;Chase;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20185;Stafford;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G72077;Juncos;;;;;;;
+G18175;Washington;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48123;DeWitt;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G18113;Noble;Indiana;5;5;Cold;Cold;A;A
+G48067;Cass;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G21129;Lee;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47183;Weakley;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18095;Madison;Indiana;5;5;Cold;Cold;A;A
+G55065;Lafayette;Wisconsin;6;5;Cold;Cold;A;A
+G05057;Hempstead;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G19127;Marshall;Iowa;5;5;Cold;Cold;A;A
+G40041;Delaware;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G17013;Calhoun;Illinois;5;4;Cold;Mixed-Humid;A;A
+G31107;Knox;Nebraska;5;5;Cold;Cold;A;A
+G72001;Adjuntas;;;;;;;
+G19053;Decatur;Iowa;5;5;Cold;Cold;A;A
+G39127;Perry;Ohio;5;5;Cold;Cold;A;A
+G13267;Tattnall;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G48471;Walker;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G51685;Manassas Park;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39031;Coshocton;Ohio;5;5;Cold;Cold;A;A
+G17101;Lawrence;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20035;Cowley;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21191;Pendleton;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08003;Alamosa;Colorado;6;6;Cold;Cold;B;B
+G39063;Hancock;Ohio;5;5;Cold;Cold;A;A
+G31163;Sherman;Nebraska;5;5;Cold;Cold;A;A
+G46007;Bennett;South Dakota;5;5;Cold;Cold;A;A
+G46095;Mellette;South Dakota;5;5;Cold;Cold;A;A
+G27073;Lac qui Parle;Minnesota;6;6;Cold;Cold;A;A
+G31069;Garden;Nebraska;5;5;Cold;Cold;A;A
+G20183;Smith;Kansas;5;5;Cold;Cold;A;A
+G51009;Amherst;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19049;Dallas;Iowa;5;5;Cold;Cold;A;A
+G39027;Clinton;Ohio;5;4;Cold;Mixed-Humid;A;A
+G46123;Tripp;South Dakota;5;5;Cold;Cold;A;A
+G26119;Montmorency;Michigan;6;6;Cold;Cold;A;A
+G31019;Buffalo;Nebraska;5;5;Cold;Cold;A;A
+G08067;La Plata;Colorado;5;5;Cold;Cold;B;B
+G37169;Stokes;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51063;Floyd;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05099;Nevada;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18081;Johnson;Indiana;5;4;Cold;Mixed-Humid;A;A
+G28137;Tate;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G47089;Jefferson;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G72003;Aguada;;;;;;;
+G18033;DeKalb;Indiana;5;5;Cold;Cold;A;A
+G72143;Vega Alta;;;;;;;
+G72031;Carolina;;;;;;;
+G18045;Fountain;Indiana;5;5;Cold;Cold;A;A
+G39111;Monroe;Ohio;5;5;Cold;Cold;A;A
+G31031;Cherry;Nebraska;5;5;Cold;Cold;A;A
+G13071;Colquitt;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G28025;Clay;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G47031;Coffee;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48171;Gillespie;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G13317;Wilkes;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G20119;Meade;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42057;Fulton;Pennsylvania;5;5;Cold;Cold;A;A
+G17047;Edwards;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19123;Mahaska;Iowa;5;5;Cold;Cold;A;A
+G48429;Stephens;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G47095;Lake;Tennessee;3;4;Mixed-Humid;Mixed-Humid;A;A
+G29035;Carter;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21163;Meade;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26077;Kalamazoo;Michigan;5;5;Cold;Cold;A;A
+G29139;Montgomery;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19185;Wayne;Iowa;5;5;Cold;Cold;A;A
+G27043;Faribault;Minnesota;6;6;Cold;Cold;A;A
+G01087;Macon;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G18093;Lawrence;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26125;Oakland;Michigan;5;5;Cold;Cold;A;A
+G48011;Armstrong;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G55057;Juneau;Wisconsin;6;5;Cold;Cold;A;A
+G18179;Wells;Indiana;5;5;Cold;Cold;A;A
+G38031;Foster;North Dakota;7;6;Very Cold;Cold;;A
+G11001;District of Columbia;District of Columbia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17151;Pope;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26003;Alger;Michigan;6;6;Cold;Cold;A;A
+G31009;Blaine;Nebraska;5;5;Cold;Cold;A;A
+G28007;Attala;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G38027;Eddy;North Dakota;7;6;Very Cold;Cold;;A
+G26009;Antrim;Michigan;6;6;Cold;Cold;A;A
+G48295;Lipscomb;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G19045;Clinton;Iowa;5;5;Cold;Cold;A;A
+G72147;Vieques;;;;;;;
+G12041;Gilchrist;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G26165;Wexford;Michigan;6;6;Cold;Cold;A;A
+G38067;Pembina;North Dakota;7;7;Very Cold;Very Cold;;
+G26007;Alpena;Michigan;6;6;Cold;Cold;A;A
+G26091;Lenawee;Michigan;5;5;Cold;Cold;A;A
+G55039;Fond du Lac;Wisconsin;6;5;Cold;Cold;A;A
+G72059;Guayanilla;;;;;;;
+G26111;Midland;Michigan;5;5;Cold;Cold;A;A
+G20141;Osborne;Kansas;5;4;Cold;Mixed-Humid;A;A
+G20163;Rooks;Kansas;5;4;Cold;Mixed-Humid;A;A
+G72131;San Sebastián;;;;;;;
+G72125;San Germán;;;;;;;
+G31039;Cuming;Nebraska;5;5;Cold;Cold;A;A
+G72091;Manatí;;;;;;;
+G38033;Golden Valley;North Dakota;6;6;Cold;Cold;A;A
+G18069;Huntington;Indiana;5;5;Cold;Cold;A;A
+G18009;Blackford;Indiana;5;5;Cold;Cold;A;A
+G46101;Moody;South Dakota;6;6;Cold;Cold;A;A
+G19031;Cedar;Iowa;5;5;Cold;Cold;A;A
+G01089;Madison;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18103;Miami;Indiana;5;5;Cold;Cold;A;A
+G39091;Logan;Ohio;5;5;Cold;Cold;A;A
+G18159;Tipton;Indiana;5;5;Cold;Cold;A;A
+G19115;Louisa;Iowa;5;5;Cold;Cold;A;A
+G37149;Polk;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G19173;Taylor;Iowa;5;5;Cold;Cold;A;A
+G55077;Marquette;Wisconsin;6;6;Cold;Cold;A;A
+G20039;Decatur;Kansas;5;5;Cold;Cold;A;A
+G20101;Lane;Kansas;5;5;Cold;Cold;A;A
+G27173;Yellow Medicine;Minnesota;6;6;Cold;Cold;A;A
+G38079;Rolette;North Dakota;7;7;Very Cold;Very Cold;;
+G20137;Norton;Kansas;5;5;Cold;Cold;A;A
+G27135;Roseau;Minnesota;7;7;Very Cold;Very Cold;;
+G55005;Barron;Wisconsin;6;6;Cold;Cold;A;A
+G13197;Marion;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G48399;Runnels;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G13259;Stewart;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G48027;Bell;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48379;Rains;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G51185;Tazewell;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28031;Covington;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G27111;Otter Tail;Minnesota;7;6;Very Cold;Cold;;A
+G55115;Shawano;Wisconsin;6;6;Cold;Cold;A;A
+G26147;St. Clair;Michigan;5;5;Cold;Cold;A;A
+G21117;Kenton;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19117;Lucas;Iowa;5;5;Cold;Cold;A;A
+G27143;Sibley;Minnesota;6;6;Cold;Cold;A;A
+G48493;Wilson;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G13255;Spalding;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48397;Rockwall;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48437;Swisher;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G27115;Pine;Minnesota;7;7;Very Cold;Very Cold;;
+G53027;Grays Harbor;Washington;4;4;Marine;Marine;C;C
+G13069;Coffee;Georgia;3;2;Hot-Humid;Hot-Humid;A;A
+G22049;Jackson;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G36109;Tompkins;New York;6;5;Cold;Cold;A;A
+G51740;Portsmouth;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48353;Nolan;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G27063;Jackson;Minnesota;6;6;Cold;Cold;A;A
+G21169;Metcalfe;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20205;Wilson;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40109;Oklahoma;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G36093;Schenectady;New York;5;5;Cold;Cold;A;A
+G01027;Clay;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51045;Craig;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55117;Sheboygan;Wisconsin;6;6;Cold;Cold;A;A
+G54029;Hancock;West Virginia;5;5;Cold;Cold;A;A
+G72101;Morovis;;;;;;;
+G48071;Chambers;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G51036;Charles City;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46107;Potter;South Dakota;6;6;Cold;Cold;A;A
+G47189;Wilson;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08051;Gunnison;Colorado;7;7;Very Cold;Very Cold;;
+G13003;Atkinson;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G13091;Dodge;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G16011;Bingham;Idaho;6;6;Cold;Cold;B;B
+G18013;Brown;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18027;Daviess;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37035;Catawba;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G72017;Barceloneta;;;;;;;
+G21225;Union;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37141;Pender;North Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G21123;Larue;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48249;Jim Wells;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G18117;Orange;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22027;Claiborne;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G39077;Huron;Ohio;5;5;Cold;Cold;A;A
+G27149;Stevens;Minnesota;6;6;Cold;Cold;A;A
+G49041;Sevier;Utah;5;5;Cold;Cold;B;B
+G19025;Calhoun;Iowa;6;5;Cold;Cold;A;A
+G31047;Dawson;Nebraska;5;5;Cold;Cold;A;A
+G08033;Dolores;Colorado;6;6;Cold;Cold;B;B
+G12055;Highlands;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G19109;Kossuth;Iowa;6;6;Cold;Cold;A;A
+G21047;Christian;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37065;Edgecombe;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37151;Randolph;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G20191;Sumner;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37193;Wilkes;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G26159;Van Buren;Michigan;5;5;Cold;Cold;A;A
+G27019;Carver;Minnesota;6;6;Cold;Cold;A;A
+G45015;Berkeley;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G46059;Hand;South Dakota;6;6;Cold;Cold;A;A
+G45047;Greenwood;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51033;Caroline;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27101;Murray;Minnesota;6;6;Cold;Cold;A;A
+G51103;Lancaster;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51119;Middlesex;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42053;Forest;Pennsylvania;5;5;Cold;Cold;A;A
+G21079;Garrard;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G34007;Camden;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05023;Cleburne;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17037;DeKalb;Illinois;5;5;Cold;Cold;A;A
+G26113;Missaukee;Michigan;6;6;Cold;Cold;A;A
+G05051;Garland;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48197;Hardeman;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G12125;Union;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G26027;Cass;Michigan;5;5;Cold;Cold;A;A
+G20145;Pawnee;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48237;Jack;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G19047;Crawford;Iowa;5;5;Cold;Cold;A;A
+G13023;Bleckley;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G19093;Ida;Iowa;6;5;Cold;Cold;A;A
+G19143;Osceola;Iowa;6;6;Cold;Cold;A;A
+G19129;Mills;Iowa;5;5;Cold;Cold;A;A
+G13099;Early;Georgia;3;2;Hot-Humid;Hot-Humid;A;A
+G13191;McIntosh;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G39041;Delaware;Ohio;5;5;Cold;Cold;A;A
+G13005;Bacon;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G27109;Olmsted;Minnesota;6;6;Cold;Cold;A;A
+G55081;Monroe;Wisconsin;6;5;Cold;Cold;A;A
+G39131;Pike;Ohio;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48135;Ector;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48165;Gaines;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G55101;Racine;Wisconsin;6;5;Cold;Cold;A;A
+G29013;Bates;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29101;Johnson;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29083;Henry;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28097;Montgomery;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48475;Ward;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48263;Kent;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G36039;Greene;New York;5;5;Cold;Cold;A;A
+G05071;Johnson;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51047;Culpeper;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54011;Cabell;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29129;Mercer;Missouri;5;5;Cold;Cold;A;A
+G72045;Comerío;;;;;;;
+G72029;Canóvanas;;;;;;;
+G12113;Santa Rosa;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G28039;George;Mississippi;3;2;Hot-Humid;Hot-Humid;A;A
+G18183;Whitley;Indiana;5;5;Cold;Cold;A;A
+G55017;Chippewa;Wisconsin;6;6;Cold;Cold;A;A
+G19171;Tama;Iowa;5;5;Cold;Cold;A;A
+G17141;Ogle;Illinois;5;5;Cold;Cold;A;A
+G20195;Trego;Kansas;5;4;Cold;Mixed-Humid;A;A
+G13283;Treutlen;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G48367;Parker;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G21197;Powell;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13085;Dawson;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G20081;Haskell;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37081;Guilford;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G54059;Mingo;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29141;Morgan;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40057;Harmon;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13075;Cook;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G17103;Lee;Illinois;5;5;Cold;Cold;A;A
+G28067;Jones;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G42047;Elk;Pennsylvania;6;5;Cold;Cold;A;A
+G47149;Rutherford;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G40133;Seminole;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G31083;Harlan;Nebraska;5;5;Cold;Cold;A;A
+G41027;Hood River;Oregon;5;5;Cold;Cold;B;B
+G08079;Mineral;Colorado;7;7;Very Cold;Very Cold;;
+G31017;Brown;Nebraska;5;5;Cold;Cold;A;A
+G08103;Rio Blanco;Colorado;6;6;Cold;Cold;B;B
+G48451;Tom Green;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G35055;Taos;New Mexico;5;5;Cold;Cold;B;B
+G21015;Boone;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22075;Plaquemines;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G38001;Adams;North Dakota;6;6;Cold;Cold;A;A
+G16027;Canyon;Idaho;5;5;Cold;Cold;B;B
+G23009;Hancock;Maine;6;6;Cold;Cold;A;A
+G01047;Dallas;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G28071;Lafayette;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G36011;Cayuga;New York;5;5;Cold;Cold;A;A
+G38093;Stutsman;North Dakota;7;6;Very Cold;Cold;;A
+G34011;Cumberland;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17081;Jefferson;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18041;Fayette;Indiana;5;4;Cold;Mixed-Humid;A;A
+G20105;Lincoln;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13055;Chattooga;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G17135;Montgomery;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28105;Oktibbeha;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G72057;Guayama;;;;;;;
+G20041;Dickinson;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18147;Spencer;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22011;Beauregard;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G38023;Divide;North Dakota;7;7;Very Cold;Very Cold;;
+G17099;LaSalle;Illinois;5;5;Cold;Cold;A;A
+G36037;Genesee;New York;5;5;Cold;Cold;A;A
+G72067;Hormigueros;;;;;;;
+G37111;McDowell;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20157;Republic;Kansas;5;5;Cold;Cold;A;A
+G21147;McCreary;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20093;Kearny;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40093;Major;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G44001;Bristol;Rhode Island;5;5;Cold;Cold;A;A
+G18177;Wayne;Indiana;5;5;Cold;Cold;A;A
+G16021;Boundary;Idaho;6;6;Cold;Cold;B;B
+G19147;Palo Alto;Iowa;6;6;Cold;Cold;A;A
+G06099;Stanislaus;California;3;3;Hot-Dry;Hot-Dry;B;B
+G20037;Crawford;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26061;Houghton;Michigan;7;6;Very Cold;Cold;;A
+G06077;San Joaquin;California;3;3;Hot-Dry;Hot-Dry;B;B
+G26081;Kent;Michigan;5;5;Cold;Cold;A;A
+G17045;Edgar;Illinois;5;5;Cold;Cold;A;A
+G47131;Obion;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46047;Fall River;South Dakota;6;6;Cold;Cold;A;A
+G44003;Kent;Rhode Island;5;5;Cold;Cold;A;A
+G45061;Lee;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G41017;Deschutes;Oregon;5;5;Cold;Cold;B;B
+G20057;Ford;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42085;Mercer;Pennsylvania;5;5;Cold;Cold;A;A
+G35017;Grant;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G05029;Conway;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G42123;Warren;Pennsylvania;5;5;Cold;Cold;A;A
+G51610;Falls Church;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51690;Martinsville;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30067;Park;Montana;6;6;Cold;Cold;B;B
+G12019;Clay;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G29229;Wright;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39099;Mahoning;Ohio;5;5;Cold;Cold;A;A
+G39109;Miami;Ohio;5;5;Cold;Cold;A;A
+G48453;Travis;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G31121;Merrick;Nebraska;5;5;Cold;Cold;A;A
+G21211;Shelby;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54051;Marshall;West Virginia;5;5;Cold;Cold;A;A
+G54031;Hardy;West Virginia;5;5;Cold;Cold;A;A
+G12107;Putnam;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G72119;Río Grande;;;;;;;
+G20051;Ellis;Kansas;5;4;Cold;Mixed-Humid;A;A
+G38041;Hettinger;North Dakota;6;6;Cold;Cold;A;A
+G46029;Codington;South Dakota;6;6;Cold;Cold;A;A
+G47037;Davidson;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48275;Knox;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G41023;Grant;Oregon;5;5;Cold;Cold;B;B
+G48271;Kinney;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G55129;Washburn;Wisconsin;7;6;Very Cold;Cold;;A
+G32029;Storey;Nevada;5;5;Cold;Cold;B;B
+G26045;Eaton;Michigan;5;5;Cold;Cold;A;A
+G08021;Conejos;Colorado;6;6;Cold;Cold;B;B
+G20177;Shawnee;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20069;Gray;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31111;Lincoln;Nebraska;5;5;Cold;Cold;A;A
+G51167;Russell;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20125;Montgomery;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G16065;Madison;Idaho;6;6;Cold;Cold;B;B
+G04001;Apache;Arizona;5;5;Cold;Cold;B;B
+G12071;Lee;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G16007;Bear Lake;Idaho;6;6;Cold;Cold;B;B
+G18019;Clark;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48039;Brazoria;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48265;Kerr;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48297;Live Oak;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G49017;Garfield;Utah;5;5;Cold;Cold;B;B
+G49051;Wasatch;Utah;6;6;Cold;Cold;B;B
+G51061;Fauquier;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55103;Richland;Wisconsin;6;5;Cold;Cold;A;A
+G55025;Dane;Wisconsin;6;5;Cold;Cold;A;A
+G20175;Seward;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22091;St. Helena;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G24035;Queen Anne's;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G25017;Middlesex;Massachusetts;5;5;Cold;Cold;A;A
+G27049;Goodhue;Minnesota;6;6;Cold;Cold;A;A
+G30105;Valley;Montana;6;6;Cold;Cold;B;B
+G29163;Pike;Missouri;5;5;Cold;Cold;A;A
+G37115;Madison;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48077;Clay;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G02240;Southeast Fairbanks;Alaska;8;8;Subarctic;Subarctic;;
+G05079;Lincoln;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05025;Cleveland;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06011;Colusa;California;3;3;Hot-Dry;Hot-Dry;B;B
+G13057;Cherokee;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13193;Macon;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G17115;Macon;Illinois;5;5;Cold;Cold;A;A
+G20149;Pottawatomie;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21229;Washington;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22079;Rapides;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G27053;Hennepin;Minnesota;6;6;Cold;Cold;A;A
+G27087;Mahnomen;Minnesota;7;7;Very Cold;Very Cold;;
+G28089;Madison;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30111;Yellowstone;Montana;6;6;Cold;Cold;B;B
+G34013;Essex;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G35053;Socorro;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G37195;Wilson;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13009;Baldwin;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G42043;Dauphin;Pennsylvania;5;4;Cold;Mixed-Humid;A;A
+G46075;Jones;South Dakota;6;5;Cold;Cold;A;A
+G48299;Llano;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48289;Leon;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48331;Milam;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48153;Floyd;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G56017;Hot Springs;Wyoming;6;6;Cold;Cold;B;B
+G54037;Jefferson;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G72005;Aguadilla;;;;;;;
+G72115;Quebradillas;;;;;;;
+G54057;Mineral;West Virginia;5;5;Cold;Cold;A;A
+G51161;Roanoke;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51089;Henry;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G53001;Adams;Washington;5;5;Cold;Cold;B;B
+G72047;Corozal;;;;;;;
+G48105;Crockett;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48501;Yoakum;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G35033;Mora;New Mexico;5;5;Cold;Cold;B;B
+G36121;Wyoming;New York;6;5;Cold;Cold;A;A
+G39089;Licking;Ohio;5;5;Cold;Cold;A;A
+G28017;Chickasaw;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G22043;Grant;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G21001;Adair;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28065;Jefferson Davis;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G29055;Crawford;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29167;Polk;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G33015;Rockingham;New Hampshire;5;5;Cold;Cold;A;A
+G54055;Mercer;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47163;Sullivan;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18089;Lake;Indiana;5;5;Cold;Cold;A;A
+G18119;Owen;Indiana;5;4;Cold;Mixed-Humid;A;A
+G19181;Warren;Iowa;5;5;Cold;Cold;A;A
+G21089;Greenup;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G41025;Harney;Oregon;5;5;Cold;Cold;B;B
+G31147;Richardson;Nebraska;5;5;Cold;Cold;A;A
+G34009;Cape May;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05067;Jackson;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06023;Humboldt;California;4;4;Marine;Marine;C;C
+G08057;Jackson;Colorado;7;7;Very Cold;Very Cold;;
+G09001;Fairfield;Connecticut;5;5;Cold;Cold;A;A
+G16033;Clark;Idaho;6;6;Cold;Cold;B;B
+G13101;Echols;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G21003;Allen;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22017;Caddo;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G23005;Cumberland;Maine;6;6;Cold;Cold;A;A
+G27155;Traverse;Minnesota;6;6;Cold;Cold;A;A
+G29153;Ozark;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G32013;Humboldt;Nevada;5;5;Cold;Cold;B;B
+G35031;McKinley;New Mexico;5;5;Cold;Cold;B;B
+G29095;Jackson;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36081;Queens;New York;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21111;Jefferson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37173;Swain;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48465;Val Verde;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G51133;Northumberland;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51029;Buckingham;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51153;Prince William;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55123;Vernon;Wisconsin;6;5;Cold;Cold;A;A
+G37019;Brunswick;North Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G48485;Wichita;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G28095;Monroe;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G02060;Bristol Bay;Alaska;7;7;Very Cold;Very Cold;;
+G02290;Yukon-Koyukuk;Alaska;8;8;Subarctic;Subarctic;;
+G02185;North Slope;Alaska;8;8;Subarctic;Subarctic;;
+G06105;Trinity;California;4;4;Mixed-Dry;Mixed-Dry;B;B
+G06029;Kern;California;3;3;Hot-Dry;Hot-Dry;B;B
+G01009;Blount;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48315;Marion;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G49009;Daggett;Utah;6;6;Cold;Cold;B;B
+G50021;Rutland;Vermont;6;6;Cold;Cold;A;A
+G21041;Carroll;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G49001;Beaver;Utah;5;5;Cold;Cold;B;B
+G50027;Windsor;Vermont;6;6;Cold;Cold;A;A
+G51121;Montgomery;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51077;Grayson;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29155;Pemiscot;Missouri;4;3;Mixed-Humid;Mixed-Humid;A;A
+G12119;Sumter;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G15003;Honolulu;Hawaii;1;1;Hot-Humid;Hot-Humid;A;A
+G38007;Billings;North Dakota;6;6;Cold;Cold;A;A
+G30061;Mineral;Montana;6;6;Cold;Cold;B;B
+G30041;Hill;Montana;6;6;Cold;Cold;B;B
+G32003;Clark;Nevada;3;3;Hot-Dry;Hot-Dry;B;B
+G36115;Washington;New York;5;5;Cold;Cold;A;A
+G39123;Ottawa;Ohio;5;5;Cold;Cold;A;A
+G39035;Cuyahoga;Ohio;5;5;Cold;Cold;A;A
+G41065;Wasco;Oregon;5;5;Cold;Cold;B;B
+G39045;Fairfield;Ohio;5;5;Cold;Cold;A;A
+G40031;Comanche;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46061;Hanson;South Dakota;6;6;Cold;Cold;A;A
+G48209;Hays;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G47133;Overton;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G45033;Dillon;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48099;Coryell;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48361;Orange;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48333;Mills;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48019;Bandera;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G55009;Brown;Wisconsin;6;6;Cold;Cold;A;A
+G56005;Campbell;Wyoming;6;6;Cold;Cold;B;B
+G55035;Eau Claire;Wisconsin;6;6;Cold;Cold;A;A
+G72071;Isabela;;;;;;;
+G18165;Vermillion;Indiana;5;5;Cold;Cold;A;A
+G46013;Brown;South Dakota;6;6;Cold;Cold;A;A
+G54103;Wetzel;West Virginia;5;5;Cold;Cold;A;A
+G72054;Florida;;;;;;;
+G48169;Garza;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G36123;Yates;New York;5;5;Cold;Cold;A;A
+G26051;Gladwin;Michigan;6;6;Cold;Cold;A;A
+G26001;Alcona;Michigan;6;6;Cold;Cold;A;A
+G27171;Wright;Minnesota;6;6;Cold;Cold;A;A
+G40063;Hughes;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G28107;Panola;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G19099;Jasper;Iowa;5;5;Cold;Cold;A;A
+G12037;Franklin;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G22059;LaSalle;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G42117;Tioga;Pennsylvania;6;5;Cold;Cold;A;A
+G34035;Somerset;New Jersey;5;5;Cold;Cold;A;A
+G05135;Sharp;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06111;Ventura;California;3;3;Marine;Marine;C;C
+G06003;Alpine;California;6;6;Cold;Cold;B;B
+G06001;Alameda;California;3;3;Marine;Marine;C;C
+G13083;Dade;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G13257;Stephens;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G18083;Knox;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36091;Saratoga;New York;5;5;Cold;Cold;A;A
+G38065;Oliver;North Dakota;6;6;Cold;Cold;A;A
+G17043;DuPage;Illinois;5;5;Cold;Cold;A;A
+G18057;Hamilton;Indiana;5;5;Cold;Cold;A;A
+G19135;Monroe;Iowa;5;5;Cold;Cold;A;A
+G19183;Washington;Iowa;5;5;Cold;Cold;A;A
+G21045;Casey;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21153;Magoffin;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22001;Acadia;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G22039;Evangeline;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G25015;Hampshire;Massachusetts;5;5;Cold;Cold;A;A
+G27039;Dodge;Minnesota;6;6;Cold;Cold;A;A
+G36095;Schoharie;New York;6;5;Cold;Cold;A;A
+G29007;Audrain;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31097;Johnson;Nebraska;5;5;Cold;Cold;A;A
+G39175;Wyandot;Ohio;5;5;Cold;Cold;A;A
+G21039;Carlisle;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G50013;Grand Isle;Vermont;6;6;Cold;Cold;A;A
+G53039;Klickitat;Washington;5;5;Cold;Cold;B;B
+G38017;Cass;North Dakota;7;6;Very Cold;Cold;;A
+G18065;Henry;Indiana;5;5;Cold;Cold;A;A
+G20067;Grant;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31081;Hamilton;Nebraska;5;5;Cold;Cold;A;A
+G21137;Lincoln;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22009;Avoyelles;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G24027;Howard;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21065;Estill;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31005;Arthur;Nebraska;5;5;Cold;Cold;A;A
+G13321;Worth;Georgia;3;2;Hot-Humid;Hot-Humid;A;A
+G38059;Morton;North Dakota;6;6;Cold;Cold;A;A
+G37183;Wake;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G17061;Greene;Illinois;5;4;Cold;Mixed-Humid;A;A
+G17017;Cass;Illinois;5;5;Cold;Cold;A;A
+G40075;Kiowa;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40099;Murray;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G42109;Snyder;Pennsylvania;5;5;Cold;Cold;A;A
+G45027;Clarendon;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G47185;White;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29171;Putnam;Missouri;5;5;Cold;Cold;A;A
+G34001;Atlantic;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30031;Gallatin;Montana;6;6;Cold;Cold;B;B
+G30101;Toole;Montana;6;6;Cold;Cold;B;B
+G40141;Tillman;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G16041;Franklin;Idaho;6;6;Cold;Cold;B;B
+G17163;St. Clair;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18077;Jefferson;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19177;Van Buren;Iowa;5;5;Cold;Cold;A;A
+G19085;Harrison;Iowa;5;5;Cold;Cold;A;A
+G29227;Worth;Missouri;5;5;Cold;Cold;A;A
+G26071;Iron;Michigan;7;6;Very Cold;Cold;;A
+G27169;Winona;Minnesota;6;5;Cold;Cold;A;A
+G28131;Stone;Mississippi;2;2;Hot-Humid;Hot-Humid;A;A
+G40083;Logan;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39067;Harrison;Ohio;5;5;Cold;Cold;A;A
+G12001;Alachua;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G20181;Sherman;Kansas;5;5;Cold;Cold;A;A
+G29051;Cole;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37047;Columbus;North Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G39155;Trumbull;Ohio;5;5;Cold;Cold;A;A
+G21029;Bullitt;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30029;Flathead;Montana;6;6;Cold;Cold;B;B
+G13287;Turner;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G31141;Platte;Nebraska;5;5;Cold;Cold;A;A
+G17039;De Witt;Illinois;5;5;Cold;Cold;A;A
+G24039;Somerset;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06093;Siskiyou;California;5;5;Cold;Cold;B;B
+G04012;La Paz;Arizona;2;2;Hot-Dry;Hot-Dry;B;B
+G12087;Monroe;Florida;1;1;Hot-Humid;Hot-Humid;A;A
+G12033;Escambia;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G20007;Barber;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13047;Catoosa;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G13033;Burke;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21027;Breckinridge;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G24005;Baltimore;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30035;Glacier;Montana;6;6;Cold;Cold;B;B
+G31021;Burt;Nebraska;5;5;Cold;Cold;A;A
+G36055;Monroe;New York;5;5;Cold;Cold;A;A
+G37099;Jackson;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39015;Brown;Ohio;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39135;Preble;Ohio;5;5;Cold;Cold;A;A
+G39053;Gallia;Ohio;4;4;Mixed-Humid;Mixed-Humid;A;A
+G45069;Marlboro;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51760;Richmond;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51097;King and Queen;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01121;Talladega;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G02195;Petersburg;Alaska;7;6;Very Cold;Cold;;A
+G02020;Anchorage;Alaska;7;7;Very Cold;Very Cold;;
+G08109;Saguache;Colorado;6;6;Cold;Cold;B;B
+G13063;Clayton;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13153;Houston;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G13037;Calhoun;Georgia;3;2;Hot-Humid;Hot-Humid;A;A
+G28093;Marshall;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29147;Nodaway;Missouri;5;5;Cold;Cold;A;A
+G13207;Monroe;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06115;Yuba;California;3;3;Hot-Dry;Hot-Dry;B;B
+G08059;Jefferson;Colorado;5;5;Cold;Cold;B;B
+G12133;Washington;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G13015;Bartow;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18131;Pulaski;Indiana;5;5;Cold;Cold;A;A
+G18143;Scott;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19037;Chickasaw;Iowa;6;5;Cold;Cold;A;A
+G31073;Gosper;Nebraska;5;5;Cold;Cold;A;A
+G21151;Madison;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31113;Logan;Nebraska;5;5;Cold;Cold;A;A
+G22121;West Baton Rouge;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G22041;Franklin;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G26135;Oscoda;Michigan;6;6;Cold;Cold;A;A
+G28159;Winston;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29043;Christian;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39019;Carroll;Ohio;5;5;Cold;Cold;A;A
+G46115;Spink;South Dakota;6;6;Cold;Cold;A;A
+G47177;Warren;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47035;Cumberland;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48183;Gregg;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48417;Shackelford;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G54067;Nicholas;West Virginia;5;4;Cold;Mixed-Humid;A;A
+G49029;Morgan;Utah;6;6;Cold;Cold;B;B
+G04005;Coconino;Arizona;5;5;Cold;Cold;B;B
+G51015;Augusta;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05003;Ashley;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05091;Miller;Arkansas;3;3;Hot-Humid;Hot-Humid;A;A
+G53071;Walla Walla;Washington;5;5;Cold;Cold;B;B
+G21035;Calloway;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51800;Suffolk;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G51620;Franklin;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G51023;Botetourt;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55073;Marathon;Wisconsin;6;6;Cold;Cold;A;A
+G56029;Park;Wyoming;6;6;Cold;Cold;B;B
+G72051;Dorado;;;;;;;
+G48347;Nacogdoches;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G17165;Saline;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36023;Cortland;New York;5;5;Cold;Cold;A;A
+G27167;Wilkin;Minnesota;7;6;Very Cold;Cold;;A
+G36079;Putnam;New York;5;5;Cold;Cold;A;A
+G19105;Jones;Iowa;5;5;Cold;Cold;A;A
+G42049;Erie;Pennsylvania;5;5;Cold;Cold;A;A
+G29109;Lawrence;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29005;Atchison;Missouri;5;5;Cold;Cold;A;A
+G42065;Jefferson;Pennsylvania;5;5;Cold;Cold;A;A
+G13235;Pulaski;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G31025;Cass;Nebraska;5;5;Cold;Cold;A;A
+G38013;Burke;North Dakota;7;7;Very Cold;Very Cold;;
+G17015;Carroll;Illinois;5;5;Cold;Cold;A;A
+G01111;Randolph;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06037;Los Angeles;California;3;3;Hot-Dry;Hot-Dry;B;B
+G06045;Mendocino;California;3;3;Marine;Marine;C;C
+G12003;Baker;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G36103;Suffolk;New York;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29183;St. Charles;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G41015;Curry;Oregon;4;4;Marine;Marine;C;C
+G47103;Lincoln;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48205;Hartley;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G48215;Hidalgo;Texas;2;1;Hot-Humid;Hot-Humid;A;A
+G49019;Grand;Utah;5;5;Cold;Cold;B;B
+G51179;Stafford;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01031;Coffee;Alabama;3;2;Hot-Humid;Hot-Humid;A;A
+G01025;Clarke;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G39105;Meigs;Ohio;5;4;Cold;Mixed-Humid;A;A
+G16037;Custer;Idaho;6;6;Cold;Cold;B;B
+G04027;Yuma;Arizona;2;2;Hot-Dry;Hot-Dry;B;B
+G04023;Santa Cruz;Arizona;3;3;Hot-Dry;Hot-Dry;B;B
+G05133;Sevier;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12059;Holmes;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G08083;Montezuma;Colorado;5;5;Cold;Cold;B;B
+G45059;Laurens;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46031;Corson;South Dakota;6;6;Cold;Cold;A;A
+G47049;Fentress;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47047;Fayette;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48407;San Jacinto;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48345;Motley;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48431;Sterling;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G18001;Adams;Indiana;5;5;Cold;Cold;A;A
+G08053;Hinsdale;Colorado;7;7;Very Cold;Very Cold;;
+G20071;Greeley;Kansas;5;5;Cold;Cold;A;A
+G29207;Stoddard;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13159;Jasper;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30047;Lake;Montana;6;6;Cold;Cold;B;B
+G30093;Silver Bow;Montana;6;6;Cold;Cold;B;B
+G21031;Butler;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13061;Clay;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G17033;Crawford;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19167;Sioux;Iowa;6;6;Cold;Cold;A;A
+G22019;Calcasieu;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G22085;Sabine;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G22029;Concordia;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G28109;Pearl River;Mississippi;2;2;Hot-Humid;Hot-Humid;A;A
+G28151;Washington;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30021;Dawson;Montana;6;6;Cold;Cold;B;B
+G28111;Perry;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G38003;Barnes;North Dakota;7;6;Very Cold;Cold;;A
+G37067;Forsyth;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G47059;Greene;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G41003;Benton;Oregon;4;4;Marine;Marine;C;C
+G42079;Luzerne;Pennsylvania;5;5;Cold;Cold;A;A
+G45019;Charleston;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G47087;Jackson;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48193;Hamilton;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48029;Bexar;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G18061;Harrison;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18171;Warren;Indiana;5;5;Cold;Cold;A;A
+G19043;Clayton;Iowa;6;5;Cold;Cold;A;A
+G22051;Jefferson;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G19191;Winneshiek;Iowa;6;5;Cold;Cold;A;A
+G23025;Somerset;Maine;6;6;Cold;Cold;A;A
+G02070;Dillingham;Alaska;8;7;Subarctic;Very Cold;;
+G06039;Madera;California;3;3;Hot-Dry;Hot-Dry;B;B
+G16051;Jefferson;Idaho;6;6;Cold;Cold;B;B
+G17143;Peoria;Illinois;5;5;Cold;Cold;A;A
+G17063;Grundy;Illinois;5;5;Cold;Cold;A;A
+G18071;Jackson;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18059;Hancock;Indiana;5;5;Cold;Cold;A;A
+G20159;Rice;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20179;Sheridan;Kansas;5;5;Cold;Cold;A;A
+G31125;Nance;Nebraska;5;5;Cold;Cold;A;A
+G22033;East Baton Rouge;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G26155;Shiawassee;Michigan;5;5;Cold;Cold;A;A
+G39073;Hocking;Ohio;5;4;Cold;Mixed-Humid;A;A
+G01055;Etowah;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G42125;Washington;Pennsylvania;5;5;Cold;Cold;A;A
+G48487;Wilbarger;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G49047;Uintah;Utah;6;6;Cold;Cold;B;B
+G51019;Bedford;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G56045;Weston;Wyoming;6;6;Cold;Cold;B;B
+G01015;Calhoun;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G01041;Crenshaw;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G08035;Douglas;Colorado;5;5;Cold;Cold;B;B
+G40069;Johnston;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G28055;Issaquena;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G20161;Riley;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40071;Kay;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G40009;Beckham;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13097;Douglas;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G31101;Keith;Nebraska;5;5;Cold;Cold;A;A
+G31177;Washington;Nebraska;5;5;Cold;Cold;A;A
+G29045;Clark;Missouri;5;5;Cold;Cold;A;A
+G32017;Lincoln;Nevada;5;4;Cold;Mixed-Dry;B;B
+G34039;Union;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46071;Jackson;South Dakota;5;5;Cold;Cold;A;A
+G46041;Dewey;South Dakota;6;6;Cold;Cold;A;A
+G46067;Hutchinson;South Dakota;5;5;Cold;Cold;A;A
+G47141;Putnam;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47119;Maury;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48439;Tarrant;Texas;3;2;Hot-Humid;Hot-Humid;A;A
+G42103;Pike;Pennsylvania;5;5;Cold;Cold;A;A
+G48343;Morris;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G46127;Union;South Dakota;5;5;Cold;Cold;A;A
+G46109;Roberts;South Dakota;6;6;Cold;Cold;A;A
+G55053;Jackson;Wisconsin;6;6;Cold;Cold;A;A
+G72105;Naranjito;;;;;;;
+G72117;Rincón;;;;;;;
+G53077;Yakima;Washington;5;5;Cold;Cold;B;B
+G55013;Burnett;Wisconsin;7;6;Very Cold;Cold;;A
+G72065;Hatillo;;;;;;;
+G42071;Lancaster;Pennsylvania;5;4;Cold;Mixed-Humid;A;A
+G48133;Eastland;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G27029;Clearwater;Minnesota;7;7;Very Cold;Very Cold;;
+G29093;Iron;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30097;Sweet Grass;Montana;6;6;Cold;Cold;B;B
+G30039;Granite;Montana;6;6;Cold;Cold;B;B
+G30015;Chouteau;Montana;6;6;Cold;Cold;B;B
+G36113;Warren;New York;6;6;Cold;Cold;A;A
+G37025;Cabarrus;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G38047;Logan;North Dakota;6;6;Cold;Cold;A;A
+G29017;Bollinger;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42033;Clearfield;Pennsylvania;6;5;Cold;Cold;A;A
+G48125;Dickens;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48119;Delta;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48391;Refugio;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48351;Newton;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G54101;Webster;West Virginia;5;4;Cold;Mixed-Humid;A;A
+G47065;Hamilton;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G56019;Johnson;Wyoming;6;6;Cold;Cold;B;B
+G54083;Randolph;West Virginia;5;5;Cold;Cold;A;A
+G54025;Greenbrier;West Virginia;5;4;Cold;Mixed-Humid;A;A
+G47039;Decatur;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G47001;Anderson;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47187;Williamson;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G26115;Monroe;Michigan;5;5;Cold;Cold;A;A
+G48369;Parmer;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G35039;Rio Arriba;New Mexico;5;5;Cold;Cold;B;B
+G36061;New York;New York;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27151;Swift;Minnesota;6;6;Cold;Cold;A;A
+G40111;Okmulgee;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G28077;Lawrence;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G21199;Pulaski;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21201;Robertson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30027;Fergus;Montana;6;6;Cold;Cold;B;B
+G41053;Polk;Oregon;4;4;Marine;Marine;C;C
+G13011;Banks;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G22101;St. Mary;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G22015;Bossier;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G22087;St. Bernard;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G17173;Shelby;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05055;Greene;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06083;Santa Barbara;California;3;3;Marine;Marine;C;C
+G09013;Tolland;Connecticut;5;5;Cold;Cold;A;A
+G12085;Martin;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G13027;Brooks;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G18075;Jay;Indiana;5;5;Cold;Cold;A;A
+G18047;Franklin;Indiana;5;4;Cold;Mixed-Humid;A;A
+G13179;Liberty;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G23027;Waldo;Maine;6;6;Cold;Cold;A;A
+G24033;Prince George's;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G24003;Anne Arundel;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G25009;Essex;Massachusetts;5;5;Cold;Cold;A;A
+G28103;Noxubee;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29099;Jefferson;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36029;Erie;New York;5;5;Cold;Cold;A;A
+G39043;Erie;Ohio;5;5;Cold;Cold;A;A
+G41063;Wallowa;Oregon;5;5;Cold;Cold;B;B
+G42051;Fayette;Pennsylvania;5;5;Cold;Cold;A;A
+G30085;Roosevelt;Montana;6;6;Cold;Cold;B;B
+G31129;Nuckolls;Nebraska;5;5;Cold;Cold;A;A
+G32023;Nye;Nevada;5;4;Cold;Mixed-Dry;B;B
+G34031;Passaic;New Jersey;5;5;Cold;Cold;A;A
+G35007;Colfax;New Mexico;5;5;Cold;Cold;B;B
+G35045;San Juan;New Mexico;5;5;Cold;Cold;B;B
+G39121;Noble;Ohio;5;5;Cold;Cold;A;A
+G40065;Jackson;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46053;Gregory;South Dakota;5;5;Cold;Cold;A;A
+G38029;Emmons;North Dakota;6;6;Cold;Cold;A;A
+G51035;Carroll;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G53049;Pacific;Washington;4;4;Marine;Marine;C;C
+G53051;Pend Oreille;Washington;6;6;Cold;Cold;B;B
+G55091;Pepin;Wisconsin;6;6;Cold;Cold;A;A
+G01035;Conecuh;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G13121;Fulton;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13163;Jefferson;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13031;Bulloch;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G13169;Jones;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13007;Baker;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G17107;Logan;Illinois;5;5;Cold;Cold;A;A
+G18133;Putnam;Indiana;5;4;Cold;Mixed-Humid;A;A
+G20047;Edwards;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22055;Lafayette;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G26123;Newaygo;Michigan;6;6;Cold;Cold;A;A
+G29049;Clinton;Missouri;5;4;Cold;Mixed-Humid;A;A
+G29159;Pettis;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31093;Howard;Nebraska;5;5;Cold;Cold;A;A
+G31183;Wheeler;Nebraska;5;5;Cold;Cold;A;A
+G31091;Hooker;Nebraska;5;5;Cold;Cold;A;A
+G31175;Valley;Nebraska;5;5;Cold;Cold;A;A
+G39069;Henry;Ohio;5;5;Cold;Cold;A;A
+G47157;Shelby;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G23013;Knox;Maine;6;6;Cold;Cold;A;A
+G23017;Oxford;Maine;6;6;Cold;Cold;A;A
+G24041;Talbot;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G25005;Bristol;Massachusetts;5;5;Cold;Cold;A;A
+G29023;Butler;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21059;Daviess;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G49053;Washington;Utah;3;3;Hot-Dry;Hot-Dry;B;B
+G30003;Big Horn;Montana;6;6;Cold;Cold;B;B
+G16059;Lemhi;Idaho;6;6;Cold;Cold;B;B
+G35003;Catron;New Mexico;5;4;Cold;Mixed-Dry;B;B
+G06013;Contra Costa;California;3;3;Hot-Dry;Hot-Dry;B;B
+G05125;Saline;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21195;Pike;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37165;Scotland;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17031;Cook;Illinois;5;5;Cold;Cold;A;A
+G17055;Franklin;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21095;Harlan;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20061;Geary;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47137;Pickett;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G24043;Washington;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17193;White;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20199;Wallace;Kansas;5;5;Cold;Cold;A;A
+G48085;Collin;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48075;Childress;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G21121;Knox;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21125;Laurel;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20115;Marion;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21127;Lawrence;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21133;Letcher;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21135;Lewis;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21139;Livingston;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20197;Wabaunsee;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17067;Hancock;Illinois;5;5;Cold;Cold;A;A
+G27011;Big Stone;Minnesota;6;6;Cold;Cold;A;A
+G06009;Calaveras;California;4;4;Mixed-Dry;Mixed-Dry;B;B
+G48131;Duval;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G25001;Barnstable;Massachusetts;5;5;Cold;Cold;A;A
+G21017;Bourbon;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21075;Fulton;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G24013;Carroll;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22081;Red River;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G16079;Shoshone;Idaho;5;5;Cold;Cold;B;B
+G06019;Fresno;California;3;3;Hot-Dry;Hot-Dry;B;B
+G06107;Tulare;California;3;3;Hot-Dry;Hot-Dry;B;B
+G16035;Clearwater;Idaho;5;5;Cold;Cold;B;B
+G37095;Hyde;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48279;Lamb;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G51139;Page;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51049;Cumberland;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54097;Upshur;West Virginia;5;4;Cold;Mixed-Humid;A;A
+G01039;Covington;Alabama;3;2;Hot-Humid;Hot-Humid;A;A
+G01115;St. Clair;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51175;Southampton;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G53073;Whatcom;Washington;4;4;Marine;Marine;C;C
+G53025;Grant;Washington;5;5;Cold;Cold;B;B
+G53011;Clark;Washington;4;4;Marine;Marine;C;C
+G72043;Coamo;;;;;;;
+G51101;King William;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51770;Roanoke;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51173;Smyth;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47071;Hardin;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G55119;Taylor;Wisconsin;7;6;Very Cold;Cold;;A
+G12127;Volusia;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G18151;Steuben;Indiana;5;5;Cold;Cold;A;A
+G27127;Redwood;Minnesota;6;6;Cold;Cold;A;A
+G28127;Simpson;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G20209;Wyandotte;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37127;Nash;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G37145;Person;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G13035;Butts;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39033;Crawford;Ohio;5;5;Cold;Cold;A;A
+G21037;Campbell;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21083;Graves;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21009;Barren;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37155;Robeson;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G31027;Cedar;Nebraska;5;5;Cold;Cold;A;A
+G39087;Lawrence;Ohio;4;4;Mixed-Humid;Mixed-Humid;A;A
+G38097;Traill;North Dakota;7;6;Very Cold;Cold;;A
+G17127;Massac;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40035;Craig;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G48217;Hill;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G31015;Boyd;Nebraska;5;5;Cold;Cold;A;A
+G38099;Walsh;North Dakota;7;7;Very Cold;Very Cold;;
+G01077;Lauderdale;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G08069;Larimer;Colorado;5;5;Cold;Cold;B;B
+G13239;Quitman;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G13295;Walker;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G17119;Madison;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19111;Lee;Iowa;5;5;Cold;Cold;A;A
+G18153;Sullivan;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G12077;Liberty;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G41009;Columbia;Oregon;4;4;Marine;Marine;C;C
+G06033;Lake;California;4;4;Mixed-Dry;Mixed-Dry;B;B
+G53037;Kittitas;Washington;5;5;Cold;Cold;B;B
+G12129;Wakulla;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G12131;Walton;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G27041;Douglas;Minnesota;6;6;Cold;Cold;A;A
+G46003;Aurora;South Dakota;6;6;Cold;Cold;A;A
+G20203;Wichita;Kansas;5;5;Cold;Cold;A;A
+G37037;Chatham;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G21149;McLean;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G49011;Davis;Utah;5;5;Cold;Cold;B;B
+G49057;Weber;Utah;5;5;Cold;Cold;B;B
+G21159;Martin;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26083;Keweenaw;Michigan;7;7;Very Cold;Very Cold;;
+G21165;Menifee;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37085;Harnett;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G49049;Utah;Utah;5;5;Cold;Cold;B;B
+G26105;Mason;Michigan;6;6;Cold;Cold;A;A
+G54087;Roane;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54089;Summers;West Virginia;5;4;Cold;Mixed-Humid;A;A
+G55027;Dodge;Wisconsin;6;5;Cold;Cold;A;A
+G46051;Grant;South Dakota;6;6;Cold;Cold;A;A
+G26117;Montcalm;Michigan;5;5;Cold;Cold;A;A
+G47045;Dyer;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21183;Ohio;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06053;Monterey;California;3;3;Marine;Marine;C;C
+G24021;Frederick;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51107;Loudoun;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G16087;Washington;Idaho;5;5;Cold;Cold;B;B
+G24023;Garrett;Maryland;5;5;Cold;Cold;A;A
+G54077;Preston;West Virginia;5;5;Cold;Cold;A;A
+G17159;Richland;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G24029;Kent;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47105;Loudon;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G24031;Montgomery;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26005;Allegan;Michigan;5;5;Cold;Cold;A;A
+G21091;Hancock;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17185;Wabash;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G02130;Ketchikan Gateway;Alaska;7;5;Very Cold;Cold;;C
+G13107;Emanuel;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G04025;Yavapai;Arizona;4;4;Mixed-Dry;Mixed-Dry;B;B
+G08029;Delta;Colorado;5;5;Cold;Cold;B;B
+G12095;Orange;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G16061;Lewis;Idaho;5;5;Cold;Cold;B;B
+G17025;Clay;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18017;Cass;Indiana;5;5;Cold;Cold;A;A
+G19055;Delaware;Iowa;6;5;Cold;Cold;A;A
+G20031;Coffey;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31123;Morrill;Nebraska;5;5;Cold;Cold;A;A
+G21239;Woodford;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21113;Jessamine;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20167;Russell;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21203;Rockcastle;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21179;Nelson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27061;Itasca;Minnesota;7;7;Very Cold;Very Cold;;
+G28073;Lamar;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G28133;Sunflower;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G36083;Rensselaer;New York;5;5;Cold;Cold;A;A
+G36069;Ontario;New York;5;5;Cold;Cold;A;A
+G38061;Mountrail;North Dakota;7;6;Very Cold;Cold;;A
+G37137;Pamlico;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13001;Appling;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G40049;Garvin;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40119;Payne;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40117;Pawnee;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G47041;DeKalb;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47153;Sequatchie;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47011;Bradley;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48291;Liberty;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G51087;Henrico;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46027;Clay;South Dakota;5;5;Cold;Cold;A;A
+G55055;Jefferson;Wisconsin;6;5;Cold;Cold;A;A
+G72013;Arecibo;;;;;;;
+G01127;Walker;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51099;King George;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55043;Grant;Wisconsin;6;5;Cold;Cold;A;A
+G42045;Delaware;Pennsylvania;4;4;Mixed-Humid;Mixed-Humid;A;A
+G49037;San Juan;Utah;5;5;Cold;Cold;B;B
+G47069;Hardeman;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G55021;Columbia;Wisconsin;6;5;Cold;Cold;A;A
+G48419;Shelby;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48061;Cameron;Texas;2;1;Hot-Humid;Hot-Humid;A;A
+G06075;San Francisco;California;3;3;Marine;Marine;C;C
+G17085;Jo Daviess;Illinois;5;5;Cold;Cold;A;A
+G27015;Brown;Minnesota;6;6;Cold;Cold;A;A
+G27081;Lincoln;Minnesota;6;6;Cold;Cold;A;A
+G37061;Duplin;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18007;Benton;Indiana;5;5;Cold;Cold;A;A
+G19103;Johnson;Iowa;5;5;Cold;Cold;A;A
+G19165;Shelby;Iowa;5;5;Cold;Cold;A;A
+G20083;Hodgeman;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28029;Copiah;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G35035;Otero;New Mexico;3;3;Hot-Dry;Hot-Dry;B;B
+G18181;White;Indiana;5;5;Cold;Cold;A;A
+G18085;Kosciusko;Indiana;5;5;Cold;Cold;A;A
+G38085;Sioux;North Dakota;6;6;Cold;Cold;A;A
+G34005;Burlington;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19193;Woodbury;Iowa;5;5;Cold;Cold;A;A
+G21051;Clay;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G41007;Clatsop;Oregon;4;4;Marine;Marine;C;C
+G05093;Mississippi;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12039;Gadsden;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G12045;Gulf;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G12075;Levy;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G26093;Livingston;Michigan;5;5;Cold;Cold;A;A
+G35019;Guadalupe;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G42131;Wyoming;Pennsylvania;5;5;Cold;Cold;A;A
+G48223;Hopkins;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48473;Waller;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G36087;Rockland;New York;5;5;Cold;Cold;A;A
+G28125;Sharkey;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21155;Marion;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21057;Cumberland;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01071;Jackson;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G22105;Tangipahoa;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G32019;Lyon;Nevada;5;4;Cold;Mixed-Dry;B;B
+G39001;Adams;Ohio;4;4;Mixed-Humid;Mixed-Humid;A;A
+G02170;Matanuska-Susitna;Alaska;7;7;Very Cold;Very Cold;;
+G09005;Litchfield;Connecticut;5;5;Cold;Cold;A;A
+G39103;Medina;Ohio;5;5;Cold;Cold;A;A
+G37175;Transylvania;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01061;Geneva;Alabama;3;2;Hot-Humid;Hot-Humid;A;A
+G16053;Jerome;Idaho;5;5;Cold;Cold;B;B
+G09011;New London;Connecticut;5;5;Cold;Cold;A;A
+G20121;Miami;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06081;San Mateo;California;3;3;Marine;Marine;C;C
+G13025;Brantley;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G12081;Manatee;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G13029;Bryan;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G22077;Pointe Coupee;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G23011;Kennebec;Maine;6;6;Cold;Cold;A;A
+G41019;Douglas;Oregon;4;4;Marine;Marine;C;C
+G55023;Crawford;Wisconsin;6;5;Cold;Cold;A;A
+G48227;Howard;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48257;Kaufman;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G13241;Rabun;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G05143;Washington;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36031;Essex;New York;6;6;Cold;Cold;A;A
+G17167;Sangamon;Illinois;5;5;Cold;Cold;A;A
+G22025;Catahoula;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G17139;Moultrie;Illinois;5;5;Cold;Cold;A;A
+G21105;Hickman;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21167;Mercer;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36051;Livingston;New York;5;5;Cold;Cold;A;A
+G37097;Iredell;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G39159;Union;Ohio;5;5;Cold;Cold;A;A
+G47033;Crockett;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13243;Randolph;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G30057;Madison;Montana;6;6;Cold;Cold;B;B
+G38077;Richland;North Dakota;6;6;Cold;Cold;A;A
+G23015;Lincoln;Maine;6;6;Cold;Cold;A;A
+G30063;Missoula;Montana;6;6;Cold;Cold;B;B
+G29187;St. Francois;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08061;Kiowa;Colorado;5;5;Cold;Cold;B;B
+G08065;Lake;Colorado;7;7;Very Cold;Very Cold;;
+G48495;Winkler;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G22083;Richland;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G08089;Otero;Colorado;4;4;Mixed-Dry;Mixed-Dry;B;B
+G26033;Chippewa;Michigan;7;6;Very Cold;Cold;;A
+G08093;Park;Colorado;7;7;Very Cold;Very Cold;;
+G41011;Coos;Oregon;4;4;Marine;Marine;C;C
+G06109;Tuolumne;California;4;4;Mixed-Dry;Mixed-Dry;B;B
+G22021;Caldwell;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G02122;Kenai Peninsula;Alaska;7;7;Very Cold;Very Cold;;
+G13021;Bibb;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29203;Shannon;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21073;Franklin;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22089;St. Charles;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G29015;Benton;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40125;Pottawatomie;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48065;Carson;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G51730;Petersburg;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29073;Gasconade;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51143;Pittsylvania;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G29125;Maries;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42093;Montour;Pennsylvania;5;5;Cold;Cold;A;A
+G05011;Bradley;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29069;Dunklin;Missouri;4;3;Mixed-Humid;Mixed-Humid;A;A
+G16019;Bonneville;Idaho;6;6;Cold;Cold;B;B
+G18141;St. Joseph;Indiana;5;5;Cold;Cold;A;A
+G06091;Sierra;California;5;5;Cold;Cold;B;B
+G37177;Tyrrell;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05139;Union;Arkansas;3;3;Hot-Humid;Hot-Humid;A;A
+G32001;Churchill;Nevada;5;5;Cold;Cold;B;B
+G51820;Waynesboro;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55045;Green;Wisconsin;6;5;Cold;Cold;A;A
+G16017;Bonner;Idaho;6;6;Cold;Cold;B;B
+G16075;Payette;Idaho;5;5;Cold;Cold;B;B
+G01019;Cherokee;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17195;Whiteside;Illinois;5;5;Cold;Cold;A;A
+G19057;Des Moines;Iowa;5;5;Cold;Cold;A;A
+G26089;Leelanau;Michigan;6;6;Cold;Cold;A;A
+G37021;Buncombe;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05031;Craighead;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G33009;Grafton;New Hampshire;6;6;Cold;Cold;A;A
+G02275;Wrangell;Alaska;7;6;Very Cold;Cold;;A
+G05039;Dallas;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05041;Desha;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12063;Jackson;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G13275;Thomas;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G28023;Clarke;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G72141;Utuado;;;;;;;
+G54081;Raleigh;West Virginia;5;4;Cold;Mixed-Humid;A;A
+G37049;Craven;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G72035;Cayey;;;;;;;
+G26047;Emmet;Michigan;6;6;Cold;Cold;A;A
+G17007;Boone;Illinois;5;5;Cold;Cold;A;A
+G20053;Ellsworth;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19015;Boone;Iowa;5;5;Cold;Cold;A;A
+G06073;San Diego;California;3;3;Hot-Dry;Hot-Dry;B;B
+G48491;Williamson;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G32021;Mineral;Nevada;5;4;Cold;Mixed-Dry;B;B
+G35001;Bernalillo;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G51131;Northampton;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06095;Solano;California;3;3;Hot-Dry;Hot-Dry;B;B
+G05129;Searcy;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27157;Wabasha;Minnesota;6;6;Cold;Cold;A;A
+G05117;Prairie;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39093;Lorain;Ohio;5;5;Cold;Cold;A;A
+G48355;Nueces;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G36075;Oswego;New York;5;5;Cold;Cold;A;A
+G08117;Summit;Colorado;7;7;Very Cold;Very Cold;;
+G51137;Orange;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G38063;Nelson;North Dakota;7;7;Very Cold;Very Cold;;
+G39079;Jackson;Ohio;5;4;Cold;Mixed-Humid;A;A
+G36059;Nassau;New York;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36065;Oneida;New York;6;6;Cold;Cold;A;A
+G31067;Gage;Nebraska;5;5;Cold;Cold;A;A
+G36071;Orange;New York;5;5;Cold;Cold;A;A
+G36105;Sullivan;New York;6;6;Cold;Cold;A;A
+G51680;Lynchburg;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40121;Pittsburg;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G01125;Tuscaloosa;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G24001;Allegany;Maryland;4;5;Mixed-Humid;Cold;A;A
+G51069;Frederick;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54079;Putnam;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08077;Mesa;Colorado;5;5;Cold;Cold;B;B
+G39117;Morrow;Ohio;5;5;Cold;Cold;A;A
+G06041;Marin;California;3;3;Marine;Marine;C;C
+G51053;Dinwiddie;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08081;Moffat;Colorado;6;6;Cold;Cold;B;B
+G39119;Muskingum;Ohio;5;5;Cold;Cold;A;A
+G01101;Montgomery;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G17133;Monroe;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20127;Morris;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06035;Lassen;California;5;5;Cold;Cold;B;B
+G08099;Prowers;Colorado;5;4;Cold;Mixed-Dry;B;B
+G26029;Charlevoix;Michigan;6;6;Cold;Cold;A;A
+G05027;Columbia;Arkansas;3;3;Hot-Humid;Hot-Humid;A;A
+G02261;Valdez-Cordova;Alaska;7;7;Very Cold;Very Cold;;
+G56013;Fremont;Wyoming;6;6;Cold;Cold;B;B
+G27089;Marshall;Minnesota;7;7;Very Cold;Very Cold;;
+G27125;Red Lake;Minnesota;7;7;Very Cold;Very Cold;;
+G05103;Ouachita;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G02282;Yakutat;Alaska;7;7;Very Cold;Very Cold;;
+G37161;Rutherford;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G40089;McCurtain;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12089;Nassau;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G53007;Chelan;Washington;5;5;Cold;Cold;B;B
+G53061;Snohomish;Washington;4;4;Marine;Marine;C;C
+G08017;Cheyenne;Colorado;5;5;Cold;Cold;B;B
+G26129;Ogemaw;Michigan;6;6;Cold;Cold;A;A
+G32005;Douglas;Nevada;5;4;Cold;Mixed-Dry;B;B
+G23007;Franklin;Maine;6;6;Cold;Cold;A;A
+G19067;Floyd;Iowa;6;5;Cold;Cold;A;A
+G19073;Greene;Iowa;5;5;Cold;Cold;A;A
+G21109;Jackson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37069;Franklin;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G19189;Winnebago;Iowa;6;6;Cold;Cold;A;A
+G28163;Yazoo;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30079;Prairie;Montana;6;6;Cold;Cold;B;B
+G37133;Onslow;North Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G27129;Renville;Minnesota;6;6;Cold;Cold;A;A
+G37131;Northampton;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G55121;Trempealeau;Wisconsin;6;6;Cold;Cold;A;A
+G51195;Wise;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06113;Yolo;California;3;3;Hot-Dry;Hot-Dry;B;B
+G55011;Buffalo;Wisconsin;6;6;Cold;Cold;A;A
+G37143;Perquimans;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G08011;Bent;Colorado;5;4;Cold;Mixed-Dry;B;B
+G29091;Howell;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36089;St. Lawrence;New York;6;6;Cold;Cold;A;A
+G08031;Denver;Colorado;5;5;Cold;Cold;B;B
+G29157;Perry;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36119;Westchester;New York;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05015;Carroll;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48203;Harrison;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G05047;Franklin;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G36043;Herkimer;New York;6;6;Cold;Cold;A;A
+G40139;Texas;Oklahoma;4;4;Mixed-Dry;Mixed-Dry;B;B
+G38055;McLean;North Dakota;7;6;Very Cold;Cold;;A
+G13141;Hancock;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G16031;Cassia;Idaho;5;5;Cold;Cold;B;B
+G48283;La Salle;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G08075;Logan;Colorado;5;5;Cold;Cold;B;B
+G34041;Warren;New Jersey;5;5;Cold;Cold;A;A
+G50017;Orange;Vermont;6;6;Cold;Cold;A;A
+G04013;Maricopa;Arizona;2;2;Hot-Dry;Hot-Dry;B;B
+G17203;Woodford;Illinois;5;5;Cold;Cold;A;A
+G20045;Douglas;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22005;Ascension;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G08085;Montrose;Colorado;5;5;Cold;Cold;B;B
+G36027;Dutchess;New York;5;5;Cold;Cold;A;A
+G08014;Broomfield;Colorado;5;5;Cold;Cold;B;B
+G42107;Schuylkill;Pennsylvania;5;5;Cold;Cold;A;A
+G47151;Scott;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36047;Kings;New York;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39065;Hardin;Ohio;5;5;Cold;Cold;A;A
+G51169;Scott;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55067;Langlade;Wisconsin;7;6;Very Cold;Cold;;A
+G01123;Tallapoosa;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29143;New Madrid;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30077;Powell;Montana;6;6;Cold;Cold;B;B
+G06065;Riverside;California;3;3;Hot-Dry;Hot-Dry;B;B
+G20049;Elk;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G35005;Chaves;New Mexico;3;3;Hot-Dry;Hot-Dry;B;B
+G35047;San Miguel;New Mexico;5;5;Cold;Cold;B;B
+G08015;Chaffee;Colorado;6;6;Cold;Cold;B;B
+G26141;Presque Isle;Michigan;6;6;Cold;Cold;A;A
+G28149;Warren;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G05089;Marion;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48301;Loving;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G08001;Adams;Colorado;5;5;Cold;Cold;B;B
+G23031;York;Maine;6;6;Cold;Cold;A;A
+G49027;Millard;Utah;5;5;Cold;Cold;B;B
+G01013;Butler;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G08037;Eagle;Colorado;6;6;Cold;Cold;B;B
+G22007;Assumption;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G34027;Morris;New Jersey;5;5;Cold;Cold;A;A
+G17029;Coles;Illinois;5;4;Cold;Mixed-Humid;A;A
+G25023;Plymouth;Massachusetts;5;5;Cold;Cold;A;A
+G51043;Clarke;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01103;Morgan;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18037;Dubois;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19091;Humboldt;Iowa;6;5;Cold;Cold;A;A
+G21093;Hardin;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48167;Galveston;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G05045;Faulkner;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G31153;Sarpy;Nebraska;5;5;Cold;Cold;A;A
+G35059;Union;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G51181;Surry;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G31029;Chase;Nebraska;5;5;Cold;Cold;A;A
+G37079;Greene;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29149;Oregon;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51059;Fairfax;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42005;Armstrong;Pennsylvania;5;5;Cold;Cold;A;A
+G48199;Hardin;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G05115;Pope;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39151;Stark;Ohio;5;5;Cold;Cold;A;A
+G48219;Hockley;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G28147;Walthall;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G30001;Beaverhead;Montana;6;6;Cold;Cold;B;B
+G53059;Skamania;Washington;5;5;Cold;Cold;B;B
+G27031;Cook;Minnesota;7;7;Very Cold;Very Cold;;
+G53067;Thurston;Washington;4;4;Marine;Marine;C;C
+G13065;Clinch;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G55029;Door;Wisconsin;6;6;Cold;Cold;A;A
+G19005;Allamakee;Iowa;6;5;Cold;Cold;A;A
+G55063;La Crosse;Wisconsin;6;5;Cold;Cold;A;A
+G51650;Hampton;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G05005;Baxter;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08027;Custer;Colorado;6;5;Cold;Cold;B;B
+G01003;Baldwin;Alabama;2;2;Hot-Humid;Hot-Humid;A;A
+G51083;Halifax;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G53013;Columbia;Washington;5;5;Cold;Cold;B;B
+G22045;Iberia;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G05141;Van Buren;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48339;Montgomery;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G53035;Kitsap;Washington;4;5;Marine;Marine;C;C
+G51810;Virginia Beach;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G13129;Gordon;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G16043;Fremont;Idaho;6;6;Cold;Cold;B;B
+G13247;Rockdale;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G42061;Huntingdon;Pennsylvania;5;5;Cold;Cold;A;A
+G29181;Ripley;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G38039;Griggs;North Dakota;7;6;Very Cold;Cold;;A
+G33017;Strafford;New Hampshire;5;5;Cold;Cold;A;A
+G37033;Caswell;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G05053;Grant;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G38103;Wells;North Dakota;7;6;Very Cold;Cold;;A
+G37071;Gaston;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G31057;Dundy;Nebraska;5;5;Cold;Cold;A;A
+G48189;Hale;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G51191;Washington;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36085;Richmond;New York;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06097;Sonoma;California;3;3;Marine;Marine;C;C
+G17069;Hardin;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G45073;Oconee;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40131;Rogers;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G55079;Milwaukee;Wisconsin;6;5;Cold;Cold;A;A
+G20153;Rawlins;Kansas;5;5;Cold;Cold;A;A
+G51111;Lunenburg;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30013;Cascade;Montana;6;6;Cold;Cold;B;B
+G51115;Mathews;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G53075;Whitman;Washington;5;5;Cold;Cold;B;B
+G26021;Berrien;Michigan;5;5;Cold;Cold;A;A
+G29053;Cooper;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48097;Cooke;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30033;Garfield;Montana;6;6;Cold;Cold;B;B
+G39081;Jefferson;Ohio;5;5;Cold;Cold;A;A
+G28083;Leflore;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37117;Martin;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13291;Union;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G06007;Butte;California;3;3;Hot-Dry;Hot-Dry;B;B
+G22047;Iberville;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G51095;James City;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37073;Gates;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G26099;Macomb;Michigan;5;5;Cold;Cold;A;A
+G26145;Saginaw;Michigan;5;5;Cold;Cold;A;A
+G72011;Añasco;;;;;;;
+G72097;Mayagüez;;;;;;;
+G22057;Lafourche;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G38009;Bottineau;North Dakota;7;7;Very Cold;Very Cold;;
+G72153;Yauco;;;;;;;
+G17089;Kane;Illinois;5;5;Cold;Cold;A;A
+G72113;Ponce;;;;;;;
+G30005;Blaine;Montana;6;6;Cold;Cold;B;B
+G02050;Bethel;Alaska;8;7;Subartic;Very Cold;;
+G02100;Haines;Alaska;7;6;Very Cold;Cold;;A
+G05095;Monroe;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G54071;Pendleton;West Virginia;5;5;Cold;Cold;A;A
+G51171;Shenandoah;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28079;Leake;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G41013;Crook;Oregon;5;5;Cold;Cold;B;B
+G21185;Oldham;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21099;Hart;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13227;Pickens;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G39129;Pickaway;Ohio;5;4;Cold;Mixed-Humid;A;A
+G06025;Imperial;California;2;2;Hot-Dry;Hot-Dry;B;B
+G49023;Juab;Utah;5;5;Cold;Cold;B;B
+G13313;Whitfield;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G13249;Schley;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G13293;Upson;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30049;Lewis and Clark;Montana;6;6;Cold;Cold;B;B
+G31155;Saunders;Nebraska;5;5;Cold;Cold;A;A
+G27145;Stearns;Minnesota;6;6;Cold;Cold;A;A
+G31049;Deuel;Nebraska;5;5;Cold;Cold;A;A
+G13297;Walton;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G27121;Pope;Minnesota;6;6;Cold;Cold;A;A
+G37011;Avery;North Carolina;5;5;Cold;Cold;A;A
+G13151;Henry;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13045;Carroll;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48371;Pecos;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48401;Rusk;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G48447;Throckmorton;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G17035;Cumberland;Illinois;5;4;Cold;Mixed-Humid;A;A
+G25027;Worcester;Massachusetts;5;5;Cold;Cold;A;A
+G20029;Cloud;Kansas;5;4;Cold;Mixed-Humid;A;A
+G41029;Jackson;Oregon;4;4;Marine;Marine;C;C
+G41033;Josephine;Oregon;4;4;Marine;Marine;C;C
+G42055;Franklin;Pennsylvania;5;4;Cold;Mixed-Humid;A;A
+G31169;Thayer;Nebraska;5;5;Cold;Cold;A;A
+G18023;Clinton;Indiana;5;5;Cold;Cold;A;A
+G13115;Floyd;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G30099;Teton;Montana;6;6;Cold;Cold;B;B
+G16039;Elmore;Idaho;5;5;Cold;Cold;B;B
+G50025;Windham;Vermont;6;6;Cold;Cold;A;A
+G48139;Ellis;Texas;3;2;Hot-Humid;Hot-Humid;A;A
+G29186;Ste. Genevieve;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51670;Hopewell;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05109;Pike;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G41041;Lincoln;Oregon;4;4;Marine;Marine;C;C
+G17121;Marion;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19133;Monona;Iowa;5;5;Cold;Cold;A;A
+G40055;Greer;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46102;Oglala Lakota;South Dakota;6;6;Cold;Cold;A;A
+G46137;Ziebach;South Dakota;6;6;Cold;Cold;A;A
+G51067;Franklin;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G29223;Wayne;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29179;Reynolds;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08123;Weld;Colorado;5;5;Cold;Cold;B;B
+G39165;Warren;Ohio;5;4;Cold;Mixed-Humid;A;A
+G12011;Broward;Florida;1;1;Hot-Humid;Hot-Humid;A;A
+G48483;Wheeler;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G13245;Richmond;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13281;Towns;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G16003;Adams;Idaho;6;6;Cold;Cold;B;B
+G16023;Butte;Idaho;6;6;Cold;Cold;B;B
+G28121;Rankin;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G13309;Wheeler;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G13175;Laurens;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G05127;Scott;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G28157;Wilkinson;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G50007;Chittenden;Vermont;6;6;Cold;Cold;A;A
+G30017;Custer;Montana;6;6;Cold;Cold;B;B
+G25021;Norfolk;Massachusetts;5;5;Cold;Cold;A;A
+G48457;Tyler;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G13209;Montgomery;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G13189;McDuffie;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G41055;Sherman;Oregon;5;5;Cold;Cold;B;B
+G41059;Umatilla;Oregon;5;5;Cold;Cold;B;B
+G41061;Union;Oregon;5;5;Cold;Cold;B;B
+G13133;Greene;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G02110;Juneau;Alaska;7;6;Very Cold;Cold;;A
+G40079;Le Flore;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G54053;Mason;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G32031;Washoe;Nevada;5;5;Cold;Cold;B;B
+G18003;Allen;Indiana;5;5;Cold;Cold;A;A
+G19139;Muscatine;Iowa;5;5;Cold;Cold;A;A
+G19163;Scott;Iowa;5;5;Cold;Cold;A;A
+G02158;Kusilvak;Alaska;;;;;;
+G05017;Chicot;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G22123;West Carroll;Louisiana;3;3;Mixed-Humid;Mixed-Humid;A;A
+G01063;Greene;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18053;Grant;Indiana;5;5;Cold;Cold;A;A
+G18067;Howard;Indiana;5;5;Cold;Cold;A;A
+G53003;Asotin;Washington;5;5;Cold;Cold;B;B
+G06057;Nevada;California;5;5;Cold;Cold;B;B
+G31051;Dixon;Nebraska;5;5;Cold;Cold;A;A
+G35023;Hidalgo;New Mexico;3;3;Hot-Dry;Hot-Dry;B;B
+G20033;Comanche;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17197;Will;Illinois;5;5;Cold;Cold;A;A
+G29107;Lafayette;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48191;Hall;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G23023;Sagadahoc;Maine;6;6;Cold;Cold;A;A
+G54093;Tucker;West Virginia;5;5;Cold;Cold;A;A
+G05137;Stone;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30075;Powder River;Montana;6;6;Cold;Cold;B;B
+G39145;Scioto;Ohio;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48403;Sabine;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G37075;Graham;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01091;Marengo;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G54043;Lincoln;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54099;Wayne;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48411;San Saba;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G37091;Hertford;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48409;San Patricio;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G51165;Rockingham;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48373;Polk;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G26127;Oceana;Michigan;6;6;Cold;Cold;A;A
+G36073;Orleans;New York;5;5;Cold;Cold;A;A
+G37013;Beaufort;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37187;Washington;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29087;Holt;Missouri;5;5;Cold;Cold;A;A
+G06051;Mono;California;6;6;Cold;Cold;B;B
+G45057;Lancaster;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G31045;Dawes;Nebraska;5;5;Cold;Cold;A;A
+G16063;Lincoln;Idaho;5;5;Cold;Cold;B;B
+G48177;Gonzales;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G42063;Indiana;Pennsylvania;5;5;Cold;Cold;A;A
+G16067;Minidoka;Idaho;5;5;Cold;Cold;B;B
+G42067;Juniata;Pennsylvania;5;5;Cold;Cold;A;A
+G17097;Lake;Illinois;5;5;Cold;Cold;A;A
+G18161;Union;Indiana;5;4;Cold;Mixed-Humid;A;A
+G29221;Washington;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29103;Knox;Missouri;5;5;Cold;Cold;A;A
+G42081;Lycoming;Pennsylvania;5;5;Cold;Cold;A;A
+G13165;Jenkins;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G13117;Forsyth;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39147;Seneca;Ohio;5;5;Cold;Cold;A;A
+G12105;Polk;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G48427;Starr;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G13103;Effingham;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G48443;Terrell;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G13119;Franklin;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G12021;Collier;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G13127;Glynn;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G39157;Tuscarawas;Ohio;5;5;Cold;Cold;A;A
+G13139;Hall;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G39161;Van Wert;Ohio;5;5;Cold;Cold;A;A
+G13147;Hart;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48313;Madison;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G40143;Tulsa;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13125;Glascock;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G38051;McIntosh;North Dakota;6;6;Cold;Cold;A;A
+G10003;New Castle;Delaware;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19159;Ringgold;Iowa;5;5;Cold;Cold;A;A
+G24510;Baltimore;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48013;Atascosa;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G26157;Tuscola;Michigan;5;5;Cold;Cold;A;A
+G38011;Bowman;North Dakota;6;6;Cold;Cold;A;A
+G38053;McKenzie;North Dakota;6;6;Cold;Cold;A;A
+G30095;Stillwater;Montana;6;6;Cold;Cold;B;B
+G27079;Le Sueur;Minnesota;6;6;Cold;Cold;A;A
+G53005;Benton;Washington;5;5;Cold;Cold;B;B
+G29173;Ralls;Missouri;5;5;Cold;Cold;A;A
+G56021;Laramie;Wyoming;6;5;Cold;Cold;B;B
+G41045;Malheur;Oregon;5;5;Cold;Cold;B;B
+G22023;Cameron;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G24009;Calvert;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28119;Quitman;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29063;DeKalb;Missouri;5;5;Cold;Cold;A;A
+G29081;Harrison;Missouri;5;5;Cold;Cold;A;A
+G54085;Ritchie;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51750;Radford;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30019;Daniels;Montana;6;6;Cold;Cold;B;B
+G30055;McCone;Montana;6;6;Cold;Cold;B;B
+G51021;Bland;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54017;Doddridge;West Virginia;5;4;Cold;Mixed-Humid;A;A
+G31061;Franklin;Nebraska;5;5;Cold;Cold;A;A
+G31099;Kearney;Nebraska;5;5;Cold;Cold;A;A
+G40005;Atoka;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48051;Burleson;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G36107;Tioga;New York;5;5;Cold;Cold;A;A
+G40013;Bryan;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G36035;Fulton;New York;6;6;Cold;Cold;A;A
+G40029;Coal;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48287;Lee;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G40091;McIntosh;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40123;Pontotoc;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48395;Robertson;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G40061;Haskell;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G54009;Brooke;West Virginia;5;5;Cold;Cold;A;A
+G39009;Athens;Ohio;5;4;Cold;Mixed-Humid;A;A
+G54063;Monroe;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51003;Albemarle;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G45049;Hampton;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G47125;Montgomery;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29001;Adair;Missouri;5;5;Cold;Cold;A;A
+G48251;Johnson;Texas;3;2;Hot-Humid;Hot-Humid;A;A
+G30037;Golden Valley;Montana;6;6;Cold;Cold;B;B
+G30043;Jefferson;Montana;6;6;Cold;Cold;B;B
+G13161;Jeff Davis;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G48463;Uvalde;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G12051;Hendry;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G48469;Victoria;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G39025;Clermont;Ohio;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48479;Webb;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G39047;Fayette;Ohio;5;4;Cold;Mixed-Humid;A;A
+G13199;Meriwether;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G54041;Lewis;West Virginia;5;4;Cold;Mixed-Humid;A;A
+G54091;Taylor;West Virginia;5;5;Cold;Cold;A;A
+G39039;Defiance;Ohio;5;5;Cold;Cold;A;A
+G30083;Richland;Montana;6;6;Cold;Cold;B;B
+G35049;Santa Fe;New Mexico;5;5;Cold;Cold;B;B
+G12057;Hillsborough;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G16073;Owyhee;Idaho;5;5;Cold;Cold;B;B
+G48321;Matagorda;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G21101;Henderson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31001;Adams;Nebraska;5;5;Cold;Cold;A;A
+G37121;Mitchell;North Carolina;5;4;Cold;Mixed-Humid;A;A
+G40115;Ottawa;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G41071;Yamhill;Oregon;4;4;Marine;Marine;C;C
+G55111;Sauk;Wisconsin;6;5;Cold;Cold;A;A
+G55141;Wood;Wisconsin;6;6;Cold;Cold;A;A
+G47025;Claiborne;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39057;Greene;Ohio;5;4;Cold;Mixed-Humid;A;A
+G29165;Platte;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G12109;St. Johns;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G21005;Anderson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13213;Murray;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G19155;Pottawattamie;Iowa;5;5;Cold;Cold;A;A
+G34003;Bergen;New Jersey;5;5;Cold;Cold;A;A
+G31033;Cheyenne;Nebraska;5;5;Cold;Cold;A;A
+G42127;Wayne;Pennsylvania;6;5;Cold;Cold;A;A
+G06101;Sutter;California;3;3;Hot-Dry;Hot-Dry;B;B
+G39059;Guernsey;Ohio;5;5;Cold;Cold;A;A
+G13215;Muscogee;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13221;Oglethorpe;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13231;Pike;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13237;Putnam;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13251;Screven;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G45091;York;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29185;St. Clair;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39167;Washington;Ohio;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01099;Monroe;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G22125;West Feliciana;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G51027;Buchanan;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54061;Monongalia;West Virginia;5;5;Cold;Cold;A;A
+G51155;Pulaski;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55083;Oconto;Wisconsin;6;6;Cold;Cold;A;A
+G27139;Scott;Minnesota;6;6;Cold;Cold;A;A
+G46117;Stanley;South Dakota;6;5;Cold;Cold;A;A
+G39061;Hamilton;Ohio;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51005;Alleghany;Virginia;4;5;Mixed-Humid;Cold;A;A
+G28099;Neshoba;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48037;Bowie;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G47171;Unicoi;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G56011;Crook;Wyoming;6;6;Cold;Cold;B;B
+G47179;Washington;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G45063;Lexington;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G45067;Marion;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G55095;Polk;Wisconsin;6;6;Cold;Cold;A;A
+G38057;Mercer;North Dakota;6;6;Cold;Cold;A;A
+G30009;Carbon;Montana;6;6;Cold;Cold;B;B
+G47093;Knox;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G50001;Addison;Vermont;6;6;Cold;Cold;A;A
+G33011;Hillsborough;New Hampshire;5;5;Cold;Cold;A;A
+G48245;Jefferson;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G08045;Garfield;Colorado;5;5;Cold;Cold;B;B
+G19029;Cass;Iowa;5;5;Cold;Cold;A;A
+G12111;St. Lucie;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G05131;Sebastian;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18121;Parke;Indiana;5;5;Cold;Cold;A;A
+G08049;Grand;Colorado;7;7;Very Cold;Very Cold;;
+G40039;Custer;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30007;Broadwater;Montana;6;6;Cold;Cold;B;B
+G37163;Sampson;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48055;Caldwell;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G01133;Winston;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G55007;Bayfield;Wisconsin;7;6;Very Cold;Cold;;A
+G55139;Winnebago;Wisconsin;6;5;Cold;Cold;A;A
+G36021;Columbia;New York;5;5;Cold;Cold;A;A
+G42027;Centre;Pennsylvania;5;5;Cold;Cold;A;A
+G56003;Big Horn;Wyoming;6;6;Cold;Cold;B;B
+G33019;Sullivan;New Hampshire;6;6;Cold;Cold;A;A
+G26131;Ontonagon;Michigan;7;6;Very Cold;Cold;;A
+G05063;Independence;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G42133;York;Pennsylvania;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55109;St. Croix;Wisconsin;6;6;Cold;Cold;A;A
+G45075;Orangeburg;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G56039;Teton;Wyoming;7;7;Very Cold;Very Cold;;
+G56027;Niobrara;Wyoming;6;6;Cold;Cold;B;B
+G45079;Richland;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06047;Merced;California;3;3;Hot-Dry;Hot-Dry;B;B
+G12099;Palm Beach;Florida;2;1;Hot-Humid;Hot-Humid;A;A
+G20043;Doniphan;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13265;Taliaferro;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40085;Love;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21085;Grayson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22113;Vermilion;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G06087;Santa Cruz;California;3;3;Marine;Marine;C;C
+G09015;Windham;Connecticut;5;5;Cold;Cold;A;A
+G18163;Vanderburgh;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22119;Webster;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G37179;Union;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48261;Kenedy;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G48147;Fannin;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G02105;Hoonah-Angoon;Alaska;7;6;Very Cold;Cold;;A
+G06085;Santa Clara;California;3;3;Marine;Marine;C;C
+G22127;Winn;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G13263;Talbot;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G28027;Coahoma;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G26069;Iosco;Michigan;6;6;Cold;Cold;A;A
+G26063;Huron;Michigan;6;5;Cold;Cold;A;A
+G48273;Kleberg;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G08121;Washington;Colorado;5;5;Cold;Cold;B;B
+G48311;McMullen;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G08097;Pitkin;Colorado;7;7;Very Cold;Very Cold;;
+G51085;Hanover;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21053;Clinton;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30059;Meagher;Montana;6;6;Cold;Cold;B;B
+G29009;Barry;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06061;Placer;California;3;3;Hot-Dry;Hot-Dry;B;B
+G40043;Dewey;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06015;Del Norte;California;4;4;Marine;Marine;C;C
+G42091;Montgomery;Pennsylvania;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36063;Niagara;New York;5;5;Cold;Cold;A;A
+G29169;Pulaski;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40017;Canadian;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G72095;Maunabo;;;;;;;
+G50005;Caledonia;Vermont;6;6;Cold;Cold;A;A
+G37027;Caldwell;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G09003;Hartford;Connecticut;5;5;Cold;Cold;A;A
+G28003;Alcorn;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G42095;Northampton;Pennsylvania;5;5;Cold;Cold;A;A
+G01085;Lowndes;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G56037;Sweetwater;Wyoming;6;6;Cold;Cold;B;B
+G27099;Mower;Minnesota;6;6;Cold;Cold;A;A
+G25011;Franklin;Massachusetts;5;5;Cold;Cold;A;A
+G55133;Waukesha;Wisconsin;6;5;Cold;Cold;A;A
+G45089;Williamsburg;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05001;Arkansas;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G22061;Lincoln;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G33001;Belknap;New Hampshire;6;6;Cold;Cold;A;A
+G34015;Gloucester;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01113;Russell;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G12069;Lake;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G01117;Shelby;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G27093;Meeker;Minnesota;6;6;Cold;Cold;A;A
+G40095;Marshall;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G54027;Hampshire;West Virginia;5;5;Cold;Cold;A;A
+G48269;King;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G19059;Dickinson;Iowa;6;6;Cold;Cold;A;A
+G06043;Mariposa;California;4;4;Mixed-Dry;Mixed-Dry;B;B
+G29075;Gentry;Missouri;5;5;Cold;Cold;A;A
+G21131;Leslie;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31011;Boone;Nebraska;5;5;Cold;Cold;A;A
+G47143;Rhea;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48207;Haskell;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48423;Smith;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G13211;Morgan;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21187;Owen;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55135;Waupaca;Wisconsin;6;6;Cold;Cold;A;A
+G40151;Woods;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G37001;Alamance;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G22069;Natchitoches;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G38089;Stark;North Dakota;6;6;Cold;Cold;A;A
+G47115;Marion;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G20005;Atchison;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27037;Dakota;Minnesota;6;6;Cold;Cold;A;A
+G01005;Barbour;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G01097;Mobile;Alabama;2;2;Hot-Humid;Hot-Humid;A;A
+G48307;McCulloch;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48113;Dallas;Texas;3;2;Hot-Humid;Hot-Humid;A;A
+G72123;Salinas;;;;;;;
+G26163;Wayne;Michigan;5;5;Cold;Cold;A;A
+G19009;Audubon;Iowa;5;5;Cold;Cold;A;A
+G45031;Darlington;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G42029;Chester;Pennsylvania;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21173;Montgomery;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28015;Carroll;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G31043;Dakota;Nebraska;5;5;Cold;Cold;A;A
+G47091;Johnson;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06069;San Benito;California;3;3;Marine;Marine;C;C
+G41047;Marion;Oregon;4;4;Marine;Marine;C;C
+G30081;Ravalli;Montana;6;6;Cold;Cold;B;B
+G47015;Cannon;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42001;Adams;Pennsylvania;5;4;Cold;Mixed-Humid;A;A
+G51550;Chesapeake;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G31149;Rock;Nebraska;5;5;Cold;Cold;A;A
+G40047;Garfield;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G05013;Calhoun;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G19075;Grundy;Iowa;6;5;Cold;Cold;A;A
+G08091;Ouray;Colorado;6;6;Cold;Cold;B;B
+G23021;Piscataquis;Maine;6;6;Cold;Cold;A;A
+G13053;Chattahoochee;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G05121;Randolph;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G08107;Routt;Colorado;7;7;Very Cold;Very Cold;;
+G48413;Schleicher;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G72025;Caguas;;;;;;;
+G72021;Bayamón;;;;;;;
+G54015;Clay;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54039;Kanawha;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G72027;Camuy;;;;;;;
+G72033;Cataño;;;;;;;
+G72037;Ceiba;;;;;;;
+G72041;Cidra;;;;;;;
+G53053;Pierce;Washington;4;4;Marine;Marine;C;C
+G16045;Gem;Idaho;5;5;Cold;Cold;B;B
+G37101;Johnston;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13145;Harris;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G50011;Franklin;Vermont;6;6;Cold;Cold;A;A
+G01065;Hale;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G18073;Jasper;Indiana;5;5;Cold;Cold;A;A
+G16005;Bannock;Idaho;6;6;Cold;Cold;B;B
+G53031;Jefferson;Washington;4;4;Marine;Marine;C;C
+G48277;Lamar;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G17077;Jackson;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36057;Montgomery;New York;6;6;Cold;Cold;A;A
+G13177;Lee;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G47083;Houston;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27069;Kittson;Minnesota;7;7;Very Cold;Very Cold;;
+G48241;Jasper;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G41057;Tillamook;Oregon;4;4;Marine;Marine;C;C
+G45043;Georgetown;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G49021;Iron;Utah;5;5;Cold;Cold;B;B
+G25007;Dukes;Massachusetts;5;5;Cold;Cold;A;A
+G38087;Slope;North Dakota;6;6;Cold;Cold;A;A
+G40101;Muskogee;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G22109;Terrebonne;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G40135;Sequoyah;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G41035;Klamath;Oregon;5;5;Cold;Cold;B;B
+G38049;McHenry;North Dakota;7;7;Very Cold;Very Cold;;
+G23029;Washington;Maine;6;6;Cold;Cold;A;A
+G49039;Sanpete;Utah;5;5;Cold;Cold;B;B
+G51093;Isle of Wight;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G32015;Lander;Nevada;5;5;Cold;Cold;B;B
+G39075;Holmes;Ohio;5;5;Cold;Cold;A;A
+G47013;Campbell;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47097;Lauderdale;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51081;Greensville;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G54107;Wood;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48281;Lampasas;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G18173;Warrick;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G72055;Guánica;;;;;;;
+G53033;King;Washington;4;4;Marine;Marine;C;C
+G31065;Furnas;Nebraska;5;5;Cold;Cold;A;A
+G51001;Accomack;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47003;Bedford;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G40023;Choctaw;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17147;Piatt;Illinois;5;5;Cold;Cold;A;A
+G06059;Orange;California;3;3;Hot-Dry;Hot-Dry;B;B
+G35027;Lincoln;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G04017;Navajo;Arizona;5;5;Cold;Cold;B;B
+G37053;Currituck;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G45071;Newberry;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17149;Pike;Illinois;5;5;Cold;Cold;A;A
+G53029;Island;Washington;4;5;Marine;Marine;C;C
+G06071;San Bernardino;California;3;3;Hot-Dry;Hot-Dry;B;B
+G29057;Dade;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51595;Emporia;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48059;Callahan;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G36117;Wayne;New York;5;5;Cold;Cold;A;A
+G47051;Franklin;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G39007;Ashtabula;Ohio;5;5;Cold;Cold;A;A
+G01069;Houston;Alabama;3;2;Hot-Humid;Hot-Humid;A;A
+G26097;Mackinac;Michigan;7;6;Very Cold;Cold;;A
+G35009;Curry;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G32033;White Pine;Nevada;5;5;Cold;Cold;B;B
+G53055;San Juan;Washington;4;5;Cold;Cold;C;C
+G53057;Skagit;Washington;4;4;Marine;Marine;C;C
+G53063;Spokane;Washington;5;5;Cold;Cold;B;B
+G53065;Stevens;Washington;6;6;Cold;Cold;B;B
+G13277;Tift;Georgia;3;2;Hot-Humid;Hot-Humid;A;A
+G50003;Bennington;Vermont;6;6;Cold;Cold;A;A
+G53017;Douglas;Washington;5;5;Cold;Cold;B;B
+G54003;Berkeley;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01093;Marion;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G50015;Lamoille;Vermont;6;6;Cold;Cold;A;A
+G28069;Kemper;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48435;Sutton;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48201;Harris;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G13229;Pierce;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G46093;Meade;South Dakota;6;6;Cold;Cold;A;A
+G27071;Koochiching;Minnesota;7;7;Very Cold;Very Cold;;
+G40145;Wagoner;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29003;Andrew;Missouri;5;5;Cold;Cold;A;A
+G05035;Crittenden;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17059;Gallatin;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26017;Bay;Michigan;5;5;Cold;Cold;A;A
+G40007;Beaver;Oklahoma;4;4;Mixed-Dry;Mixed-Dry;B;B
+G37031;Carteret;North Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G12083;Marion;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G21209;Scott;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G53045;Mason;Washington;4;4;Marine;Marine;C;C
+G28143;Tunica;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30025;Fallon;Montana;6;6;Cold;Cold;B;B
+G12005;Bay;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G54035;Jackson;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G12017;Citrus;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G49055;Wayne;Utah;5;5;Cold;Cold;B;B
+G41069;Wheeler;Oregon;5;5;Cold;Cold;B;B
+G01105;Perry;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G13311;White;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G31003;Antelope;Nebraska;5;5;Cold;Cold;A;A
+G46023;Charles Mix;South Dakota;5;5;Cold;Cold;A;A
+G17189;Washington;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G23001;Androscoggin;Maine;6;6;Cold;Cold;A;A
+G48121;Denton;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G21143;Lyon;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21157;Marshall;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G49035;Salt Lake;Utah;5;5;Cold;Cold;B;B
+G21177;Muhlenberg;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47165;Sumner;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48365;Panola;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G21023;Bracken;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46083;Lincoln;South Dakota;6;6;Cold;Cold;A;A
+G50023;Washington;Vermont;6;6;Cold;Cold;A;A
+G55127;Walworth;Wisconsin;6;5;Cold;Cold;A;A
+G72099;Moca;;;;;;;
+G72111;Peñuelas;;;;;;;
+G18135;Randolph;Indiana;5;5;Cold;Cold;A;A
+G20103;Leavenworth;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19197;Wright;Iowa;6;5;Cold;Cold;A;A
+G48181;Grayson;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G29189;St. Louis;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13079;Crawford;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G41049;Morrow;Oregon;5;5;Cold;Cold;B;B
+G42013;Blair;Pennsylvania;5;5;Cold;Cold;A;A
+G47053;Gibson;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G46125;Turner;South Dakota;6;6;Cold;Cold;A;A
+G21007;Ballard;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G02188;Northwest Arctic;Alaska;8;8;Subarctic;Subarctic;;
+G18099;Marshall;Indiana;5;5;Cold;Cold;A;A
+G40149;Washita;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17125;Mason;Illinois;5;5;Cold;Cold;A;A
+G19113;Linn;Iowa;5;5;Cold;Cold;A;A
+G02180;Nome;Alaska;8;8;Subarctic;Subarctic;;
+G31119;Madison;Nebraska;5;5;Cold;Cold;A;A
+G05085;Lonoke;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13217;Newton;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G27001;Aitkin;Minnesota;7;7;Very Cold;Very Cold;;
+G37051;Cumberland;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G41067;Washington;Oregon;4;4;Marine;Marine;C;C
+G47123;Monroe;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28063;Jefferson;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G36053;Madison;New York;6;6;Cold;Cold;A;A
+G01095;Marshall;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51011;Appomattox;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48003;Andrews;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G47021;Cheatham;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46079;Lake;South Dakota;6;6;Cold;Cold;A;A
+G42025;Carbon;Pennsylvania;5;5;Cold;Cold;A;A
+G35057;Torrance;New Mexico;5;5;Cold;Cold;B;B
+G48069;Castro;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G72069;Humacao;;;;;;;
+G06005;Amador;California;4;4;Mixed-Dry;Mixed-Dry;B;B
+G28053;Humphreys;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12047;Hamilton;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G17095;Knox;Illinois;5;5;Cold;Cold;A;A
+G19013;Black Hawk;Iowa;6;6;Cold;Cold;A;A
+G01021;Chilton;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21235;Whitley;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08007;Archuleta;Colorado;6;6;Cold;Cold;B;B
+G47061;Grundy;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G48001;Anderson;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G45005;Allendale;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G42011;Berks;Pennsylvania;5;4;Cold;Mixed-Humid;A;A
+G47017;Carroll;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47079;Henry;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48007;Aransas;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G45011;Barnwell;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G20021;Cherokee;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30109;Wibaux;Montana;6;6;Cold;Cold;B;B
+G13299;Ware;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G02220;Sitka;Alaska;7;5;Very Cold;Cold;;C
+G51540;Charlottesville;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08115;Sedgwick;Colorado;5;5;Cold;Cold;B;B
+G06103;Tehama;California;3;3;Hot-Dry;Hot-Dry;B;B
+G18167;Vigo;Indiana;5;4;Cold;Mixed-Humid;A;A
+G17079;Jasper;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48041;Brazos;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G27055;Houston;Minnesota;6;5;Cold;Cold;A;A
+G26075;Jackson;Michigan;5;5;Cold;Cold;A;A
+G09009;New Haven;Connecticut;5;5;Cold;Cold;A;A
+G18043;Floyd;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18123;Perry;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G25013;Hampden;Massachusetts;5;5;Cold;Cold;A;A
+G20025;Clark;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46091;Marshall;South Dakota;6;6;Cold;Cold;A;A
+G72109;Patillas;;;;;;;
+G21097;Harrison;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06089;Shasta;California;3;3;Hot-Dry;Hot-Dry;B;B
+G27077;Lake of the Woods;Minnesota;7;7;Very Cold;Very Cold;;
+G20117;Marshall;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30011;Carter;Montana;6;6;Cold;Cold;B;B
+G20131;Nemaha;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20143;Ottawa;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20171;Scott;Kansas;5;5;Cold;Cold;A;A
+G55003;Ashland;Wisconsin;7;6;Very Cold;Cold;;A
+G20201;Washington;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05049;Fulton;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29037;Cass;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19169;Story;Iowa;5;5;Cold;Cold;A;A
+G47121;Meigs;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G24037;St. Mary's;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17201;Winnebago;Illinois;5;5;Cold;Cold;A;A
+G47085;Humphreys;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31105;Kimball;Nebraska;5;5;Cold;Cold;A;A
+G56035;Sublette;Wyoming;7;7;Very Cold;Very Cold;;
+G27091;Martin;Minnesota;6;6;Cold;Cold;A;A
+G45051;Horry;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G48043;Brewster;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G45065;McCormick;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G45087;Union;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G53021;Franklin;Washington;5;5;Cold;Cold;B;B
+G15009;Maui;Hawaii;1;1;Hot-Humid;Hot-Humid;A;A
+G41051;Multnomah;Oregon;4;4;Marine;Marine;C;C
+G15007;Kauai;Hawaii;1;1;Hot-Humid;Hot-Humid;A;A
+G27021;Cass;Minnesota;7;7;Very Cold;Very Cold;;
+G13155;Irwin;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G39171;Williams;Ohio;5;5;Cold;Cold;A;A
+G27057;Hubbard;Minnesota;7;7;Very Cold;Very Cold;;
+G49003;Box Elder;Utah;6;5;Cold;Cold;B;B
+G37107;Lenoir;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G49013;Duchesne;Utah;6;6;Cold;Cold;B;B
+G49015;Emery;Utah;5;5;Cold;Cold;B;B
+G48229;Hudspeth;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G12067;Lafayette;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G17057;Fulton;Illinois;5;5;Cold;Cold;A;A
+G31075;Grant;Nebraska;5;5;Cold;Cold;A;A
+G47005;Benton;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48497;Wise;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21119;Knott;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37147;Pitt;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G40037;Creek;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51830;Williamsburg;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13137;Habersham;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G46043;Douglas;South Dakota;5;5;Cold;Cold;A;A
+G36049;Lewis;New York;6;6;Cold;Cold;A;A
+G31131;Otoe;Nebraska;5;5;Cold;Cold;A;A
+G31059;Fillmore;Nebraska;5;5;Cold;Cold;A;A
+G13111;Fannin;Georgia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G22107;Tensas;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G12086;Miami-Dade;Florida;1;1;Hot-Humid;Hot-Humid;A;A
+G25025;Suffolk;Massachusetts;5;5;Cold;Cold;A;A
+G27027;Clay;Minnesota;7;6;Very Cold;Cold;;A
+G54047;McDowell;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01011;Bullock;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G05083;Logan;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G20015;Butler;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51193;Westmoreland;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29225;Webster;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36111;Ulster;New York;6;6;Cold;Cold;A;A
+G37059;Davie;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G42129;Westmoreland;Pennsylvania;5;5;Cold;Cold;A;A
+G29041;Chariton;Missouri;5;4;Cold;Mixed-Humid;A;A
+G48157;Fort Bend;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G29071;Franklin;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20135;Ness;Kansas;5;4;Cold;Mixed-Humid;A;A
+G29113;Lincoln;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21175;Morgan;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27025;Chisago;Minnesota;6;6;Cold;Cold;A;A
+G37153;Richmond;North Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21011;Bath;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40103;Noble;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G45009;Bamberg;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G46039;Deuel;South Dakota;6;6;Cold;Cold;A;A
+G42021;Cambria;Pennsylvania;5;5;Cold;Cold;A;A
+G45037;Edgefield;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G55069;Lincoln;Wisconsin;7;6;Very Cold;Cold;;A
+G48235;Irion;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48057;Calhoun;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G49045;Tooele;Utah;5;5;Cold;Cold;B;B
+G48323;Maverick;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G51127;New Kent;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G53009;Clallam;Washington;4;5;Marine;Marine;C;C
+G53019;Ferry;Washington;6;6;Cold;Cold;B;B
+G53047;Okanogan;Washington;6;5;Cold;Cold;B;B
+G13201;Miller;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G13205;Mitchell;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G15001;Hawaii;Hawaii;1;1;Hot-Humid;Hot-Humid;A;A
+G47081;Hickman;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G37171;Surry;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01049;DeKalb;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G42037;Columbia;Pennsylvania;5;5;Cold;Cold;A;A
+G13289;Twiggs;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G72073;Jayuya;;;;;;;
+G13173;Lanier;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G28139;Tippah;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G47023;Chester;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G53041;Lewis;Washington;4;4;Marine;Marine;C;C
+G12009;Brevard;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G36003;Allegany;New York;6;5;Cold;Cold;A;A
+G31115;Loup;Nebraska;5;5;Cold;Cold;A;A
+G17117;Macoupin;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08009;Baca;Colorado;4;4;Mixed-Dry;Mixed-Dry;B;B
+G24045;Wicomico;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G02150;Kodiak Island;Alaska;7;6;Very Cold;Cold;;A
+G13269;Taylor;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G21103;Henry;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22013;Bienville;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G28101;Newton;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06021;Glenn;California;3;3;Hot-Dry;Hot-Dry;B;B
+G05069;Jefferson;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05075;Lawrence;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G55075;Marinette;Wisconsin;6;6;Cold;Cold;A;A
+G47161;Stewart;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G56023;Lincoln;Wyoming;7;7;Very Cold;Very Cold;;
+G45085;Sumter;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30069;Petroleum;Montana;6;6;Cold;Cold;B;B
+G22117;Washington;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G29133;Mississippi;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48045;Briscoe;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G05019;Clark;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48101;Cottle;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G21107;Hopkins;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17111;McHenry;Illinois;5;5;Cold;Cold;A;A
+G21081;Grant;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28005;Amite;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G28011;Bolivar;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G28013;Calhoun;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G28021;Claiborne;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G28033;DeSoto;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46129;Walworth;South Dakota;6;6;Cold;Cold;A;A
+G28085;Lincoln;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G28041;Greene;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G13131;Grady;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G72083;Las Marías;;;;;;;
+G54075;Pocahontas;West Virginia;5;5;Cold;Cold;A;A
+G72081;Lares;;;;;;;
+G45053;Jasper;South Carolina;3;2;Hot-Humid;Hot-Humid;A;A
+G37087;Haywood;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G34025;Monmouth;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G49033;Rich;Utah;6;6;Cold;Cold;B;B
+G55093;Pierce;Wisconsin;6;6;Cold;Cold;A;A
+G51187;Warren;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47027;Clay;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G30073;Pondera;Montana;6;6;Cold;Cold;B;B
+G31041;Custer;Nebraska;5;5;Cold;Cold;A;A
+G16029;Caribou;Idaho;6;6;Cold;Cold;B;B
+G27023;Chippewa;Minnesota;6;6;Cold;Cold;A;A
+G26133;Osceola;Michigan;6;6;Cold;Cold;A;A
+G25019;Nantucket;Massachusetts;5;5;Cold;Cold;A;A
+G01067;Henry;Alabama;3;2;Hot-Humid;Hot-Humid;A;A
+G19017;Bremer;Iowa;6;5;Cold;Cold;A;A
+G29039;Cedar;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G19079;Hamilton;Iowa;6;5;Cold;Cold;A;A
+G47019;Carter;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51057;Essex;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G56007;Carbon;Wyoming;6;6;Cold;Cold;B;B
+G42097;Northumberland;Pennsylvania;5;5;Cold;Cold;A;A
+G55047;Green Lake;Wisconsin;6;5;Cold;Cold;A;A
+G34019;Hunterdon;New Jersey;5;5;Cold;Cold;A;A
+G39021;Champaign;Ohio;5;5;Cold;Cold;A;A
+G36019;Clinton;New York;6;6;Cold;Cold;A;A
+G38021;Dickey;North Dakota;6;6;Cold;Cold;A;A
+G35013;Doña Ana;New Mexico;3;3;Hot-Dry;Hot-Dry;B;B
+G05021;Clay;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37009;Ashe;North Carolina;5;5;Cold;Cold;A;A
+G35029;Luna;New Mexico;3;3;Hot-Dry;Hot-Dry;B;B
+G29137;Monroe;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G38037;Grant;North Dakota;6;6;Cold;Cold;A;A
+G38083;Sheridan;North Dakota;7;6;Very Cold;Cold;;A
+G16009;Benewah;Idaho;5;5;Cold;Cold;B;B
+G17131;Mercer;Illinois;5;5;Cold;Cold;A;A
+G37129;New Hanover;North Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G27033;Cottonwood;Minnesota;6;6;Cold;Cold;A;A
+G21189;Owsley;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46111;Sanborn;South Dakota;6;6;Cold;Cold;A;A
+G47073;Hawkins;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G49005;Cache;Utah;6;5;Cold;Cold;B;B
+G44005;Newport;Rhode Island;5;5;Cold;Cold;A;A
+G13049;Charlton;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G29151;Osage;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G26041;Delta;Michigan;6;6;Cold;Cold;A;A
+G42017;Bucks;Pennsylvania;4;4;Mixed-Humid;Mixed-Humid;A;A
+G34033;Salem;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G39013;Belmont;Ohio;5;5;Cold;Cold;A;A
+G49025;Kane;Utah;5;5;Cold;Cold;B;B
+G06063;Plumas;California;5;5;Cold;Cold;B;B
+G19095;Iowa;Iowa;5;5;Cold;Cold;A;A
+G21061;Edmonson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G34017;Hudson;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G02198;Prince of Wales-Hyder;Alaska;7;5;Very Cold;Cold;;C
+G39163;Vinton;Ohio;5;4;Cold;Mixed-Humid;A;A
+G27103;Nicollet;Minnesota;6;6;Cold;Cold;A;A
+G20055;Finney;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18145;Shelby;Indiana;5;4;Cold;Mixed-Humid;A;A
+G27105;Nobles;Minnesota;6;6;Cold;Cold;A;A
+G26037;Clinton;Michigan;5;5;Cold;Cold;A;A
+G51630;Fredericksburg;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29161;Phelps;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G12117;Seminole;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G51145;Powhatan;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29067;Douglas;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G54001;Barbour;West Virginia;5;5;Cold;Cold;A;A
+G25003;Berkshire;Massachusetts;5;5;Cold;Cold;A;A
+G48415;Scurry;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G08073;Lincoln;Colorado;5;5;Cold;Cold;B;B
+G37113;Macon;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42089;Monroe;Pennsylvania;5;5;Cold;Cold;A;A
+G29029;Camden;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G38043;Kidder;North Dakota;7;6;Very Cold;Cold;;A
+G31055;Douglas;Nebraska;5;5;Cold;Cold;A;A
+G13315;Wilcox;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G46089;McPherson;South Dakota;6;6;Cold;Cold;A;A
+G01029;Cleburne;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G72103;Naguabo;;;;;;;
+G72053;Fajardo;;;;;;;
+G32007;Elko;Nevada;5;5;Cold;Cold;B;B
+G18097;Marion;Indiana;5;4;Cold;Mixed-Humid;A;A
+G45045;Greenville;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G47009;Blount;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51105;Lee;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17021;Christian;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G33007;Coos;New Hampshire;6;6;Cold;Cold;A;A
+G26073;Isabella;Michigan;6;6;Cold;Cold;A;A
+G33013;Merrimack;New Hampshire;6;5;Cold;Cold;A;A
+G26109;Menominee;Michigan;6;6;Cold;Cold;A;A
+G26153;Schoolcraft;Michigan;7;6;Very Cold;Cold;;A
+G38035;Grand Forks;North Dakota;7;7;Very Cold;Very Cold;;
+G51520;Bristol;;4;4;Mixed-Humid;Mixed-Humid;;
+G51570;Colonial Heights;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51640;Galax;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21025;Breathitt;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G35041;Roosevelt;New Mexico;4;4;Mixed-Dry;Mixed-Dry;B;B
+G48109;Culberson;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G51163;Rockbridge;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21207;Russell;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29059;Dallas;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G40081;Lincoln;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G27095;Mille Lacs;Minnesota;7;6;Very Cold;Cold;;A
+G26095;Luce;Michigan;7;6;Very Cold;Cold;;A
+G29123;Madison;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48461;Upton;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48185;Grimes;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G47055;Giles;Tennessee;4;3;Mixed-Humid;Mixed-Humid;A;A
+G18005;Bartholomew;Indiana;5;4;Cold;Mixed-Humid;A;A
+G31079;Hall;Nebraska;5;5;Cold;Cold;A;A
+G21221;Trigg;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20139;Osage;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08105;Rio Grande;Colorado;7;7;Very Cold;Very Cold;;
+G28091;Marion;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G20087;Jefferson;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48033;Borden;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48259;Kendall;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G36033;Franklin;New York;6;6;Cold;Cold;A;A
+G48477;Washington;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G40127;Pushmataha;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G54013;Calhoun;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G16049;Idaho;Idaho;5;5;Cold;Cold;B;B
+G55001;Adams;Wisconsin;6;5;Cold;Cold;A;A
+G22035;East Carroll;Louisiana;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12065;Jefferson;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G22071;Orleans;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G08019;Clear Creek;Colorado;7;7;Very Cold;Very Cold;;
+G29065;Dent;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48327;Menard;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G40067;Jefferson;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05081;Little River;Arkansas;3;3;Hot-Humid;Hot-Humid;A;A
+G42003;Allegheny;Pennsylvania;5;5;Cold;Cold;A;A
+G29177;Ray;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06027;Inyo;California;4;4;Mixed-Dry;Mixed-Dry;B;B
+G02164;Lake and Peninsula;Alaska;7;7;Very Cold;Very Cold;;
+G42077;Lehigh;Pennsylvania;5;5;Cold;Cold;A;A
+G30053;Lincoln;Montana;6;6;Cold;Cold;B;B
+G20173;Sedgwick;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18129;Posey;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29219;Warren;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01051;Elmore;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G09007;Middlesex;Connecticut;5;5;Cold;Cold;A;A
+G18039;Elkhart;Indiana;5;5;Cold;Cold;A;A
+G17137;Morgan;Illinois;5;5;Cold;Cold;A;A
+G37089;Henderson;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18155;Switzerland;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G21021;Boyle;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G31103;Keya Paha;Nebraska;5;5;Cold;Cold;A;A
+G23003;Aroostook;Maine;7;7;Very Cold;Very Cold;;
+G31161;Sheridan;Nebraska;5;5;Cold;Cold;A;A
+G04021;Pinal;Arizona;2;2;Hot-Dry;Hot-Dry;B;B
+G19187;Webster;Iowa;6;5;Cold;Cold;A;A
+G47129;Morgan;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48159;Franklin;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G51125;Nelson;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05147;Woodruff;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G37039;Cherokee;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G18115;Ohio;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G10001;Kent;Delaware;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28035;Forrest;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G42031;Clarion;Pennsylvania;5;5;Cold;Cold;A;A
+G72107;Orocovis;;;;;;;
+G56015;Goshen;Wyoming;5;5;Cold;Cold;B;B
+G48211;Hemphill;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G19175;Union;Iowa;5;5;Cold;Cold;A;A
+G19061;Dubuque;Iowa;5;5;Cold;Cold;A;A
+G21181;Nicholas;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08005;Arapahoe;Colorado;5;5;Cold;Cold;B;B
+G40137;Stephens;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G54109;Wyoming;West Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G34037;Sussex;New Jersey;5;5;Cold;Cold;A;A
+G29111;Lewis;Missouri;5;5;Cold;Cold;A;A
+G18029;Dearborn;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G18109;Morgan;Indiana;5;4;Cold;Mixed-Humid;A;A
+G29019;Boone;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G20095;Kingman;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G49043;Summit;Utah;6;6;Cold;Cold;B;B
+G19145;Page;Iowa;5;5;Cold;Cold;A;A
+G22065;Madison;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G05007;Benton;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G08071;Las Animas;Colorado;4;4;Mixed-Dry;Mixed-Dry;B;B
+G27107;Norman;Minnesota;7;7;Very Cold;Very Cold;;
+G30023;Deer Lodge;Montana;6;6;Cold;Cold;B;B
+G42041;Cumberland;Pennsylvania;5;4;Cold;Mixed-Humid;A;A
+G41043;Linn;Oregon;4;4;Marine;Marine;C;C
+G44007;Providence;Rhode Island;5;5;Cold;Cold;A;A
+G12097;Osceola;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G17157;Randolph;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13051;Chatham;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G17161;Rock Island;Illinois;5;5;Cold;Cold;A;A
+G48377;Presidio;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G16085;Valley;Idaho;6;6;Cold;Cold;B;B
+G08111;San Juan;Colorado;7;7;Very Cold;Very Cold;;
+G04015;Mohave;Arizona;3;3;Hot-Dry;Hot-Dry;B;B
+G40003;Alfalfa;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G19119;Lyon;Iowa;6;6;Cold;Cold;A;A
+G18051;Gibson;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17005;Bond;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46021;Campbell;South Dakota;6;6;Cold;Cold;A;A
+G16013;Blaine;Idaho;6;6;Cold;Cold;B;B
+G17073;Henry;Illinois;5;5;Cold;Cold;A;A
+G16025;Camas;Idaho;6;6;Cold;Cold;B;B
+G35006;Cibola;New Mexico;4;4;Cold;Cold;B;B
+G18025;Crawford;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29195;Saline;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42101;Philadelphia;Pennsylvania;4;4;Mixed-Humid;Mixed-Humid;A;A
+G50009;Essex;Vermont;6;6;Cold;Cold;A;A
+G27113;Pennington;Minnesota;7;7;Very Cold;Very Cold;;
+G12013;Calhoun;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G46065;Hughes;South Dakota;6;6;Cold;Cold;A;A
+G48111;Dallam;Texas;4;4;Mixed-Dry;Mixed-Dry;B;B
+G27141;Sherburne;Minnesota;6;6;Cold;Cold;A;A
+G05113;Polk;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G12015;Charlotte;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G48335;Mitchell;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G48329;Midland;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G01107;Pickens;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48239;Jackson;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G41021;Gilliam;Oregon;5;5;Cold;Cold;B;B
+G26161;Washtenaw;Michigan;5;5;Cold;Cold;A;A
+G27047;Freeborn;Minnesota;6;6;Cold;Cold;A;A
+G30071;Phillips;Montana;6;6;Cold;Cold;B;B
+G35015;Eddy;New Mexico;3;3;Hot-Dry;Hot-Dry;B;B
+G39107;Mercer;Ohio;5;5;Cold;Cold;A;A
+G42083;McKean;Pennsylvania;6;5;Cold;Cold;A;A
+G42087;Mifflin;Pennsylvania;5;5;Cold;Cold;A;A
+G19151;Pocahontas;Iowa;6;5;Cold;Cold;A;A
+G38105;Williams;North Dakota;7;6;Very Cold;Cold;;A
+G51147;Prince Edward;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G47107;McMinn;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22053;Jefferson Davis;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G51683;Manassas;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29135;Moniteau;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27075;Lake;Minnesota;7;7;Very Cold;Very Cold;;
+G38025;Dunn;North Dakota;6;6;Cold;Cold;A;A
+G20099;Labette;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22115;Vernon;Louisiana;3;3;Hot-Humid;Hot-Humid;A;A
+G48385;Real;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G39139;Richland;Ohio;5;5;Cold;Cold;A;A
+G48387;Red River;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G12101;Pasco;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G19161;Sac;Iowa;6;5;Cold;Cold;A;A
+G39143;Sandusky;Ohio;5;5;Cold;Cold;A;A
+G48083;Coleman;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G24019;Dorchester;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48505;Zapata;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G28075;Lauderdale;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30045;Judith Basin;Montana;6;6;Cold;Cold;B;B
+G29033;Carroll;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48225;Houston;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G51710;Norfolk;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G04009;Graham;Arizona;3;3;Hot-Dry;Hot-Dry;B;B
+G45001;Abbeville;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G36045;Jefferson;New York;6;6;Cold;Cold;A;A
+G19087;Henry;Iowa;5;5;Cold;Cold;A;A
+G21115;Johnson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17001;Adams;Illinois;5;5;Cold;Cold;A;A
+G16071;Oneida;Idaho;6;6;Cold;Cold;B;B
+G21013;Bell;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28001;Adams;Mississippi;3;3;Hot-Humid;Hot-Humid;A;A
+G46069;Hyde;South Dakota;6;6;Cold;Cold;A;A
+G31037;Colfax;Nebraska;5;5;Cold;Cold;A;A
+G06067;Sacramento;California;3;3;Hot-Dry;Hot-Dry;B;B
+G42119;Union;Pennsylvania;5;5;Cold;Cold;A;A
+G48035;Bosque;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G55019;Clark;Wisconsin;6;6;Cold;Cold;A;A
+G41039;Lane;Oregon;4;4;Marine;Marine;C;C
+G06031;Kings;California;3;3;Hot-Dry;Hot-Dry;B;B
+G20085;Jackson;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G38069;Pierce;North Dakota;7;7;Very Cold;Very Cold;;
+G48163;Frio;Texas;2;2;Hot-Humid;Hot-Humid;B;B
+G01081;Lee;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G56043;Washakie;Wyoming;6;6;Cold;Cold;B;B
+G26103;Marquette;Michigan;6;7;Cold;Very Cold;A;
+G02013;Aleutians East;Alaska;7;7;Very Cold;Very Cold;;
+G05107;Phillips;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G02068;Denali;Alaska;7;8;Very Cold;Very Cold;;
+G12079;Madison;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G28051;Holmes;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51071;Giles;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G45007;Anderson;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G32011;Eureka;Nevada;5;5;Cold;Cold;B;B
+G48053;Burnet;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G51600;Fairfax;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48089;Colorado;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G18079;Jennings;Indiana;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13077;Coweta;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G06017;El Dorado;California;4;4;Mixed-Dry;Mixed-Dry;B;B
+G13087;Decatur;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G24017;Charles;Maryland;4;4;Mixed-Humid;Mixed-Humid;A;A
+G51510;Alexandria;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G04007;Gila;Arizona;4;4;Mixed-Dry;Mixed-Dry;B;B
+G46135;Yankton;South Dakota;5;5;Cold;Cold;A;A
+G72015;Arroyo;;;;;;;
+G29510;St. Louis;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42009;Bedford;Pennsylvania;5;5;Cold;Cold;A;A
+G29205;Shelby;Missouri;5;5;Cold;Cold;A;A
+G51678;Lexington;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G05105;Perry;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51041;Chesterfield;Virginia;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36009;Cattaraugus;New York;6;5;Cold;Cold;A;A
+G72127;San Juan;;;;;;;
+G19131;Mitchell;Iowa;6;6;Cold;Cold;A;A
+G26025;Calhoun;Michigan;5;5;Cold;Cold;A;A
+G02090;Fairbanks North Star;Alaska;8;8;Subarctic;Subarctic;;
+G13271;Telfair;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G12115;Sarasota;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G13185;Lowndes;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G10005;Sussex;Delaware;4;4;Mixed-Humid;Mixed-Humid;A;A
+G22103;St. Tammany;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G55059;Kenosha;Wisconsin;6;5;Cold;Cold;A;A
+G13233;Polk;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G34029;Ocean;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13223;Paulding;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G31127;Nemaha;Nebraska;5;5;Cold;Cold;A;A
+G27119;Polk;Minnesota;7;7;Very Cold;Very Cold;;
+G17027;Clinton;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G17019;Champaign;Illinois;5;5;Cold;Cold;A;A
+G42019;Butler;Pennsylvania;5;5;Cold;Cold;A;A
+G33003;Carroll;New Hampshire;6;6;Cold;Cold;A;A
+G47167;Tipton;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G16083;Twin Falls;Idaho;5;5;Cold;Cold;B;B
+G12023;Columbia;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G72007;Aguas Buenas;;;;;;;
+G39029;Columbiana;Ohio;5;5;Cold;Cold;A;A
+G40045;Ellis;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G42023;Cameron;Pennsylvania;6;5;Cold;Cold;A;A
+G31139;Pierce;Nebraska;5;5;Cold;Cold;A;A
+G40019;Carter;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G23019;Penobscot;Maine;6;6;Cold;Cold;A;A
+G30103;Treasure;Montana;6;6;Cold;Cold;B;B
+G40051;Grady;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48073;Cherokee;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G30089;Sanders;Montana;6;6;Cold;Cold;B;B
+G21043;Carter;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G06079;San Luis Obispo;California;3;3;Marine;Marine;C;C
+G39005;Ashland;Ohio;5;5;Cold;Cold;A;A
+G13039;Camden;Georgia;2;2;Hot-Humid;Hot-Humid;A;A
+G40027;Cleveland;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G36041;Hamilton;New York;6;6;Cold;Cold;A;A
+G05101;Newton;Arkansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G42115;Susquehanna;Pennsylvania;6;5;Cold;Cold;A;A
+G40087;McClain;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G48499;Wood;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G22095;St. John the Baptist;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G22097;St. Landry;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G40113;Osage;Oklahoma;3;4;Mixed-Humid;Mixed-Humid;A;A
+G48231;Hunt;Texas;3;3;Hot-Humid;Hot-Humid;A;A
+G45029;Colleton;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G12031;Duval;Florida;2;2;Hot-Humid;Hot-Humid;A;A
+G27137;St. Louis;Minnesota;7;7;Very Cold;Very Cold;;
+G39115;Morgan;Ohio;5;5;Cold;Cold;A;A
+G44009;Washington;Rhode Island;5;5;Cold;Cold;A;A
+G28135;Tallahatchie;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39133;Portage;Ohio;5;5;Cold;Cold;A;A
+G36013;Chautauqua;New York;5;5;Cold;Cold;A;A
+G29047;Clay;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46119;Sully;South Dakota;6;6;Cold;Cold;A;A
+G29079;Grundy;Missouri;5;5;Cold;Cold;A;A
+G48141;El Paso;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G20107;Linn;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G28117;Prentiss;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G51117;Mecklenburg;Virginia;4;3;Mixed-Humid;Mixed-Humid;A;A
+G05043;Drew;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G21193;Perry;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G55051;Iron;Wisconsin;7;6;Very Cold;Cold;;A
+G21231;Wayne;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G01129;Washington;Alabama;3;3;Hot-Humid;Hot-Humid;A;A
+G30051;Liberty;Montana;6;6;Cold;Cold;B;B
+G42111;Somerset;Pennsylvania;5;5;Cold;Cold;A;A
+G05149;Yell;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G13307;Webster;Georgia;3;3;Hot-Humid;Hot-Humid;A;A
+G31089;Holt;Nebraska;5;5;Cold;Cold;A;A
+G39049;Franklin;Ohio;5;4;Cold;Mixed-Humid;A;A
+G51017;Bath;Virginia;4;5;Mixed-Humid;Cold;A;A
+G72023;Cabo Rojo;;;;;;;
+G28009;Benton;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G05033;Crawford;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G19101;Jefferson;Iowa;5;5;Cold;Cold;A;A
+G37189;Watauga;North Carolina;5;5;Cold;Cold;A;A
+G45055;Kershaw;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G16077;Power;Idaho;5;5;Cold;Cold;B;B
+G40021;Cherokee;Oklahoma;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46085;Lyman;South Dakota;6;5;Cold;Cold;A;A
+G41005;Clackamas;Oregon;4;4;Marine;Marine;C;C
+G20063;Gove;Kansas;5;5;Cold;Cold;A;A
+G20065;Graham;Kansas;5;4;Cold;Mixed-Humid;A;A
+G16069;Nez Perce;Idaho;5;5;Cold;Cold;B;B
+G37157;Rockingham;North Carolina;4;3;Mixed-Humid;Mixed-Humid;A;A
+G20151;Pratt;Kansas;4;4;Mixed-Humid;Mixed-Humid;A;A
+G37197;Yadkin;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48445;Terry;Texas;3;3;Hot-Dry;Hot-Dry;B;B
+G46049;Faulk;South Dakota;6;6;Cold;Cold;A;A
+G08055;Huerfano;Colorado;5;5;Cold;Cold;B;B
+G17049;Effingham;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G29201;Scott;Missouri;4;4;Mixed-Humid;Mixed-Humid;A;A
+G36001;Albany;New York;5;5;Cold;Cold;A;A
+G13157;Jackson;Georgia;3;3;Mixed-Humid;Mixed-Humid;A;A
+G34023;Middlesex;New Jersey;4;4;Mixed-Humid;Mixed-Humid;A;A
+G27045;Fillmore;Minnesota;6;5;Cold;Cold;A;A
+G55049;Iowa;Wisconsin;6;5;Cold;Cold;A;A
+G55037;Florence;Wisconsin;7;6;Very Cold;Cold;;A
+G33005;Cheshire;New Hampshire;5;5;Cold;Cold;A;A
+G21213;Simpson;Kentucky;4;4;Mixed-Humid;Mixed-Humid;A;A
+G48337;Montague;Texas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G39095;Lucas;Ohio;5;5;Cold;Cold;A;A
+G53015;Cowlitz;Washington;4;4;Marine;Marine;C;C
+G48015;Austin;Texas;2;2;Hot-Humid;Hot-Humid;A;A
+G45017;Calhoun;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G45035;Dorchester;South Carolina;3;3;Hot-Humid;Hot-Humid;A;A
+G47057;Grainger;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G02230;Skagway;Alaska;7;6;Very Cold;Cold;;A
+G47063;Hamblen;Tennessee;4;4;Mixed-Humid;Mixed-Humid;A;A
+G46033;Custer;South Dakota;6;6;Cold;Cold;A;A
+G45025;Chesterfield;South Carolina;3;3;Mixed-Humid;Mixed-Humid;A;A
+G46057;Hamlin;South Dakota;6;6;Cold;Cold;A;A
+G47077;Henderson;Tennessee;3;3;Mixed-Humid;Mixed-Humid;A;A
+G30087;Rosebud;Montana;6;6;Cold;Cold;B;B
+G49007;Carbon;Utah;6;5;Cold;Cold;B;B
+G28145;Union;Mississippi;3;3;Mixed-Humid;Mixed-Humid;A;A
+G01033;Colbert;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A
+G17003;Alexander;Illinois;4;4;Mixed-Humid;Mixed-Humid;A;A
+G41001;Baker;Oregon;5;5;Cold;Cold;B;B
+G27159;Wadena;Minnesota;7;7;Very Cold;Very Cold;;
+G05119;Pulaski;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
+G45013;Beaufort;South Carolina;3;2;Hot-Humid;Hot-Humid;A;A
+G22003;Allen;Louisiana;2;2;Hot-Humid;Hot-Humid;A;A
+G38005;Benson;North Dakota;7;7;Very Cold;Very Cold;;
+G72079;Lajas;;;;;;;
+G31159;Seward;Nebraska;5;5;Cold;Cold;A;A
+G37023;Burke;North Carolina;4;4;Mixed-Humid;Mixed-Humid;A;A
+G13261;Sumter;Georgia;3;3;Hot-Humid;Hot-Humid;A;A

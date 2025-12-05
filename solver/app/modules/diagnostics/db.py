@@ -18,7 +18,7 @@ DB_NAME = DB_NAME
 
 def get_db_connection():
     
-    logger.info(f"Attempting connection with HOST={HOST}, PORT={PORT}, USER={USER}, DB={DB_NAME}")
+    #logger.info(f"Attempting connection with HOST={HOST}, PORT={PORT}, USER={USER}, DB={DB_NAME}")
 
     
     try:
@@ -50,7 +50,8 @@ def create_table():
                 batch INTEGER,
                 order_rank INTEGER,
                 simulation_name VARCHAR(255),
-                location VARCHAR(255),
+                state VARCHAR(255),
+                weather_file VARCHAR(255),
                 floor_area NUMERIC,
                 number_of_stories INTEGER,
                 complexity INTEGER,
@@ -71,24 +72,25 @@ def create_table():
         conn.close()
         
 
-def insert_asset(asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name):
+def insert_asset(asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name):
     ensure_columns_exist()
 
     conn = get_db_connection()
     cur = conn.cursor()
     try:
         cur.execute(f"""
-            INSERT INTO {DB_NAME} (asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO {DB_NAME} (asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (asset_id) DO UPDATE SET
-                location = EXCLUDED.location,
+                state = EXCLUDED.state,
+                weather_file = EXCLUDED.weather_file,
                 floor_area = EXCLUDED.floor_area,
                 number_of_stories = EXCLUDED.number_of_stories,
                 complexity = EXCLUDED.complexity,
                 asset_name = EXCLUDED.asset_name,
                 subtype = EXCLUDED.subtype,
                 simulation_name = EXCLUDED.simulation_name
-        """, (asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name))
+        """, (asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name))
         conn.commit()
     except Exception as e:
         print(f"Error inserting asset ID {asset_id}: {e}")
@@ -115,17 +117,18 @@ def insert_bulk_assets(asset_data_list):
         all_params = []
         
         for asset in asset_data_list:
-            values_parts.append("(%s, %s, %s, %s, %s, %s, %s, %s)")
+            values_parts.append("(%s, %s, %s, %s, %s, %s, %s, %s, %s)")
             all_params.extend(asset)
         
         values_clause = ", ".join(values_parts)
         
         query = f"""
             INSERT INTO {DB_NAME} 
-            (asset_id, location, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
+            (asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
             VALUES {values_clause}
             ON CONFLICT (asset_id) DO UPDATE SET
-                location = EXCLUDED.location,
+                state = EXCLUDED.state,
+                weather_file = EXCLUDED.weather_file,
                 floor_area = EXCLUDED.floor_area,
                 number_of_stories = EXCLUDED.number_of_stories,
                 complexity = EXCLUDED.complexity,
@@ -303,22 +306,33 @@ def get_status_stats(simulation_name, batch_id=None):
         cur.close()
         conn.close()  
 
-def get_weather(asset_id=None, simulation_name=None):
+def get_weather(asset_id):
+    """
+    Retrieve weather information for a given asset.
     
-    if asset_id is None and simulation_name is None:
-        raise ValueError("Either asset_id or simulation_name must be provided to retrieve the location.")
+    Args:
+        asset_id: The asset ID to retrieve weather data for
+        
+    Returns:
+        tuple: (State, WeatherFile.epw) - State code and weather file name with .epw extension
+    """
+    if asset_id is None:
+        raise ValueError("asset_id must be provided to retrieve weather information.")
 
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        if asset_id is None:
-            cur.execute(f'SELECT location FROM {DB_NAME} WHERE simulation_name = %s LIMIT 1', (simulation_name,))
-        else:
-            cur.execute(f'SELECT location FROM {DB_NAME} WHERE asset_id = %s', (asset_id,))
-        location = cur.fetchone()
-        return location[0]
+        cur.execute(f'SELECT state, weather_file FROM {DB_NAME} WHERE asset_id = %s', (asset_id,))
+        result = cur.fetchone()
+        
+        if result is None:
+            raise ValueError(f"No weather data found for asset_id {asset_id}")
+        
+        state, weather_file = result
+        return state, weather_file
     except Exception as e:
-        print(f"Error getting location {asset_id}: {e}")
+        logger.error(f"Error getting weather data for asset ID {asset_id}: {e}")
+        raise
     finally:
         cur.close()
         conn.close()
@@ -464,7 +478,8 @@ def get_asset_stats(simulation_name=None):
                 batch::integer,
                 order_rank::integer,
                 simulation_name,
-                location,
+                state,
+                weather_file,
                 floor_area::numeric,
                 number_of_stories::integer,
                 complexity::integer,
@@ -532,7 +547,8 @@ def ensure_columns_exist():
             'batch': 'INTEGER',
             'order_rank': 'INTEGER',
             'simulation_name': 'VARCHAR(255)',
-            'location': 'VARCHAR(255)',
+            'state': 'VARCHAR(255)',
+            'weather_file': 'VARCHAR(255)',
             'floor_area': 'NUMERIC',
             'number_of_stories': 'INTEGER',
             'complexity': 'INTEGER',

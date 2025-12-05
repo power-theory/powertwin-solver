@@ -26,7 +26,7 @@ def home():
 ############################################################################################################
 # Name: def start_simulation()
 # Description: This function requires ASSET_GEOJSON, METADATA_CSV, config_data, and simulation_name, 
-# location, and num_cores to start the simulation. Performs error checking and creates a directory 
+# and num_cores to start the simulation. Performs error checking and creates a directory 
 # based on the given simulation name. Calls the create_featurefiles and initialize_uo functions to
 # generate feature files and start the UrbanOpt simulation. This function parallelizes the 
 # simulation after the feature files are created.
@@ -39,7 +39,6 @@ def start_simulation():
     METADATA_CSV = request.files.get('metadata_csv_file')
     config_data = request.form.get('config_data')
     simulation_name = request.form.get('simulation_name')
-    location = request.form.get('location')
     num_cores = int(request.form.get('num_cores', 1))
     hpc_mode = request.form.get('hpc_mode', 'false').lower() == 'true'
     shared_storage = request.form.get('shared_storage')
@@ -57,7 +56,7 @@ def start_simulation():
     
     # Error checking
     #TODO: Metadata csv should be optional since its ideally  only required for report cleaning
-    if not ASSET_GEOJSON or not METADATA_CSV or not config_data or not simulation_name or not location or num_cores <= 0:
+    if not ASSET_GEOJSON or not METADATA_CSV or not config_data or not simulation_name or num_cores <= 0:
         logger.error("Error: missing or invalid parameter.")
         return jsonify({'error': 'missing or invalid parameter'}), 400
     
@@ -95,7 +94,7 @@ def start_simulation():
     try:
         create_table()
         logger.debug("Calling create_feature_files from start_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, location, simulation_name, hpc_mode)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, simulation_name, hpc_mode)
         logger.debug("Exited create_feature_files to start_simulation()")
         
         logger.debug("Calling initialize_uo from start_simulation()")
@@ -143,12 +142,11 @@ def autorun_simulation():
     asset_geojson_path = data.get('asset_geojson_path')
     metadata_csv_path = data.get('metadata_csv_path')
     config_json_path = data.get('config_json_path')
-    location = data.get('location')
     num_cores = data.get('num_cores', 1)
 
     # Error checking
     #TODO: Metadata csv should be optional since ideally it should only required for report cleaning
-    if not simulation_name or not asset_geojson_path or not metadata_csv_path or not config_json_path or not location or num_cores <= 0:
+    if not simulation_name or not asset_geojson_path or not metadata_csv_path or not config_json_path or num_cores <= 0:
         logger.error("Error: Missing required fields in simulation.json")
         return jsonify({'error': 'Missing required fields in simulation.json'}), 400
 
@@ -187,7 +185,7 @@ def autorun_simulation():
         logger.debug(f"HPC Mode: {hpc_mode}, Shared Storage: {shared_storage}")
         
         logger.debug("Calling create_feature_files from start_simulation_from_json()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, location, simulation_name, hpc_mode)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, simulation_name, hpc_mode)
         logger.debug("Exited create_feature_files to start_simulation_from_json()")
                 
         logger.debug("Calling initialize_uo from start_simulation_from_json()")
@@ -367,7 +365,7 @@ def get_simulation_data():
             
             # Write header row
             csvwriter.writerow([
-                'Asset ID', 'Batch', 'Order Rank', 'Simulation Name', 'Location', 
+                'Asset ID', 'Batch', 'Order Rank', 'Simulation Name', 'State', 'Weather File', 
                 'Floor Area', 'Number of Stories', 'Complexity', 'UO Run Time', 
                 'UO Process Time', 'Asset Name', 'Subtype','Status', 'Total Time'
             ])
@@ -379,7 +377,8 @@ def get_simulation_data():
                     asset['batch'],
                     asset['order_rank'],
                     asset['simulation_name'],
-                    asset['location'],
+                    asset['state'],
+                    asset['weather_file'],
                     asset['floor_area'],
                     asset['number_of_stories'],
                     asset['complexity'],

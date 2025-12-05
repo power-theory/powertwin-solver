@@ -4,7 +4,6 @@ import time
 import zipfile
 import subprocess
 import shutil
-import json
 
 from .run_UOsim import run_batch
 from modules.utils import initialize_logger
@@ -14,7 +13,7 @@ external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Initialize UOSim', external_log_dir)
 
 # Set the mapper file path based on the environment
-if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
+if os.environ.get('SLURM_JOB_ID'):
     MAPPER_FILE = os.path.join('/solver', 'upload', 'PowerTwin.rb')
 else:
     MAPPER_FILE = os.path.join('upload', 'PowerTwin.rb')

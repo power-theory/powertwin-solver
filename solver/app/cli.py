@@ -15,7 +15,6 @@ def start_simulation(args):
     data = {
         'simulation_name': args.simulation_name,
         'config_data': args.config_json_path,
-        'location': args.location,
         'num_cores': args.num_cores,
         'hpc_mode': args.hpc,
         'shared_storage': args.shared_storage if args.hpc else None,
@@ -149,7 +148,6 @@ def main():
     parser_start.add_argument('asset_geojson_path', type=str, help='Path to the asset geojson file')
     parser_start.add_argument('metadata_csv_path', type=str, help='Path to the metadata CSV file')
     parser_start.add_argument('config_json_path', type=str, help='Path to the config JSON file')
-    parser_start.add_argument('location', type=str, help='Location of the simulation')
     parser_start.add_argument('num_cores', type=int, help='Number of cores to use')
     parser_start.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
     parser_start.add_argument('--shared-storage', type=str, help='Path to shared storage for HPC mode (required with --hpc)')

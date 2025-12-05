@@ -55,7 +55,7 @@ def count_coordinate_lines(json_string):
     return coordinates_section.count('\n')
 
 ############################################################################################################
-# Name: asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name)
+# Name: asset_analysis(SIMULATION_DIR, num_cores, simulation_name)
 # Description:  This function reads the feature files in the feature_files directory and extracts the asset data.
 #   It reads the floor area, number of stories, and complexity of each asset and stores the data in a list.
 #   The asset data is then sorted by complexity, number of stories, and floor area.
@@ -63,7 +63,8 @@ def count_coordinate_lines(json_string):
 #   The number of assets is then distributed to batches based on the number of cores.
 #   The function returns the total number of assets processed.
 ############################################################################################################
-def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name, hpc_mode=False):
+def asset_analysis(SIMULATION_DIR, num_cores, simulation_name, hpc_mode=False):
+    
     logger.debug("Within asset_analysis()")
     
     FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
@@ -96,6 +97,7 @@ def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name, hpc_mod
             # Extract asset_id from the filename
             asset_id = filename.split('_')[0]
             
+            
             # Read the JSON file
             with open(os.path.join(FEATURE_FILES_DIR, filename), 'r') as json_file:
                 json_string = json_file.read()
@@ -109,13 +111,15 @@ def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name, hpc_mod
                     number_of_stories = data['features'][0]['properties']['number_of_stories']
                     subtype = data['features'][0]['properties']['building_type']
                     name = data['project']['name']
-                    # Count the number of lines in the coordinates section
+                    state= data['project']['climate_zone']
+                    weather_file = data['project']['weather_filename']
                     coordinate_lines = count_coordinate_lines(json_string)
 
                     # Store the values in the list
                     asset_data.append((
                         asset_id,                # asset_id
-                        location,                # location
+                        state,                   # state
+                        weather_file,            # weather_file
                         floor_area,              # floor_area
                         number_of_stories,       # number_of_stories
                         coordinate_lines,        # complexity
@@ -123,6 +127,7 @@ def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name, hpc_mod
                         subtype,                 # subtype
                         simulation_name          # simulation_name
                     ))
+                    logger.debug(f"Adding asset {asset_id}: {name} - {floor_area} sq ft, {number_of_stories} stories, complexity {coordinate_lines}, state {state}, weather {weather_file}")
                     asset_count += 1
                     
                     # Process in batches to avoid memory issues
@@ -155,6 +160,5 @@ def asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name, hpc_mod
 if __name__ == "__main__":
     SIMULATION_DIR = ''
     num_cores = 4
-    location = 'Phoenix-SkyHarbor'
     simulation_name = 'phoenix1'
-    asset_analysis(SIMULATION_DIR, num_cores, location, simulation_name)
+    asset_analysis(SIMULATION_DIR, num_cores, simulation_name, hpc_mode=False)
