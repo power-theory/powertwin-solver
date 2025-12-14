@@ -176,7 +176,7 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
         bool: True if successful, False otherwise
     """
     from modules.simulation.run_UOsim import run_batch
-    from modules.utils.hpc_parallel import run_parallel_batches
+    from modules.utils.parallel import run_parallel_batches
     
     logger.info(f"Running parallel batches for: {simulation_name}")
     

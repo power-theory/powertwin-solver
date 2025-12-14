@@ -7,7 +7,8 @@ import shutil
 
 from .run_UOsim import run_batch
 from modules.utils import initialize_logger
-from modules.utils.hpc_parallel import run_parallel_batches
+from modules.utils.parallel import run_parallel_batches
+from solver.app.modules.utils.check_uo import get_urbanopt_command
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Initialize UOSim', external_log_dir)
@@ -45,19 +46,39 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
     # Create PowerTwin UrbanOpt Project if it doesn't exist (it shouldnt)
     if not os.path.exists(UO_SIMULATION_DIR):
         logger.debug(f"Creating UrbanOpt project at {UO_SIMULATION_DIR}")
-
-        subprocess.run(f"uo create -p {UO_SIMULATION_DIR}", shell=True, check=True, capture_output=True, text=True)
+        
+        try:
+            uo_cmd = get_urbanopt_command()
+            logger.debug(f"Using UrbanOpt command: {uo_cmd}")
+            
+            result = subprocess.run(
+                f"{uo_cmd} create --project-folder {UO_SIMULATION_DIR}", 
+                shell=True, 
+                check=True, 
+                capture_output=True, 
+                text=True
+            )
+            logger.debug(f"UrbanOpt project creation output: {result.stdout}")
+            
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to create UrbanOpt project: {e}")
+            logger.error(f"Command output: {e.output}")
+            logger.error(f"Command stderr: {e.stderr}")
+            raise
+        except Exception as e:
+            logger.error(f"Error discovering or running UrbanOpt command: {e}")
+            raise
         os.makedirs(MAPPER_DESTINATION, exist_ok=True)
         
         # Deleting the pre loaded content of the weather dir
         shutil.rmtree(WEATHER_DESTINATION)
 
-        # WARNING: Baseline ruby file should never be deleted, it is the parent file
+        # NOTE: Baseline ruby file should never be deleted, it is the parent file
         for rb_file in glob.glob(os.path.join(MAPPER_DESTINATION, "*.rb")):
                 if os.path.basename(rb_file) != "Baseline.rb":
                     os.remove(rb_file)
 
-        # Adding custom mapper (map be modified to include more features)
+        # Adding custom mapper (map be modified to include more measures)
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
 
@@ -67,9 +88,9 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
     # In HPC mode, we'll just return the batch range and let the caller handle parallelization
     if hpc_mode: return list(range(batches))
         
-    # Run simulations in parallel (local mode only - HPC mode is handled separately)
+    # Run simulations in parallel (Docker mode only)
     try:
-        logger.info(f"Running {batches} batches of simulations in local mode...")
+        logger.info(f"Running {batches} batches of simulations in Docker mode...")
         batch_range = list(range(batches))
         run_parallel_batches(
             run_batch, 
@@ -148,5 +169,5 @@ if __name__ == "__main__":
     feature_file_zip = "powertwin-solver-pg/user_files/feature_files.zip"
     SIMULATION_DIR = "powertwin-solver-pg/user_files"
     LOCAL_DIR = ""
-    initialize_uo(SIMULATION_DIR,LOCAL_DIR,feature_file_zip)
+    initialize_uo(SIMULATION_DIR,LOCAL_DIR,feature_file_zip, hpc_mode=False)
     
