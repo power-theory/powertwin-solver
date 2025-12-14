@@ -99,7 +99,7 @@ def download_weather_files(weather_title, epw_url):
     
     # NOTE Some weather stations may result in errors if data within files is missing. 
     # If found delete the station from the master_weather.geojson.
-    # Removed list: USA_AZ_Scottsdale.Muni.AP.722789_TMY3, USA_AZ_Phoenix-Deer.Valley.AP.722784_TMY3
+    # Removed list: USA_AZ_Scottsdale.Muni.AP.722789_TMY3, USA_AZ_Phoenix-Deer.Valley.AP.722784_TMY3, USA_AR_Springdale.Muni.AP.723434_TMY3
     file_extensions = ['.epw', '.ddy', '.stat']
     base_url = epw_url.replace('.epw', '')
     
@@ -115,6 +115,7 @@ def download_weather_files(weather_title, epw_url):
             continue
         
         try:
+            #TODO for HPC mode change location to be within the HPC shared directory
             logger.info(f"Downloading {filename} from {url}")
             urllib.request.urlretrieve(url, filepath)
             logger.info(f"Successfully downloaded {filename}")

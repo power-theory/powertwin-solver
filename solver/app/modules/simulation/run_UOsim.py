@@ -3,9 +3,11 @@ import shutil
 import time
 import csv
 import json
+import subprocess
 
 from .clean_report import clean_single_report
 from modules.utils import initialize_logger, run_command, check_storage
+from solver.app.modules.utils.check_uo import get_urbanopt_command
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Run UOSim', external_log_dir)
@@ -140,6 +142,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     FEATURE_FILE_JSON = os.path.join(SIMULATION_DIR, feature_file_name)
     SCENARIO_FILE_CSV = os.path.join(SIMULATION_DIR, f"powertwin_scenario_{batch_index}.csv")
     
+
     # Create the scenario
     # NOTE Created custom function to create the scenario file rather then using uo create -s
     try:
@@ -169,14 +172,23 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
                 logger.debug(line.strip())
         
         # Check UrbanOpt CLI location and version for debugging
-        # logger.info(f"BATCH {batch_index}: Checking UrbanOpt CLI location and version")
-        # run_command("which uo")
-        # run_command("uo --version")
+        logger.info(f"BATCH {batch_index}: Checking UrbanOpt CLI location and version")
+        try:
+            uo_cmd = get_urbanopt_command()
+            logger.debug(f"Using UrbanOpt command: {uo_cmd}")
+            
+            # Verify command is working
+            result = subprocess.run(f"{uo_cmd} --version", shell=True, capture_output=True, text=True)
+            logger.debug(f"UrbanOpt version: {result.stdout.strip()}")
+            
+        except Exception as e:
+            logger.error(f"BATCH {batch_index}: UrbanOpt CLI discovery failed: {e}")
+            raise
 
-        uo_run_time = run_command(f"uo run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
+        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
 
         logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
-        uo_process_time = run_command(f"uo process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
+        uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
         total_time = uo_run_time + uo_process_time
     except Exception as e:
         logger.error(f"BATCH {batch_index}: Error running UrbanOpt commands: {str(e)}")

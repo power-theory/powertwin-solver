@@ -1,5 +1,5 @@
 from flask import Blueprint
-from views import *
+from .views import *
 
 solver_bp = Blueprint('Solver', __name__)
 

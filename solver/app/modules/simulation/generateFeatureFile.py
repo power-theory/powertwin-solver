@@ -154,7 +154,7 @@ def flatten_geometry(geom):
         rings = [ring for poly in coords for ring in poly]
         geom['type'] = 'Polygon'
         geom['coordinates'] = rings
-        logger.debug("Converted MultiPolygon to Polygon")
+        #logger.debug("Converted MultiPolygon to Polygon")
         return True
     return False
 
@@ -249,13 +249,55 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     })
     # Apply custom properties if SmallResidential subtype
     if occupancy_subtype == "SmallResidential":
+        # Determine climate-appropriate HVAC system based on climate zone
+        # Climate zones: 1=Very Hot, 2=Hot, 3=Warm, 4=Mixed, 5=Cool, 6=Cold, 7=Very Cold
+        # Valid residential system types from OpenStudio BuildResidentialModel measure
+        
+        residential_system_type = "Residential - electric resistance and central air conditioner"  # Default
+        
+        if building_id in building_weather_list:
+            state, _ = building_weather_list[building_id]
+            # Get climate zone from the mapping established later in the code
+            climate_zone_mapping = {
+                'AL': '3A', 'AK': '7', 'AZ': '2B', 'AR': '3A', 'CA': '3B',
+                'CO': '5B', 'CT': '5A', 'DE': '4A', 'FL': '2A', 'GA': '3A',
+                'HI': '1A', 'ID': '5B', 'IL': '5A', 'IN': '5A', 'IA': '6A',
+                'KS': '4A', 'KY': '4A', 'LA': '2A', 'ME': '6A', 'MD': '4A',
+                'MA': '5A', 'MI': '6A', 'MN': '6A', 'MS': '3A', 'MO': '4A',
+                'MT': '6B', 'NE': '5A', 'NV': '3B', 'NH': '6A', 'NJ': '4A',
+                'NM': '4B', 'NY': '5A', 'NC': '4A', 'ND': '7', 'OH': '5A',
+                'OK': '3A', 'OR': '4C', 'PA': '5A', 'RI': '5A', 'SC': '3A',
+                'SD': '6A', 'TN': '4A', 'TX': '2A', 'UT': '5B', 'VT': '6A',
+                'VA': '4A', 'WA': '4C', 'WV': '5A', 'WI': '6A', 'WY': '6B',
+                'DC': '4A'
+            }
+            
+            climate_zone = climate_zone_mapping.get(state, '4A')  # Default to mixed climate
+            zone_number = int(climate_zone[0])  # Extract numeric part (1-7)
+            
+            # Select system type based on climate zone
+            # Very Cold (7) and Cold (6): No cooling or minimal cooling needed
+            if zone_number >= 6:
+                residential_system_type = "Residential - electric resistance and no cooling"
+            # Cool (5): Room AC sufficient
+            elif zone_number == 5:
+                residential_system_type = "Residential - electric resistance and room air conditioner"
+            # Mixed (4): Room AC or central AC appropriate
+            elif zone_number == 4:
+                residential_system_type = "Residential - electric resistance and room air conditioner"
+            # Warm (3), Hot (2), Very Hot (1): Central AC recommended
+            else:
+                residential_system_type = "Residential - electric resistance and central air conditioner"
+            
+            #logger.debug(f"Building {building_id} in state {state}, climate zone {climate_zone}: selected system type '{residential_system_type}'")
+        
         new_properties.update({
             "number_of_stories_above_ground": floor_count,
             "foundation_type": "basement - conditioned", 
             "attic_type": "attic - unvented",  
             "number_of_residential_units": 1,
             "number_of_bedrooms": int(number_of_occupants / 2),
-            "system_type": "Residential - electric resistance and central air conditioner"
+            "system_type": residential_system_type
         })
 
     # NOTE Load the custom configuration data, the user can override the following configurations for all feature files:
@@ -330,6 +372,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         'NV': 'NWPP', 'CT': 'NEWE', 'DE': 'RFCE', 'RI': 'NEWE'
     }
     
+    # TODO Climate zones may vary extensively depending on exact location, for now using state mapping 
     climate_zone_mapping = {
         'AL': '3A', 'AK': '7', 'AZ': '2B', 'AR': '3A', 'CA': '3B',
         'CO': '5B', 'CT': '5A', 'DE': '4A', 'FL': '2A', 'GA': '3A',

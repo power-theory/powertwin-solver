@@ -184,13 +184,13 @@ def autorun_simulation():
         
         logger.debug(f"HPC Mode: {hpc_mode}, Shared Storage: {shared_storage}")
         
-        logger.debug("Calling create_feature_files from start_simulation_from_json()")
+        logger.debug("Calling create_feature_files from autorun_simulation()")
         create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, simulation_name, hpc_mode)
-        logger.debug("Exited create_feature_files to start_simulation_from_json()")
+        logger.debug("Exited create_feature_files")
                 
-        logger.debug("Calling initialize_uo from start_simulation_from_json()")
+        logger.debug("Calling initialize_uo from autorun_simulation()")
         initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode)
-        logger.debug("Exited initialize_uo to start_simulation_from_json()")
+        logger.debug("Exited initialize_uo")
         
         logger.debug("Deleting simulation directory, within the container")
         get_logs()

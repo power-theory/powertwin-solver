@@ -127,7 +127,7 @@ def asset_analysis(SIMULATION_DIR, num_cores, simulation_name, hpc_mode=False):
                         subtype,                 # subtype
                         simulation_name          # simulation_name
                     ))
-                    logger.debug(f"Adding asset {asset_id}: {name} - {floor_area} sq ft, {number_of_stories} stories, complexity {coordinate_lines}, state {state}, weather {weather_file}")
+                    #logger.debug(f"Adding asset {asset_id}: {name} - {floor_area} sq ft, {number_of_stories} stories, complexity {coordinate_lines}, state {state}, weather {weather_file}")
                     asset_count += 1
                     
                     # Process in batches to avoid memory issues
