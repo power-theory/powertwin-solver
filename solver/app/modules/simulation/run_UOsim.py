@@ -7,7 +7,7 @@ import subprocess
 
 from .clean_report import clean_single_report
 from modules.utils import initialize_logger, run_command, check_storage
-from solver.app.modules.utils.check_uo import get_urbanopt_command
+from modules.utils.check_uo import get_urbanopt_command
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Run UOSim', external_log_dir)
