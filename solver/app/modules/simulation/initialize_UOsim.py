@@ -8,7 +8,7 @@ import shutil
 from .run_UOsim import run_batch
 from modules.utils import initialize_logger
 from modules.utils.parallel import run_parallel_batches
-from solver.app.modules.utils.check_uo import get_urbanopt_command
+from modules.utils.check_uo import get_urbanopt_command
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Initialize UOSim', external_log_dir)
