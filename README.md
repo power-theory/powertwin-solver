@@ -186,27 +186,48 @@ Convert the Docker images to Apptainer/Singularity format:
 # Load the Apptainer module
 module load apptainer
 
-# Build container images in your sif_containers directory
+# Build required container images in your sif_containers directory
 cd /project/<your-allocation>/powertwin/sif_containers
+
+# Required: Solver container
 apptainer build flask.sif docker://nicotegui/powertwin-solver-flask:latest
+
+# Optional: PostgreSQL containers (only needed for legacy mode)
 apptainer build postgres17.sif docker://postgres:17
 apptainer build pgbouncer.sif docker://pgbouncer:1.15.0
 ```
 
-### Step 3: Configure and Run Simulations
+### Step 3: Database Setup
+
+**SQLite (Recommended for HPC)**:
+```bash
+# Setup SQLite database (recommended for new deployments)
+sbatch apptainer/hpc-setup-sqlite.sh
+```
+
+**PostgreSQL (Legacy)**:
+```bash
+# Initialize PostgreSQL database (legacy mode)
+sbatch apptainer/hpc-build-db.sh
+```
+
+### Step 4: Configure and Run Simulations
 
 1. Modify simulation parameters in the HPC scripts as needed
 2. Submit jobs using SLURM:
 
 ```bash
-# Initialize the database (first-time setup only)
-sbatch hpc-build-db.sh
+# SQLite mode (default)
+sbatch apptainer/hpc-start.sh
 
-# Run the simulation
-sbatch hpc-start.sh
+# PostgreSQL mode (if needed)
+export DATABASE_TYPE=postgresql
+sbatch apptainer/hpc-start.sh
 ```
 
-### Step 4: Monitor Progress
+See [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md) for detailed SQLite migration information.
+
+### Step 5: Monitor Progress
 
 Check simulation status with:
 

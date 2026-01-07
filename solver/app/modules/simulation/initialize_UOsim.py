@@ -5,9 +5,9 @@ import zipfile
 import subprocess
 import shutil
 
-from .run_UOsim import run_batch
+from .parallel import run_parallel_batches
 from modules.utils import initialize_logger
-from modules.utils.parallel import run_parallel_batches
+from modules.utils.hpc_environment import is_hpc_environment
 from modules.utils.check_uo import get_urbanopt_command
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
@@ -26,7 +26,10 @@ else:
 #   It then runs the simulations in parallel.
 #   The function returns the total number of batches and assets.
 ############################################################################################################
-def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
+def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
+    
+    # Use centralized HPC detection
+    is_hpc = is_hpc_environment()
     from modules.diagnostics import get_asset_total, get_batch_total, update_status
     
 
@@ -37,6 +40,31 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
     logger.debug(f"Total batches: {batches}, Total assets in database: {assets}\n" 
                         f"Preparing to run simulations..."
     )
+    
+    # If no batches exist yet, we need to wait for asset analysis to complete
+    if batches == 0:
+        logger.warning(f"No batches found for simulation {simulation_name}. Asset analysis may not have completed yet or database may have issues.")
+        
+        # Check if we have assets but no batches (batch distribution didn't happen)
+        if assets > 0:
+            logger.info(f"Found {assets} assets but no batches. Attempting to distribute assets to batches.")
+            try:
+                from modules.diagnostics import distribute_assets_to_batches
+                # Use total cores available for batch calculation
+                import multiprocessing
+                num_cores = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
+                logger.info(f"Using {num_cores} cores for batch distribution")
+                distribute_assets_to_batches(num_cores, simulation_name)
+                
+                # Re-check batch count
+                batches = get_batch_total(simulation_name)
+                logger.info(f"After distribution: {batches} batches created")
+            except Exception as e:
+                logger.error(f"Failed to distribute assets to batches: {e}")
+                return []
+        else:
+            logger.error(f"No assets found for simulation {simulation_name}. Feature file generation may have failed.")
+            return []
     
     UO_SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
     MAPPER_DESTINATION = os.path.join(UO_SIMULATION_DIR, 'mappers')
@@ -70,7 +98,6 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
             raise
         os.makedirs(MAPPER_DESTINATION, exist_ok=True)
         
-        # Deleting the pre loaded content of the weather dir
         shutil.rmtree(WEATHER_DESTINATION)
 
         # NOTE: Baseline ruby file should never be deleted, it is the parent file
@@ -78,27 +105,23 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
                 if os.path.basename(rb_file) != "Baseline.rb":
                     os.remove(rb_file)
 
-        # Adding custom mapper (map be modified to include more measures)
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
 
     
     update_status("Not Processed Yet",simulation_name=simulation_name)
 
-    # In HPC mode, we'll just return the batch range and let the caller handle parallelization
-    if hpc_mode: return list(range(batches))
+    if is_hpc: return list(range(batches))
         
     # Run simulations in parallel (Docker mode only)
     try:
         logger.info(f"Running {batches} batches of simulations in Docker mode...")
         batch_range = list(range(batches))
         run_parallel_batches(
-            run_batch, 
             batch_range, 
             SIMULATION_DIR, 
             LOCAL_DIR, 
-            simulation_name, 
-            hpc_mode=hpc_mode
+            simulation_name
         )
     except Exception as e:
         logger.error(f"Error running simulations: {e}")
@@ -111,8 +134,11 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
 #   The function then runs the simulations in parallel.
 #   The function returns the total number of batches and assets.
 ############################################################################################################
-def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
+def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name):
     start_time = time.time()
+    
+    # Use centralized HPC detection
+    is_hpc = is_hpc_environment()
     
 
     FEATURE_FILE_ZIP = os.path.join(SIMULATION_DIR, 'feature_files.zip')
@@ -139,13 +165,12 @@ def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode=False):
         return
 
     # Prepare the database and setup UrbanOpt project
-    batch_range = prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode)
+    batch_range = prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name)
     
     
     # In HPC mode, we return the batch range for external parallel execution
-    if hpc_mode:
+    if is_hpc:
         logger.info(f"HPC mode active - returning batch range for external parallel execution")
-        
         return batch_range
 
     end_time = time.time()
@@ -169,5 +194,5 @@ if __name__ == "__main__":
     feature_file_zip = "powertwin-solver-pg/user_files/feature_files.zip"
     SIMULATION_DIR = "powertwin-solver-pg/user_files"
     LOCAL_DIR = ""
-    initialize_uo(SIMULATION_DIR,LOCAL_DIR,feature_file_zip, hpc_mode=False)
+    initialize_uo(SIMULATION_DIR,LOCAL_DIR,feature_file_zip)
     

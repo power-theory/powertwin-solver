@@ -2,6 +2,9 @@ import os
 import multiprocessing
 from joblib import Parallel, delayed, parallel_backend
 from modules.utils import initialize_logger
+from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
+from .run_UOsim import run_batch
+
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Parallel', external_log_dir)
@@ -78,7 +81,7 @@ def get_hpc_environment():
         
     return hpc_env
 
-def run_parallel_batches(batch_function, batch_range, simulation_dir, local_dir, simulation_name, hpc_mode):
+def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name):
     """
     Run batch processing either with MPI (HPC mode) or joblib (local mode)
     
@@ -88,18 +91,21 @@ def run_parallel_batches(batch_function, batch_range, simulation_dir, local_dir,
         simulation_dir: Directory containing simulation files
         local_dir: Local directory for processed files
         simulation_name: Name of the simulation
-        hpc_mode: Whether to use HPC mode (MPI) or local mode (joblib)
+
     
     Returns:
         True if successful, False otherwise
     """
+    
+    # Use centralized HPC detection
+    is_hpc = is_hpc_environment()
     
     # Get total number of batches
     total_batches = len(batch_range)
     
 
     # HPC mode
-    if hpc_mode:
+    if is_hpc:
         hpc_env = get_hpc_environment()
         node_id = hpc_env.get('node_id', None)
         num_nodes = hpc_env.get('slurm_nodes', 1)
@@ -130,7 +136,7 @@ def run_parallel_batches(batch_function, batch_range, simulation_dir, local_dir,
                 try:
                     with parallel_backend('loky', n_jobs=n_jobs):
                         Parallel(verbose=10)(
-                            delayed(batch_function)(
+                            delayed(run_batch)(
                                 batch_num, simulation_dir, local_dir, simulation_name
                             ) for batch_num in node_batches
                         )
@@ -143,9 +149,9 @@ def run_parallel_batches(batch_function, batch_range, simulation_dir, local_dir,
     else:
         # Truly local environment (no HPC, no SLURM)
         logger.warning(f"Running in local mode with joblib: {total_batches} batches")
-        return _run_joblib_parallel(batch_function, batch_range, simulation_dir, local_dir, simulation_name)
+        return _run_joblib_parallel(batch_range, simulation_dir, local_dir, simulation_name)
 
-def _run_joblib_parallel(batch_function, batch_range, simulation_dir, local_dir, simulation_name):
+def _run_joblib_parallel(batch_range, simulation_dir, local_dir, simulation_name):
     """
     Joblib-based parallel execution for local machines
     """
@@ -153,7 +159,7 @@ def _run_joblib_parallel(batch_function, batch_range, simulation_dir, local_dir,
     
     try:
         with parallel_backend('loky', n_jobs=num_batches, verbose=10):
-            Parallel()(delayed(batch_function)(batch_num, simulation_dir, local_dir, simulation_name) 
+            Parallel()(delayed(run_batch)(batch_num, simulation_dir, local_dir, simulation_name) 
                       for batch_num in batch_range)
     except Exception as e:
         logger.error(f"Error running joblib parallel execution: {e}")

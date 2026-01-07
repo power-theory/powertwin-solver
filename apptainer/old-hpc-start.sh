@@ -657,6 +657,7 @@ main() {
         --bind "${DB_DATA_DIR}:/postgres_data" \
         --bind "${LOG_DIR}:/solver/logs" \
         --env "POWERTWIN_LOG_DIR=/solver/logs" \
+        --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
         --env "POSTGRES_USER=${PG_USER}" \
         --env "POSTGRES_PASSWORD=${PG_PASSWORD}" \
         --env "POSTGRES_DB=${PG_DB}" \
@@ -693,6 +694,7 @@ main() {
       --bind "${LOG_DIR}:/solver/logs:rw" \
       --env "SIMULATION_NAME=${SIMULATION_NAME}" \
       --env "SLURM_JOB_ID=${SLURM_JOB_ID}" \
+      --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
       --env "PYTHONPATH=/solver" \
       --env "PYTHONDONTWRITEBYTECODE=1" \
       --env "POWERTWIN_LOG_DIR=/solver/logs" \
@@ -754,6 +756,7 @@ main() {
         --env "GEM_HOME=${GEM_HOME}" \
         --env "GEM_PATH=${GEM_PATH}" \
         --env "SIMULATION_NAME=${SIMULATION_NAME}" \
+        --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
         --env "PYTHONPATH=/solver" \
         --env "PYTHONDONTWRITEBYTECODE=1" \
         --env "POWERTWIN_LOG_DIR=/solver/logs" \

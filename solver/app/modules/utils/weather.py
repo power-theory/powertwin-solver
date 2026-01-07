@@ -1,6 +1,5 @@
 import os
 import json
-import csv
 import math
 import re
 import urllib.request
@@ -13,7 +12,12 @@ _weather_stations_cache = None
 
 if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
     MASTER_WEATHER_GEOJSON = os.path.join('/solver','app','urbanopt','master_weather.geojson')
-    WEATHER_FILES_DIR = os.path.join('/solver','app','urbanopt','weather_files')
+    # Use HPC shared storage for weather files to avoid read-only container filesystem
+    hpc_shared_storage = os.environ.get('HPC_SHARED_STORAGE')
+    if hpc_shared_storage:
+        WEATHER_FILES_DIR = os.path.join(hpc_shared_storage, 'weather_files')
+    else:
+        WEATHER_FILES_DIR = os.path.join('/solver','app','urbanopt','weather_files')
 else:
     MASTER_WEATHER_GEOJSON = os.path.join('app','urbanopt','master_weather.geojson')
     WEATHER_FILES_DIR = os.path.join('app','urbanopt','weather_files')
@@ -115,7 +119,6 @@ def download_weather_files(weather_title, epw_url):
             continue
         
         try:
-            #TODO for HPC mode change location to be within the HPC shared directory
             logger.info(f"Downloading {filename} from {url}")
             urllib.request.urlretrieve(url, filepath)
             logger.info(f"Successfully downloaded {filename}")

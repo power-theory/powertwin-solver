@@ -24,8 +24,8 @@ def get_urbanopt_command():
         try:
             result = subprocess.run(f"{cmd} --version", shell=True, capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
-                logger.debug(f"Found working UrbanOpt command: {cmd}")
-                logger.debug(f"Version output: {result.stdout.strip()}")
+                #logger.debug(f"Found working UrbanOpt command: {cmd}")
+                #logger.debug(f"Version output: {result.stdout.strip()}")
                 return cmd
         except Exception as e:
             logger.debug(f"Command '{cmd}' failed: {e}")
