@@ -96,7 +96,7 @@ export TMP="${NODE_TMP_DIR}"
 export TEMP="${NODE_TMP_DIR}"
 
 export GEM_HOME="${NODE_TMP_DIR}/gems_${SLURM_JOB_ID}"
-export GEM_PATH="${GEM_HOME}:/usr/local/lib/ruby/gems/2.7.0"
+export GEM_PATH="${GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2"
 export HOME="${NODE_TMP_DIR}/home_${SLURM_JOB_ID}_${SLURM_PROCID}"
 NETWORK_DIR="${NODE_TMP_DIR}/apptainer_network_${SLURM_JOB_ID}"
 PG_PID_FILE="${NODE_TMP_DIR}/postgres_${SLURM_JOB_ID}.pid"

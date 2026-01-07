@@ -3,9 +3,10 @@ import shutil
 import zipfile
 
 from modules.utils import initialize_logger
+from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
 from modules.simulation import initialize_uo
 from .runtime_analysis import asset_analysis
-from .db import get_weather, update_simulation_name, get_bulk_assets, get_bulk_batchids, get_failed_assets, update_status
+from .db import update_simulation_name, get_bulk_assets, get_bulk_batchids, get_failed_assets, update_status
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Recover UOSim', external_log_dir)
@@ -17,9 +18,10 @@ logger = initialize_logger('Recover UOSim', external_log_dir)
 #   The function then continues with the recovery process by analyzing the assets in the feature files.
 #   The function returns the total number of assets processed.
 ############################################################################################################
-def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPTED_SIMULATION_NAME, RECOVERY_SIMULATION_NAME, batch_id, num_cores):  
-    from modules.simulation import create_single_featurefile  
-    logger.info(f"Recovering simulation: {CORRUPTED_SIMULATION_NAME} for batch {batch_id}")
+def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPTED_SIMULATION_NAME, RECOVERY_SIMULATION_NAME, num_cores, batch_id=None):
+    from modules.simulation import create_bulk_featurefiles
+    from .db import bulk_update_status
+    logger.info(f"Recovering simulation: {CORRUPTED_SIMULATION_NAME} for batch {batch_id if batch_id is not None else 'all batches'}")
 
     CORRUPTED_FEATURE_FILE_ZIP = os.path.join(CORRUPTED_DIR, 'feature_files.zip')
 
@@ -94,7 +96,8 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     failed_assets = get_failed_assets(simulation_name=RECOVERY_SIMULATION_NAME)
     logger.info(f"Total failed assets: {len(failed_assets)}")
         
-    # Remove feature files that aren't in the specified asset IDs
+    # Remove feature files that aren't in the specified asset IDs and collect failed assets for bulk processing
+    failed_assets_to_update = []
     for file_name in feature_files:
         # Extract asset_id from filename (assuming format "assetID_name.json")
         file_asset_id = int(file_name.split('_')[0])
@@ -104,34 +107,85 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
             asset_path = os.path.join(FEATURE_FILES_DIR, file_name)
             os.remove(asset_path)
         
-        # If this asset ID is in our list of failed assets update its content
-        # TODO: Workout a way to bulk update failed assets, current method is slow
+        # If this asset ID is in our list of failed assets, collect it for bulk processing
         if file_asset_id in failed_assets:
-            asset_path = os.path.join(FEATURE_FILES_DIR, file_name)
-            logger.info(f"Updating failed asset {file_name}")
-            #create_single_featurefile(file_asset_id, RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME)
-            update_status("Processing", asset_id=file_asset_id)
-            logger.info(f"Failed asset {file_name} updated")
+            logger.debug(f"Marking failed asset {file_name} for bulk update")
+            failed_assets_to_update.append(file_asset_id)
+    
+    # Bulk update failed assets feature files if any exist
+    if failed_assets_to_update:
+        logger.info(f"Bulk updating {len(failed_assets_to_update)} failed asset feature files...")
+        success = create_bulk_featurefiles(
+            failed_assets_to_update, RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME
+        )
+        
+        if success:
+            # Bulk update database status for all failed assets
+            bulk_success = bulk_update_status(failed_assets_to_update, "Processing", RECOVERY_SIMULATION_NAME)
+            if bulk_success:
+                logger.info(f"Successfully updated {len(failed_assets_to_update)} failed assets")
+            else:
+                logger.warning("Failed to update database status for some assets")
+        else:
+            logger.error("Failed to update feature files for failed assets")
+    else:
+        logger.info("No failed assets found to update")
         
     # Zip the feature_files directory
     logger.debug(f"Zipping {FEATURE_FILES_DIR} into {FEATURE_FILE_ZIP_PATH} and {FEATURE_FILE_ZIP_PATH_LOCAL}")
     shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH)[0], 'zip', FEATURE_FILES_DIR)
     shutil.make_archive(os.path.splitext(FEATURE_FILE_ZIP_PATH_LOCAL)[0], 'zip', FEATURE_FILES_DIR)
     
-    # Enable HPC mode if running within a SLURM job
-    if os.environ.get('SLURM_JOB_ID'):
-        hpc_mode = True
-    else:
-        hpc_mode = False
+    # Use centralized HPC detection
+    is_hpc = is_hpc_environment()
 
     # Continue with the recovery process
-    asset_analysis(RECOVERY_DIR, num_cores, RECOVERY_SIMULATION_NAME, hpc_mode)
+    asset_analysis(RECOVERY_DIR, num_cores, RECOVERY_SIMULATION_NAME)
 
-    batch_range = initialize_uo(RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME, hpc_mode)
+    # Ensure weather files are downloaded for the recovery simulation
+    logger.info("Downloading weather files for recovery simulation assets...")
+    try:
+        import csv
+        import json
+        from modules.utils.weather import get_location
+        
+        # Read the metadata file to get asset coordinates and download weather files
+        metadata_csv_path = os.path.join(LOCAL_RECOVERY_DIR, f'{RECOVERY_SIMULATION_NAME}_metadata.csv')
+        
+        if os.path.exists(metadata_csv_path):
+            with open(metadata_csv_path, 'r') as metadata_file:
+                reader = csv.DictReader(metadata_file)
+                weather_downloads = set()  # Track unique weather stations to avoid duplicate downloads
+                
+                for row in reader:
+                    try:
+                        asset_metadata = json.loads(row['asset_metadata'])
+                        
+                        # Call get_location which will download weather files if needed
+                        state, weather_file = get_location(asset_metadata)
+                        
+                        if state and weather_file and weather_file not in weather_downloads:
+                            weather_downloads.add(weather_file)
+                            logger.debug(f"Weather files ensured for station: {weather_file}")
+                            
+                    except (json.JSONDecodeError, KeyError, TypeError) as e:
+                        logger.debug(f"Skipping row with invalid metadata: {e}")
+                        continue
+                        
+            logger.info(f"Weather file download process completed for {len(weather_downloads)} unique weather stations")
+        else:
+            logger.warning(f"Metadata file not found: {metadata_csv_path}")
+            
+    except Exception as e:
+        logger.warning(f"Weather file download encountered issues: {e}")
+        logger.warning("Continuing with recovery - weather files will be downloaded during simulation")
     
-    if hpc_mode:
+    
+    batch_range = initialize_uo(RECOVERY_DIR, LOCAL_RECOVERY_DIR, RECOVERY_SIMULATION_NAME)
+        
+    if is_hpc:
         return batch_range
-    
+        
 
 
 if __name__ == "__main__":

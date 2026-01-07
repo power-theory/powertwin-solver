@@ -13,6 +13,7 @@ import argparse
 
 # Configure logging for direct runner
 import modules.utils as utils
+from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
 logger = utils.initialize_logger("DirectRunner", os.environ.get('POWERTWIN_LOG_DIR'))
 
 # Import simulation modules
@@ -72,7 +73,7 @@ def _setup_simulation_directories(simulation_name, asset_geojson_path, metadata_
     return (SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path, local_config_path)
 
 def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_csv_path, 
-                          config_json_path, num_cores, hpc_mode=False, 
+                          config_json_path, num_cores, 
                           shared_storage=None):
     """
     Directly create feature files for a PowerTwin simulation
@@ -83,16 +84,18 @@ def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_cs
         metadata_csv_path: Path to metadata CSV file
         config_json_path: Path to configuration JSON file
         num_cores: Number of cores to use
-        hpc_mode: Whether running in HPC mode
         shared_storage: Path to shared storage (required in HPC mode)
         
     Returns:
         tuple: (SIMULATION_DIR, LOCAL_SIMULATION_DIR) or None if error
     """
     
+    # Use centralized HPC detection
+    is_hpc = is_hpc_environment()
+    
     # Validate inputs
-    if hpc_mode and not shared_storage:
-        logger.error("Shared storage path is required in HPC mode")
+    if is_hpc and not shared_storage:
+        logger.error("Shared storage path is required in HCP environment")
         return None
     
     # Check if files exist
@@ -125,8 +128,7 @@ def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_cs
             local_metadata_path, 
             local_config_path, 
             num_cores, 
-            simulation_name,
-            hpc_mode
+            simulation_name
         )
         
         return (SIMULATION_DIR, LOCAL_SIMULATION_DIR)
@@ -135,9 +137,12 @@ def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_cs
         logger.error(f"Error creating feature files: {str(e)}")
         return None
 
-def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, hpc_mode=False):
+def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name):
 
     logger.info(f"Initializing UrbanOpt for: {SIMULATION_DIR}")
+    
+    # Use centralized HPC detection
+    is_hpc = is_hpc_environment()
     
     try:
         # Initialize UrbanOpt simulation
@@ -145,12 +150,11 @@ def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, 
         result = initialize_uo(
             SIMULATION_DIR,
             LOCAL_SIMULATION_DIR,
-            simulation_name,
-            hpc_mode
+            simulation_name
         )
         
         # In HPC mode, initialize_uo returns the batch range
-        if hpc_mode and isinstance(result, list):
+        if is_hpc and isinstance(result, list):
             logger.info(f"UrbanOpt initialization for {simulation_name} completed successfully, returned {len(result)} batches")
             return result
         
@@ -161,24 +165,31 @@ def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, 
         logger.error(f"Error initializing UrbanOpt: {str(e)}")
         return False
 
-def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, batch_range=None, hpc_mode=True):
+def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, batch_range=None):
     """
-    Run parallel batches for a PowerTwin simulation
+    Run parallel batches for a PowerTwin simulation with distributed SQLite support
     
     Args:
         SIMULATION_DIR: Path to the simulation directory
         LOCAL_SIMULATION_DIR: Path to the local simulation directory
         simulation_name: Name of the simulation
         batch_range: Range of batches to process (if None, will use all batches)
-        hpc_mode: Whether running in HPC mode (default True)
+
         
     Returns:
         bool: True if successful, False otherwise
     """
     from modules.simulation.run_UOsim import run_batch
-    from modules.utils.parallel import run_parallel_batches
+    from modules.simulation.parallel import run_parallel_batches
+    from modules.diagnostics import setup_distributed_database
     
     logger.info(f"Running parallel batches for: {simulation_name}")
+    
+    is_hpc = is_hpc_environment()
+    
+    # Setup distributed database for this process
+    if is_hpc:
+        setup_distributed_database(simulation_name)
     
     try:
         # If batch_range is not provided, determine it from the database
@@ -186,6 +197,25 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
             from modules.diagnostics import get_batch_total
             batches = get_batch_total(simulation_name)
             batch_range = list(range(batches))
+            
+        # Check if we have any batches to process
+        if len(batch_range) == 0:
+            logger.error(f"No batches to process for simulation {simulation_name}. This indicates:")
+            logger.error("1. Asset analysis during feature file generation may have failed")
+            logger.error("2. Database locking issues prevented batch distribution")
+            logger.error("3. Simulation data is not properly initialized")
+            
+            # Try to diagnose the issue
+            from modules.diagnostics import get_asset_total
+            assets = get_asset_total(simulation_name=simulation_name)
+            logger.info(f"Total assets in database for {simulation_name}: {assets}")
+            
+            if assets == 0:
+                logger.error("No assets found - feature file generation likely failed")
+            else:
+                logger.error("Assets found but no batches - batch distribution failed")
+            
+            return False
             
         logger.info(f"Processing {len(batch_range)} batches in parallel")
         
@@ -195,8 +225,7 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
             batch_range,
             SIMULATION_DIR,
             LOCAL_SIMULATION_DIR,
-            simulation_name,
-            hpc_mode=hpc_mode
+            simulation_name
         )
         
         logger.info(f"Parallel batch processing for {simulation_name} completed")
@@ -206,7 +235,7 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
         logger.error(f"Error in parallel batch processing: {str(e)}")
         return False
 
-def direct_simulation_recovery(recovery_dir, local_recovery_dir, corrupted_dir, corrupted_simulation_name, recovery_simulation_name, batch_id, num_cores):
+def direct_simulation_recovery(recovery_dir, local_recovery_dir, corrupted_dir, corrupted_simulation_name, recovery_simulation_name, num_cores, batch_id=None):
     """
     Recover a corrupted simulation
     
@@ -216,8 +245,8 @@ def direct_simulation_recovery(recovery_dir, local_recovery_dir, corrupted_dir, 
         corrupted_dir: Path to the corrupted simulation directory
         corrupted_simulation_name: Name of the corrupted simulation
         recovery_simulation_name: Name for the recovered simulation
-        batch_id: Batch ID to recover (None for all batches)
         num_cores: Number of cores to use
+        batch_id: Batch ID to recover (None for all batches)
         
     Returns:
         bool: True if successful, False otherwise
@@ -234,8 +263,8 @@ def direct_simulation_recovery(recovery_dir, local_recovery_dir, corrupted_dir, 
             corrupted_dir,
             corrupted_simulation_name,
             recovery_simulation_name,
-            batch_id,
-            num_cores
+            num_cores,
+            batch_id
         )
         
         logger.info(f"Simulation recovery for {corrupted_simulation_name} to {recovery_simulation_name} completed")
@@ -279,7 +308,6 @@ def main():
     create_ff_parser.add_argument('metadata_csv_path', type=str, help='Path to the metadata CSV file')
     create_ff_parser.add_argument('config_json_path', type=str, help='Path to the config JSON file')
     create_ff_parser.add_argument('num_cores', type=int, help='Number of cores to use')
-    create_ff_parser.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
     create_ff_parser.add_argument('--shared-storage', type=str, help='Path to shared storage for HPC mode (required in HPC mode)')
     
     # Initialize UrbanOpt command
@@ -287,7 +315,6 @@ def main():
     init_uo_parser.add_argument('simulation_dir', type=str, help='Path to the simulation directory')
     init_uo_parser.add_argument('local_simulation_dir', type=str, help='Path to the local simulation directory')
     init_uo_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
-    init_uo_parser.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
 
     # Run parallel batches command
     run_batch_parser = subparsers.add_parser('run-parallel-batches', help='Run parallel batches for simulation')
@@ -296,7 +323,6 @@ def main():
     run_batch_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
     run_batch_parser.add_argument('--batch-start', type=int, help='Start of batch range (optional)')
     run_batch_parser.add_argument('--batch-end', type=int, help='End of batch range (optional)')
-    run_batch_parser.add_argument('--hpc', action='store_true', help='Enable HPC multi-node execution mode')
     
     # Simulation recovery command
     recovery_parser = subparsers.add_parser('recover-simulation', help='Recover a corrupted simulation')
@@ -312,6 +338,10 @@ def main():
     status_parser = subparsers.add_parser('simulation-status', help='Get status of a simulation')
     status_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
     status_parser.add_argument('--batch-id', type=int, help='Specific batch ID to check (optional, None for all batches)')
+    
+    # Consolidate databases command
+    consolidate_parser = subparsers.add_parser('consolidate-databases', help='Consolidate distributed databases')
+    consolidate_parser.add_argument('--simulation-name', type=str, help='Simulation name to consolidate (optional)')
 
     args = parser.parse_args()
     
@@ -323,7 +353,7 @@ def main():
             metadata_csv_path=args.metadata_csv_path,
             config_json_path=args.config_json_path,
             num_cores=args.num_cores,
-            hpc_mode=args.hpc,
+
             shared_storage=args.shared_storage
         )
         # Return success (0) if the function returned a tuple, otherwise error (1)
@@ -333,8 +363,7 @@ def main():
         result = direct_initialize_uo(
             SIMULATION_DIR=args.simulation_dir,
             LOCAL_SIMULATION_DIR=args.local_simulation_dir,
-            simulation_name=args.simulation_name,
-            hpc_mode=args.hpc,
+            simulation_name=args.simulation_name
         )
         # Return success (0) if the function returned True or a list, otherwise error (1)
         result = 0 if result else 1
@@ -344,13 +373,12 @@ def main():
         if args.batch_start is not None and args.batch_end is not None:
             batch_range = list(range(args.batch_start, args.batch_end + 1))
             
-        # Run the parallel batches function directly - always use HPC mode
+        # Run the parallel batches function directly
         success = direct_run_parallel_batches(
             SIMULATION_DIR=args.simulation_dir,
             LOCAL_SIMULATION_DIR=args.local_simulation_dir,
             simulation_name=args.simulation_name,
-            batch_range=batch_range,
-            hpc_mode=True  # Always use HPC mode for this command
+            batch_range=batch_range
         )
         result = 0 if success else 1
     elif args.command == 'recover-simulation':
@@ -361,8 +389,8 @@ def main():
             corrupted_dir=args.corrupted_dir,
             corrupted_simulation_name=args.corrupted_simulation_name,
             recovery_simulation_name=args.recovery_simulation_name,
-            batch_id=args.batch_id if hasattr(args, 'batch_id') else None,
-            num_cores=args.num_cores
+            num_cores=args.num_cores,
+            batch_id=args.batch_id if hasattr(args, 'batch_id') else None
         )
         result = 0 if success else 1
     elif args.command == 'simulation-status':
@@ -372,6 +400,19 @@ def main():
             batch_id=args.batch_id if hasattr(args, 'batch_id') else None
         )
         result = 0 if success else 1
+    elif args.command == 'consolidate-databases':
+        # Consolidate distributed databases
+        from modules.diagnostics import consolidate_distributed_databases
+        
+        logger.info("Starting database consolidation...")
+        success = consolidate_distributed_databases(args.simulation_name)
+        
+        if success:
+            logger.info("Database consolidation completed successfully")
+            result = 0
+        else:
+            logger.error("Database consolidation failed")
+            result = 1
     else:
         parser.print_help()
         result = 1

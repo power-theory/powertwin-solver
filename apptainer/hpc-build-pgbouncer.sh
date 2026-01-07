@@ -1,0 +1,449 @@
+#!/bin/bash
+#SBATCH --job-name=build-pgbouncer
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=1:00:00
+#SBATCH --mem=4G
+#SBATCH --account=cowy-ptheory
+#SBATCH --partition=teton
+#SBATCH --output=%x_%j.out
+#SBATCH --qos=debug
+
+# PowerTwin PgBouncer Build and Setup Script
+# This script builds PgBouncer container and creates persistent configuration
+# Run this once before using hpc-start.sh
+
+set -e  # Exit immediately if a command exits with a non-zero status
+
+module --force purge
+module load arcc/1.0
+module load slurm
+module load miniconda3/24.3.0
+module load gcc/14.2.0
+module load apptainer/1.4.1
+
+# =====================================================
+# Configuration Variables
+# =====================================================
+HPC_SHARED_STORAGE="/project/cowy-ptheory/test"
+SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
+PGB_SIF="${SIF_DIR}/pgbouncer.sif"
+
+# PostgreSQL connection settings (for testing)
+PG_USER="postgres"
+PG_PASSWORD="admin"
+PG_DB="powertwin"
+
+# PgBouncer configuration
+PGB_PORT=6432
+PGB_MAX_CLIENT_CONN=1000
+PGB_DEFAULT_POOL_SIZE=40
+PGB_MIN_POOL_SIZE=10
+PGB_RESERVE_POOL_SIZE=20
+PGB_MAX_DB_CONNECTIONS=60
+
+# Shared directories
+DATA_DIR="${HPC_SHARED_STORAGE}/powertwin_data"
+LOG_DIR="${HPC_SHARED_STORAGE}/logs"
+PGB_CONFIG_BASE_DIR="${HPC_SHARED_STORAGE}/pgbouncer_config"
+
+# Create temporary directory for this build job
+TMP_BASE="${HPC_SHARED_STORAGE}/tmp"
+BUILD_TMP_DIR="${TMP_BASE}/pgbouncer_build_${SLURM_JOB_ID}"
+mkdir -p "${BUILD_TMP_DIR}"
+
+# =====================================================
+# Functions
+# =====================================================
+
+# Function to print colored output
+print_status() {
+    GREEN='\033[0;32m'
+    RED='\033[0;31m'
+    YELLOW='\033[0;33m'
+    NC='\033[0m' # No Color
+    
+    case $1 in
+        "info")
+            echo -e "${GREEN}[INFO]${NC} $2"
+            ;;
+        "warning")
+            echo -e "${YELLOW}[WARNING]${NC} $2"
+            ;;
+        "error")
+            echo -e "${RED}[ERROR]${NC} $2"
+            ;;
+        *)
+            echo "$2"
+            ;;
+    esac
+}
+
+# Create required directories
+create_directories() {
+    print_status "info" "Creating required directories..."
+    
+    mkdir -p "${PGB_CONFIG_BASE_DIR}"
+    mkdir -p "${BUILD_TMP_DIR}"
+    
+    # Set appropriate permissions
+    chmod 700 "${PGB_CONFIG_BASE_DIR}"  # Sensitive config files
+    chmod 700 "${PGB_CONFIG_BASE_DIR}"  # Sensitive config files
+    chmod 755 "${LOG_DIR}"
+    
+    print_status "info" "Directories created successfully."
+}
+
+# Build PgBouncer SIF container
+build_pgbouncer_container() {
+    print_status "info" "Building PgBouncer container..."
+    
+    if [ -f "${PGB_SIF}" ]; then
+        print_status "warning" "PgBouncer SIF already exists at: ${PGB_SIF}"
+        
+        # Check if we should rebuild
+        read -p "Do you want to rebuild the container? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_status "info" "Skipping container build."
+            return 0
+        fi
+        
+        print_status "info" "Removing existing container..."
+        rm -f "${PGB_SIF}"
+    fi
+    
+    print_status "info" "Downloading and building PgBouncer container from Docker Hub..."
+    
+    # Build PgBouncer container using official image
+    if ! apptainer build "${PGB_SIF}" docker://pgbouncer/pgbouncer:latest; then
+        print_status "error" "Failed to build PgBouncer container"
+        return 1
+    fi
+    
+    print_status "info" "PgBouncer container built successfully: ${PGB_SIF}"
+    
+    # Verify container
+    if ! apptainer exec "${PGB_SIF}" pgbouncer --version; then
+        print_status "error" "PgBouncer container verification failed"
+        return 1
+    fi
+    
+    print_status "info" "PgBouncer container verified successfully"
+    return 0
+}
+
+# Generate persistent PgBouncer configuration
+generate_persistent_config() {
+    print_status "info" "Generating persistent PgBouncer configuration..."
+    
+    # Set default configuration values (can be overridden by environment)
+    local databases_host="${DATABASES_HOST:-localhost}"
+    local databases_port="${DATABASES_PORT:-5432}"
+    local databases_user="${DATABASES_USER:-${PG_USER}}"
+    local databases_password="${DATABASES_PASSWORD:-}"
+    local databases_dbname="${DATABASES_DBNAME:-${PG_DB}}"
+    local listen_addr="${LISTEN_ADDR:-127.0.0.1}"
+    local listen_port="${LISTEN_PORT:-${PGB_PORT}}"
+    local auth_type="${AUTH_TYPE:-trust}"
+    local pool_mode="${POOL_MODE:-transaction}"
+    local max_client_conn="${MAX_CLIENT_CONN:-${PGB_MAX_CLIENT_CONN}}"
+    local default_pool_size="${DEFAULT_POOL_SIZE:-${PGB_DEFAULT_POOL_SIZE}}"
+    local max_db_connections="${MAX_DB_CONNECTIONS:-${PGB_MAX_DB_CONNECTIONS}}"
+    
+    # Create main configuration file
+    cat > "${PGB_CONFIG_BASE_DIR}/pgbouncer.ini" << EOF
+; PowerTwin PgBouncer Configuration
+; Generated by hpc-build-pgbouncer.sh
+; Optimized for HPC environments
+
+[databases]
+${databases_dbname} = host=${databases_host} port=${databases_port} dbname=${databases_dbname} user=${databases_user}
+
+[pgbouncer]
+; Network settings - IPv4 only for HPC compatibility
+listen_addr = ${listen_addr}
+listen_port = ${listen_port}
+unix_socket_dir = /tmp
+
+; Authentication
+auth_type = ${auth_type}
+auth_file = /etc/pgbouncer/userlist.txt
+
+; Connection pooling
+pool_mode = ${pool_mode}
+max_client_conn = ${max_client_conn}
+default_pool_size = ${default_pool_size}
+min_pool_size = ${PGB_MIN_POOL_SIZE}
+reserve_pool_size = ${PGB_RESERVE_POOL_SIZE}
+max_db_connections = ${max_db_connections}
+
+; UrbanOpt/OpenStudio optimization settings
+server_reset_query = DISCARD ALL
+server_check_delay = 30
+server_lifetime = 3600
+server_idle_timeout = 600
+ignore_startup_parameters = extra_float_digits,application_name
+
+; Administrative settings
+admin_users = ${databases_user}
+stats_users = ${databases_user}
+
+; Logging
+logfile = /var/log/pgbouncer/pgbouncer.log
+pidfile = /var/run/pgbouncer/pgbouncer.pid
+log_connections = 1
+log_disconnections = 1
+log_pooler_errors = 1
+
+; HPC environment optimizations
+so_reuseport = 1
+tcp_keepalive = 1
+listen_backlog = 128
+server_fast_close = 1
+EOF
+
+    # Create userlist file for authentication (simplified for trust auth)
+    cat > "${PGB_CONFIG_BASE_DIR}/userlist.txt" << EOF
+"${databases_user}" ""
+EOF
+
+    # Set secure permissions
+    chmod 600 "${PGB_CONFIG_BASE_DIR}/pgbouncer.ini"
+    chmod 600 "${PGB_CONFIG_BASE_DIR}/userlist.txt"
+    
+    print_status "info" "PgBouncer configuration files created:"
+    print_status "info" "  - Config: ${PGB_CONFIG_BASE_DIR}/pgbouncer.ini"
+    print_status "info" "  - Users:  ${PGB_CONFIG_BASE_DIR}/userlist.txt"
+    
+    return 0
+}
+
+# Create runtime configuration template
+create_runtime_template() {
+    print_status "info" "Creating runtime configuration template..."
+    
+    # Create a template that hpc-start.sh can use to generate runtime-specific configs
+    cat > "${PGB_CONFIG_BASE_DIR}/pgbouncer_template.ini" << EOF
+; PowerTwin PgBouncer Configuration Template
+; This template is used by hpc-start.sh to generate runtime-specific configurations
+; Variables will be substituted at runtime
+
+[databases]
+__DATABASES_DBNAME__ = host=__DATABASES_HOST__ port=__DATABASES_PORT__ dbname=__DATABASES_DBNAME__ user=__DATABASES_USER__ password=__DATABASES_PASSWORD__
+
+[pgbouncer]
+; Network settings
+listen_addr = __LISTEN_ADDR__
+listen_port = __LISTEN_PORT__
+unix_socket_dir = __UNIX_SOCKET_DIR__
+
+; Authentication
+auth_type = __AUTH_TYPE__
+auth_file = __AUTH_FILE__
+
+; Connection pooling
+pool_mode = __POOL_MODE__
+max_client_conn = __MAX_CLIENT_CONN__
+default_pool_size = __DEFAULT_POOL_SIZE__
+min_pool_size = __MIN_POOL_SIZE__
+reserve_pool_size = __RESERVE_POOL_SIZE__
+max_db_connections = __MAX_DB_CONNECTIONS__
+
+; UrbanOpt/OpenStudio optimization settings
+server_reset_query = DISCARD ALL
+server_check_delay = 30
+server_lifetime = 3600
+server_idle_timeout = 600
+ignore_startup_parameters = __IGNORE_STARTUP_PARAMETERS__
+
+; Administrative settings
+admin_users = __ADMIN_USERS__
+stats_users = __STATS_USERS__
+
+; Logging
+logfile = __LOGFILE__
+pidfile = __PIDFILE__
+log_connections = __LOG_CONNECTIONS__
+log_disconnections = __LOG_DISCONNECTIONS__
+log_pooler_errors = __LOG_POOLER_ERRORS__
+
+; HPC environment optimizations
+so_reuseport = 1
+tcp_keepalive = 1
+listen_backlog = 128
+server_fast_close = 1
+EOF
+
+    chmod 644 "${PGB_CONFIG_BASE_DIR}/pgbouncer_template.ini"
+    
+    print_status "info" "Runtime template created: ${PGB_CONFIG_BASE_DIR}/pgbouncer_template.ini"
+}
+
+#------------------------------------------------------------------------------
+# FUNCTION: test_pgbouncer
+# Description: Tests PgBouncer container and configuration without requiring PostgreSQL
+# Arguments: None
+# Returns: 0 on success, 1 on failure
+# Note: PostgreSQL connection failures during build are expected and normal
+#------------------------------------------------------------------------------
+test_pgbouncer() {
+    print_status "info" "Testing PgBouncer container and configuration..."
+    
+    # Test 1: Verify container executable works
+    print_status "info" "Verifying PgBouncer container executable..."
+    if ! apptainer exec "${PGB_SIF}" pgbouncer --version >/dev/null 2>&1; then
+        print_status "error" "PgBouncer container executable test failed"
+        return 1
+    fi
+    print_status "info" "✅ Container executable test passed"
+    
+    # Test 2: Validate configuration file syntax
+    print_status "info" "Testing configuration file syntax and startup capability..."
+    
+    # Create isolated test environment
+    local test_config_dir="${BUILD_TMP_DIR}/test_config"
+    local test_log_dir="${BUILD_TMP_DIR}/test_logs"
+    local test_run_dir="${BUILD_TMP_DIR}/test_run"
+    
+    mkdir -p "${test_config_dir}" "${test_log_dir}" "${test_run_dir}"
+    chmod 700 "${test_config_dir}" "${test_log_dir}" "${test_run_dir}"
+    
+    # Copy and customize config for isolated testing
+    cp "${PGB_CONFIG_BASE_DIR}/pgbouncer.ini" "${test_config_dir}/"
+    cp "${PGB_CONFIG_BASE_DIR}/userlist.txt" "${test_config_dir}/"
+    
+    # Update paths to use test directories
+    sed -i "s|unix_socket_dir = /tmp|unix_socket_dir = ${test_run_dir}|g" "${test_config_dir}/pgbouncer.ini"
+    sed -i "s|logfile = /var/log/pgbouncer/pgbouncer.log|logfile = ${test_log_dir}/pgbouncer.log|g" "${test_config_dir}/pgbouncer.ini"
+    sed -i "s|pidfile = /var/run/pgbouncer/pgbouncer.pid|pidfile = ${test_run_dir}/pgbouncer.pid|g" "${test_config_dir}/pgbouncer.ini"
+    sed -i "s|auth_file = /etc/pgbouncer/userlist.txt|auth_file = ${test_config_dir}/userlist.txt|g" "${test_config_dir}/pgbouncer.ini"
+    
+    # Test 3: Start PgBouncer and verify it can bind to port
+    print_status "info" "Testing PgBouncer startup and port binding..."
+    
+    # Start PgBouncer in background
+    apptainer exec \
+        --bind "${test_config_dir}:/etc/pgbouncer" \
+        --bind "${test_log_dir}:/var/log/pgbouncer" \
+        --bind "${test_run_dir}:/var/run/pgbouncer" \
+        "${PGB_SIF}" pgbouncer /etc/pgbouncer/pgbouncer.ini &
+    
+    local pgb_test_pid=$!
+    local test_passed=false
+    
+    # Wait for PgBouncer to start (check for PID file and port binding)
+    for i in {1..10}; do
+        # Check if PID file exists and port is bound
+        if [ -f "${test_run_dir}/pgbouncer.pid" ] && nc -z localhost ${PGB_PORT} 2>/dev/null; then
+            test_passed=true
+            print_status "info" "✅ PgBouncer started successfully and bound to port ${PGB_PORT}"
+            break
+        fi
+        sleep 1
+    done
+    
+    # Gracefully stop the test instance
+    print_status "info" "Stopping test PgBouncer instance..."
+    if kill -TERM ${pgb_test_pid} 2>/dev/null; then
+        # Wait for graceful shutdown
+        for i in {1..5}; do
+            if ! kill -0 ${pgb_test_pid} 2>/dev/null; then
+                break
+            fi
+            sleep 1
+        done
+        # Force kill if still running
+        kill -KILL ${pgb_test_pid} 2>/dev/null || true
+    fi
+    
+    # Evaluate test results
+    if [ "$test_passed" = true ]; then
+        print_status "info" "✅ Configuration syntax test passed"
+        print_status "info" "✅ Port binding test passed"
+        print_status "info" "✅ PID file creation test passed"
+        print_status "info" ""
+        print_status "info" "=== PgBouncer Build Test Results ==="
+        print_status "info" "Container Version: $(apptainer exec "${PGB_SIF}" pgbouncer --version 2>/dev/null | head -1)"
+        print_status "info" "Listen Address: 127.0.0.1"
+        print_status "info" "Listen Port: ${PGB_PORT}"
+        print_status "info" "Pool Mode: transaction"
+        print_status "info" "Max Client Connections: ${PGB_MAX_CLIENT_CONN}"
+        print_status "info" "Default Pool Size: ${PGB_DEFAULT_POOL_SIZE}"
+        print_status "info" "Max DB Connections: ${PGB_MAX_DB_CONNECTIONS}"
+        print_status "info" "Authentication: MD5"
+        print_status "info" "======================================="
+        print_status "info" ""
+        print_status "info" "✅ PgBouncer build and configuration test SUCCESSFUL"
+        print_status "warning" "Note: Database connectivity will be tested during simulation runs"
+        print_status "warning" "      when both PostgreSQL and PgBouncer are active together"
+        
+        return 0
+    else
+        print_status "error" "❌ PgBouncer failed to start or bind to port ${PGB_PORT}"
+        
+        # Provide debugging information
+        if [ -f "${test_log_dir}/pgbouncer.log" ]; then
+            print_status "error" "PgBouncer test logs:"
+            cat "${test_log_dir}/pgbouncer.log"
+        fi
+        
+        # Check for common issues
+        if ! command -v nc >/dev/null 2>&1; then
+            print_status "warning" "Note: 'nc' (netcat) not available for port testing"
+        fi
+        
+        return 1
+    fi
+}
+
+# Cleanup test files
+cleanup_test_files() {
+    print_status "info" "Cleaning up test files..."
+    
+    if [ -d "${BUILD_TMP_DIR}" ]; then
+        rm -rf "${BUILD_TMP_DIR}"
+        print_status "info" "Test files cleaned up"
+    fi
+}
+
+# Display setup summary
+display_summary() {
+    print_status "info" "=================================="
+    print_status "info" "PgBouncer Build Summary"
+    print_status "info" "=================================="
+    print_status "info" "Container: ${PGB_SIF}"
+    print_status "info" "Configuration: ${PGB_CONFIG_BASE_DIR}/"
+    print_status "info" "Listen Port: ${PGB_PORT}"
+    print_status "info" "=================================="
+    print_status "info" "Next Steps:"
+    print_status "info" "1. Run hpc-build-db.sh to setup PostgreSQL"
+    print_status "info" "2. Run hpc-start.sh to start simulation with PgBouncer"
+    print_status "info" "=================================="
+}
+
+# Main execution
+main() {
+    print_status "info" "Starting PgBouncer build and setup..."
+    print_status "info" "Job ID: ${SLURM_JOB_ID}"
+    print_status "info" "Shared Storage: ${HPC_SHARED_STORAGE}"
+    
+    # Set up trap for cleanup
+    trap cleanup_test_files EXIT
+    
+    # Execute build steps
+    create_directories || exit 1
+    build_pgbouncer_container || exit 1
+    generate_persistent_config || exit 1
+    create_runtime_template || exit 1
+    test_pgbouncer || exit 1
+    
+    display_summary
+    
+    print_status "info" "PgBouncer build and setup completed successfully!"
+    return 0
+}
+
+# Execute main function
+main

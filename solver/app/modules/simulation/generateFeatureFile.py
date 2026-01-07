@@ -12,7 +12,6 @@ import shutil
 import re
 
 from modules.diagnostics import asset_analysis
-from modules.diagnostics.db import get_weather
 from modules.utils import initialize_logger
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
@@ -396,7 +395,68 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 # Name: create_single_featurefile()
 # Description: This function creates a single feature file for the specified asset ID.
 ############################################################################################################
+def create_bulk_featurefiles(failed_asset_ids, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simulation_name):
+    """Efficiently create feature files for multiple failed assets by reading data files once."""
+    if not failed_asset_ids:
+        logger.info("No failed assets to process")
+        return True
+    
+    logger.info(f"Creating feature files for {len(failed_asset_ids)} failed assets...")
+    
+    FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
+    os.makedirs(FEATURE_FILES_DIR, exist_ok=True)
+    
+    METADATA_CSV = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_metadata.csv')
+    ASSET_GEOJSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_asset.geojson')
+    CONFIG_JSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_config.json')
+    
+    # Read files once instead of for each asset
+    try:
+        logger.debug("Reading metadata, geojson, and config files...")
+        building_area_list, building_type_list, building_name_list, building_weather_list = read_metadata(METADATA_CSV)
+        
+        with open(ASSET_GEOJSON, 'r') as geojson_file, open(CONFIG_JSON, 'r') as config_file:
+            geojson_data = json.load(geojson_file)
+            custom_config_data = json.load(config_file)
+            
+    except Exception as e:
+        logger.error(f"Error reading data files: {e}")
+        return False
+    
+    # Convert failed asset IDs to a set for O(1) lookups
+    failed_assets_set = set(failed_asset_ids)
+    processed_count = 0
+    
+    # Process only features for failed assets
+    for feature in geojson_data['features']:
+        properties = feature.get('properties', {})
+        building_id = int(properties.get('id'))
+        
+        # Process feature only if it's in our failed assets list
+        if building_id in failed_assets_set:
+            result = process_feature(feature, building_area_list, building_type_list, 
+                                  building_name_list, building_weather_list, custom_config_data)
+            if result:
+                final_json, _, building_name = result
+                new_building_name = sanitize_filename(building_name)
+                feature_file_path = os.path.join(FEATURE_FILES_DIR, f'{building_id}_{new_building_name}.json')
+                
+                try:
+                    with open(feature_file_path, 'w') as feature_file:
+                        json.dump(final_json, feature_file, indent=4)
+                    processed_count += 1
+                    logger.debug(f"Feature file updated for failed asset_id: {building_id}")
+                except Exception as e:
+                    logger.error(f"Error writing feature file for asset {building_id}: {e}")
+            else:
+                logger.warning(f"Could not process feature for failed asset {building_id}")
+    
+    logger.info(f"Successfully processed {processed_count}/{len(failed_asset_ids)} failed assets")
+    return processed_count > 0
+
+
 def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simulation_name):
+    """Create a single feature file for the specified asset ID. Consider using create_bulk_featurefiles for better performance."""
     FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
     os.makedirs(FEATURE_FILES_DIR, exist_ok=True)
     
@@ -439,7 +499,7 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
 #   metadata file. It processes each feature and creates a new feature structure with additional properties.
 #   It writes the new feature structure to individual feature files in the output directory.
 ############################################################################################################
-def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, simulation_name, hpc_mode=False):
+def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, config_json, num_cores, simulation_name):
     logger.info("Creating feature files...")
 
 
@@ -471,7 +531,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
 
     logger.info("Feature files created successfully.")
     # Run the asset analysis to organize the assets to their batch
-    asset_analysis(SIMULATION_DIR, num_cores, simulation_name, hpc_mode=hpc_mode)
+    asset_analysis(SIMULATION_DIR, num_cores, simulation_name)
 
     logger.debug("Zipping the output directory...")
     shutil.make_archive(LOCAL_FEATURE_FILES_DIR, 'zip', FEATURE_FILES_DIR)

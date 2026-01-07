@@ -10,5 +10,3 @@ powertwin_data
 postgres_data
 .github/instructions
 .github/prompts
-info.log
-apptainer

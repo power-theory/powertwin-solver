@@ -86,7 +86,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
 
     state, weather_file = get_weather(asset_id)
     
-    # Remove .epw extension if present (database stores full filename with .epw)
+    # NOTE: Remove .epw extension if present (database stores full filename with .epw)
     if weather_file.endswith('.epw'):
         weather_file = weather_file[:-4]
                 
@@ -98,7 +98,13 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
         logger.warning(f"Weather destination not found, creating weather directory at {WEATHER_DESTINATION}")
         os.makedirs(WEATHER_DESTINATION, exist_ok=True)
 
-        WEATHER_BASE_NAME = os.path.join(URBANOPT_DIR, 'weather_files',weather_file, weather_file)
+        # Use HPC shared storage for weather files when available
+        if os.environ.get('SLURM_JOB_ID') and os.environ.get('HPC_SHARED_STORAGE'):
+            weather_files_base_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE'), 'weather_files')
+        else:
+            weather_files_base_dir = os.path.join(URBANOPT_DIR, 'weather_files')
+        
+        WEATHER_BASE_NAME = os.path.join(weather_files_base_dir, weather_file, weather_file)
         logger.info (f"BATCH {batch_index}: {asset_id} Copying weather files for {weather_file}")
         for ext in ["ddy", "stat", "epw"]:
             shutil.copy(f"{WEATHER_BASE_NAME}.{ext}", WEATHER_DESTINATION)
@@ -175,11 +181,11 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
         logger.info(f"BATCH {batch_index}: Checking UrbanOpt CLI location and version")
         try:
             uo_cmd = get_urbanopt_command()
-            logger.debug(f"Using UrbanOpt command: {uo_cmd}")
+            #logger.debug(f"Using UrbanOpt command: {uo_cmd}")
             
             # Verify command is working
             result = subprocess.run(f"{uo_cmd} --version", shell=True, capture_output=True, text=True)
-            logger.debug(f"UrbanOpt version: {result.stdout.strip()}")
+            #logger.debug(f"UrbanOpt version: {result.stdout.strip()}")
             
         except Exception as e:
             logger.error(f"BATCH {batch_index}: UrbanOpt CLI discovery failed: {e}")
@@ -271,10 +277,8 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
 def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     from modules.diagnostics import get_asset_total,get_bulk_assets
 
-    # Log the simulation directory for debugging
     logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")
 
-    # Change all assets in batch to be Not Processed Yet
     total_assets = get_asset_total(simulation_name,batch_num)
     
     logger.debug(f"BATCH {batch_num}: Processing {total_assets} assets...")
@@ -282,7 +286,7 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     # Get all assets for this batch, ordered by order_rank
     assets = get_bulk_assets(simulation_name, batch_num)
 
-    # In UrbanOpt, we need to process assets sequentially to avoid conflicts
+    # NOTE: In UrbanOpt, we need to process assets sequentially to avoid conflicts
     # Each batch can run in parallel, but within a batch, assets must run sequentially
     logger.info(f"BATCH {batch_num}: Processing {len(assets)} assets sequentially")
     

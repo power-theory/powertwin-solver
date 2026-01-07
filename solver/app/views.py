@@ -9,6 +9,7 @@ from flask import request, jsonify, render_template, send_file
 from modules.simulation import initialize_uo, create_featurefiles, stop_UOsimulation
 from modules.diagnostics import read_simulation_status, simulation_recovery, create_table
 from modules.utils import initialize_logger, send_error_to_mss
+from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Views', external_log_dir)
@@ -40,9 +41,11 @@ def start_simulation():
     config_data = request.form.get('config_data')
     simulation_name = request.form.get('simulation_name')
     num_cores = int(request.form.get('num_cores', 1))
-    hpc_mode = request.form.get('hpc_mode', 'false').lower() == 'true'
     shared_storage = request.form.get('shared_storage')
     keep_dirs = request.form.get('keep_dirs', 'false').lower() == 'true'
+    
+    # Use centralized HPC detection
+    is_hpc = is_hpc_environment()
 
     # Set environment variable for keep directories flag
     if keep_dirs:
@@ -61,9 +64,9 @@ def start_simulation():
         return jsonify({'error': 'missing or invalid parameter'}), 400
     
     # HPC mode validation
-    if hpc_mode and not shared_storage:
-        logger.error("Error: shared_storage is required when hpc_mode is enabled.")
-        return jsonify({'error': 'shared_storage is required when hpc_mode is enabled'}), 400
+    if is_hpc and not shared_storage:
+        logger.error("Error: shared_storage is required when in HPC environment.")
+        return jsonify({'error': 'shared_storage is required when in HPC environment'}), 400
     
     # Define and create Simulation directory (container) and Local directory (saved on host)
     # Local directory stores all necessary files for recovery and completed asset files
@@ -94,11 +97,11 @@ def start_simulation():
     try:
         create_table()
         logger.debug("Calling create_feature_files from start_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, simulation_name, hpc_mode)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, simulation_name)
         logger.debug("Exited create_feature_files to start_simulation()")
         
         logger.debug("Calling initialize_uo from start_simulation()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
         logger.debug("Exited initialize_uo to start_simulation()")
         
         logger.debug("Deleting simulation directory, within the container")
@@ -179,17 +182,19 @@ def autorun_simulation():
         create_table()
         
         # Extract HPC-related parameters from the simulation.json
-        hpc_mode = data.get('hpc_mode', False)
         shared_storage = data.get('shared_storage', None)
         
-        logger.debug(f"HPC Mode: {hpc_mode}, Shared Storage: {shared_storage}")
+        # Use centralized HPC detection
+        is_hpc = is_hpc_environment()
+        
+        logger.debug(f"HPC Environment: {is_hpc}, Shared Storage: {shared_storage}")
         
         logger.debug("Calling create_feature_files from autorun_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, simulation_name, hpc_mode)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, simulation_name)
         logger.debug("Exited create_feature_files")
                 
         logger.debug("Calling initialize_uo from autorun_simulation()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name, hpc_mode)
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
         logger.debug("Exited initialize_uo")
         
         logger.debug("Deleting simulation directory, within the container")
@@ -495,11 +500,14 @@ def recovery():
 # Description: This function zips the logs directory and sends the zip file as a response for download.
 # Supports HPC mode by using shared storage when specified.
 ############################################################################################################
-def get_logs(hpc_mode=False, shared_storage=None):
+def get_logs(shared_storage=None):
     logger.debug("Within get_logs()")
     
+    # Use centralized HPC detection
+    is_hpc = is_hpc_environment()
+    
     # Set up paths differently based on whether we're in HPC mode
-    if hpc_mode and shared_storage:
+    if is_hpc and shared_storage:
         logger.debug(f"Running in HPC mode with shared storage: {shared_storage}")
         # In HPC mode, we'll write logs to the shared storage directory
         REQUESTED_FILES_DIR = os.path.join(shared_storage, 'logs', 'requested_files')
@@ -532,11 +540,11 @@ def get_logs(hpc_mode=False, shared_storage=None):
         logger.debug(f"Log file saved to {REQUESTED_LOG_FILE}")
     except Exception as e:
         logger.error(f"Exception while reading/writing log file: {str(e)}")
-        if not hpc_mode:  # Only return response in non-HPC mode
+        if not is_hpc:  # Only return response in non-HPC mode
             return jsonify({'error': str(e)}), 500
     
     # Only try to render template in non-HPC mode
-    if not hpc_mode:
+    if not is_hpc:
         with open(REQUESTED_LOG_FILE, 'r') as file:
             logs = file.read()
         # Render the logs in the template

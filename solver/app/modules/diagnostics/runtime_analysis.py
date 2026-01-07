@@ -4,6 +4,7 @@ import multiprocessing
 import psutil
 
 from modules.utils import initialize_logger
+from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
 from .db import insert_bulk_assets, distribute_assets_to_batches
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
@@ -63,14 +64,19 @@ def count_coordinate_lines(json_string):
 #   The number of assets is then distributed to batches based on the number of cores.
 #   The function returns the total number of assets processed.
 ############################################################################################################
-def asset_analysis(SIMULATION_DIR, num_cores, simulation_name, hpc_mode=False):
+def asset_analysis(SIMULATION_DIR, num_cores, simulation_name):
     
     logger.debug("Within asset_analysis()")
     
+    # Use centralized HPC detection
+    is_hpc = is_hpc_environment()
+    hpc_info = get_hpc_info()
+    
     FEATURE_FILES_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
     
-    if hpc_mode:
-        logger.warning(f"HPC mode: Using {num_cores} as instructed, check with an administrator to ensure this many cores is practical")
+    if is_hpc:
+        logger.info(f"HPC environment detected - Job: {hpc_info['job_id']}, "
+                   f"using {num_cores} cores as configured")
     else:
         if num_cores <= 0:
             num_cores = multiprocessing.cpu_count()
@@ -161,4 +167,4 @@ if __name__ == "__main__":
     SIMULATION_DIR = ''
     num_cores = 4
     simulation_name = 'phoenix1'
-    asset_analysis(SIMULATION_DIR, num_cores, simulation_name, hpc_mode=False)
+    asset_analysis(SIMULATION_DIR, num_cores, simulation_name)
