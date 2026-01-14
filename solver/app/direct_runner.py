@@ -13,7 +13,7 @@ import argparse
 
 # Configure logging for direct runner
 import modules.utils as utils
-from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
+from modules.utils.hpc_environment import is_hpc_environment
 logger = utils.initialize_logger("DirectRunner", os.environ.get('POWERTWIN_LOG_DIR'))
 
 # Import simulation modules
@@ -221,7 +221,6 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
         
         # Run the batches in parallel
         run_parallel_batches(
-            run_batch,
             batch_range,
             SIMULATION_DIR,
             LOCAL_SIMULATION_DIR,
@@ -400,19 +399,6 @@ def main():
             batch_id=args.batch_id if hasattr(args, 'batch_id') else None
         )
         result = 0 if success else 1
-    elif args.command == 'consolidate-databases':
-        # Consolidate distributed databases
-        from modules.diagnostics import consolidate_distributed_databases
-        
-        logger.info("Starting database consolidation...")
-        success = consolidate_distributed_databases(args.simulation_name)
-        
-        if success:
-            logger.info("Database consolidation completed successfully")
-            result = 0
-        else:
-            logger.error("Database consolidation failed")
-            result = 1
     else:
         parser.print_help()
         result = 1

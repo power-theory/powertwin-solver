@@ -6,16 +6,11 @@ Provides the same interface as PostgreSQL operations but uses SQLite for better 
 import sqlite3
 import os
 import time
-try:
-    import fcntl  # Unix/Linux file locking
-except ImportError:
-    fcntl = None  # Windows doesn't have fcntl
-import tempfile
 from typing import List, Dict, Any, Optional, Tuple
 import threading
 
 from modules.utils import initialize_logger
-from modules.utils.hpc_environment import get_hpc_info, is_hpc_environment, should_use_distributed_database
+from modules.utils.hpc_environment import get_hpc_info, is_hpc_environment
 from .distributed_sqlite import get_distributed_manager
 
 # Thread-local storage for database connections
@@ -128,26 +123,36 @@ def cleanup_coordination_files():
 
 
 @retry_on_database_error
-def get_sqlite_connection() -> sqlite3.Connection:
+def get_sqlite_connection(use_master_db=False) -> sqlite3.Connection:
     """
     Get a SQLite database connection using appropriate database path.
-    In distributed mode, uses local database; otherwise uses master database.
+    
+    Args:
+        use_master_db: If True in distributed mode, connect to master database instead of local
+                      However, after database copy phase, workers should always use local copies
     """
-    if not hasattr(thread_local, "connection"):
-        # Check if we should use distributed database
-        use_distributed = should_use_distributed_database()
+    connection_key = "master_connection" if use_master_db else "connection"
+    
+    if not hasattr(thread_local, connection_key):
         
-        if use_distributed:
+        if is_hpc_environment():
             # Use distributed database approach
             manager = get_distributed_manager()
-            manager.ensure_local_db_exists()
-            db_path = manager.get_local_db_path()
+            hpc_info = get_hpc_info()
             
-            logger.debug(f"Using distributed SQLite database: {db_path}")
+            # After initial setup phase, workers should always use their local complete copies
+            # Only master should access master database during initial population
+            if use_master_db and hpc_info['is_master']:
+                db_path = manager.get_master_db_path()
+                logger.debug(f"Using distributed SQLite master database: {db_path}")
+            else:
+                # Workers and non-master processes always use local complete copies
+                manager.ensure_local_db_exists()
+                db_path = manager.get_local_db_path()
+                logger.debug(f"Using distributed SQLite local database: {db_path}")
         else:
             # Use traditional single database
             db_path = SQLITE_DB_PATH
-            
             logger.debug(f"Using single SQLite database: {db_path}")
             
         # Ensure database directory exists
@@ -159,8 +164,8 @@ def get_sqlite_connection() -> sqlite3.Connection:
         conn = sqlite3.connect(
             db_path,
             check_same_thread=False,
-            timeout=30.0,  # Timeout for distributed databases
-            isolation_level=None  # Autocommit mode for better performance
+            timeout=30.0,  
+            isolation_level=None  
         )
         
         # Enable WAL mode for better concurrent access
@@ -187,7 +192,30 @@ def create_table() -> bool:
     hpc_info = get_hpc_info()
     logger.debug(f'Rank {hpc_info["rank"]}: Creating SQLite table if not exists')
     
-    # Only master process creates tables
+    # Use distributed SQLite if enabled
+    if is_hpc_environment():
+        distributed_manager = get_distributed_manager()
+        
+        # Master process creates master database first
+        if hpc_info['is_master']:
+            if not distributed_manager.ensure_master_db_exists():
+                logger.error("Failed to create master database")
+                return False
+                
+        # All processes create their local databases
+        distributed_manager.ensure_local_db_exists()
+        
+        # Coordinate table creation completion
+        if hpc_info['is_master']:
+            coordinate_database_access("create_table")
+            logger.debug(f'Rank {hpc_info["rank"]}: Master database and table creation completed')
+        else:
+            coordinate_database_access("create_table")
+            logger.debug(f'Rank {hpc_info["rank"]}: Local table creation coordinated by master')
+        
+        return True
+    
+    # Fallback to single database mode for non-distributed environments
     if not hpc_info['is_master']:
         coordinate_database_access("create_table")
         logger.debug(f'Rank {hpc_info["rank"]}: Table creation coordinated by master')
@@ -282,20 +310,27 @@ def insert_asset(asset_id: int, state: str, weather_file: str, floor_area: float
 
 def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
     """Insert multiple assets in bulk for better performance. Coordinated for HPC environments."""
-    logger.debug(f'Rank {get_hpc_rank()}: Bulk inserting {len(assets)} assets')
+    hpc_info = get_hpc_info()
+    
+    logger.debug(f'Rank {hpc_info["rank"]}: Bulk inserting {len(assets)} assets')
     
     if not assets:
         logger.debug("No assets to insert")
         return True
     
-    # Only master process inserts assets
-    if not is_hpc_master():
+    # Only master process inserts assets into master database
+    if not hpc_info['is_master']:
         coordinate_database_access("bulk_insert")
-        logger.debug(f'Rank {get_hpc_rank()}: Bulk insert coordinated by master')
+        logger.debug(f'Rank {hpc_info["rank"]}: Bulk insert coordinated by master')
         return True
     
     try:
-        conn = get_sqlite_connection()
+        # For distributed mode, master process inserts to master database
+        if is_hpc_environment():
+            conn = get_sqlite_connection(use_master_db=True)
+        else:
+            conn = get_sqlite_connection()
+        
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         # Prepare bulk insert data
@@ -334,11 +369,41 @@ def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
         # Mark bulk insert as completed for other processes
         coordinate_database_access("bulk_insert")
         
+        # In distributed mode, sync data from master to all local databases
+        if is_hpc_environment():
+            # Extract simulation name from first asset for synchronization
+            if assets:
+                simulation_name = assets[0].get('simulation_name')
+                if simulation_name:
+                    logger.debug(f"Syncing assets for simulation {simulation_name} from master to local databases")
+                    # This will be called by each process to copy their relevant data
+        
         logger.info(f"Bulk inserted {len(assets)} assets successfully")
         return True
         
     except Exception as e:
         logger.error(f"Error bulk inserting assets: {e}")
+        return False
+
+
+def synchronize_local_databases(simulation_name: str) -> bool:
+    """Synchronize data from master database to local databases for worker processes."""
+    if not is_hpc_environment():
+        return True
+        
+    hpc_info = get_hpc_info()
+    
+    # Only non-master processes need to sync from master
+    if hpc_info['is_master']:
+        return True
+    
+    try:
+        distributed_manager = get_distributed_manager()
+        distributed_manager.copy_master_data_to_local(simulation_name)
+        logger.info(f"Rank {hpc_info['rank']}: Successfully synchronized data for simulation {simulation_name}")
+        return True
+    except Exception as e:
+        logger.error(f"Rank {hpc_info['rank']}: Error synchronizing local database: {e}")
         return False
 
 
@@ -428,10 +493,7 @@ def get_weather(asset_id: int) -> Optional[Tuple[str, str]]:
     """Get weather file and state for an asset with distributed database support."""
     logger.debug(f'Getting weather file for asset {asset_id}')
     
-    # Check if we should use distributed database
-    use_distributed = should_use_distributed_database()
-    
-    if use_distributed:
+    if is_hpc_environment:
         # In distributed mode, check local database first, then master
         manager = get_distributed_manager()
         table_name = os.environ.get("PGDATABASE", "powertwin")
@@ -543,16 +605,20 @@ def get_failed_assets(simulation_name: str) -> List[Dict[str, Any]]:
 
 def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bool:
     """Distribute assets across batches. Coordinated for HPC environments."""
-    logger.debug(f'Rank {get_hpc_rank()}: Distributing assets to {total_batches} batches for simulation {simulation_name}')
+    hpc_info = get_hpc_info()
+
+    
+    logger.debug(f'Rank {hpc_info["rank"]}: Distributing assets to {total_batches} batches for simulation {simulation_name}')
     
     # Only master process distributes assets
-    if not is_hpc_master():
+    if not hpc_info['is_master']:
         coordinate_database_access("distribute_batches")
-        logger.debug(f'Rank {get_hpc_rank()}: Asset distribution coordinated by master')
+        logger.debug(f'Rank {hpc_info["rank"]}: Asset distribution coordinated by master')
         return True
     
     try:
-        conn = get_sqlite_connection()
+        # Use master database for batch distribution to ensure all processes can read batch info
+        conn = get_sqlite_connection(use_master_db=True)
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         # Get total number of assets
@@ -632,11 +698,12 @@ def get_status_stats(simulation_name: str) -> Dict[str, int]:
 
 @retry_on_database_error
 def get_bulk_batchids(simulation_name: str) -> List[int]:
-    """Get all batch IDs for a simulation."""
+    """Get all batch IDs for a simulation. Uses local database copy for workers."""
     logger.debug(f'Getting batch IDs for simulation {simulation_name}')
     
     try:
-        conn = get_sqlite_connection()
+        # Workers use local database copies after copying phase
+        conn = get_sqlite_connection(use_master_db=False)
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         cursor = conn.execute(f"""
@@ -658,11 +725,27 @@ def get_bulk_batchids(simulation_name: str) -> List[int]:
 
 @retry_on_database_error
 def get_batch_total(simulation_name: str) -> int:
-    """Get total number of batches for a simulation. Safe for HPC concurrent access."""
-    logger.debug(f'Rank {get_hpc_rank()}: Getting batch total for simulation {simulation_name}')
+    """Get total number of batches for a simulation. Handles both single-process and multi-process HPC contexts."""
+    hpc_info = get_hpc_info()
+
+    
+    logger.debug(f'Rank {hpc_info["rank"]}: Getting batch total for simulation {simulation_name}')
     
     try:
-        conn = get_sqlite_connection()
+        # In single-process HPC context (like STEP 2 UrbanOpt init), use master database
+        # In multi-process context (like STEP 3 parallel execution), workers use local copies
+        use_master = False
+        if is_hpc_environment():
+            if hpc_info['total_tasks'] == 1:
+                # Single process in HPC environment - use master database
+                use_master = True
+                logger.debug("Single-process HPC context detected, using master database")
+            else:
+                # Multi-process context - use local database copies
+                use_master = False
+                logger.debug("Multi-process HPC context, using local database")
+        
+        conn = get_sqlite_connection(use_master_db=use_master)
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         cursor = conn.execute(f"""
@@ -674,21 +757,22 @@ def get_batch_total(simulation_name: str) -> int:
         row = cursor.fetchone()
         total = row['count'] if row else 0
         
-        logger.debug(f"Rank {get_hpc_rank()}: Batch total: {total}")
+        logger.debug(f"Rank {hpc_info['rank']}: Batch total: {total}")
         return total
         
     except Exception as e:
-        logger.error(f"Rank {get_hpc_rank()}: Error getting batch total: {e}")
+        logger.error(f"Rank {hpc_info['rank']}: Error getting batch total: {e}")
         return 0
 
 
 @retry_on_database_error
 def get_asset_total(simulation_name: str) -> int:
-    """Get total number of assets for a simulation."""
+    """Get total number of assets for a simulation. Uses local database copy for workers."""
     logger.debug(f'Getting asset total for simulation {simulation_name}')
     
     try:
-        conn = get_sqlite_connection()
+        # Workers use local database copies after copying phase
+        conn = get_sqlite_connection(use_master_db=False)
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         cursor = conn.execute(f"""
@@ -820,7 +904,7 @@ def copy_master_to_local(simulation_name):
 
 def setup_distributed_database(simulation_name):
     """Setup distributed database for this process."""
-    if should_use_distributed_database():
+    if is_hpc_environment():
         manager = get_distributed_manager()
         manager.ensure_local_db_exists()
         # Copy initial data from master if it exists

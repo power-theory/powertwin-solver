@@ -423,7 +423,6 @@ main() {
     print_status "info" "Tasks per node: ${SLURM_NTASKS_PER_NODE}"
     print_status "info" "Total cores: ${TOTAL_CORES}"
     print_status "info" "==================================="
-
     
     # STEP 1: Run initialization as a separate SLURM step (feature files creation)
     print_status "info" "STEP 1: Creating feature files..."
@@ -438,13 +437,13 @@ main() {
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "POWERTWIN_DB_ENV=${POWERTWIN_DB_ENV}" \
         --env "PGDATABASE=${PGDATABASE}" \
+        --env "POWERTWIN_DISTRIBUTED_SQLITE=true" \
         "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner create-feature-files \
         \"${SIMULATION_NAME}\" \
         \"${ASSET_GEOJSON_PATH}\" \
         \"${METADATA_CSV_PATH}\" \
         \"${CONFIG_JSON_PATH}\" \
         \"${TOTAL_CORES}\" \
-        --hpc \
         --shared-storage \"${HPC_SHARED_STORAGE}\"" \
         2>&1 | tee "${LOG_DIR}/powertwin_ff_${SLURM_JOB_ID}.log"
     
@@ -454,7 +453,7 @@ main() {
         exit 1
     fi
     
-    # STEP 2: Run UrbanOpt initialization as a separate SLURM step
+    # STEP 2: Initialize UrbanOpt (single process, uses master database)
     print_status "info" "STEP 2: Initializing UrbanOpt..."
 
     INIT_UO_OUTPUT=$(apptainer exec \
@@ -471,12 +470,13 @@ main() {
       --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
       --env "POWERTWIN_DB_ENV=${POWERTWIN_DB_ENV}" \
       --env "PGDATABASE=${PGDATABASE}" \
+      --env "POWERTWIN_DISTRIBUTED_SQLITE=true" \
       --workdir /powertwin_data \
       "${SOLVER_SIF}" python -m app.direct_runner initialize-uo \
         "${SIMULATION_DIR}" \
         "${LOCAL_SIMULATION_DIR}" \
         "${SIMULATION_NAME}" \
-        --hpc 2>&1 | tee "${LOG_DIR}/powertwin_init_${SLURM_JOB_ID}.log")
+        2>&1 | tee "${LOG_DIR}/powertwin_init_${SLURM_JOB_ID}.log")
 
     TOTAL_BATCHES=$(echo "$INIT_UO_OUTPUT" | grep -oP 'returned \K[0-9]+(?= batches)' | tail -1)
     if [[ -z "$TOTAL_BATCHES" ]]; then
@@ -485,9 +485,6 @@ main() {
     fi
 
     print_status "info" "UrbanOpt initialization returned ${TOTAL_BATCHES} batches."
-    
-    print_status "info" "Synchronizing across nodes and allowing database locks to clear..."
-    sleep 5  # Give SQLite time to release locks from initialization phase
 
     
     # Set up signal traps for graceful termination
@@ -564,8 +561,7 @@ setup_distributed_database('${SIMULATION_NAME}')
                 \"${SIMULATION_DIR}\" \
                 \"${LOCAL_SIMULATION_DIR}\" \
                 \"${SIMULATION_NAME}\" \
-                --hpc
-        " \
+        "
     2>&1 | tee "${LOG_DIR}/powertwin_batches_${SLURM_JOB_ID}.log"
 
     # Wait for all parallel processes to complete
@@ -574,7 +570,7 @@ setup_distributed_database('${SIMULATION_NAME}')
     print_status "info" "Parallel batch processing completed"
     
     # STEP 4: Consolidate distributed databases
-    print_status "info" "STEP 4: Consolidating distributed databases..."
+    print_status \"info\" \"STEP 4: Consolidating distributed databases...\"
     
     apptainer exec \
         --bind "${DATA_DIR}:/powertwin_data" \

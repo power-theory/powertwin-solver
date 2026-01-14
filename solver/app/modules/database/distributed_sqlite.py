@@ -47,6 +47,58 @@ class DistributedSQLiteManager:
         """Get the master database path."""
         return self.master_db_path
     
+    def ensure_master_db_exists(self):
+        """Ensure master database exists with proper schema. Called during initialization."""
+        if not self._is_master_process():
+            return False
+            
+        if not os.path.exists(self.master_db_path):
+            os.makedirs(os.path.dirname(self.master_db_path), exist_ok=True)
+            
+            table_name = os.environ.get("PGDATABASE", "powertwin")
+            
+            conn = sqlite3.connect(self.master_db_path)
+            conn.execute('PRAGMA journal_mode=WAL')
+            conn.execute('PRAGMA synchronous=NORMAL')
+            
+            # Create the assets table with same schema as local databases
+            conn.execute(f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    asset_id TEXT PRIMARY KEY,
+                    batch INTEGER,
+                    order_rank INTEGER,
+                    simulation_name TEXT,
+                    state TEXT,
+                    weather_file TEXT,
+                    floor_area REAL,
+                    number_of_stories INTEGER,
+                    complexity INTEGER,
+                    uorun_time REAL,
+                    uoprocess_time REAL,
+                    asset_name TEXT,
+                    subtype TEXT,
+                    status TEXT,
+                    total_time REAL,
+                    node_name TEXT DEFAULT '{self.hpc_info['node_name']}',
+                    rank INTEGER DEFAULT {self.hpc_info['rank']},
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create indexes for performance
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_simulation ON {table_name}(simulation_name)")
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_batch ON {table_name}(batch)")
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_status ON {table_name}(status)")
+            
+            conn.commit()
+            conn.close()
+            
+            logger.info(f"Created master database: {self.master_db_path}")
+            return True
+        
+        return True  # Already exists
+    
     def ensure_local_db_exists(self):
         """Ensure local database exists and is initialized."""
         if not os.path.exists(self.local_db_path):
@@ -99,47 +151,47 @@ class DistributedSQLiteManager:
         conn.close()
     
     def copy_master_data_to_local(self, simulation_name):
-        """Copy relevant data from master database to local database."""
+        """Copy entire master database file to local database. Much simpler and more reliable."""
         if not os.path.exists(self.master_db_path):
             logger.warning(f"Master database not found at {self.master_db_path}")
             return
         
-        table_name = os.environ.get("PGDATABASE", "powertwin")
+        logger.info(f"Copying entire database file from {self.master_db_path} to {self.local_db_path}")
         
         try:
-            # Connect to both databases
-            master_conn = sqlite3.connect(self.master_db_path)
-            master_conn.row_factory = sqlite3.Row
+            # Check master database has tables (basic validation)
+            with sqlite3.connect(self.master_db_path) as test_conn:
+                cursor = test_conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = cursor.fetchall()
+                if not tables:
+                    logger.warning("Master database exists but has no tables")
+                    return
             
-            local_conn = sqlite3.connect(self.local_db_path)
+            # Simple file copy - much faster and more reliable than SQL operations
+            import shutil
             
-            # Get assets for this simulation
-            cursor = master_conn.execute(
-                f"SELECT * FROM {table_name} WHERE simulation_name = ?", 
-                (simulation_name,)
-            )
-            
-            assets = cursor.fetchall()
-            
-            if assets:
-                # Insert into local database
-                placeholders = ','.join(['?' for _ in assets[0].keys()])
-                columns = ','.join(assets[0].keys())
+            # Remove existing local database if it exists
+            if os.path.exists(self.local_db_path):
+                os.remove(self.local_db_path)
                 
-                for asset in assets:
-                    local_conn.execute(
-                        f"INSERT OR REPLACE INTO {table_name} ({columns}) VALUES ({placeholders})",
-                        tuple(asset)
-                    )
+            shutil.copy2(self.master_db_path, self.local_db_path)
+            
+            # Verify the copy worked
+            if os.path.exists(self.local_db_path):
+                # Quick verification that copied database has tables and data
+                try:
+                    with sqlite3.connect(self.local_db_path) as verify_conn:
+                        table_name = os.environ.get("PGDATABASE", "powertwin")
+                        cursor = verify_conn.execute(f"SELECT COUNT(*) FROM {table_name}")
+                        count = cursor.fetchone()[0]
+                        logger.info(f"Successfully copied master database with {count} records to {self.local_db_path}")
+                except Exception as e:
+                    logger.error(f"Copied database validation failed: {e}")
+            else:
+                logger.error(f"Database copy failed - local database not found at {self.local_db_path}")
                 
-                local_conn.commit()
-                logger.info(f"Copied {len(assets)} assets from master to local database")
-            
-            master_conn.close()
-            local_conn.close()
-            
         except Exception as e:
-            logger.error(f"Error copying master data to local: {e}")
+            logger.error(f"Error copying entire master database: {e}")
     
     def consolidate_databases(self, simulation_name=None):
         """Consolidate all distributed databases into the master database."""
@@ -163,7 +215,7 @@ class DistributedSQLiteManager:
         
         try:
             # Ensure master database exists
-            self._ensure_master_db_exists()
+            self.ensure_master_db_exists()
             
             master_conn = sqlite3.connect(self.master_db_path)
             master_conn.execute('PRAGMA journal_mode=WAL')
@@ -227,44 +279,33 @@ class DistributedSQLiteManager:
             logger.error(f"Error during database consolidation: {e}")
             return False
     
-    def _ensure_master_db_exists(self):
-        """Ensure master database exists with proper schema."""
-        if not os.path.exists(self.master_db_path):
-            os.makedirs(os.path.dirname(self.master_db_path), exist_ok=True)
+    def setup_distributed_environment(self, simulation_name=None):
+        """Setup the distributed database environment. Call this before any database operations."""
+        logger.info("Setting up distributed SQLite environment...")
+        logger.info(f"Master database will be created at: {self.master_db_path}")
+        
+        # Master process creates master database first
+        if self._is_master_process():
+            if not self.ensure_master_db_exists():
+                logger.error("Failed to create master database")
+                return False
+            logger.info("Master database created successfully")
+        
+        # All processes create their local databases
+        self.ensure_local_db_exists()
+        
+        logger.info(f"Database setup completed for simulation: {simulation_name or 'all'}")
+        return True
+        
+    def synchronize_worker_databases(self, simulation_name):
+        """Worker processes call this to sync data from master after assets are inserted."""
+        if self._is_master_process():
+            # Master doesn't need to sync
+            return True
             
-            table_name = os.environ.get("PGDATABASE", "powertwin")
-            
-            conn = sqlite3.connect(self.master_db_path)
-            conn.execute('PRAGMA journal_mode=WAL')
-            
-            conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS {table_name} (
-                    asset_id TEXT PRIMARY KEY,
-                    batch INTEGER,
-                    order_rank INTEGER,
-                    simulation_name TEXT,
-                    state TEXT,
-                    weather_file TEXT,
-                    floor_area REAL,
-                    number_of_stories INTEGER,
-                    complexity INTEGER,
-                    uorun_time REAL,
-                    uoprocess_time REAL,
-                    asset_name TEXT,
-                    subtype TEXT,
-                    status TEXT,
-                    total_time REAL,
-                    node_name TEXT,
-                    rank INTEGER,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            conn.commit()
-            conn.close()
-            
-            logger.info(f"Created master database: {self.master_db_path}")
+        logger.info(f"Rank {self.hpc_info['rank']}: Synchronizing data for simulation {simulation_name}")
+        self.copy_master_data_to_local(simulation_name)
+        return True
     
     def _is_master_process(self):
         """Check if this is the master process."""

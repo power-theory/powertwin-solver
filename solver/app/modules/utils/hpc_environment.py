@@ -40,15 +40,6 @@ def get_hpc_info():
     
     return hpc_info
 
-def get_distributed_sqlite_enabled():
-    if not is_hpc_environment():
-        return False
-        
-    # Check environment variable, default to True for HPC
-    return os.environ.get('POWERTWIN_DISTRIBUTED_SQLITE', 'true').lower() == 'true'
-
-def should_use_distributed_database():
-    return is_hpc_environment() and get_distributed_sqlite_enabled()
 
 def log_environment_summary():
     hpc_info = get_hpc_info()
@@ -60,7 +51,7 @@ def log_environment_summary():
         logger.info(f"SLURM Job ID: {hpc_info['job_id']}")
         logger.info(f"Process Rank: {hpc_info['rank']} of {hpc_info['total_tasks']}")
         logger.info(f"Node: {hpc_info['node_name']} ({hpc_info['node_id']} of {hpc_info['nodes']})")
-        logger.info(f"Distributed SQLite: {'Enabled' if get_distributed_sqlite_enabled() else 'Disabled'}")
+        logger.info(f"Distributed SQLite: {'Enabled' if is_hpc_environment() else 'Disabled'}")
         logger.info(f"Master Process: {'Yes' if hpc_info['is_master'] else 'No'}")
         logger.info("="*60)
     else:
