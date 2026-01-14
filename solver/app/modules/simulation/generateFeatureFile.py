@@ -109,7 +109,7 @@ def read_metadata(metadata_csv):
 
             # Exclude big residential buildings (Lodging and low highrise Multifamily are an exceptions) (Limited by UrbanOpt)
             # https://docs.urbanopt.net/workflows/residential_workflows/building_types.html
-            # *Note - The Mixed use building type can accommodate up to 4 building types and their corresponding fractions of total floor area. 
+            # NOTE - The Mixed use building type can accommodate up to 4 building types and their corresponding fractions of total floor area. 
             # If the number of building types is fewer than 4, additional building use types must be added but the fraction of total area can be
             # entered as 0.
             # TODO: Mixed use requires a lot more detail to undestand what is mixed and what it contains, Laboratory requires elevator support

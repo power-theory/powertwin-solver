@@ -5,8 +5,7 @@ Routes to SQLite (HPC) or PostgreSQL (Docker) based on environment.
 
 import os
 from modules.utils import initialize_logger
-from ..utils.hpc_environment import is_hpc_environment, get_hpc_info, should_use_distributed_database
-
+from ..utils.hpc_environment import is_hpc_environment, get_hpc_info
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Database Environment', external_log_dir)
 
@@ -37,7 +36,7 @@ def get_database_config():
         return {
             'type': 'sqlite',
             'path': sqlite_path,
-            'distributed': should_use_distributed_database()
+            'distributed': is_hpc_environment()
         }
     else:
         # Auto-detect based on environment
@@ -47,7 +46,7 @@ def get_database_config():
             return {
                 'type': 'sqlite',
                 'path': sqlite_path,
-                'distributed': should_use_distributed_database()
+                'distributed': is_hpc_environment()
             }
         else:
             # Docker/local environment - use PostgreSQL

@@ -84,9 +84,9 @@ def get_hpc_environment():
 def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name):
     """
     Run batch processing either with MPI (HPC mode) or joblib (local mode)
+    Includes integrated database sharding for HPC environments.
     
     Args:
-        batch_function: Function to execute for each batch
         batch_range: Range of batch numbers to process
         simulation_dir: Directory containing simulation files
         local_dir: Local directory for processed files
@@ -103,9 +103,23 @@ def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name
     # Get total number of batches
     total_batches = len(batch_range)
     
-
-    # HPC mode
+    # HPC mode with integrated database sharding
     if is_hpc:
+        # FIRST: Setup database sharding for this process
+        logger.info("Setting up database sharding for HPC environment...")
+        try:
+            from modules.diagnostics.db import synchronize_local_databases
+            success = synchronize_local_databases(simulation_name)
+            if success:
+                logger.info("Database sharding completed successfully")
+            else:
+                logger.error("Database sharding failed")
+                return False
+        except Exception as e:
+            logger.error(f"Error during database sharding: {e}")
+            return False
+            
+        # THEN: Continue with existing batch processing logic
         hpc_env = get_hpc_environment()
         node_id = hpc_env.get('node_id', None)
         num_nodes = hpc_env.get('slurm_nodes', 1)
