@@ -2,7 +2,7 @@ import os
 import multiprocessing
 from joblib import Parallel, delayed, parallel_backend
 from modules.utils import initialize_logger
-from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
+from modules.utils.hpc_environment import is_hpc_environment
 from .run_UOsim import run_batch
 
 
@@ -84,7 +84,7 @@ def get_hpc_environment():
 def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name):
     """
     Run batch processing either with MPI (HPC mode) or joblib (local mode)
-    Includes integrated database sharding for HPC environments.
+    Uses node-specific SQLite databases for HPC to avoid file locking issues.
     
     Args:
         batch_range: Range of batch numbers to process
@@ -103,27 +103,24 @@ def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name
     # Get total number of batches
     total_batches = len(batch_range)
     
-    # HPC mode with integrated database sharding
+    # HPC mode with node-based batch distribution
     if is_hpc:
-        # FIRST: Setup database sharding for this process
-        logger.info("Setting up database sharding for HPC environment...")
-        try:
-            from modules.diagnostics.db import synchronize_local_databases
-            success = synchronize_local_databases(simulation_name)
-            if success:
-                logger.info("Database sharding completed successfully")
-            else:
-                logger.error("Database sharding failed")
-                return False
-        except Exception as e:
-            logger.error(f"Error during database sharding: {e}")
-            return False
-            
-        # THEN: Continue with existing batch processing logic
+
         hpc_env = get_hpc_environment()
         node_id = hpc_env.get('node_id', None)
         num_nodes = hpc_env.get('slurm_nodes', 1)
         node_name = hpc_env.get('node_name', 'unknown')
+
+        # Initialize node-specific database
+        from modules.database.sqlite_manager import get_sqlite_manager
+        db_manager = get_sqlite_manager()
+        
+        logger.info(f"Node {node_name}: Initializing node-specific database")
+        if not db_manager.ensure_db_exists():
+            logger.error(f"Node {node_name}: Failed to initialize node database")
+            return False
+            
+        logger.info(f"Node {node_name}: Using database at {db_manager.get_db_path()}")
 
         # Get SLURM_CPUS_PER_TASK, default to all available if not set
         cpus_per_task = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
@@ -157,6 +154,7 @@ def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name
                     logger.info(f"Node {node_name}: Completed processing all assigned batches")
                 except Exception as e:
                     logger.error(f"Node {node_name}: Error in joblib parallel execution: {e}")
+                    return False
             else:
                 logger.info(f"Node {node_name}: No batches to process")
             return True

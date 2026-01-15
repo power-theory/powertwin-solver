@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=test-start
-#SBATCH --nodes=2                   
+#SBATCH --nodes=5                   
 #SBATCH --ntasks-per-node=1        
-#SBATCH --cpus-per-task=3          
+#SBATCH --cpus-per-task=5          
 #SBATCH --time=7-00:00:00           
 #SBATCH --mem-per-cpu=6G            
 #SBATCH --account=cowy-ptheory
@@ -41,9 +41,7 @@ SQLITE_DB_PATH="${SQLITE_DB_DIR}/powertwin.db"
 # Database environment variables
 export DATABASE_TYPE="sqlite"
 export SQLITE_DB_PATH="${SQLITE_DB_PATH}"
-export POWERTWIN_DB_ENV="hpc"
-export PGDATABASE="powertwin"  # Table name for compatibility
-export POWERTWIN_DISTRIBUTED_SQLITE="true"  # Enable distributed SQLite mode
+export SQLDATABASE="powertwin"  # Table name for compatibility
 
 # HPC networking and MPI environment variables
 export RDMAV_FORK_SAFE=1
@@ -366,8 +364,7 @@ monitor_simulation_status() {
             --env "POWERTWIN_LOG_DIR=/solver/logs" \
             --env "DATABASE_TYPE=${DATABASE_TYPE}" \
             --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
-            --env "POWERTWIN_DB_ENV=${POWERTWIN_DB_ENV}" \
-            --env "PGDATABASE=${PGDATABASE}" \
+            --env "SQLDATABASE=${SQLDATABASE}" \
             --workdir /solver \
             "${SOLVER_SIF}" python -c "
 from modules.diagnostics.read_status import read_simulation_status
@@ -435,9 +432,8 @@ main() {
         --env "POWERTWIN_LOG_DIR=/solver/logs" \
         --env "DATABASE_TYPE=${DATABASE_TYPE}" \
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
-        --env "POWERTWIN_DB_ENV=${POWERTWIN_DB_ENV}" \
-        --env "PGDATABASE=${PGDATABASE}" \
-        --env "POWERTWIN_DISTRIBUTED_SQLITE=true" \
+        --env "SQLDATABASE=${SQLDATABASE}" \
+        --env "POWERTWIN_STEP=setup" \
         "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner create-feature-files \
         \"${SIMULATION_NAME}\" \
         \"${ASSET_GEOJSON_PATH}\" \
@@ -468,9 +464,8 @@ main() {
       --env "POWERTWIN_LOG_DIR=/solver/logs" \
       --env "DATABASE_TYPE=${DATABASE_TYPE}" \
       --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
-      --env "POWERTWIN_DB_ENV=${POWERTWIN_DB_ENV}" \
-      --env "PGDATABASE=${PGDATABASE}" \
-      --env "POWERTWIN_DISTRIBUTED_SQLITE=true" \
+      --env "SQLDATABASE=${SQLDATABASE}" \
+      --env "POWERTWIN_STEP=setup" \
       --workdir /powertwin_data \
       "${SOLVER_SIF}" python -m app.direct_runner initialize-uo \
         "${SIMULATION_DIR}" \
@@ -507,8 +502,8 @@ main() {
     print_status "info" "Status monitoring started with PID ${MONITOR_PID}, logs at ${STATUS_LOG_FILE}"
 
     
-    # STEP 3: Run parallel batch processing with distributed SQLite
-    print_status "info" "STEP 3: Running parallel batch processing with distributed SQLite..."
+    # STEP 3: Run parallel batch processing with SQLite
+    print_status "info" "STEP 3: Running parallel batch processing with SQLite..."
 
     srun --mpi=pmix --exclusive \
     apptainer exec \
@@ -520,74 +515,29 @@ main() {
         --env "TMPDIR=${NODE_TMP_DIR}" \
         --env "TMP=${NODE_TMP_DIR}" \
         --env "TEMP=${NODE_TMP_DIR}" \
-        --env "RUBYOPT=-W0 --disable-gems" \
-        --env "RUBY_THREAD_VM_STACK_SIZE=16777216" \
-        --env "RUBY_GC_HEAP_INIT_SLOTS=10000" \
-        --env "RUBY_GC_HEAP_FREE_SLOTS=4000" \
         --env "PROCESS_ID=${PROCESS_ID}" \
         --env "GEM_HOME=${GEM_HOME}" \
         --env "GEM_PATH=${GEM_PATH}" \
         --env "SIMULATION_NAME=${SIMULATION_NAME}" \
         --env "SLURM_JOB_ID=${SLURM_JOB_ID}" \
-        --env "USE_URBANOPT_CMD=${USE_URBANOPT_CMD:-false}" \
         --env "PYTHONPATH=/solver" \
         --env "PYTHONDONTWRITEBYTECODE=1" \
         --env "POWERTWIN_LOG_DIR=/solver/logs" \
         --env "DATABASE_TYPE=${DATABASE_TYPE}" \
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
-        --env "POWERTWIN_DB_ENV=${POWERTWIN_DB_ENV}" \
-        --env "PGDATABASE=${PGDATABASE}" \
-        --env "POWERTWIN_DISTRIBUTED_SQLITE=true" \
+        --env "SQLDATABASE=${SQLDATABASE}" \
+        --env "POWERTWIN_STEP=parallel" \
         --workdir /solver \
-        "${SOLVER_SIF}" \
-        bash -c "
-            # Set strict Ruby environment to prevent constant redefinition warnings
-            export RUBYOPT='-W0 --disable-gems'
-            export RUBY_THREAD_VM_STACK_SIZE=16777216
-            export RUBY_GC_HEAP_INIT_SLOTS=10000
-            export RUBY_GC_HEAP_FREE_SLOTS=4000
-            
-            # Add random delay to prevent parallel execution conflicts (0-2 seconds)
-            sleep \$(echo \"scale=2; \$RANDOM/32767 * 2\" | bc -l 2>/dev/null || echo \"0.\$((RANDOM % 100))\")
-            
-            # Setup distributed database for this process
-            python -c \"
-from modules.diagnostics import setup_distributed_database
-setup_distributed_database('${SIMULATION_NAME}')
-\"
-            
-            # Run batch processing
-            python -m app.direct_runner run-parallel-batches \
-                \"${SIMULATION_DIR}\" \
-                \"${LOCAL_SIMULATION_DIR}\" \
-                \"${SIMULATION_NAME}\" \
-        "
+        "${SOLVER_SIF}" python -m app.direct_runner run-parallel-batches \
+        "${SIMULATION_DIR}" \
+        "${LOCAL_SIMULATION_DIR}" \
+        "${SIMULATION_NAME}" \
     2>&1 | tee "${LOG_DIR}/powertwin_batches_${SLURM_JOB_ID}.log"
 
     # Wait for all parallel processes to complete
     wait
     
     print_status "info" "Parallel batch processing completed"
-    
-    # STEP 4: Consolidate distributed databases
-    print_status \"info\" \"STEP 4: Consolidating distributed databases...\"
-    
-    apptainer exec \
-        --bind "${DATA_DIR}:/powertwin_data" \
-        --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files" \
-        --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}" \
-        --bind "${LOG_DIR}:/solver/logs" \
-        --env "POWERTWIN_LOG_DIR=/solver/logs" \
-        --env "DATABASE_TYPE=${DATABASE_TYPE}" \
-        --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
-        --env "POWERTWIN_DB_ENV=${POWERTWIN_DB_ENV}" \
-        --env "PGDATABASE=${PGDATABASE}" \
-        --env "POWERTWIN_DISTRIBUTED_SQLITE=true" \
-        "${SOLVER_SIF}" python -c "
-from modules.diagnostics import consolidate_distributed_databases
-consolidate_distributed_databases('${SIMULATION_NAME}')
-print('Database consolidation completed')
-"
 
 
     # Stop the status monitoring
@@ -613,8 +563,7 @@ print('Database consolidation completed')
                 --env "POWERTWIN_LOG_DIR=/solver/logs" \
                 --env "DATABASE_TYPE=${DATABASE_TYPE}" \
                 --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
-                --env "POWERTWIN_DB_ENV=${POWERTWIN_DB_ENV}" \
-                --env "PGDATABASE=${PGDATABASE}" \
+                --env "SQLDATABASE=${SQLDATABASE}" \
                 --workdir /solver \
                 "${SOLVER_SIF}" python -c "
     from modules.diagnostics.read_status import read_simulation_status
@@ -626,6 +575,28 @@ print('Database consolidation completed')
         rm -f "${STATUS_MONITOR_PID_FILE}"
     fi
 
+    
+    # STEP 4: Consolidate node databases back to master
+    print_status "info" "STEP 4: Consolidating node databases..."
+
+    apptainer exec \
+        --bind "${DATA_DIR}:/powertwin_data" \
+        --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files" \
+        --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}" \
+        --bind "${LOG_DIR}:/solver/logs" \
+        --env "POWERTWIN_LOG_DIR=/solver/logs" \
+        --env "DATABASE_TYPE=${DATABASE_TYPE}" \
+        --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
+        --env "SQLDATABASE=${SQLDATABASE}" \
+        --env "POWERTWIN_STEP=consolidate" \
+        "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner consolidate-databases \"${SIMULATION_NAME}\""
+    
+    CONSOLIDATE_EXIT_CODE=$?
+    if [ $CONSOLIDATE_EXIT_CODE -eq 0 ]; then
+        print_status "info" "Database consolidation completed successfully"
+    else
+        print_status "warning" "Database consolidation completed with warnings (exit code: $CONSOLIDATE_EXIT_CODE)"
+    fi
     
     # Clean up
     print_status "info" "Cleaning up resources..."

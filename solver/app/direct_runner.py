@@ -167,7 +167,6 @@ def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name):
 
 def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, batch_range=None):
     """
-    Run parallel batches for a PowerTwin simulation with distributed SQLite support
     
     Args:
         SIMULATION_DIR: Path to the simulation directory
@@ -181,15 +180,8 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
     """
     from modules.simulation.run_UOsim import run_batch
     from modules.simulation.parallel import run_parallel_batches
-    from modules.diagnostics import setup_distributed_database
     
     logger.info(f"Running parallel batches for: {simulation_name}")
-    
-    is_hpc = is_hpc_environment()
-    
-    # Setup distributed database for this process
-    if is_hpc:
-        setup_distributed_database(simulation_name)
     
     try:
         # If batch_range is not provided, determine it from the database
@@ -295,6 +287,32 @@ def direct_simulation_status(simulation_name, batch_id=None):
         logger.error(f"Error getting simulation status: {str(e)}")
         return False
 
+def direct_consolidate_databases(simulation_name):
+    """
+    Consolidate node-specific databases back to master database
+    
+    Args:
+        simulation_name: Name of the simulation to consolidate
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    from modules.database.sqlite_manager import get_sqlite_manager
+    
+    logger.info(f"Consolidating databases for simulation: {simulation_name}")
+    
+    try:
+        manager = get_sqlite_manager()
+        success = manager.consolidate_node_databases(simulation_name)
+        if success:
+            logger.info(f"Successfully consolidated databases for {simulation_name}")
+        else:
+            logger.error(f"Failed to consolidate databases for {simulation_name}")
+        return success
+    except Exception as e:
+        logger.error(f"Error consolidating databases: {str(e)}")
+        return False
+
 def main():
     """Parse command line arguments and run the simulation directly"""
     parser = argparse.ArgumentParser(description="PowerTwin Direct Runner for HPC")
@@ -340,7 +358,7 @@ def main():
     
     # Consolidate databases command
     consolidate_parser = subparsers.add_parser('consolidate-databases', help='Consolidate distributed databases')
-    consolidate_parser.add_argument('--simulation-name', type=str, help='Simulation name to consolidate (optional)')
+    consolidate_parser.add_argument('simulation_name', type=str, help='Simulation name to consolidate')
 
     args = parser.parse_args()
     
@@ -397,6 +415,12 @@ def main():
         success = direct_simulation_status(
             simulation_name=args.simulation_name,
             batch_id=args.batch_id if hasattr(args, 'batch_id') else None
+        )
+        result = 0 if success else 1
+    elif args.command == 'consolidate-databases':
+        # Run the database consolidation function
+        success = direct_consolidate_databases(
+            simulation_name=args.simulation_name
         )
         result = 0 if success else 1
     else:

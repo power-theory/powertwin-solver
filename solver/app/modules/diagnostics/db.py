@@ -8,53 +8,12 @@ import modules.database.sqlite_operations as sqlite_ops
 import modules.database.postgres_operations as postgres_ops
 from modules.utils import initialize_logger
 from modules.utils.hpc_environment import is_hpc_environment, log_environment_summary
-from modules.database.distributed_sqlite import get_distributed_manager
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Database', external_log_dir)
 
-
 # Environment detection using centralized method
 IS_HPC_ENVIRONMENT = is_hpc_environment()
-
-# Log environment summary once at module initialization
-#log_environment_summary()
-#log_database_environment()
-
-
-def setup_distributed_database(simulation_name=None):
-    """Setup the distributed database environment for HPC."""
-    if IS_HPC_ENVIRONMENT:
-        distributed_manager = get_distributed_manager()
-        
-        # Ensure the master database is created first
-        result = distributed_manager.setup_distributed_environment(simulation_name)
-        
-        # Also ensure table creation is coordinated
-        if result:
-            # Force table creation in both master and local databases
-            sqlite_ops.create_table()
-            logger.info("Distributed database setup completed successfully")
-        
-        return result
-    return True
-
-
-def consolidate_distributed_databases(simulation_name=None):
-    """Consolidate all distributed databases into the master database."""
-    if IS_HPC_ENVIRONMENT:
-        distributed_manager = get_distributed_manager()
-        return distributed_manager.consolidate_databases(simulation_name)
-    return True
-
-
-def synchronize_local_databases(simulation_name: str) -> bool:
-    """Synchronize data from master database to local databases."""
-    if IS_HPC_ENVIRONMENT:
-        return sqlite_ops.synchronize_local_databases(simulation_name)
-    else:
-        # No synchronization needed in Docker environment
-        return True
 
 
 def create_table():
@@ -140,7 +99,8 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time, simulation_nam
     if IS_HPC_ENVIRONMENT:
         # SQLite version expects simulation_name, try to get it if not provided
         if simulation_name is None:
-            logger.warning(f"simulation_name not provided for update_time, asset_id: {asset_id}")
+            logger.warning(f"simulation_name not provided for update_time, asset_id: {asset_id}, "
+                           f"attempting to retrieve from database")
             # Try to get simulation name from existing record
             conn = sqlite_ops.get_sqlite_connection()
             table_name = os.environ.get("PGDATABASE", "powertwin")
@@ -295,32 +255,3 @@ def get_asset_stats(simulation_name=None):
         return [], None
     else:
         return postgres_ops.get_asset_stats(simulation_name)
-       
-
-# Distributed Database Functions
-
-def consolidate_distributed_databases(simulation_name=None):
-    """Consolidate distributed databases (HPC mode only)."""
-    if IS_HPC_ENVIRONMENT:
-        return sqlite_ops.consolidate_distributed_databases(simulation_name)
-    else:
-        logger.info("Distributed SQLite not enabled, skipping consolidation")
-        return True
-
-def setup_distributed_database(simulation_name):
-    """Setup distributed database for HPC environment."""
-    if IS_HPC_ENVIRONMENT:
-        return sqlite_ops.setup_distributed_database(simulation_name)
-    return False
-
-def copy_master_to_local(simulation_name):
-    """Copy master database data to local database for this process."""
-    if IS_HPC_ENVIRONMENT:
-        return sqlite_ops.copy_master_to_local(simulation_name)
-    return False
-
-def get_available_distributed_databases():
-    """Get list of available distributed databases."""
-    if IS_HPC_ENVIRONMENT:
-        return sqlite_ops.get_available_distributed_databases()
-    return []
