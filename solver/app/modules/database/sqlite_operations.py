@@ -1,6 +1,7 @@
 """
-SQLite database operations for PowerTwin Solver HPC environments.
-Provides the same interface as PostgreSQL operations but uses SQLite for better HPC compatibility.
+SQLite database operations for PowerTwin Solver.
+Provides single SQLite database with file locking for concurrent access from multiple cores.
+Same interface as PostgreSQL operations but uses SQLite with WAL mode for concurrency.
 """
 
 import sqlite3
@@ -10,34 +11,28 @@ from typing import List, Dict, Any, Optional, Tuple
 import threading
 
 from modules.utils import initialize_logger
-from modules.utils.hpc_environment import get_hpc_info, is_hpc_environment
-from .distributed_sqlite import get_distributed_manager
+from .sqlite_manager import get_sqlite_manager
 
 # Thread-local storage for database connections
 thread_local = threading.local()
 
 # Setup logger
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
-logger = initialize_logger('SQLiteDatabase', external_log_dir)
+logger = initialize_logger('SQLiteOperations', external_log_dir)
 
 # SQLite database configuration
 DEFAULT_SQLITE_PATH = "/tmp/powertwin.db"
 SQLITE_DB_PATH = os.environ.get("SQLITE_DB_PATH", DEFAULT_SQLITE_PATH)
 
-# Retry configuration for HPC environments
-MAX_RETRIES = 5  # Increased for HPC coordination
+# Retry configuration for SQLite locking
+MAX_RETRIES = 5
 BASE_RETRY_DELAY = 0.5  # seconds
 MAX_RETRY_DELAY = 8.0   # seconds
-
-# HPC coordination configuration
-HPC_LOCK_TIMEOUT = 30.0  # seconds to wait for locks
-DB_LOCK_FILE = f"{SQLITE_DB_PATH}.lock"
-INIT_LOCK_FILE = f"{SQLITE_DB_PATH}.init.lock"
 
 
 def retry_on_database_error(func):
     """
-    Decorator to retry database operations on common SQLite errors in HPC environments.
+    Decorator to retry database operations on SQLite lock errors.
     """
     def wrapper(*args, **kwargs):
         for attempt in range(MAX_RETRIES):
@@ -46,9 +41,9 @@ def retry_on_database_error(func):
             except sqlite3.OperationalError as e:
                 error_msg = str(e).lower()
                 
-                # Check for common recoverable errors
+                # Check for common recoverable SQLite errors
                 if any(phrase in error_msg for phrase in ['locked', 'database is locked', 'locking protocol']):
-                    if attempt < MAX_RETRIES - 1:  # Don't log on final attempt
+                    if attempt < MAX_RETRIES - 1:
                         delay = min(BASE_RETRY_DELAY * (2 ** attempt), MAX_RETRY_DELAY)
                         logger.warning(f"Database locked on attempt {attempt + 1}/{MAX_RETRIES}, retrying in {delay}s: {e}")
                         time.sleep(delay)
@@ -76,150 +71,24 @@ def retry_on_database_error(func):
         return None  # Should never reach here
     
     return wrapper
-
-
-def coordinate_database_access(operation_name: str):
-    """Coordinate database access across HPC nodes using file locks."""
-    hpc_info = get_hpc_info()
-    
-    if not hpc_info['is_master']:
-        # Non-master processes wait for master to complete critical operations
-        max_wait = HPC_LOCK_TIMEOUT
-        wait_time = 0
-        while wait_time < max_wait:
-            if os.path.exists(f"{DB_LOCK_FILE}.{operation_name}.done"):
-                logger.debug(f"Rank {hpc_info['rank']}: Master completed {operation_name}, proceeding")
-                return
-            time.sleep(0.5)
-            wait_time += 0.5
-        
-        logger.warning(f"Rank {hpc_info['rank']}: Timeout waiting for master to complete {operation_name}")
-    else:
-        # Master process creates completion marker
-        try:
-            with open(f"{DB_LOCK_FILE}.{operation_name}.done", 'w') as f:
-                f.write(str(time.time()))
-            logger.debug(f"Rank 0: Marked {operation_name} as completed")
-        except Exception as e:
-            logger.warning(f"Failed to create completion marker for {operation_name}: {e}")
-
-
-def cleanup_coordination_files():
-    """Clean up coordination files when simulation completes."""
-    hpc_info = get_hpc_info()
-    
-    if hpc_info['is_master']:
-        try:
-            import glob
-            coordination_files = glob.glob(f"{DB_LOCK_FILE}.*.done")
-            for file_path in coordination_files:
-                try:
-                    os.remove(file_path)
-                    logger.debug(f"Removed coordination file: {file_path}")
-                except OSError:
-                    pass  # File may have been removed by another process
-        except Exception as e:
-            logger.warning(f"Error cleaning coordination files: {e}")
-
-
 @retry_on_database_error
-def get_sqlite_connection(use_master_db=False) -> sqlite3.Connection:
-    """
-    Get a SQLite database connection using appropriate database path.
+def get_sqlite_connection():
+    """Get SQLite database connection using SQLiteManager."""
+    manager = get_sqlite_manager()
+    manager.ensure_db_exists()
+    db_path = manager.get_db_path()
     
-    Args:
-        use_master_db: If True in distributed mode, connect to master database instead of local
-                      However, after database copy phase, workers should always use local copies
-    """
-    connection_key = "master_connection" if use_master_db else "connection"
-    
-    if not hasattr(thread_local, connection_key):
-        
-        if is_hpc_environment():
-            # Use distributed database approach
-            manager = get_distributed_manager()
-            hpc_info = get_hpc_info()
-            
-            # After initial setup phase, workers should always use their local complete copies
-            # Only master should access master database during initial population
-            if use_master_db and hpc_info['is_master']:
-                db_path = manager.get_master_db_path()
-                logger.debug(f"Using distributed SQLite master database: {db_path}")
-            else:
-                # Workers and non-master processes always use local complete copies
-                manager.ensure_local_db_exists()
-                db_path = manager.get_local_db_path()
-                logger.debug(f"Using distributed SQLite local database: {db_path}")
-        else:
-            # Use traditional single database
-            db_path = SQLITE_DB_PATH
-            logger.debug(f"Using single SQLite database: {db_path}")
-            
-        # Ensure database directory exists
-        db_dir = os.path.dirname(db_path)
-        if db_dir and not os.path.exists(db_dir):
-            os.makedirs(db_dir, exist_ok=True)
-            
-        # Create connection with optimized settings for HPC concurrency
-        conn = sqlite3.connect(
-            db_path,
-            check_same_thread=False,
-            timeout=30.0,  
-            isolation_level=None  
-        )
-        
-        # Enable WAL mode for better concurrent access
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")  # Balance safety and performance
-        conn.execute("PRAGMA wal_autocheckpoint=100")  # Auto-checkpoint for WAL
-        conn.execute("PRAGMA cache_size=10000")
-        conn.execute("PRAGMA temp_store=memory")
-        conn.execute("PRAGMA mmap_size=268435456")  # 256MB memory map
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.execute("PRAGMA busy_timeout=30000")  # 30s busy timeout for locks
-        
-        # Set row factory to return rows as dictionaries
-        conn.row_factory = sqlite3.Row
-        
-        thread_local.connection = conn
-        logger.debug(f"Created new SQLite connection to {db_path}")
-    
-    return thread_local.connection
-
+    conn = sqlite3.connect(db_path)
+    # Enable Row factory for dictionary-style access
+    conn.row_factory = sqlite3.Row
+    # Enable WAL mode for concurrent access
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=30000")
+    return conn
 
 def create_table() -> bool:
-    """Create the main assets table if it doesn't exist. Coordinated for HPC environments."""
-    hpc_info = get_hpc_info()
-    logger.debug(f'Rank {hpc_info["rank"]}: Creating SQLite table if not exists')
-    
-    # Use distributed SQLite if enabled
-    if is_hpc_environment():
-        distributed_manager = get_distributed_manager()
-        
-        # Master process creates master database first
-        if hpc_info['is_master']:
-            if not distributed_manager.ensure_master_db_exists():
-                logger.error("Failed to create master database")
-                return False
-                
-        # All processes create their local databases
-        distributed_manager.ensure_local_db_exists()
-        
-        # Coordinate table creation completion
-        if hpc_info['is_master']:
-            coordinate_database_access("create_table")
-            logger.debug(f'Rank {hpc_info["rank"]}: Master database and table creation completed')
-        else:
-            coordinate_database_access("create_table")
-            logger.debug(f'Rank {hpc_info["rank"]}: Local table creation coordinated by master')
-        
-        return True
-    
-    # Fallback to single database mode for non-distributed environments
-    if not hpc_info['is_master']:
-        coordinate_database_access("create_table")
-        logger.debug(f'Rank {hpc_info["rank"]}: Table creation coordinated by master')
-        return True
+    """Create the main assets table if it doesn't exist."""
+    logger.debug('Creating SQLite table if not exists')
     
     try:
         conn = get_sqlite_connection()
@@ -249,37 +118,16 @@ def create_table() -> bool:
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.commit()
         
-        # Create indices for performance
-        indices = [
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_simulation_name ON {table_name}(simulation_name)",
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_batch ON {table_name}(batch)",
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_status ON {table_name}(status)",
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_state ON {table_name}(state)",
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_order_rank ON {table_name}(order_rank)"
-        ]
-        
-        for index_sql in indices:
-            conn.execute(index_sql)
-        
-        # Create trigger for updating timestamp
-        conn.execute(f"""
-            CREATE TRIGGER IF NOT EXISTS update_{table_name}_timestamp 
-                AFTER UPDATE ON {table_name}
-            BEGIN
-                UPDATE {table_name} SET updated_at = CURRENT_TIMESTAMP WHERE asset_id = NEW.asset_id;
-            END
-        """)
-        
-        # Mark table creation as completed for other processes
-        coordinate_database_access("create_table")
-        
-        logger.info("SQLite table and indices created successfully")
+        logger.debug(f"Table '{table_name}' created or verified to exist")
         return True
         
     except Exception as e:
-        logger.error(f"Error creating SQLite table: {e}")
+        logger.error(f"Error creating table: {e}")
         return False
+
+
 
 
 def insert_asset(asset_id: int, state: str, weather_file: str, floor_area: float, 
@@ -308,29 +156,17 @@ def insert_asset(asset_id: int, state: str, weather_file: str, floor_area: float
         return False
 
 
+@retry_on_database_error
 def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
-    """Insert multiple assets in bulk for better performance. Coordinated for HPC environments."""
-    hpc_info = get_hpc_info()
-    
-    logger.debug(f'Rank {hpc_info["rank"]}: Bulk inserting {len(assets)} assets')
+    """Insert multiple assets in bulk for better performance."""
+    logger.debug(f'Bulk inserting {len(assets)} assets')
     
     if not assets:
         logger.debug("No assets to insert")
         return True
     
-    # Only master process inserts assets into master database
-    if not hpc_info['is_master']:
-        coordinate_database_access("bulk_insert")
-        logger.debug(f'Rank {hpc_info["rank"]}: Bulk insert coordinated by master')
-        return True
-    
     try:
-        # For distributed mode, master process inserts to master database
-        if is_hpc_environment():
-            conn = get_sqlite_connection(use_master_db=True)
-        else:
-            conn = get_sqlite_connection()
-        
+        conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         # Prepare bulk insert data
@@ -365,18 +201,7 @@ def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
                 complexity, asset_name, subtype, simulation_name, status
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, insert_data)
-        
-        # Mark bulk insert as completed for other processes
-        coordinate_database_access("bulk_insert")
-        
-        # In distributed mode, sync data from master to all local databases
-        if is_hpc_environment():
-            # Extract simulation name from first asset for synchronization
-            if assets:
-                simulation_name = assets[0].get('simulation_name')
-                if simulation_name:
-                    logger.debug(f"Syncing assets for simulation {simulation_name} from master to local databases")
-                    # This will be called by each process to copy their relevant data
+        conn.commit()
         
         logger.info(f"Bulk inserted {len(assets)} assets successfully")
         return True
@@ -386,27 +211,7 @@ def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
         return False
 
 
-def synchronize_local_databases(simulation_name: str) -> bool:
-    """Synchronize data from master database to local databases for worker processes."""
-    if not is_hpc_environment():
-        return True
-        
-    hpc_info = get_hpc_info()
-    
-    # Only non-master processes need to sync from master
-    if hpc_info['is_master']:
-        return True
-    
-    try:
-        distributed_manager = get_distributed_manager()
-        distributed_manager.copy_master_data_to_local(simulation_name)
-        logger.info(f"Rank {hpc_info['rank']}: Successfully synchronized data for simulation {simulation_name}")
-        return True
-    except Exception as e:
-        logger.error(f"Rank {hpc_info['rank']}: Error synchronizing local database: {e}")
-        return False
-
-
+@retry_on_database_error
 def get_bulk_assets(simulation_name: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
     """Get assets for a simulation."""
     logger.debug(f'Getting assets for simulation {simulation_name}')
@@ -436,6 +241,7 @@ def get_bulk_assets(simulation_name: str, limit: Optional[int] = None) -> List[D
         return []
 
 
+@retry_on_database_error
 def bulk_update_status(asset_ids: List[int], status: str, simulation_name: str) -> bool:
     """Efficiently update status for multiple assets in a single transaction."""
     if not asset_ids:
@@ -451,12 +257,12 @@ def bulk_update_status(asset_ids: List[int], status: str, simulation_name: str) 
         # Use executemany for efficient bulk updates
         update_data = [(status, simulation_name, asset_id) for asset_id in asset_ids]
         
-        with conn:
-            conn.executemany(f"""
-                UPDATE {table_name} 
-                SET status = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE simulation_name = ? AND asset_id = ?
-            """, update_data)
+        conn.executemany(f"""
+            UPDATE {table_name} 
+            SET status = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE simulation_name = ? AND asset_id = ?
+        """, update_data)
+        conn.commit()
         
         logger.info(f"Successfully updated status to '{status}' for {len(asset_ids)} assets")
         return True
@@ -466,6 +272,7 @@ def bulk_update_status(asset_ids: List[int], status: str, simulation_name: str) 
         return False
 
 
+@retry_on_database_error
 def update_status(simulation_name: str, asset_id: int, status: str) -> bool:
     """Update asset status. Consider using bulk_update_status for better performance with multiple assets."""
     logger.debug(f'Updating asset {asset_id} status to {status} for simulation {simulation_name}')
@@ -479,6 +286,7 @@ def update_status(simulation_name: str, asset_id: int, status: str) -> bool:
             SET status = ?, updated_at = CURRENT_TIMESTAMP
             WHERE simulation_name = ? AND asset_id = ?
         """, (status, simulation_name, asset_id))
+        conn.commit()
         
         logger.debug(f"Asset {asset_id} status updated to {status}")
         return True
@@ -490,72 +298,30 @@ def update_status(simulation_name: str, asset_id: int, status: str) -> bool:
 
 @retry_on_database_error
 def get_weather(asset_id: int) -> Optional[Tuple[str, str]]:
-    """Get weather file and state for an asset with distributed database support."""
+    """Get weather file and state for an asset."""
     logger.debug(f'Getting weather file for asset {asset_id}')
     
-    if is_hpc_environment:
-        # In distributed mode, check local database first, then master
-        manager = get_distributed_manager()
+    try:
+        conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
-        # First try local database
-        try:
-            conn = get_sqlite_connection()
-            cursor = conn.execute(f"""
-                SELECT state, weather_file FROM {table_name} 
-                WHERE asset_id = ?
-            """, (asset_id,))
-            
-            row = cursor.fetchone()
-            if row:
-                return (row['state'], row['weather_file'])
-        except Exception as e:
-            logger.debug(f"Asset {asset_id} not found in local database, checking master: {e}")
+        cursor = conn.execute(f"""
+            SELECT state, weather_file FROM {table_name} 
+            WHERE asset_id = ?
+        """, (asset_id,))
         
-        # If not found locally, check master database
-        try:
-            master_conn = sqlite3.connect(manager.get_master_db_path(), timeout=5.0)
-            master_conn.row_factory = sqlite3.Row
-            
-            cursor = master_conn.execute(f"""
-                SELECT state, weather_file FROM {table_name} 
-                WHERE asset_id = ?
-            """, (asset_id,))
-            
-            row = cursor.fetchone()
-            master_conn.close()
-            
-            if row:
-                return (row['state'], row['weather_file'])
-                
-        except Exception as e:
-            logger.error(f"Error accessing master database for asset {asset_id}: {e}")
-            
-        # If still not found, this is an error
-        logger.error(f"No weather data found for asset_id {asset_id}")
-        return None
-    else:
-        # Use original single database logic
-        try:
-            conn = get_sqlite_connection()
-            table_name = os.environ.get("PGDATABASE", "powertwin")
-            
-            cursor = conn.execute(f"""
-                SELECT state, weather_file FROM {table_name} 
-                WHERE asset_id = ?
-            """, (asset_id,))
-            
-            row = cursor.fetchone()
-            if row:
-                return (row['state'], row['weather_file'])
-            else:
-                return None
-            
-        except Exception as e:
-            logger.error(f"Error getting weather file: {e}")
+        row = cursor.fetchone()
+        if row:
+            return (row['state'], row['weather_file'])
+        else:
             return None
+        
+    except Exception as e:
+        logger.error(f"Error getting weather file: {e}")
+        return None
 
 
+@retry_on_database_error
 def update_time(simulation_name: str, asset_id: int, uorun_time: float, 
                 uoprocess_time: float, total_time: float) -> bool:
     """Update timing information for an asset."""
@@ -570,6 +336,7 @@ def update_time(simulation_name: str, asset_id: int, uorun_time: float,
             SET uorun_time = ?, uoprocess_time = ?, total_time = ?, updated_at = CURRENT_TIMESTAMP
             WHERE simulation_name = ? AND asset_id = ?
         """, (uorun_time, uoprocess_time, total_time, simulation_name, asset_id))
+        conn.commit()
         
         logger.debug(f"Times updated for asset {asset_id}")
         return True
@@ -579,6 +346,7 @@ def update_time(simulation_name: str, asset_id: int, uorun_time: float,
         return False
 
 
+@retry_on_database_error
 def get_failed_assets(simulation_name: str) -> List[Dict[str, Any]]:
     """Get assets that failed processing."""
     logger.debug(f'Getting failed assets for simulation {simulation_name}')
@@ -603,22 +371,13 @@ def get_failed_assets(simulation_name: str) -> List[Dict[str, Any]]:
         return []
 
 
+@retry_on_database_error
 def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bool:
-    """Distribute assets across batches. Coordinated for HPC environments."""
-    hpc_info = get_hpc_info()
-
-    
-    logger.debug(f'Rank {hpc_info["rank"]}: Distributing assets to {total_batches} batches for simulation {simulation_name}')
-    
-    # Only master process distributes assets
-    if not hpc_info['is_master']:
-        coordinate_database_access("distribute_batches")
-        logger.debug(f'Rank {hpc_info["rank"]}: Asset distribution coordinated by master')
-        return True
+    """Distribute assets across batches."""
+    logger.debug(f'Distributing assets to {total_batches} batches for simulation {simulation_name}')
     
     try:
-        # Use master database for batch distribution to ensure all processes can read batch info
-        conn = get_sqlite_connection(use_master_db=True)
+        conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         # Get total number of assets
@@ -658,11 +417,8 @@ def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bo
             
             current_asset += batch_size
         
+        conn.commit()
         logger.info(f"Distributed {total_assets} assets across {total_batches} batches")
-        
-        # Mark distribution as completed for other processes
-        coordinate_database_access("distribute_batches")
-        
         return True
         
     except Exception as e:
@@ -698,12 +454,11 @@ def get_status_stats(simulation_name: str) -> Dict[str, int]:
 
 @retry_on_database_error
 def get_bulk_batchids(simulation_name: str) -> List[int]:
-    """Get all batch IDs for a simulation. Uses local database copy for workers."""
+    """Get all batch IDs for a simulation."""
     logger.debug(f'Getting batch IDs for simulation {simulation_name}')
     
     try:
-        # Workers use local database copies after copying phase
-        conn = get_sqlite_connection(use_master_db=False)
+        conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         cursor = conn.execute(f"""
@@ -725,27 +480,11 @@ def get_bulk_batchids(simulation_name: str) -> List[int]:
 
 @retry_on_database_error
 def get_batch_total(simulation_name: str) -> int:
-    """Get total number of batches for a simulation. Handles both single-process and multi-process HPC contexts."""
-    hpc_info = get_hpc_info()
-
-    
-    logger.debug(f'Rank {hpc_info["rank"]}: Getting batch total for simulation {simulation_name}')
+    """Get total number of batches for a simulation."""
+    logger.debug(f'Getting batch total for simulation {simulation_name}')
     
     try:
-        # In single-process HPC context (like STEP 2 UrbanOpt init), use master database
-        # In multi-process context (like STEP 3 parallel execution), workers use local copies
-        use_master = False
-        if is_hpc_environment():
-            if hpc_info['total_tasks'] == 1:
-                # Single process in HPC environment - use master database
-                use_master = True
-                logger.debug("Single-process HPC context detected, using master database")
-            else:
-                # Multi-process context - use local database copies
-                use_master = False
-                logger.debug("Multi-process HPC context, using local database")
-        
-        conn = get_sqlite_connection(use_master_db=use_master)
+        conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         cursor = conn.execute(f"""
@@ -757,22 +496,21 @@ def get_batch_total(simulation_name: str) -> int:
         row = cursor.fetchone()
         total = row['count'] if row else 0
         
-        logger.debug(f"Rank {hpc_info['rank']}: Batch total: {total}")
+        logger.debug(f"Batch total: {total}")
         return total
         
     except Exception as e:
-        logger.error(f"Rank {hpc_info['rank']}: Error getting batch total: {e}")
+        logger.error(f"Error getting batch total: {e}")
         return 0
 
 
 @retry_on_database_error
 def get_asset_total(simulation_name: str) -> int:
-    """Get total number of assets for a simulation. Uses local database copy for workers."""
+    """Get total number of assets for a simulation."""
     logger.debug(f'Getting asset total for simulation {simulation_name}')
     
     try:
-        # Workers use local database copies after copying phase
-        conn = get_sqlite_connection(use_master_db=False)
+        conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         cursor = conn.execute(f"""
@@ -790,6 +528,7 @@ def get_asset_total(simulation_name: str) -> int:
         return 0
 
 
+@retry_on_database_error
 def update_batch(asset_id: int, batch: int) -> bool:
     """Update batch for a specific asset."""
     logger.debug(f'Updating asset {asset_id} to batch {batch}')
@@ -803,6 +542,7 @@ def update_batch(asset_id: int, batch: int) -> bool:
             SET batch = ?, updated_at = CURRENT_TIMESTAMP
             WHERE asset_id = ?
         """, (batch, asset_id))
+        conn.commit()
         
         logger.debug(f"Asset {asset_id} batch updated to {batch}")
         return True
@@ -812,6 +552,7 @@ def update_batch(asset_id: int, batch: int) -> bool:
         return False
 
 
+@retry_on_database_error
 def update_simulation_name(old_name: str, new_name: str) -> bool:
     """Update simulation name for all assets."""
     logger.debug(f'Updating simulation name from {old_name} to {new_name}')
@@ -825,6 +566,7 @@ def update_simulation_name(old_name: str, new_name: str) -> bool:
             SET simulation_name = ?, updated_at = CURRENT_TIMESTAMP
             WHERE simulation_name = ?
         """, (new_name, old_name))
+        conn.commit()
         
         logger.debug(f"Simulation name updated from {old_name} to {new_name}")
         return True
@@ -834,6 +576,7 @@ def update_simulation_name(old_name: str, new_name: str) -> bool:
         return False
 
 
+@retry_on_database_error
 def delete_table(simulation_name: str) -> bool:
     """Delete all assets for a simulation."""
     logger.debug(f'Deleting assets for simulation {simulation_name}')
@@ -845,6 +588,7 @@ def delete_table(simulation_name: str) -> bool:
         conn.execute(f"""
             DELETE FROM {table_name} WHERE simulation_name = ?
         """, (simulation_name,))
+        conn.commit()
         
         logger.debug(f"Assets deleted for simulation {simulation_name}")
         return True
@@ -854,6 +598,7 @@ def delete_table(simulation_name: str) -> bool:
         return False
 
 
+@retry_on_database_error
 def get_asset_stats(simulation_name: str) -> Dict[str, Any]:
     """Get comprehensive statistics for a simulation."""
     logger.debug(f'Getting asset stats for simulation {simulation_name}')
@@ -890,29 +635,104 @@ def get_asset_stats(simulation_name: str) -> Dict[str, Any]:
         return {}
 
 
-# Distributed Database Functions
-
-def consolidate_distributed_databases(simulation_name=None):
-    """Consolidate all distributed databases into master database."""
-    manager = get_distributed_manager()
-    return manager.consolidate_databases(simulation_name)
-
-def copy_master_to_local(simulation_name):
-    """Copy master database data to local database for this process."""
-    manager = get_distributed_manager()
-    return manager.copy_master_data_to_local(simulation_name)
-
-def setup_distributed_database(simulation_name):
-    """Setup distributed database for this process."""
-    if is_hpc_environment():
-        manager = get_distributed_manager()
-        manager.ensure_local_db_exists()
-        # Copy initial data from master if it exists
-        copy_master_to_local(simulation_name)
+@retry_on_database_error
+def consolidate_databases(simulation_name: str, node_dirs: List[str], master_db_path: str) -> bool:
+    """Consolidate node-specific databases back to master database."""
+    logger.info(f"Consolidating databases for simulation {simulation_name}")
+    
+    try:
+        # Create/ensure master database exists
+        master_conn = sqlite3.connect(master_db_path)
+        master_conn.row_factory = sqlite3.Row
+        
+        # Create table if it doesn't exist
+        table_name = os.environ.get("PGDATABASE", "powertwin")
+        master_conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                asset_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                batch INTEGER,
+                order_rank INTEGER,
+                simulation_name VARCHAR(255),
+                state VARCHAR(255),
+                weather_file VARCHAR(255),
+                floor_area REAL,
+                number_of_stories INTEGER,
+                complexity INTEGER,
+                uorun_time REAL,
+                uoprocess_time REAL,
+                asset_name VARCHAR(255),
+                subtype VARCHAR(255),
+                status VARCHAR(255),
+                total_time REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Clear existing data for this simulation from master
+        master_conn.execute(f"DELETE FROM {table_name} WHERE simulation_name = ?", (simulation_name,))
+        
+        consolidated_count = 0
+        base_dir = os.path.dirname(master_db_path)
+        
+        # Consolidate data from each node database
+        for node_dir in node_dirs:
+            node_db_path = None
+            full_node_dir = os.path.join(base_dir, node_dir)
+            
+            # Find the database file in the node directory
+            try:
+                for file in os.listdir(full_node_dir):
+                    if file.endswith('.db'):
+                        node_db_path = os.path.join(full_node_dir, file)
+                        break
+            except OSError:
+                logger.warning(f"Could not access node directory {node_dir}")
+                continue
+                        
+            if not node_db_path or not os.path.exists(node_db_path):
+                logger.warning(f"No database found in {node_dir}")
+                continue
+                
+            logger.info(f"Consolidating data from {node_db_path}")
+            
+            # Connect to node database
+            node_conn = sqlite3.connect(node_db_path)
+            node_conn.row_factory = sqlite3.Row
+            
+            # Get all data for this simulation
+            node_cursor = node_conn.execute(f"""
+                SELECT * FROM {table_name} WHERE simulation_name = ?
+            """, (simulation_name,))
+            
+            nodes_data = node_cursor.fetchall()
+            
+            # Insert into master database
+            for row in nodes_data:
+                row_dict = dict(row)
+                # Remove auto-increment primary key to avoid conflicts
+                if 'asset_id' in row_dict:
+                    del row_dict['asset_id']
+                    
+                columns = ', '.join(row_dict.keys())
+                placeholders = ', '.join(['?' for _ in row_dict])
+                
+                master_conn.execute(f"""
+                    INSERT INTO {table_name} ({columns}) 
+                    VALUES ({placeholders})
+                """, list(row_dict.values()))
+                
+                consolidated_count += 1
+                
+            node_conn.close()
+            logger.info(f"Consolidated {len(nodes_data)} records from {node_dir}")
+        
+        master_conn.commit()
+        master_conn.close()
+        
+        logger.info(f"Successfully consolidated {consolidated_count} total records to master database")
         return True
-    return False
-
-def get_available_distributed_databases():
-    """Get list of available distributed databases."""
-    manager = get_distributed_manager()
-    return manager.get_available_databases()
+        
+    except Exception as e:
+        logger.error(f"Error consolidating databases: {e}")
+        return False

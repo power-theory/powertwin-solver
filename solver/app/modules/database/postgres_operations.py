@@ -9,7 +9,7 @@ from modules.utils import initialize_logger
 
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
-logger = initialize_logger('Database', external_log_dir)
+logger = initialize_logger('PostgresOperations', external_log_dir)
 
 
 # PostgreSQL configuration for Docker environments
@@ -70,7 +70,7 @@ def create_table():
         """)
         conn.commit()
     except Exception as e:
-        print(f"Error creating table: {e}")
+        logger.error(f"Error creating table: {e}")
         conn.rollback()
     finally:
         cur.close()
@@ -99,7 +99,7 @@ def insert_asset(asset_id, state, weather_file, floor_area, number_of_stories, c
         """, (asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name))
         conn.commit()
     except Exception as e:
-        print(f"Error inserting asset ID {asset_id}: {e}")
+        logger.error(f"Error inserting asset ID {asset_id}: {e}")
         conn.rollback()
     finally:
         cur.close()
