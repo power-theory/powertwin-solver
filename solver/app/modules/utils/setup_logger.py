@@ -46,29 +46,48 @@ def initialize_logger(logger_name, external_log_dir=None):
         console_handler = RichHandler(console=Console(), show_time=True, show_level=False, show_path=False)
         
         # Create file paths
-        dev_log_path = os.path.join(log_dir, 'dev.log')
-        user_log_path = os.path.join(log_dir, 'user.log')
+        # Check for SLURM environment (HPC detection)
+        slurm_job_id = os.environ.get('SLURM_JOB_ID')
+        
+        if slurm_job_id:
+            # HPC environment detected - prefix dev.log with SLURM job ID
+            dev_log_filename = f"{slurm_job_id}_dev.log"
+            user_log_filename = f"{slurm_job_id}_user.log"
+            error_log_filename = f"{slurm_job_id}_error.log"
+        else:
+            # Standard environment
+            dev_log_filename = "dev.log"
+            user_log_filename = "user.log"
+            error_log_filename = "error.log"
+        
+        dev_log_path = os.path.join(log_dir, dev_log_filename)
+        user_log_path = os.path.join(log_dir, user_log_filename)
+        error_log_path = os.path.join(log_dir, error_log_filename)
         
         try:
             # Try to create file handlers
             file_handler = logging.FileHandler(dev_log_path)
             file_handler_no_debug = logging.FileHandler(user_log_path)
+            error_handler = logging.FileHandler(error_log_path)
             
             # Set log levels
             console_handler.setLevel(logging.INFO)
             file_handler.setLevel(logging.DEBUG)
             file_handler_no_debug.setLevel(logging.INFO)  # This will exclude DEBUG messages
+            error_handler.setLevel(logging.ERROR)  # Only ERROR and CRITICAL messages
 
             # Create formatters and add them to the handlers
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
             file_handler.setFormatter(formatter)
             file_handler_no_debug.setFormatter(formatter)
+            error_handler.setFormatter(formatter)
 
             # Add handlers to the logger
             logger.addHandler(console_handler)
             logger.addHandler(file_handler)
             logger.addHandler(file_handler_no_debug)
+            logger.addHandler(error_handler)
             
         except (PermissionError, OSError) as e:
             # If we can't write to the log files, just use console logging
