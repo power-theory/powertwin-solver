@@ -46,8 +46,8 @@ def initialize_logger(logger_name, external_log_dir=None):
         console_handler = RichHandler(console=Console(), show_time=True, show_level=False, show_path=False)
         
         # Create file paths
-        dev_log_path = os.path.join(log_dir, 'dev_logs.txt')
-        user_log_path = os.path.join(log_dir, 'user_logs.txt')
+        dev_log_path = os.path.join(log_dir, 'dev.log')
+        user_log_path = os.path.join(log_dir, 'user.log')
         
         try:
             # Try to create file handlers

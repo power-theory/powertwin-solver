@@ -1,4 +1,4 @@
-# PowerTwin Solver v1.1
+# PowerTwin Solver v1.2
 
 ## HOW TO RUN
 ```sh
@@ -71,6 +71,7 @@ solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_
   - Metadata CSV with building information
   - Configuration JSON for custom settings
 - Supports multiple locations and core allocation
+- OPTIONAL: Set up simulation.json onfiguration file and use autorun command
 
 #### Recovery Process
 ```sh
@@ -94,67 +95,6 @@ solver logs
 solver status <simulation_name>
 
 ```
-
-## Project Structure
-
-### Core Application Structure
-```
-🏠 app/
-├── data/                          # Application data storage
-├── modules/                       # Core functionality modules
-│   ├── diagnostics/              # System diagnostics and monitoring
-│   ├── simulation/               # Simulation processing logic
-│   └── utils/                    # Utility functions and helpers
-├── static/                       # Static web assets
-│   ├── json/                     # Configuration JSON files
-│   ├── style.css                # CSS stylesheets
-│   └── index.js                 # Frontend JavaScript
-├── templates/                    # HTML templates
-│   ├── base.html                # Base template
-│   ├── logs.html                # Log viewer template
-│   └── uo_db.html               # Database viewer template
-├── urbanopt/                     # URBANopt configuration
-│   ├── weather_files/           # Weather data files
-│   └── weather_map.csv          # Weather location mappings
-├── cli.py                       # Command-line interface
-├── routes.py                    # API routes
-├── setup.py                     # Package setup
-└── views.py                     # View controllers
-```
-
-## Runtime Generation Tree
-```
-⚡database/
-└── user_files/
-    └── <simulation_name>/
-        ├── feature_files.zip
-        ├── feature_files/
-        │   ├── <asset_id>_<id_name>.json
-        │   └── ...
-        └── urbanopt_simulation/
-            └── ...
-```
-
-## Local Tree
-```
-🔗powertwin_data/
-└── user_files/
-    └── <simulation_name>/
-        ├── feature_files.zip
-        ├── <simulation_name>_metadata.csv
-        ├── <simulation_name>_geojson.json
-        ├── <simulation_name>_config.json
-        ├── cleaned_reports/
-        |   ├── <asset_id>
-        |   └── ...
-        └── urbanopt_simulation/
-            ├── batch_0
-            |   ├── <asset_id>
-            |   └── ...
-            └── ...
-```
-The runtime generation tree describes the expected files create during runtime.
-The powertwin-db is a shared volume between the powertwin-db and powertwin-solver container, this volume is then saved locally into powertwin_data.
 
 ## HPC Deployment Guide
 
@@ -192,42 +132,22 @@ cd /project/<your-allocation>/powertwin/sif_containers
 # Required: Solver container
 apptainer build flask.sif docker://nicotegui/powertwin-solver-flask:latest
 
-# Optional: PostgreSQL containers (only needed for legacy mode)
-apptainer build postgres17.sif docker://postgres:17
-apptainer build pgbouncer.sif docker://pgbouncer:1.15.0
 ```
 
-### Step 3: Database Setup
-
-**SQLite (Recommended for HPC)**:
-```bash
-# Setup SQLite database (recommended for new deployments)
-sbatch apptainer/hpc-setup-sqlite.sh
-```
-
-**PostgreSQL (Legacy)**:
-```bash
-# Initialize PostgreSQL database (legacy mode)
-sbatch apptainer/hpc-build-db.sh
-```
-
-### Step 4: Configure and Run Simulations
+### Step 3: Configure and Run Simulations
 
 1. Modify simulation parameters in the HPC scripts as needed
 2. Submit jobs using SLURM:
 
 ```bash
-# SQLite mode (default)
-sbatch apptainer/hpc-start.sh
+# Default
+sbatch apptainer/sql-start.sh
 
-# PostgreSQL mode (if needed)
-export DATABASE_TYPE=postgresql
-sbatch apptainer/hpc-start.sh
+# Auto recovery mode (if needed)
+sbatch apptainer/sql-start-auto.sh
 ```
 
-See [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md) for detailed SQLite migration information.
-
-### Step 5: Monitor Progress
+### Step 4: Monitor Progress
 
 Check simulation status with:
 
@@ -255,11 +175,6 @@ tail -f powertwin_*_<job_id>.out
 - Replace static subtype-based occupancy values with data-driven estimates
 - Implement time-of-day and seasonal occupancy variations
 
-### Weather and Location Support
-- Expand weather file database to support additional locations
-- Automate weather file acquisition and processing
-- Implement regional climate zone adjustments
-
 ### Feature Configuration
 - Enhance feature file configuration options
 - Add support for precise measurement specifications
@@ -271,8 +186,6 @@ tail -f powertwin_*_<job_id>.out
 - Implement automated data backup and archiving
 
 ### Performance Optimization
-- Implement parallel batch processing capabilities
-- Optimize feature file bulk processing
 - Enhance status monitoring for parallel operations
 - Balance resource allocation for multi-batch simulations
 

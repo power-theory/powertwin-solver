@@ -145,7 +145,7 @@ def bulk_update_status(asset_ids, status, simulation_name):
 def update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, batch_id):
     """Update simulation name using appropriate database for the environment."""
     if IS_HPC_ENVIRONMENT:
-        return sqlite_ops.update_simulation_name(CORRUPTED_SIMULATION_NAME, RECOVERY_SIMULATION_NAME)
+        return sqlite_ops.update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, batch_id)
     else:
         return postgres_ops.update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, batch_id)
 
@@ -162,7 +162,7 @@ def get_status_stats(simulation_name, batch_id=None):
     """Get status stats using appropriate database for the environment."""
     if IS_HPC_ENVIRONMENT:
         stats = sqlite_ops.get_status_stats(simulation_name)
-        finished_assets = stats.get('Finished', 0) + stats.get('Failed', 0)
+        finished_assets = stats.get('Finished', 0)
         failed_assets = stats.get('Failed', 0)
         return finished_assets, failed_assets
     else:
