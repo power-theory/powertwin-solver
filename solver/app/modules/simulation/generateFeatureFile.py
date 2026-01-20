@@ -102,7 +102,7 @@ def read_metadata(metadata_csv):
             
 
             floor_area = asset_metadata.get('area')
-            building_id = str(asset_geometries_properties.get('id'))
+            building_id = str(asset_geometries_properties.get('id')) # Most important id, considered the PK
 
             if not floor_area or not building_id or not asset_subtype_name or asset_subtype_name == "NULL" or asset_subtype_name == "null"  or building_id in processed_building_ids:
                 continue

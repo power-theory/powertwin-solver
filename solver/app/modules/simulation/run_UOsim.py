@@ -230,10 +230,10 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     update_time(asset_id, uo_run_time, uo_process_time, total_time)
 
 ############################################################################################################
-# Name: process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num)
+# Name: process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simulation_name)
 # Description: Wrapper function to process a single asset - used for parallel processing within batches
 ############################################################################################################
-def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
+def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simulation_name):
     from modules.diagnostics import update_status
     
     hpc_storage = os.environ.get("HPC_SHARED_STORAGE", SIMULATION_DIR)
@@ -255,16 +255,16 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num):
     logger.info(f"BATCH {batch_num}: Looking for feature file at: {feature_file}")
     
     # Update status to Processing
-    update_status("Processing", asset_id=asset_id)
+    update_status("Processing", asset_id=asset_id, simulation_name=simulation_name)
     
     logger.debug(f"BATCH {batch_num}: Starting processing asset {asset_id}...")        
     try:
         run_uosimulation(SIMULATION_DIR, LOCAL_DIR, feature_file, batch_num)
-        update_status("Finished", asset_id=asset_id)
+        update_status("Finished", asset_id=asset_id, simulation_name=simulation_name)
         return True, asset_id, None
     except Exception as e:
         logger.error(f"BATCH {batch_num}: Failed to process asset {asset_id}: {str(e)}")
-        update_status("Failed", asset_id=asset_id)
+        update_status("Failed", asset_id=asset_id, simulation_name=simulation_name)
         return False, asset_id, str(e)
 
 ############################################################################################################
@@ -293,7 +293,7 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     successful = 0
     failed = 0
     for asset_data in assets:
-        result, asset_id, error = process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num)
+        result, asset_id, error = process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simulation_name)
         if result:
             successful += 1
         else:

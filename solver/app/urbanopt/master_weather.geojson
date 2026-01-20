@@ -20807,22 +20807,7 @@
       "type": "Point",
       "coordinates": [-113.88, 45.12]
     }
-  }, {
-    "type": "Feature",
-    "properties": {
-      "title": "USA_ID_Soda.Springs-Tigert.AP.725868_TMY3",
-      "epw": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/ID/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3.epw>Download Weather File</a>",
-      "ddy": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/ID/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3.ddy>Download Design Day File</a>",
-      "stat": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/ID/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3.stat>Download Statistics File</a>",
-      "mos": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/ID/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3.mos>Download Modelica Weather File</a>",
-      "all": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/ID/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3.zip>Download All</a>",
-      "dir": "<a href=https://energyplus.net/weather-location/north_and_central_america_wmo_region_4/USA/ID/USA_ID_Soda.Springs-Tigert.AP.725868_TMY3>Go To Folder</a>"
-    },
-    "geometry": {
-      "type": "Point",
-      "coordinates": [-111.58, 42.65]
-    }
-  }, {
+  },{
     "type": "Feature",
     "properties": {
       "title": "USA_ID_Twin.Falls-Magic.Valley.Rgnl.AP-Joslin.Field.725866_TMY3",
@@ -35342,22 +35327,7 @@
       "type": "Point",
       "coordinates": [-109.02, 44.52]
     }
-  }, {
-    "type": "Feature",
-    "properties": {
-      "title": "USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3",
-      "epw": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3.epw>Download Weather File</a>",
-      "ddy": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3.ddy>Download Design Day File</a>",
-      "stat": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3.stat>Download Statistics File</a>",
-      "mos": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3.mos>Download Modelica Weather File</a>",
-      "all": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3.zip>Download All</a>",
-      "dir": "<a href=https://energyplus.net/weather-location/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3>Go To Folder</a>"
-    },
-    "geometry": {
-      "type": "Point",
-      "coordinates": [-111.03, 41.28]
-    }
-  }, {
+  },{
     "type": "Feature",
     "properties": {
       "title": "USA_WY_Gillette-Gillette.County.AP.726650_TMY3",
@@ -35461,36 +35431,6 @@
     "geometry": {
       "type": "Point",
       "coordinates": [-105.68, 41.32]
-    }
-  }, {
-    "type": "Feature",
-    "properties": {
-      "title": "USA_WY_Rawlins.Muni.AP.725745_TMY3",
-      "epw": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Rawlins.Muni.AP.725745_TMY3/USA_WY_Rawlins.Muni.AP.725745_TMY3.epw>Download Weather File</a>",
-      "ddy": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Rawlins.Muni.AP.725745_TMY3/USA_WY_Rawlins.Muni.AP.725745_TMY3.ddy>Download Design Day File</a>",
-      "stat": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Rawlins.Muni.AP.725745_TMY3/USA_WY_Rawlins.Muni.AP.725745_TMY3.stat>Download Statistics File</a>",
-      "mos": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Rawlins.Muni.AP.725745_TMY3/USA_WY_Rawlins.Muni.AP.725745_TMY3.mos>Download Modelica Weather File</a>",
-      "all": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Rawlins.Muni.AP.725745_TMY3/USA_WY_Rawlins.Muni.AP.725745_TMY3.zip>Download All</a>",
-      "dir": "<a href=https://energyplus.net/weather-location/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Rawlins.Muni.AP.725745_TMY3>Go To Folder</a>"
-    },
-    "geometry": {
-      "type": "Point",
-      "coordinates": [-107.2, 41.8]
-    }
-  }, {
-    "type": "Feature",
-    "properties": {
-      "title": "USA_WY_Riverton.Rgnl.AP.725765_TMY3",
-      "epw": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Riverton.Rgnl.AP.725765_TMY3/USA_WY_Riverton.Rgnl.AP.725765_TMY3.epw>Download Weather File</a>",
-      "ddy": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Riverton.Rgnl.AP.725765_TMY3/USA_WY_Riverton.Rgnl.AP.725765_TMY3.ddy>Download Design Day File</a>",
-      "stat": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Riverton.Rgnl.AP.725765_TMY3/USA_WY_Riverton.Rgnl.AP.725765_TMY3.stat>Download Statistics File</a>",
-      "mos": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Riverton.Rgnl.AP.725765_TMY3/USA_WY_Riverton.Rgnl.AP.725765_TMY3.mos>Download Modelica Weather File</a>",
-      "all": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Riverton.Rgnl.AP.725765_TMY3/USA_WY_Riverton.Rgnl.AP.725765_TMY3.zip>Download All</a>",
-      "dir": "<a href=https://energyplus.net/weather-location/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Riverton.Rgnl.AP.725765_TMY3>Go To Folder</a>"
-    },
-    "geometry": {
-      "type": "Point",
-      "coordinates": [-108.45, 43.05]
     }
   }, {
     "type": "Feature",

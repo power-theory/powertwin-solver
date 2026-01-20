@@ -111,21 +111,8 @@ def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name
         num_nodes = hpc_env.get('slurm_nodes', 1)
         node_name = hpc_env.get('node_name', 'unknown')
 
-        # Initialize node-specific database
-        from modules.database.sqlite_manager import get_sqlite_manager
-        db_manager = get_sqlite_manager()
-        
-        logger.info(f"Node {node_name}: Initializing node-specific database")
-        if not db_manager.ensure_db_exists():
-            logger.error(f"Node {node_name}: Failed to initialize node database")
-            return False
-            
-        logger.info(f"Node {node_name}: Using database at {db_manager.get_db_path()}")
-
-        # Get SLURM_CPUS_PER_TASK, default to all available if not set
-        cpus_per_task = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
-
-        # Node-based batch assignment
+        # Calculate batch assignment BEFORE database initialization
+        node_batches = []
         if node_id is not None and num_nodes > 1:
             batches_per_node = total_batches // num_nodes
             remainder = total_batches % num_nodes
@@ -140,24 +127,43 @@ def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name
                 f"Node {node_name} (ID {node_id}): Assigned batches {node_start}-{node_end-1} "
                 f"({len(node_batches)} total of {total_batches})"
             )
+        else:
+            # Fallback: assign all batches if node_id detection failed
+            node_batches = batch_range
+            logger.warning(f"Node {node_name}: Could not determine node_id, processing all batches")
 
-            if node_batches:
-                n_jobs = min(cpus_per_task, len(node_batches))
-                logger.debug(f"Node {node_name}: Using {n_jobs} cores for joblib parallel processing (SLURM_CPUS_PER_TASK={cpus_per_task})")
-                try:
-                    with parallel_backend('loky', n_jobs=n_jobs):
-                        Parallel(verbose=10)(
-                            delayed(run_batch)(
-                                batch_num, simulation_dir, local_dir, simulation_name
-                            ) for batch_num in node_batches
-                        )
-                    logger.info(f"Node {node_name}: Completed processing all assigned batches")
-                except Exception as e:
-                    logger.error(f"Node {node_name}: Error in joblib parallel execution: {e}")
-                    return False
-            else:
-                logger.info(f"Node {node_name}: No batches to process")
-            return True
+        # CRITICAL: Initialize node-specific database WITH assigned batches BEFORE any database operations
+        from modules.database.sqlite_manager import get_sqlite_manager
+        db_manager = get_sqlite_manager()
+        
+        logger.info(f"Node {node_name}: Initializing node-specific database with {len(node_batches)} assigned batches")
+        if not db_manager.ensure_db_exists(simulation_name, node_batches):
+            logger.error(f"Node {node_name}: Failed to initialize node database with assigned batches")
+            return False
+            
+        logger.info(f"Node {node_name}: Using database at {db_manager.get_db_path()}")
+
+        # Get SLURM_CPUS_PER_TASK, default to all available if not set
+        cpus_per_task = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
+
+        # Process the assigned batches
+        if node_batches:
+            n_jobs = min(cpus_per_task, len(node_batches))
+            logger.debug(f"Node {node_name}: Using {n_jobs} cores for joblib parallel processing (SLURM_CPUS_PER_TASK={cpus_per_task})")
+            try:
+                with parallel_backend('loky', n_jobs=n_jobs):
+                    Parallel(verbose=10)(
+                        delayed(run_batch)(
+                            batch_num, simulation_dir, local_dir, simulation_name
+                        ) for batch_num in node_batches
+                    )
+                logger.info(f"Node {node_name}: Completed processing all assigned batches")
+            except Exception as e:
+                logger.error(f"Node {node_name}: Error in joblib parallel execution: {e}")
+                return False
+        else:
+            logger.info(f"Node {node_name}: No batches to process")
+        return True
     else:
         # Truly local environment (no HPC, no SLURM)
         logger.warning(f"Running in local mode with joblib: {total_batches} batches")

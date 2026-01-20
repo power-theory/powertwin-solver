@@ -4,17 +4,19 @@
 # 
 # Description: Orchestrates the recovery of corrupted PowerTwin simulations
 #              using containerized execution with SQLite database and SLURM integration.
+#              Supports automatic recovery with failure threshold monitoring.
 #
-# Usage: sbatch sqlite-recover.sh
+# Usage: sbatch sql-recover.sh [CORRUPTED_SIMULATION_NAME] [RECOVERY_SIMULATION_NAME] [BATCH_ID]
+#        If no arguments provided, uses default values below
 #==============================================================================
 
 #==============================================================================
 # SLURM CONFIGURATION
 #==============================================================================
 #SBATCH --job-name=test-recover
-#SBATCH --nodes=3      
+#SBATCH --nodes=40      
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=5
+#SBATCH --cpus-per-task=20
 #SBATCH --time=7-00:00:00            
 #SBATCH --mem-per-cpu=8G             
 #SBATCH --account=cowy-ptheory
@@ -23,6 +25,21 @@
 #SBATCH --qos=long                   # debug or long
 
 set -e  # Exit immediately if a command exits with a non-zero status
+#==============================================================================
+# COMMAND-LINE ARGUMENT PROCESSING
+#==============================================================================
+# Parse command-line arguments
+CORRUPTED_SIMULATION_ARG="${1:-}"
+RECOVERY_SIMULATION_ARG="${2:-}"
+BATCH_ID_ARG="${3:-}"
+
+# Auto-recovery configuration
+AUTO_RECOVERY_ENABLED=true
+FAILURE_THRESHOLD_PERCENT=5
+MAX_RECOVERY_ATTEMPTS=3
+MONITORING_INTERVAL_SECONDS=300  # 5 minutes
+RECOVERY_ATTEMPT_FILE="/tmp/recovery_attempt_count.txt"
+
 
 #==============================================================================
 # ENVIRONMENT SETUP
@@ -35,14 +52,28 @@ module load gcc/14.2.0
 module load apptainer/1.4.1
 
 #==============================================================================
-# Configuration Variables - MODIFY THESE AS NEEDED
+# Configuration Variables - MODIFY THESE AS NEEDED OR PASS AS ARGUMENTS
 #==============================================================================
-# Simulation parameters
-RECOVERY_SIMULATION_NAME="test2"
-CORRUPTED_SIMULATION_NAME="test1"
-BATCH_ID=""  # Optional - leave empty to recover all batches, or specify a batch number
-HPC_SHARED_STORAGE="/project/cowy-ptheory/test" # Retain same as corrupted simulation for recovery to ensure access to all necessary files
+# Simulation parameters - use command-line args if provided, otherwise defaults
+if [ -n "$CORRUPTED_SIMULATION_ARG" ] && [ -n "$RECOVERY_SIMULATION_ARG" ]; then
+    CORRUPTED_SIMULATION_NAME="$CORRUPTED_SIMULATION_ARG"
+    RECOVERY_SIMULATION_NAME="$RECOVERY_SIMULATION_ARG"
+else
+    RECOVERY_SIMULATION_NAME="test2"
+    CORRUPTED_SIMULATION_NAME="test1"
+fi
+
 POWERTWIN_KEEP_DIRS=1
+
+# Use command-line BATCH_ID if provided
+if [ -n "$BATCH_ID_ARG" ]; then
+    BATCH_ID="$BATCH_ID_ARG"
+else
+    BATCH_ID=""  # Optional - leave empty to recover all batches, or specify a batch number
+fi
+
+# HPC storage path - retain same as corrupted simulation for recovery to ensure access to all necessary files
+HPC_SHARED_STORAGE="/project/cowy-ptheory/test"
 
 # SIF files location
 SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
@@ -77,7 +108,6 @@ export NODE_TMP_DIR="${TMP_BASE}/node_${NODE_ID}_${SLURM_JOB_ID}"
 
 # Clean up any leftover files from previous runs with the same job ID pattern
 if [ -d "${NODE_TMP_DIR}" ]; then
-    print_status "warning" "Found existing node temp directory, cleaning up leftover files..."
     find "${NODE_TMP_DIR}" -name "*.pid" -type f -delete 2>/dev/null
     sleep 2
 fi
@@ -158,6 +188,227 @@ print_status() {
             echo "$2"
             ;;
     esac
+}
+
+#------------------------------------------------------------------------------
+# FUNCTION: increment_simulation_name
+# Description: Increments simulation name for recovery (e.g., test1 -> test2)
+# Arguments: $1 - original simulation name
+# Returns: Outputs incremented simulation name
+#------------------------------------------------------------------------------
+increment_simulation_name() {
+    local original_name="$1"
+    
+    # Check if name ends with a number
+    if [[ $original_name =~ ^(.*)([0-9]+)$ ]]; then
+        local base_name="${BASH_REMATCH[1]}"
+        local number="${BASH_REMATCH[2]}"
+        local next_number=$((number + 1))
+        echo "${base_name}${next_number}"
+    else
+        # If no number at end, append "2"
+        echo "${original_name}2"
+    fi
+}
+
+#------------------------------------------------------------------------------
+# FUNCTION: get_recovery_attempt_count
+# Description: Gets current recovery attempt count for this simulation chain
+# Arguments: $1 - base simulation name (e.g., "test" from "test1")
+# Returns: Outputs attempt count as integer
+#------------------------------------------------------------------------------
+get_recovery_attempt_count() {
+    local base_simulation="$1"
+    
+    # Extract base name from simulation (e.g., "test" from "test1")
+    local base_name
+    if [[ $base_simulation =~ ^([a-zA-Z_-]+) ]]; then
+        base_name="${BASH_REMATCH[1]}"
+    else
+        base_name="$base_simulation"
+    fi
+    
+    local attempt_file="${HPC_SHARED_STORAGE}/recovery_attempts_${base_name}.txt"
+    
+    if [ -f "$attempt_file" ]; then
+        local count=$(cat "$attempt_file" 2>/dev/null || echo "0")
+        echo "${count:-0}"
+    else
+        echo "0"
+    fi
+}
+
+#------------------------------------------------------------------------------
+# FUNCTION: increment_recovery_attempt_count
+# Description: Increments and stores recovery attempt count
+# Arguments: $1 - base simulation name
+# Returns: None
+#------------------------------------------------------------------------------
+increment_recovery_attempt_count() {
+    local base_simulation="$1"
+    
+    # Extract base name from simulation
+    local base_name
+    if [[ $base_simulation =~ ^([a-zA-Z_-]+) ]]; then
+        base_name="${BASH_REMATCH[1]}"
+    else
+        base_name="$base_simulation"
+    fi
+    
+    local attempt_file="${HPC_SHARED_STORAGE}/recovery_attempts_${base_name}.txt"
+    local current_count=$(get_recovery_attempt_count "$base_simulation")
+    local new_count=$((current_count + 1))
+    
+    echo "$new_count" > "$attempt_file"
+    print_status "info" "Recovery attempt ${new_count} for ${base_name} series"
+}
+
+#------------------------------------------------------------------------------
+# FUNCTION: aggregate_node_database_status
+# Description: Aggregates status counts across all active node databases during parallel processing
+# Arguments: $1 - simulation name
+# Returns: Outputs status summary in format: "total_assets|finished|failed|processing|not_processed"
+#------------------------------------------------------------------------------
+aggregate_node_database_status() {
+    local simulation_name="$1"
+    local total_finished=0
+    local total_failed=0
+    local total_processing=0
+    local total_not_processed=0
+    local total_assets=0
+    
+    # Check if SQLITE_DB_DIR exists
+    if [ ! -d "${SQLITE_DB_DIR}" ]; then
+        echo "0|0|0|0|0"
+        return 0
+    fi
+    
+    # Find all node database directories
+    for node_dir in "${SQLITE_DB_DIR}"/node_*; do
+        if [ -d "$node_dir" ]; then
+            local node_db="${node_dir}/powertwin_node_$(basename "$node_dir" | cut -d'_' -f2).db"
+            
+            if [ -f "$node_db" ]; then
+                # Query status counts from this node database
+                local node_status=$(apptainer exec \
+                    --bind "${SQLITE_DB_DIR}:/sqlite_data" \
+                    --env "SQLITE_DB_PATH=$node_db" \
+                    --env "PGDATABASE=powertwin" \
+                    "${SOLVER_SIF}" python3 -c "
+import sqlite3
+import os
+db_path = os.environ.get('SQLITE_DB_PATH')
+table_name = os.environ.get('PGDATABASE', 'powertwin')
+simulation_name = '$simulation_name'
+try:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT status, COUNT(*) FROM {table_name} WHERE simulation_name = ? GROUP BY status', (simulation_name,))
+    results = cursor.fetchall()
+    status_counts = {'Finished': 0, 'Failed': 0, 'Processing': 0, 'Not Processed Yet': 0}
+    for status, count in results:
+        if status in status_counts:
+            status_counts[status] = count
+    print(f'{status_counts["Finished"]}|{status_counts["Failed"]}|{status_counts["Processing"]}|{status_counts["Not Processed Yet"]}')
+    conn.close()
+except Exception as e:
+    print('0|0|0|0')
+" 2>/dev/null)
+                
+                if [ -n "$node_status" ]; then
+                    local finished=$(echo "$node_status" | cut -d'|' -f1)
+                    local failed=$(echo "$node_status" | cut -d'|' -f2)
+                    local processing=$(echo "$node_status" | cut -d'|' -f3)
+                    local not_processed=$(echo "$node_status" | cut -d'|' -f4)
+                    
+                    total_finished=$((total_finished + finished))
+                    total_failed=$((total_failed + failed))
+                    total_processing=$((total_processing + processing))
+                    total_not_processed=$((total_not_processed + not_processed))
+                fi
+            fi
+        fi
+    done
+    
+    total_assets=$((total_finished + total_failed + total_processing + total_not_processed))
+    echo "${total_assets}|${total_finished}|${total_failed}|${total_processing}|${total_not_processed}"
+}
+
+#------------------------------------------------------------------------------
+# FUNCTION: calculate_failure_percentage
+# Description: Calculates failure percentage from aggregated status
+# Arguments: $1 - status summary (total_assets|finished|failed|processing|not_processed)
+# Returns: Outputs failure percentage as integer
+#------------------------------------------------------------------------------
+calculate_failure_percentage() {
+    local status_summary="$1"
+    local total_assets=$(echo "$status_summary" | cut -d'|' -f1)
+    local total_failed=$(echo "$status_summary" | cut -d'|' -f3)
+    
+    if [ "$total_assets" -eq 0 ]; then
+        echo "0"
+        return 0
+    fi
+    
+    # Calculate percentage using integer arithmetic
+    local failure_percentage=$((total_failed * 100 / total_assets))
+    echo "$failure_percentage"
+}
+
+#------------------------------------------------------------------------------
+# FUNCTION: monitor_recovery_status
+# Description: Background monitoring process that checks for failures during recovery
+# Arguments: $1 - simulation name
+# Returns: None (runs in background)
+#------------------------------------------------------------------------------
+monitor_recovery_status() {
+    local simulation_name="$1"
+    local check_count=0
+    local max_checks=288  # 24 hours at 5-minute intervals
+    
+    print_status "info" "Starting recovery status monitoring for ${simulation_name}..."
+    
+    while [ $check_count -lt $max_checks ]; do
+        sleep "$MONITORING_INTERVAL_SECONDS"
+        
+        # Check if auto-recovery is still enabled
+        if [ "$AUTO_RECOVERY_ENABLED" != "true" ]; then
+            break
+        fi
+        
+        # Get aggregated status from all node databases
+        local status_summary=$(aggregate_node_database_status "$simulation_name")
+        local total_assets=$(echo "$status_summary" | cut -d'|' -f1)
+        local total_finished=$(echo "$status_summary" | cut -d'|' -f2)
+        local total_failed=$(echo "$status_summary" | cut -d'|' -f3)
+        
+        # Only check if we have assets to avoid false positives
+        if [ "$total_assets" -gt 5 ]; then
+            local failure_percentage=$(calculate_failure_percentage "$status_summary")
+            
+            print_status "info" "Recovery status check ${check_count}: ${total_finished} finished, ${total_failed} failed out of ${total_assets} total (${failure_percentage}% failure rate)"
+            
+            # Check if failure threshold exceeded again
+            if [ "$failure_percentage" -ge "$FAILURE_THRESHOLD_PERCENT" ]; then
+                local current_attempts=$(get_recovery_attempt_count "$simulation_name")
+                
+                if [ "$current_attempts" -lt "$MAX_RECOVERY_ATTEMPTS" ]; then
+                    print_status "warning" "Recovery failure threshold exceeded: ${failure_percentage}% >= ${FAILURE_THRESHOLD_PERCENT}%"
+                    print_status "warning" "Attempt ${current_attempts}/${MAX_RECOVERY_ATTEMPTS} - initiating another recovery..."
+                    
+                    # Trigger another recovery
+                    touch "${NODE_TMP_DIR}/trigger_recovery_${SLURM_JOB_ID}.flag"
+                    echo "$simulation_name" > "${NODE_TMP_DIR}/recovery_source_${SLURM_JOB_ID}.txt"
+                    break
+                else
+                    print_status "error" "Maximum recovery attempts (${MAX_RECOVERY_ATTEMPTS}) reached. Stopping auto-recovery."
+                    break
+                fi
+            fi
+        fi
+        
+        check_count=$((check_count + 1))
+    done
 }
 
 #------------------------------------------------------------------------------
@@ -570,12 +821,21 @@ recover_simulation() {
 
 #------------------------------------------------------------------------------
 # FUNCTION: process_batches
-# Description: Processes batches in parallel using SLURM
+# Description: Processes batches in parallel using SLURM with recovery monitoring
 # Arguments: None
-# Returns: 0 on success
+# Returns: 0 on success, 2 if auto-recovery triggered
 #------------------------------------------------------------------------------
 process_batches() {
+    # Start recovery status monitoring in background if auto-recovery is enabled
+    if [ "$AUTO_RECOVERY_ENABLED" = "true" ]; then
+        print_status "info" "Starting background recovery monitoring..."
+        monitor_recovery_status "${RECOVERY_SIMULATION_NAME}" &
+        local monitor_pid=$!
+        echo "$monitor_pid" > "${NODE_TMP_DIR}/recovery_monitor_${SLURM_JOB_ID}.pid"
+        print_status "info" "Recovery monitoring started with PID ${monitor_pid}"
+    fi
     
+    # Start parallel batch processing
     srun --mpi=pmix --exclusive \
     apptainer exec \
         --bind "${DATA_DIR}:/powertwin_data:rw" \
@@ -602,7 +862,39 @@ process_batches() {
         "${RECOVERY_DIR}" \
         "${RECOVERY_DIR_LOCAL}" \
         "${RECOVERY_SIMULATION_NAME}" \
-    2>&1 | tee "${LOG_DIR}/powertwin_batches_${SLURM_JOB_ID}.log"
+    2>&1 | tee "${LOG_DIR}/powertwin_batches_${SLURM_JOB_ID}.log" &
+    
+    local batch_pid=$!
+    
+    # Monitor for recovery trigger while batch processing runs
+    if [ "$AUTO_RECOVERY_ENABLED" = "true" ]; then
+        while kill -0 "$batch_pid" 2>/dev/null; do
+            if [ -f "${NODE_TMP_DIR}/trigger_recovery_${SLURM_JOB_ID}.flag" ]; then
+                print_status "warning" "Another recovery trigger detected! Terminating current recovery..."
+                
+                # Kill the batch processing
+                kill "$batch_pid" 2>/dev/null
+                
+                # Wait a moment for graceful termination
+                sleep 5
+                
+                # Force kill if still running
+                if kill -0 "$batch_pid" 2>/dev/null; then
+                    kill -9 "$batch_pid" 2>/dev/null
+                fi
+                
+                print_status "warning" "Recovery batch processing terminated for another auto-recovery attempt."
+                return 2  # Special exit code for auto-recovery
+            fi
+            sleep 30  # Check every 30 seconds
+        done
+        
+        # Wait for batch processing to complete normally
+        wait "$batch_pid"
+    else
+        # Wait for batch processing without monitoring
+        wait "$batch_pid"
+    fi
     
     return 0
 }
@@ -703,6 +995,16 @@ generate_final_status() {
 # Returns: 0 on success
 #------------------------------------------------------------------------------
 cleanup_resources() {
+    # Stop the recovery monitoring if running
+    if [ -f "${NODE_TMP_DIR}/recovery_monitor_${SLURM_JOB_ID}.pid" ]; then
+        local monitor_pid=$(cat "${NODE_TMP_DIR}/recovery_monitor_${SLURM_JOB_ID}.pid")
+        if kill -0 "$monitor_pid" 2>/dev/null; then
+            print_status "info" "Stopping recovery monitoring (PID ${monitor_pid})..."
+            kill "$monitor_pid"
+            rm -f "${NODE_TMP_DIR}/recovery_monitor_${SLURM_JOB_ID}.pid"
+        fi
+    fi
+    
     # Stop the XML validation cleanup
     if [ -f "${XML_CLEANUP_PID_FILE}" ]; then
         XML_CLEANUP_PID=$(cat "${XML_CLEANUP_PID_FILE}")
@@ -717,6 +1019,10 @@ cleanup_resources() {
         rm -f "${XML_CLEANUP_PID_FILE}"
     fi
     
+    # Clean up recovery trigger files
+    rm -f "${NODE_TMP_DIR}/trigger_recovery_${SLURM_JOB_ID}.flag"
+    rm -f "${NODE_TMP_DIR}/recovery_source_${SLURM_JOB_ID}.txt"
+    
     # Clean up temporary files
     print_status "info" "Cleaning up resources..."
     cleanup_temp_files
@@ -726,12 +1032,25 @@ cleanup_resources() {
 
 #------------------------------------------------------------------------------
 # FUNCTION: main
-# Description: Main execution flow of the script
+# Description: Main execution flow of the recovery script with auto-recovery support
 # Arguments: None
 # Returns: 0 on success, non-zero on failure
 #------------------------------------------------------------------------------
 main() {
+    # Check recovery attempt limits
+    local current_attempts=$(get_recovery_attempt_count "$CORRUPTED_SIMULATION_NAME")
+    
+    if [ "$current_attempts" -ge "$MAX_RECOVERY_ATTEMPTS" ]; then
+        print_status "error" "Maximum recovery attempts (${MAX_RECOVERY_ATTEMPTS}) reached for ${CORRUPTED_SIMULATION_NAME} series."
+        print_status "error" "Manual intervention required. Exiting."
+        return 1
+    fi
+    
+    # Increment recovery attempt count
+    increment_recovery_attempt_count "$CORRUPTED_SIMULATION_NAME"
+    
     print_status "info" "Step 1: Starting PowerTwin recovery process for simulation: ${RECOVERY_SIMULATION_NAME}"
+    print_status "info" "Recovering from: ${CORRUPTED_SIMULATION_NAME} (attempt $((current_attempts + 1))/${MAX_RECOVERY_ATTEMPTS})"
     initialize_environment || return 1
     print_status "info" "Environment initialization completed successfully."
 
@@ -740,7 +1059,37 @@ main() {
     print_status "info" "Simulation recovery completed successfully."
     
     print_status "info" "Step 3: Starting batch processing..."
-    process_batches || return 1
+    process_batches
+    local batch_exit_code=$?
+    
+    if [ $batch_exit_code -eq 2 ]; then
+        # Auto-recovery triggered
+        print_status "warning" "Auto-recovery triggered due to continued high failure rate."
+        
+        # Get source simulation name for next recovery
+        local source_simulation="${RECOVERY_SIMULATION_NAME}"
+        if [ -f "${NODE_TMP_DIR}/recovery_source_${SLURM_JOB_ID}.txt" ]; then
+            source_simulation=$(cat "${NODE_TMP_DIR}/recovery_source_${SLURM_JOB_ID}.txt")
+        fi
+        
+        # Generate next recovery simulation name
+        local next_recovery_simulation=$(increment_simulation_name "$source_simulation")
+        
+        print_status "info" "Initiating recursive recovery: ${source_simulation} -> ${next_recovery_simulation}"
+        
+        # Cleanup current resources before starting next recovery
+        cleanup_resources
+        
+        # Recursively call this script with new parameters
+        local script_path="${BASH_SOURCE[0]}"
+        exec "$script_path" "$source_simulation" "$next_recovery_simulation"
+        
+        # Should not reach here due to exec
+        return 1
+    elif [ $batch_exit_code -ne 0 ]; then
+        return 1
+    fi
+    
     print_status "info" "Batch processing completed successfully."
     
     print_status "info" "Step 4: Starting database consolidation..."
@@ -754,6 +1103,17 @@ main() {
     print_status "info" "Step 6: Cleaning up resources..."
     cleanup_resources
     print_status "info" "PowerTwin recovery completed successfully."
+    
+    # Reset recovery attempt count on successful completion
+    local base_name
+    if [[ $CORRUPTED_SIMULATION_NAME =~ ^([a-zA-Z_-]+) ]]; then
+        base_name="${BASH_REMATCH[1]}"
+    else
+        base_name="$CORRUPTED_SIMULATION_NAME"
+    fi
+    rm -f "${HPC_SHARED_STORAGE}/recovery_attempts_${base_name}.txt"
+    print_status "info" "Recovery attempt counter reset after successful completion."
+    
     return 0
 }
 

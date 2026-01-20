@@ -13,6 +13,7 @@ routes = [
     ('/api/asset/config/<simulation_name>/<asset_id>', get_asset_config, ['GET']),
     ('/api/simulation/data',get_simulation_data, ['GET']),
     ('/api/diagnostics/recovery', recovery, ['POST']),
+    ('/api/diagnostics/update_asset', update_asset, ['POST']),
     ('/logs', get_logs, ['GET']),
     ('/api/diagnostics/log', log_message, ['POST']),
 ]
