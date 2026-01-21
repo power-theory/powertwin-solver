@@ -4,16 +4,9 @@
 # *********************************************************************************
 
 require 'openstudio'
-require 'urbanopt/reporting'
-require 'openstudio/geb'
-require 'openstudio/common_measures'
-require 'openstudio/model_articulation'
-require 'openstudio/ee_measures'
-require 'openstudio/calibration'
 
 require_relative 'Baseline'
 
-require 'json'
 
 module URBANopt
   module Scenario

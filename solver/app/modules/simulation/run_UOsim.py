@@ -118,6 +118,12 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
         
     # Check if PowerTwin.rb exists in the mappers directory, if not copy it from upload directory
     MAPPER_FILE = os.path.join(MAPPERS_DIR, 'PowerTwin.rb')
+    BASELINE_FILE = os.path.join(MAPPERS_DIR, 'Baseline.rb')
+    
+    if not os.path.exists(BASELINE_FILE):
+        logger.error(f"BATCH {batch_index}: Baseline.rb does not exist in mappers directory at {MAPPERS_DIR}")
+        
+    
     if not os.path.exists(MAPPER_FILE):
         # Use absolute path for HPC environment, relative path otherwise
         if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
@@ -180,7 +186,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
         # Check UrbanOpt CLI location and version for debugging
         logger.info(f"BATCH {batch_index}: Checking UrbanOpt CLI location and version")
         try:
-            uo_cmd = get_urbanopt_command()
+            uo_cmd = get_urbanopt_command(batch_index)
             #logger.debug(f"Using UrbanOpt command: {uo_cmd}")
             
             # Verify command is working

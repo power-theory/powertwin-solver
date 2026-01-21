@@ -12,9 +12,9 @@
 # SLURM CONFIGURATION
 #==============================================================================
 #SBATCH --job-name=test-start
-#SBATCH --nodes=3                   
+#SBATCH --nodes=40                   
 #SBATCH --ntasks-per-node=1        
-#SBATCH --cpus-per-task=5          
+#SBATCH --cpus-per-task=20          
 #SBATCH --time=7-00:00:00           
 #SBATCH --account=cowy-nvhackathon 
 #SBATCH --partition=teton            # Teton partition
