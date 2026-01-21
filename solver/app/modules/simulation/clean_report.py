@@ -1,12 +1,9 @@
-############################################################################################################
-# clean_report.py
-# This script processes the input CSV file and saves cleaned section reports to a new directory. 
-#     The script reads a CSV file containing energy consumption data and processes it to create 
-#     cleaned section reports. The script defines a column mapping for different sections of the report, 
-#     filters the relevant columns, and saves the cleaned section reports to a new directory. 
-#     The script also checks for sections with all zero values and skips them.
-############################################################################################################
-
+# ======================================================================================
+# UrbanOpt Report Cleaning Module
+# Purpose: Post-processes UrbanOpt simulation CSV reports - cleans outputs, organizes
+#          energy data by category (electricity, gas, water, emissions), and saves
+#          cleaned section reports for dashboard visualization
+# ======================================================================================
 
 import pandas as pd
 import json
@@ -14,16 +11,19 @@ import csv
 import os
 import shutil
 
-
 from glob import glob
 from modules.utils import initialize_logger
 
+# Setup logging with external log directory support (for HPC logging)
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Clean Report', external_log_dir)
 
 
-# Define the column mapping for different sections of the report
-# TODO: Locate this elsewhere to make it easier to update
+# =====================================================================================
+# Report Section Mapping
+# Defines which columns map to which energy/resource categories
+# TODO: Locate this mapping configuration elsewhere for easier updates
+# =====================================================================================
 data_mapping = {
     1: {
         "name": "Electricity",
@@ -83,8 +83,10 @@ data_mapping = {
 #   in.osm and in.osw files.
 ############################################################################################################
 def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
-
-    # Define the files and directories to keep
+    # Clean asset directory by removing files except model files
+    # Optionally preserves feature_reports and generated_files directories
+    
+    # Define the files and directories to keep (essential OpenStudio files)
     keep_files = {'in.osm', 'in.osw'}
     
     # Check environment variable to determine if we should keep additional directories
@@ -95,10 +97,9 @@ def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
     for item in os.listdir(ASSET_DIR):
         item_path = os.path.join(ASSET_DIR, item)
         
-        # Check if the item is a file and not in the keep_files set
+        # Remove files that aren't in the keep_files set
         if os.path.isfile(item_path) and item not in keep_files:
             os.remove(item_path)
-            
         # Check if the item is a directory and not in the keep_dirs set
         elif os.path.isdir(item_path) and item not in keep_dirs:
             shutil.rmtree(item_path)

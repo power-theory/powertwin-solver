@@ -1,3 +1,9 @@
+# ======================================================================================
+# Recover UOSim Module
+# Purpose: Provides simulation recovery utilities for corrupted simulations,
+#          including feature file extraction, asset collection, and reanalysis
+# ======================================================================================
+
 import os
 import shutil
 import zipfile
@@ -8,6 +14,7 @@ from modules.simulation import initialize_uo
 from .runtime_analysis import asset_analysis
 from .db import update_simulation_name, get_bulk_assets, get_bulk_batchids, get_failed_assets, update_status
 
+# Setup logging with external log directory support (for HPC logging)
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Recover UOSim', external_log_dir)
 
@@ -19,6 +26,9 @@ logger = initialize_logger('Recover UOSim', external_log_dir)
 #   The function returns the total number of assets processed.
 ############################################################################################################
 def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPTED_SIMULATION_NAME, RECOVERY_SIMULATION_NAME, num_cores, batch_id=None):
+    # Recover corrupted simulation by extracting feature files, revalidating assets, and rebuilding databases
+    # Supports full recovery (all batches) or per-batch recovery
+    
     from modules.simulation import create_bulk_featurefiles
     from .db import bulk_update_status
     logger.info(f"Recovering simulation: {CORRUPTED_SIMULATION_NAME} for batch {batch_id if batch_id is not None else 'all batches'}")
@@ -63,6 +73,7 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     feature_files = [f for f in os.listdir(FEATURE_FILES_DIR) if f.endswith('.json')]    
     if not feature_files:
         logger.error(f"No feature files found in {FEATURE_FILES_DIR}. Recovery cannot proceed. No changes made to database")
+        # Cleanup recovery directories if no files found
         shutil.rmtree(RECOVERY_DIR)
         shutil.rmtree(LOCAL_RECOVERY_DIR) 
         return False

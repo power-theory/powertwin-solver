@@ -1,3 +1,9 @@
+# ======================================================================================
+# Parallel Execution Module
+# Purpose: Orchestrates HPC/MPI-based parallel execution of simulation batches,
+#          with fallback to joblib for local execution
+# ======================================================================================
+
 import os
 import multiprocessing
 from joblib import Parallel, delayed, parallel_backend
@@ -6,13 +12,14 @@ from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
 from .run_UOsim import run_batch
 
 
+# Setup logging with external log directory support (for HPC logging)
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Parallel', external_log_dir)
 
 def get_hpc_environment():
-    """
-    Detect if running in HPC environment and get MPI configuration
-    """
+    # Detect if running in HPC environment and get MPI/SLURM configuration
+    # Returns HPC context info for batch distribution across nodes/ranks
+    
     hpc_env = {
         'is_hpc': False,
         'rank': 0,
@@ -51,6 +58,7 @@ def get_hpc_environment():
         hpc_env['rank'] = rank
         hpc_env['size'] = size
         hpc_env['is_master'] = rank == 0
+        # HPC if more than one MPI process
         hpc_env['is_hpc'] = size > 1
                     
     except Exception as e:
@@ -82,20 +90,16 @@ def get_hpc_environment():
     return hpc_env
 
 def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name):
-    """
-    Run batch processing either with MPI (HPC mode) or joblib (local mode)
+    # Execute batch processing either with MPI (HPC mode) or joblib (local mode)
+    # Automatically detects environment and chooses appropriate parallelization strategy
     
-    Args:
-        batch_function: Function to execute for each batch
-        batch_range: Range of batch numbers to process
-        simulation_dir: Directory containing simulation files
-        local_dir: Local directory for processed files
-        simulation_name: Name of the simulation
-
-    
-    Returns:
-        True if successful, False otherwise
-    """
+    # Args:
+    #   batch_range: Range of batch numbers to process
+    #   simulation_dir: Directory containing simulation files
+    #   local_dir: Local directory for processed files
+    #   simulation_name: Name of the simulation
+    # Returns:
+    #   True if successful, False otherwise
     
     # Use centralized HPC detection
     is_hpc = is_hpc_environment()

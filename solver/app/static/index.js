@@ -1,91 +1,589 @@
-console.log("JavaScript file loaded");
+console.log("PowerTwin Solver UI v2.0 loaded");
 
-// Load system types from JSON file and populate the dropdown
-fetch('/static/json/system_types.json')
-    .then(response => response.json())
-    .then(data => {
-        const systemTypeSelects = document.querySelectorAll('.system_type');
-        systemTypeSelects.forEach(select => {
-            data.system_types.forEach(type => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                select.appendChild(option);
-            });
-        });
-    })
-    .catch(error => console.error('Error loading system types:', error));
+// ============= Global Variables =============
+let performanceCharts = {
+    cpu: null,
+    memory: null,
+    disk: null,
+    db: null
+};
 
-// Load building types from JSON file and populate the dropdown
-fetch('/static/json/building_types.json')
-    .then(response => response.json())
-    .then(data => {
-        const buildingTypeSelects = document.querySelectorAll('.building_type');
-        buildingTypeSelects.forEach(select => {
-            data.building_types.forEach(type => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                select.appendChild(option);
-            });
-        });
-    })
-    .catch(error => console.error('Error loading building types:', error));
+let performanceData = {
+    timestamps: [],
+    cpu: [],
+    memory: [],
+    disk: [],
+    dbQueries: [],
+    dbTime: []
+};
 
-function showTab(tabId) {
-    console.log(`Showing tab: ${tabId}`);
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
+const MAX_HISTORY_POINTS = 60;
+
+// ============= Initialization =============
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded, initializing...");
+    loadSystemTypes();
+    loadBuildingTypes();
+    initializeDashboard();
+    loadLogs();
+    startPeriodicUpdates();
+});
+
+// ============= Tab Switching =============
+function switchTab(tabName) {
+    console.log(`Switching to tab: ${tabName}`);
+    
+    document.querySelectorAll('[id$="-tab"]').forEach(tab => {
+        tab.classList.remove('tab-content-active');
+        tab.classList.add('tab-content');
     });
-    document.getElementById(tabId).classList.add('active');
+    
+    const selectedTab = document.getElementById(tabName + '-tab');
+    if (selectedTab) {
+        selectedTab.classList.remove('tab-content');
+        selectedTab.classList.add('tab-content-active');
+    }
+    
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    const activeLink = document.querySelector(`.sidebar-link[onclick*="${tabName}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
+    
+    const titles = {
+        'dashboard': 'Dashboard',
+        'simulation': 'Simulation Control',
+        'performance': 'Performance Metrics',
+        'logs': 'Application Logs',
+        'assets': 'Asset Configuration'
+    };
+    document.getElementById('page-title').textContent = titles[tabName] || 'Dashboard';
+    
+    if (tabName === 'performance' && !performanceCharts.cpu) {
+        setTimeout(() => {
+            initializePerformanceCharts();
+            fetchPerformanceMetrics();
+        }, 100);
+    }
 }
 
+// ============= Configuration Loading =============
+function loadSystemTypes() {
+    fetch('/static/json/system_types.json')
+        .then(response => response.json())
+        .then(data => {
+            const systemTypeSelects = document.querySelectorAll('.system_type');
+            systemTypeSelects.forEach(select => {
+                data.system_types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    select.appendChild(option);
+                });
+            });
+        })
+        .catch(error => console.error('Error loading system types:', error));
+}
+
+function loadBuildingTypes() {
+    fetch('/static/json/building_types.json')
+        .then(response => response.json())
+        .then(data => {
+            const buildingTypeSelects = document.querySelectorAll('.building_type');
+            buildingTypeSelects.forEach(select => {
+                data.building_types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    select.appendChild(option);
+                });
+            });
+        })
+        .catch(error => console.error('Error loading building types:', error));
+}
+
+// ============= Form Toggles =============
 function toggleConfigurationSettings() {
-    var advancedSettings = document.getElementById('configuration-settings');
-    var checkbox = document.getElementById('show-configuration-settings');
-    if (checkbox.checked) {
-        advancedSettings.style.display = 'block';
-    } else {
-        advancedSettings.style.display = 'none';
-    }
+    const advancedSettings = document.getElementById('configuration-settings');
+    const checkbox = document.getElementById('show-configuration-settings');
+    advancedSettings.style.display = checkbox.checked ? 'block' : 'none';
 }
 
 function toggleHpcSettings() {
-    var hpcSettings = document.getElementById('hpc-settings');
-    var checkbox = document.getElementById('startsim_hpc_mode');
-    if (checkbox.checked) {
-        hpcSettings.style.display = 'block';
-    } else {
-        hpcSettings.style.display = 'none';
+    const hpcSettings = document.getElementById('hpc-settings');
+    const checkbox = document.getElementById('startsim_hpc_mode');
+    hpcSettings.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+// ============= Dashboard =============
+function initializeDashboard() {
+    fetchSystemStatus();
+    fetchCurrentSimulationStatus();
+    fetchBatchProgress();
+    setInterval(fetchSystemStatus, 10000);
+    setInterval(fetchCurrentSimulationStatus, 10000);
+    setInterval(fetchBatchProgress, 15000);  // Slower polling for batch progress
+}
+
+function fetchCurrentSimulationStatus() {
+    fetch('/api/simulation/current-status')
+        .then(response => response.json())
+        .then(data => updateSimulationProgressDisplay(data))
+        .catch(error => console.error('Error fetching simulation status:', error));
+}
+
+function updateSimulationProgressDisplay(data) {
+    const simProgressContent = document.getElementById('sim-progress-content');
+    
+    if (!data.has_active_simulation) {
+        simProgressContent.innerHTML = '<p class="text-muted">No active simulation</p>';
+        updateStatusIndicator('Idle');
+        return;
+    }
+    
+    // Update status indicator
+    updateStatusIndicator('Running');
+    
+    const sim = {
+        name: data.simulation_name,
+        status: data.status,
+        progress: data.progress || {}
+    };
+    
+    let html = `<div class="simulation-status">`;
+    html += `<small class="text-info"><strong>Simulation:</strong> ${sim.name}</small><br>`;
+    html += `<small><strong>Status:</strong> <span class="badge bg-info">${sim.status.toUpperCase()}</span></small><br>`;
+    
+    if (sim.progress.current_step) {
+        html += `<small><strong>Current Step:</strong> ${sim.progress.current_step}</small><br>`;
+    }
+    
+    if (sim.progress.assets_processed !== undefined && sim.progress.total_assets !== undefined) {
+        const total = sim.progress.total_assets || 1;
+        const processed = sim.progress.assets_processed || 0;
+        const percentage = Math.round((processed / total) * 100);
+        
+        html += `<small><strong>Assets:</strong> ${processed} / ${total} (${percentage}%)</small><br>`;
+        html += `<div class="progress mt-2" style="height: 20px;">`;
+        html += `<div class="progress-bar bg-success" role="progressbar" style="width: ${percentage}%" aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100"></div>`;
+        html += `</div>`;
+    }
+    
+    html += `<small class="text-muted d-block mt-2">Last updated: ${new Date(data.last_updated).toLocaleTimeString()}</small>`;
+    html += `</div>`;
+    
+    simProgressContent.innerHTML = html;
+}
+
+function updateStatusIndicator(status) {
+    const statusBadge = document.querySelector('#status-indicator .badge');
+    if (statusBadge) {
+        statusBadge.textContent = status;
+        statusBadge.classList.remove('bg-warning', 'bg-success', 'bg-danger');
+        
+        if (status === 'Running') {
+            statusBadge.classList.add('bg-primary');
+        } else if (status === 'Idle') {
+            statusBadge.classList.add('bg-warning');
+        } else if (status === 'Error') {
+            statusBadge.classList.add('bg-danger');
+        } else {
+            statusBadge.classList.add('bg-success');
+        }
     }
 }
 
+function fetchBatchProgress() {
+    fetch('/api/simulation/batch-progress')
+        .then(response => response.json())
+        .then(data => updateBatchProgressDisplay(data))
+        .catch(error => console.error('Error fetching batch progress:', error));
+}
 
-////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// API CALLS /////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
+function updateBatchProgressDisplay(data) {
+    const batchProgressContent = document.getElementById('batch-progress-content');
+    
+    if (!data.has_active_simulation) {
+        batchProgressContent.innerHTML = '<p class="text-muted">No active simulation</p>';
+        return;
+    }
+    
+    const batches = data.batches || [];
+    
+    if (batches.length === 0) {
+        batchProgressContent.innerHTML = '<p class="text-muted">No batch data available</p>';
+        return;
+    }
+    
+    let html = '<div class="batch-progress-container">';
+    
+    batches.forEach(batch => {
+        const completion = batch.completion_percentage || 0;
+        const completed = batch.completed || 0;
+        const total = batch.total || 0;
+        
+        html += `<div class="batch-card mb-3 p-3" style="background: #1a1a1a; border: 1px solid #404040; border-radius: 5px;">`;
+        html += `<div class="d-flex justify-content-between align-items-center mb-2">`;
+        html += `<strong class="text-info">Batch ${batch.batch}</strong>`;
+        html += `<small class="text-muted">${completed}/${total}</small>`;
+        html += `</div>`;
+        html += `<div class="progress" style="height: 20px;">`;
+        html += `<div class="progress-bar bg-success" role="progressbar" style="width: ${completion}%" aria-valuenow="${completion}" aria-valuemin="0" aria-valuemax="100"></div>`;
+        html += `</div>`;
+        html += `<small class="text-muted d-block mt-2">${completion.toFixed(1)}% complete</small>`;
+        html += `</div>`;
+    });
+    
+    html += '</div>';
+    batchProgressContent.innerHTML = html;
+}
 
+function fetchSystemStatus() {
+    fetch('/api/monitoring/performance')
+        .then(response => response.json())
+        .then(data => updateSystemStatusDisplay(data))
+        .catch(error => console.error('Error fetching system status:', error));
+}
 
-//////////////////////////////// Simulation CALLS /////////////////////////////////////////////
+function updateSystemStatusDisplay(data) {
+    const statusContent = document.getElementById('system-status-content');
+    if (!data.metrics) {
+        statusContent.innerHTML = '<p class="text-muted">No data available</p>';
+        return;
+    }
+    
+    const metrics = data.metrics;
+    let html = '<div class="metric-item mb-2">';
+    
+    html += `<small><strong>CPU:</strong> <span class="${getCpuClass(metrics.cpu_usage)}">${metrics.cpu_usage.toFixed(1)}%</span></small><br>`;
+    html += `<small><strong>Memory:</strong> <span class="${getMemoryClass(metrics.memory_usage)}">${metrics.memory_usage.toFixed(1)}%</span></small><br>`;
+    html += `<small><strong>Disk:</strong> <span class="${getDiskClass(metrics.disk_usage)}">${metrics.disk_usage.toFixed(1)}%</span></small><br>`;
+    
+    if (data.alerts && data.alerts.length > 0) {
+        html += `<small class="text-warning mt-2"><strong>⚠ Alerts:</strong> ${data.alerts.length}</small>`;
+    }
+    
+    html += '</div>';
+    statusContent.innerHTML = html;
+}
+
+function getCpuClass(value) {
+    if (value > 85) return 'text-danger';
+    if (value > 70) return 'text-warning';
+    return 'text-success';
+}
+
+function getMemoryClass(value) {
+    if (value > 80) return 'text-danger';
+    if (value > 65) return 'text-warning';
+    return 'text-success';
+}
+
+function getDiskClass(value) {
+    if (value > 90) return 'text-danger';
+    if (value > 75) return 'text-warning';
+    return 'text-success';
+}
+
+// ============= Performance Charts =============
+function initializePerformanceCharts() {
+    const chartConfig = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#b0b0b0',
+                    font: { size: 11 }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { color: '#b0b0b0' },
+                grid: { color: '#404040' }
+            },
+            x: {
+                ticks: { color: '#b0b0b0' },
+                grid: { color: '#404040' }
+            }
+        }
+    };
+
+    const cpuCtx = document.getElementById('cpuChart');
+    if (cpuCtx && !performanceCharts.cpu) {
+        performanceCharts.cpu = new Chart(cpuCtx, {
+            type: 'line',
+            data: {
+                labels: performanceData.timestamps,
+                datasets: [{
+                    label: 'CPU Usage (%)',
+                    data: performanceData.cpu,
+                    borderColor: '#ff6b6b',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: chartConfig
+        });
+    }
+
+    const memoryCtx = document.getElementById('memoryChart');
+    if (memoryCtx && !performanceCharts.memory) {
+        performanceCharts.memory = new Chart(memoryCtx, {
+            type: 'line',
+            data: {
+                labels: performanceData.timestamps,
+                datasets: [{
+                    label: 'Memory Usage (%)',
+                    data: performanceData.memory,
+                    borderColor: '#4ecdc4',
+                    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: chartConfig
+        });
+    }
+
+    const diskCtx = document.getElementById('diskChart');
+    if (diskCtx && !performanceCharts.disk) {
+        performanceCharts.disk = new Chart(diskCtx, {
+            type: 'line',
+            data: {
+                labels: performanceData.timestamps,
+                datasets: [{
+                    label: 'Disk Usage (%)',
+                    data: performanceData.disk,
+                    borderColor: '#f7b731',
+                    backgroundColor: 'rgba(247, 183, 49, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: chartConfig
+        });
+    }
+
+    const dbCtx = document.getElementById('dbChart');
+    if (dbCtx && !performanceCharts.db) {
+        performanceCharts.db = new Chart(dbCtx, {
+            type: 'bar',
+            data: {
+                labels: performanceData.timestamps,
+                datasets: [{
+                    label: 'Avg Query Time (ms)',
+                    data: performanceData.dbTime,
+                    backgroundColor: '#5f27cd',
+                    borderColor: '#8b5fc7',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...chartConfig,
+                scales: {
+                    ...chartConfig.scales,
+                    y: {
+                        ...chartConfig.scales.y,
+                        max: undefined
+                    }
+                }
+            }
+        });
+    }
+}
+
+function fetchPerformanceMetrics() {
+    fetch('/api/monitoring/performance')
+        .then(response => response.json())
+        .then(data => updatePerformanceData(data))
+        .catch(error => console.error('Error fetching performance metrics:', error));
+}
+
+function updatePerformanceData(data) {
+    if (!data || (!data.metrics && !data.system)) return;
+
+    const timestamp = new Date().toLocaleTimeString();
+    
+    // Handle both old and new data formats
+    let metrics = data.metrics || data.system || {};
+    let dbMetrics = data.database_metrics || data.database || {};
+
+    if (performanceData.timestamps.length >= MAX_HISTORY_POINTS) {
+        performanceData.timestamps.shift();
+        performanceData.cpu.shift();
+        performanceData.memory.shift();
+        performanceData.disk.shift();
+        performanceData.dbTime.shift();
+    }
+
+    performanceData.timestamps.push(timestamp);
+    performanceData.cpu.push(metrics.cpu_usage || 0);
+    performanceData.memory.push(metrics.memory_usage || 0);
+    performanceData.disk.push(metrics.disk_usage || 0);
+
+    performanceData.dbTime.push(dbMetrics.avg_query_time || 0);
+
+    updateChart(performanceCharts.cpu, performanceData.timestamps, performanceData.cpu);
+    updateChart(performanceCharts.memory, performanceData.timestamps, performanceData.memory);
+    updateChart(performanceCharts.disk, performanceData.timestamps, performanceData.disk);
+    updateChart(performanceCharts.db, performanceData.timestamps, performanceData.dbTime);
+
+    document.getElementById('perf-update-time').textContent = timestamp;
+
+    if (data.recent_alerts && data.recent_alerts.length > 0) {
+        updateAlertsDisplay(data.recent_alerts);
+    }
+}
+
+function updateChart(chart, labels, data) {
+    if (chart) {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update('none');
+    }
+}
+
+function updateAlertsDisplay(alerts) {
+    const alertsContent = document.getElementById('alerts-content');
+    if (alerts.length === 0) {
+        alertsContent.innerHTML = '<p class="text-muted">No alerts at this time</p>';
+        return;
+    }
+
+    let html = '<div>';
+    alerts.forEach(alert => {
+        const alertClass = alert.severity === 'WARNING' ? 'alert-warning' : 'alert-info';
+        html += `<div class="alert ${alertClass} mb-2 py-2 px-3"><small><strong>${alert.severity}:</strong> ${alert.message}</small></div>`;
+    });
+    html += '</div>';
+    alertsContent.innerHTML = html;
+}
+
+// ============= Logs =============
+function loadLogs() {
+    fetch('/api/logs/tail?lines=50')
+        .then(response => response.json())
+        .then(data => {
+            const logsContent = document.getElementById('logs-content');
+            if (data.logs && data.logs.length > 0) {
+                logsContent.textContent = data.logs.join('\n');
+                logsContent.scrollTop = logsContent.scrollHeight;
+            } else {
+                logsContent.textContent = 'No logs available';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading logs:', error);
+            document.getElementById('logs-content').textContent = 'Error loading logs';
+        });
+}
+
+function getCurrentLogs() {
+    console.log('Fetching current logs...');
+    fetch('/api/logs/get-current?lines=100')
+        .then(response => response.json())
+        .then(data => {
+            const logsContent = document.getElementById('logs-content');
+            if (data.lines && data.lines.length > 0) {
+                logsContent.textContent = data.lines.join('\n');
+                logsContent.scrollTop = logsContent.scrollHeight;
+                console.log('Loaded ' + data.count + ' log lines');
+            } else {
+                logsContent.textContent = data.message || 'No logs available';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching logs:', error);
+            document.getElementById('logs-content').textContent = 'Error fetching logs: ' + error.message;
+        });
+}
+
+function clearLogs() {
+    document.getElementById('logs-content').textContent = '';
+}
+
+// ============= Periodic Updates =============
+function startPeriodicUpdates() {
+    // Always fetch performance metrics every 5 seconds, regardless of tab visibility
+    setInterval(() => {
+        fetchPerformanceMetrics();
+    }, 5000);
+
+    // Logs polling only when tab is active
+    setInterval(() => {
+        if (document.getElementById('logs-tab').classList.contains('tab-content-active')) {
+            loadLogs();
+        }
+    }, 10000);
+}
+
+// ============= Simulation API Calls =============
 function autorunSimulation() {
+    if (!confirm('Start autorun simulation?')) return;
+    
+    setSimulationStatus('Running', 'warning');
+    
     fetch('/api/simulation/autorun_simulation', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
     })
     .then(response => response.json())
     .then(data => {
         alert(data.message);
+        setSimulationStatus('Idle', 'warning');
     })
     .catch(error => {
         console.error('Error:', error);
+        alert('Failed to start autorun simulation');
+        setSimulationStatus('Error', 'danger');
+    });
+}
+
+function stopSimulation() {
+    if (!confirm('Stop current simulation?')) return;
+    
+    fetch('/api/simulation/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            alert(data.message);
+        } else if (data.error) {
+            alert('Error: ' + data.error);
+        }
+        setSimulationStatus('Stopped', 'info');
+        // Refresh the simulation status display
+        setTimeout(() => {
+            fetchCurrentSimulationStatus();
+            fetchBatchProgress();
+        }, 500);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to stop simulation: ' + error.message);
     });
 }
 
 async function startSimulation() {
-    console.log("startSimulation script loaded");
-
     const asset_geojson_file = document.getElementById('startsim_asset_geojson_file').files[0];
     const metadata_csv_file = document.getElementById('startsim_metadata_csv_file').files[0];
     const simulation_name = document.getElementById('startsim_simulation_name').value;
@@ -94,76 +592,112 @@ async function startSimulation() {
     const shared_storage = document.getElementById('startsim_shared_storage').value;
 
     if (!(asset_geojson_file && metadata_csv_file)) {
-        alert('Please upload both the GeoJSON and CSV files.');
-        console.error("Please upload both the GeoJSON and CSV files.");
+        alert('Please upload both GeoJSON and CSV files.');
         return;
     }
 
     if (!simulation_name) {
         alert('Please enter a simulation name.');
-        console.error("Please enter a simulation name.");
         return;
     }
-    
-    // HPC mode validation
+
     if (hpc_mode && !shared_storage) {
-        alert('Shared storage path is required when HPC mode is enabled.');
-        console.error("Shared storage path is required when HPC mode is enabled.");
+        alert('Shared storage path is required for HPC mode.');
         return;
     }
-    
-    // Add form data for configuration properties
+
     const configData = {
         weekday_start_time: document.getElementById('weekday_start_time').value,
         weekday_duration: document.getElementById('weekday_duration').value,
         weekend_start_time: document.getElementById('weekend_start_time').value,
         weekend_duration: document.getElementById('weekend_duration').value,
-        system_type: document.querySelector('.system_type').value,
-        heating_system_fuel_type: document.getElementById('heating_system_fuel_type').value,
+        system_type: document.getElementById('system_type').value,
+        heating_system_fuel_type: 'electricity',
         constructions: {
             wall: {
-                material: document.getElementById('wall_material').value,
-                r_value: document.getElementById('wall_r_value').value
+                material: 'Super Insulated Wall',
+                r_value: parseFloat(document.getElementById('wall_r_value').value)
             },
             roof: {
-                material: document.getElementById('roof_material').value,
-                r_value: document.getElementById('roof_r_value').value
+                material: 'Super Insulated Roof',
+                r_value: parseFloat(document.getElementById('roof_r_value').value)
             }
         }
     };
 
-
     const formData = new FormData();
-    
     formData.append('simulation_name', simulation_name);
     formData.append('asset_geojson_file', asset_geojson_file);
     formData.append('metadata_csv_file', metadata_csv_file);
     formData.append('config_data', JSON.stringify(configData));
     formData.append('num_cores', num_cores);
     formData.append('hpc_mode', hpc_mode);
-    if (hpc_mode && shared_storage) {
+    if (hpc_mode) {
         formData.append('shared_storage', shared_storage);
     }
-    
-    // Add keep_dirs parameter
-    const keepDirs = document.getElementById('startsim_keep_dirs').checked;
-    formData.append('keep_dirs', keepDirs);
-
+    formData.append('keep_dirs', document.getElementById('startsim_keep_dirs').checked);
 
     try {
-        console.log("Sending POST request to /api/simulation/start");
+        setSimulationStatus('Starting...', 'info');
         const response = await fetch('/api/simulation/start', {
             method: 'POST',
             body: formData
         });
+
         if (!response.ok) {
             const errorData = await response.json();
             alert(`Error: ${errorData.error}`);
-            console.error("Response not OK");
+            setSimulationStatus('Error', 'danger');
             return;
         }
+
+        alert('Simulation started successfully!');
+        setSimulationStatus('Running', 'warning');
+        switchTab('dashboard');
     } catch (error) {
         console.error('Error:', error);
+        alert('Failed to start simulation');
+        setSimulationStatus('Error', 'danger');
+    }
+}
+
+async function recoverSimulation() {
+    const corrupted_name = document.getElementById('corrupted_simulation_name').value;
+    const recover_name = document.getElementById('recover_simulation_name').value;
+    const num_cores = document.getElementById('recover_num_cores').value;
+
+    if (!corrupted_name || !recover_name) {
+        alert('Please enter simulation names.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('corrupted_simulation_name', corrupted_name);
+    formData.append('batch_id', document.getElementById('recover_batch_id').value);
+    formData.append('recovery_simulation_name', recover_name);
+    formData.append('num_cores', num_cores);
+    formData.append('keep_dirs', document.getElementById('recover_keep_dirs').checked);
+
+    try {
+        setSimulationStatus('Recovering...', 'info');
+        const response = await fetch('/api/simulation/recover', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            alert(`Error: ${errorData.error}`);
+            setSimulationStatus('Error', 'danger');
+            return;
+        }
+
+        alert('Simulation recovery started!');
+        setSimulationStatus('Running', 'warning');
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to recover simulation');
+        setSimulationStatus('Error', 'danger');
     }
 }
 
@@ -173,7 +707,6 @@ async function getSimulationStatus() {
 
     if (!simulation_name) {
         alert('Please enter a simulation name.');
-        console.error("Simulation name is required");
         return;
     }
 
@@ -183,215 +716,104 @@ async function getSimulationStatus() {
     }
 
     try {
-        console.log(`Sending GET request to ${url}`);
         const response = await fetch(url);
         if (!response.ok) {
             const errorData = await response.json();
             alert(`Error: ${errorData.error}`);
-            console.error("Response not OK");
             return;
         }
         const data = await response.json();
-        console.log(data);
-        alert(JSON.stringify(data));
+        console.log('Simulation Status:', data);
+        displaySimulationStatus(data);
+        switchTab('dashboard');
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while fetching the simulation status.');
+        alert('Failed to fetch simulation status');
     }
 }
 
-async function stopSimulation() {
-    const url = '/api/simulation/stop'; // Ensure this matches the route in app.py
+function displaySimulationStatus(status) {
+    const progressContent = document.getElementById('sim-progress-content');
+    let html = `
+        <div class="mb-3">
+            <p><strong>Simulation:</strong> ${status.simulation_name || 'Unknown'}</p>
+            <p><strong>Status:</strong> <span class="badge bg-info">${status.status || 'Unknown'}</span></p>
+            ${status.progress ? `
+                <p><strong>Progress:</strong></p>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: ${status.progress}%">${status.progress}%</div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    progressContent.innerHTML = html;
+}
 
-    try {
-        console.log(`Sending POST request to ${url}`);
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            alert(`Error: ${errorData.error}`);
-            console.error("Response not OK");
-            return;
-        }
-        const data = await response.json();
-        alert(JSON.stringify(data));
-    } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred while stopping the simulation.');
-    }
+function setSimulationStatus(status, type) {
+    const statusBadge = document.querySelector('#status-indicator .badge');
+    statusBadge.className = `badge bg-${type}`;
+    statusBadge.textContent = status;
 }
 
 async function deleteSimulation() {
     const simulation_name = document.getElementById('delete_simulation_name').value;
-    
+
     if (!simulation_name) {
         alert('Please enter a simulation name.');
-        console.error("Simulation name is required");
         return;
     }
 
-    let url = `/api/simulation/delete/${simulation_name}`;
+    if (!confirm(`Delete simulation "${simulation_name}"? This cannot be undone.`)) {
+        return;
+    }
 
     try {
-        console.log(`Sending DELETE request to ${url}`);
-        const response = await fetch(url, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        const response = await fetch(`/api/simulation/delete/${simulation_name}`, {
+            method: 'POST'
         });
+
         if (!response.ok) {
             const errorData = await response.json();
             alert(`Error: ${errorData.error}`);
-            console.error("Response not OK");
             return;
         }
-        const data = await response.json();
-        console.log(data);
-        alert(JSON.stringify(data));
+
+        alert('Simulation deleted successfully!');
+        document.getElementById('delete_simulation_name').value = '';
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while deleting the simulation.');
+        alert('Failed to delete simulation');
     }
 }
-//////////////////////////////// Mangement CALLS /////////////////////////////////////////////
 
 async function getAssetConfig() {
-    console.log("getAssetConfig script loaded");
-    
-
     const asset_id = document.getElementById('get_asset_id_config').value;
     const simulation_name = document.getElementById('get_simulation_name_config').value;
 
-    // Ensure the asset id is a number
-    if (asset_id && isNaN(asset_id)) {
-        alert('Please enter a valid numeric asset id.');
-        console.error("Asset ID is not a number");
+    if (!asset_id || !simulation_name) {
+        alert('Please enter asset ID and simulation name.');
         return;
     }
 
-    if (!simulation_name || !asset_id) {
-        alert('Please enter a simulation name and an asset id.');
-        console.error("Simulation name and asset id are required");
-    }
-
     try {
-        console.log("Sending GET request to /api/asset/config");
         const response = await fetch(`/api/asset/config/${simulation_name}/${asset_id}`);
+
         if (!response.ok) {
             const errorData = await response.json();
             alert(`Error: ${errorData.error}`);
-            console.error("Response not OK");
             return;
         }
+
         const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `${asset_id}_config.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
+        const element = document.createElement('a');
+        element.setAttribute('href', URL.createObjectURL(blob));
+        element.setAttribute('download', `${asset_id}_config.json`);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while fetching the asset configuration.');
+        alert('Failed to get asset configuration');
     }
 }
-
-//////////////////////////////// Diagnostic CALLS /////////////////////////////////////////////
-async function recoverSimulation() {
-    const corrupted_simulation_name = document.getElementById('corrupted_simulation_name').value;
-    const recover_simulation_name = document.getElementById('recover_simulation_name').value;
-    const batch_id = document.getElementById('recover_batch_id').value;
-    const num_cores = document.getElementById('recover_num_cores').value;
-
-    if (!corrupted_simulation_name || !recover_simulation_name) {
-        alert('Please completed all the fields');
-        console.error("Please completed all the fields");
-        return;
-    }
-
-    let formData = new FormData();
-    formData.append('corrupted_simulation_name', corrupted_simulation_name);
-    formData.append('recover_simulation_name', recover_simulation_name);
-    formData.append('recover_num_cores', num_cores);
-
-    if (batch_id) {
-        formData.append('recover_batch_id', batch_id);
-    }
-    
-    // Add keep_dirs parameter
-    const keepDirs = document.getElementById('recover_keep_dirs').checked;
-    formData.append('keep_dirs', keepDirs);
-
-    try {
-        console.log("Sending POST request to /api/diagnostics/recovery");
-        const response = await fetch('/api/diagnostics/recovery', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            alert(`Error: ${errorData.error}`);
-            console.error("Response not OK");
-            return;
-        }
-
-        const data = await response.json();
-        alert(`Recovery process completed: ${data.message}`);
-    } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred during the recovery process.');
-    }
-}
-
-async function getLogs() {
-    console.log("getLogs script loaded");
-
-    try {
-        console.log("Sending GET request to /logs");
-        const response = await fetch('/logs', {
-            method: 'GET'
-        });
-        if (!response.ok) {
-            console.error("Response not OK");
-            const errorData = await response.json();
-            alert(`Error: ${errorData.error}`);
-            return;
-        }
-        // Redirect to /logs
-        window.location.href = '/logs';
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-async function logMessage(message, type = 'log') {
-    
-    try {
-        await fetch('/api/diagnostics/log', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ message, type })
-        });
-    
-    } catch (error) {
-        console.error('Error logging message:', error);
-    }
-}
-
-console.log = function(message) {
-    logMessage(message, 'log');
-};
-
-console.error = function(message) {
-    logMessage(message, 'error');
-};

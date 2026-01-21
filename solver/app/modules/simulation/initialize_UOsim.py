@@ -1,3 +1,8 @@
+# ======================================================================================
+# UrbanOpt Simulation Initialization Module
+# Purpose: Sets up UrbanOpt project, copies mapper files, prepares parallel execution
+# ======================================================================================
+
 import os
 import glob
 import time
@@ -5,11 +10,13 @@ import zipfile
 import subprocess
 import shutil
 
+# Import parallel execution and utility functions
 from .parallel import run_parallel_batches
 from modules.utils import initialize_logger
 from modules.utils.hpc_environment import is_hpc_environment
 from modules.utils.check_uo import get_urbanopt_command
 
+# Setup logging with external log directory support (for HPC logging)
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Initialize UOSim', external_log_dir)
 
@@ -32,8 +39,7 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
     is_hpc = is_hpc_environment()
     from modules.diagnostics import get_asset_total, get_batch_total, update_status
     
-
-    
+    # Get simulation statistics from database
     batches = get_batch_total(simulation_name)
     assets = get_asset_total(simulation_name=simulation_name)
 
@@ -45,7 +51,7 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
     if batches == 0:
         logger.warning(f"No batches found for simulation {simulation_name}. Asset analysis may not have completed yet or database may have issues.")
         
-        # Check if we have assets but no batches (batch distribution didn't happen)
+        # If assets exist but aren't distributed to batches, attempt manual distribution
         if assets > 0:
             logger.info(f"Found {assets} assets but no batches. Attempting to distribute assets to batches.")
             try:
@@ -66,6 +72,7 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
             logger.error(f"No assets found for simulation {simulation_name}. Feature file generation may have failed.")
             return []
     
+    # Construct paths for UrbanOpt project directories
     UO_SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
     MAPPER_DESTINATION = os.path.join(UO_SIMULATION_DIR, 'mappers')
     WEATHER_DESTINATION = os.path.join(UO_SIMULATION_DIR, 'weather')
@@ -76,9 +83,11 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
         logger.debug(f"Creating UrbanOpt project at {UO_SIMULATION_DIR}")
         
         try:
+            # Get UrbanOpt command with fallback strategies for multiple install locations
             uo_cmd = get_urbanopt_command()
             logger.debug(f"Using UrbanOpt command: {uo_cmd}")
             
+            # Execute UrbanOpt create command to scaffold project structure
             result = subprocess.run(
                 f"{uo_cmd} create --project-folder {UO_SIMULATION_DIR}", 
                 shell=True, 

@@ -1,3 +1,9 @@
+# ======================================================================================
+# Runtime Analysis Module
+# Purpose: Analyzes simulation runtime characteristics, determines optimal batch sizing,
+#          and distributes assets across CPU cores for parallel execution
+# ======================================================================================
+
 import os
 import json
 import multiprocessing
@@ -7,6 +13,7 @@ from modules.utils import initialize_logger
 from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
 from .db import insert_bulk_assets, distribute_assets_to_batches
 
+# Setup logging with external log directory support (for HPC logging)
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Runtime Analysis', external_log_dir)
 
@@ -36,6 +43,9 @@ def get_available_cores():
 #   It returns the number of lines in the coordinates section.
 ############################################################################################################
 def count_coordinate_lines(json_string):
+    # Count lines in coordinates section of GeoJSON for complexity analysis
+    # Used to estimate simulation complexity and runtime
+    
     start = json_string.find('"coordinates": [')
     if start == -1:
         return 0
@@ -78,6 +88,7 @@ def asset_analysis(SIMULATION_DIR, num_cores, simulation_name):
         logger.info(f"HPC environment detected - Job: {hpc_info['job_id']}, "
                    f"using {num_cores} cores as configured")
     else:
+        # Local environment: validate requested cores against system availability
         if num_cores <= 0:
             num_cores = multiprocessing.cpu_count()
         
@@ -107,33 +118,35 @@ def asset_analysis(SIMULATION_DIR, num_cores, simulation_name):
             # Read the JSON file
             with open(os.path.join(FEATURE_FILES_DIR, filename), 'r') as json_file:
                 json_string = json_file.read()
+                # Skip empty files (can occur with corrupted downloads or processing errors)
                 if not json_string.strip():
                     logger.warning(f"Skipping empty file: {filename}")
                     continue
                 try:
                     data = json.loads(json_string)
-                    # Extract the values
+                    # Extract building properties from GeoJSON structure
                     floor_area = data['features'][0]['properties']['floor_area']
                     number_of_stories = data['features'][0]['properties']['number_of_stories']
                     subtype = data['features'][0]['properties']['building_type']
+                    # Extract simulation context (project-level metadata)
                     name = data['project']['name']
-                    state= data['project']['climate_zone']
+                    state = data['project']['climate_zone']
                     weather_file = data['project']['weather_filename']
+                    # Calculate complexity metric based on coordinate count (proxy for geometry complexity)
                     coordinate_lines = count_coordinate_lines(json_string)
 
                     # Store the values in the list
                     asset_data.append((
-                        asset_id,                # asset_id
-                        state,                   # state
-                        weather_file,            # weather_file
-                        floor_area,              # floor_area
-                        number_of_stories,       # number_of_stories
-                        coordinate_lines,        # complexity
-                        name,                    # asset_name
-                        subtype,                 # subtype
-                        simulation_name          # simulation_name
+                        asset_id,                # asset_id: unique building identifier
+                        state,                   # state: climate zone for weather matching
+                        weather_file,            # weather_file: EPW filename for simulation
+                        floor_area,              # floor_area: building size in sq ft
+                        number_of_stories,       # number_of_stories: building height
+                        coordinate_lines,        # coordinate_lines: geometry complexity metric
+                        name,                    # asset_name: human-readable building name
+                        subtype,                 # subtype: building classification
+                        simulation_name          # simulation_name: parent simulation identifier
                     ))
-                    #logger.debug(f"Adding asset {asset_id}: {name} - {floor_area} sq ft, {number_of_stories} stories, complexity {coordinate_lines}, state {state}, weather {weather_file}")
                     asset_count += 1
                     
                     # Process in batches to avoid memory issues
@@ -149,13 +162,22 @@ def asset_analysis(SIMULATION_DIR, num_cores, simulation_name):
         insert_bulk_assets(asset_data)
     
     logger.info(f"Processed total of {asset_count} assets")
+    total_assets = asset_count  # Capture the actual filtered asset count
     
+    # Import and update simulation state with true total_assets count
+    from app.views import save_simulation_state
+    save_simulation_state(simulation_name, 'running', {
+        'assets_processed': 0,
+        'total_assets': total_assets,
+        'current_step': 'distributing_to_batches'
+    })
+    logger.info(f"Saved total_assets={total_assets} to simulation state")
     
     logger.info(f"Distributing assets to batches...")
 
     # Sort the asset data by complexity, number of stories, and floor area
-    total_assets = distribute_assets_to_batches(num_cores, simulation_name)
-    logger.info(f"Successfully processed {total_assets} assets")
+    distributed_assets = distribute_assets_to_batches(num_cores, simulation_name)
+    logger.info(f"Successfully distributed {distributed_assets} assets to {num_cores} batches")
 
 
 

@@ -3,146 +3,415 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PowerTwin Solver API Tester</title>
+    <title>PowerTwin Solver</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="static/style.css">
     <link rel="icon" href="static/favicon.ico" type="image/x-icon">
 </head>
-<body>
-    <div class="container">
-        <h1>PowerTwin Solver API Tester</h1>
-
-        <div class="tabs">
-            <button type="button" onclick="autorunSimulation()">Autorun Simulation</button>
-            <button type="button" onclick="stopSimulation()">Kill Simulation</button>
-            <a href="/logs"><button>Logs</button></a>
-        </div>
-
-        <div id="simulation" class="tab active">
-            
-            <div class="form-section">
-                <h2>Full Simulation Run</h2>
-                <form id="full-simulation-form">
-                    <label for="startsim_asset_geojson_file">Upload Asset GeoJSON File:</label>
-                    <input type="file" id="startsim_asset_geojson_file" name="startsim_asset_geojson_file"><br>
-
-                    <label for="startsim_metadata_csv_file">Upload Metadata CSV File:</label>
-                    <input type="file" id="startsim_metadata_csv_file" name="startsim_metadata_csv_file"><br>
-
-                    <label for="show-configuration-settings">Adjust Feature File Configuration</label>
-                    <input type="checkbox" id="show-configuration-settings" name="show_configuration_settings" onclick="toggleConfigurationSettings()"><br>
-
-                    <div id="configuration-settings" style="display: none;">
-                        <label for="weekday_start_time">Weekday Start Time:</label>
-                        <input type="time" id="weekday_start_time" name="weekday_start_time" value="08:00"><br>
-
-                        <label for="weekday_duration">Weekday Duration (HH:MM):</label>
-                        <input type="text" id="weekday_duration" name="weekday_duration" value="10:00"><br>
-
-                        <label for="weekend_start_time">Weekend Start Time:</label>
-                        <input type="time" id="weekend_start_time" name="weekend_start_time" value="10:00"><br>
-
-                        <label for="weekend_duration">Weekend Duration (HH:MM):</label>
-                        <input type="text" id="weekend_duration" name="weekend_duration" value="8:00"><br>
-
-                        <label for="system_type">System Type:</label>
-                        <select class="system_type" name="system_type">
-                            <!-- Options will be populated by JavaScript -->
-                        </select><br>
-
-                        <label for="heating_system_fuel_type">Heating System Fuel Type:</label>
-                        <input type="text" id="heating_system_fuel_type" name="heating_system_fuel_type" value="electricity" readonly><br>
-
-                        <label for="wall_material">Wall Material:</label>
-                        <input type="text" id="wall_material" name="constructions.wall.material" value="Super Insulated Wall" readonly><br>
-
-                        <label for="wall_r_value">Wall R-Value:</label>
-                        <input type="number" id="wall_r_value" name="constructions.wall.r_value" value="15.0"><br>
-
-                        <label for="roof_material">Roof Material:</label>
-                        <input type="text" id="roof_material" name="constructions.roof.material" value="Super Insulated Roof" readonly><br>
-
-                        <label for="roof_r_value">Roof R-Value:</label>
-                        <input type="number" id="roof_r_value" name="constructions.roof.r_value" value="15.0"><br>
-                    </div>
-
-                    <label for="startsim_num_cores">Number of Cores:</label>
-                    <input type="number" id="startsim_num_cores" name="startsim_num_cores" value="1"><br>
-
-                    <label for="startsim_hpc_mode">Enable HPC Multi-node Execution:</label>
-                    <input type="checkbox" id="startsim_hpc_mode" name="startsim_hpc_mode" onchange="toggleHpcSettings()"><br>
-
-                    <div id="hpc-settings" style="display: none;">
-                        <label for="startsim_shared_storage">Shared Storage Path:</label>
-                        <input type="text" id="startsim_shared_storage" name="startsim_shared_storage" placeholder="Path to shared storage for HPC mode"><br>
-                    </div>
-
-                    <label for="startsim_simulation_name">Simulation Name:</label>
-                    <input type="text" id="startsim_simulation_name" name="startsim_simulation_name"><br>
-
-                    <label for="startsim_keep_dirs">Keep Additional Directories:</label>
-                    <input type="checkbox" id="startsim_keep_dirs" name="startsim_keep_dirs" title="Keep feature_reports and generated_files directories during asset cleanup"><br>
-
-                    <button type="button" onclick="startSimulation()">Start Full Simulation</button>
-                </form>
-            </div>
-
-            <div class="form-section">
-                <h2>Recover Simulation (Or Batch)</h2>
-                <form id="recovery-form">
-                    <label for="corrupted_simulation_name">Corrupted Simulation Name:</label>
-                    <input type="text" id="corrupted_simulation_name" name="corrupted_simulation_name"><br>
-                    <label for="recover_batch_id">Corrupted Batch ID (Optional):</label>
-                    <input type="text" id="recover_batch_id" name="recover_batch_id"><br>
-                    <label for="recover_simulation_name">Recovery Simulation Name:</label>
-                    <input type="text" id="recover_simulation_name" name="recover_simulation_name"><br>
-                    <label for="recover_num_cores">Number of Cores:</label>
-                    <input type="number" id="recover_num_cores" name="recover_num_cores" value="1"><br>
-                    
-                    <label for="recover_keep_dirs">Keep Additional Directories:</label>
-                    <input type="checkbox" id="recover_keep_dirs" name="recover_keep_dirs" title="Keep feature_reports and generated_files directories during asset cleanup"><br>
-                    
-                    <button type="button" onclick="recoverSimulation()">Recover</button>
-                </form>
-            </div>
-
-            <div class="form-section">
-                <h2>Print Simulation Status (in Console)</h2>
-                <form id="status-form">
-                    <label for="status_simulation_name">Simulation Name:</label>
-                    <input type="text" id="status_simulation_name" name="status_simulation_name"><br>
-                    <label for="status_batch_id">Batch ID (Optional):</label>
-                    <input type="int" id="status_batch_id" name="status_batch_id"><br>
-                    <button type="button" onclick="getSimulationStatus()">Get Simulation Status</button>
-                </form>
+<body class="bg-dark">
+    <div class="d-flex" style="height: 100vh;">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar bg-dark-sidebar text-white p-4">
+            <div class="sidebar-header mb-4">
+                <h5 class="mb-0">PowerTwin</h5>
+                <small class="text-muted">Solver</small>
             </div>
             
-            <div class="form-section">
-                <h2>Delete Simulation</h2>
-                <form id="delete-form">
-                    <label for="delete_simulation_name">Simulation Name:</label>
-                    <input type="text" id="delete_simulation_name" name="delete_simulation_name"><br>
-                    <button type="button" onclick="deleteSimulation()">Delete Simulation</button>
-                </form>
+            <ul class="nav nav-pills flex-column gap-2">
+                <li class="nav-item">
+                    <a class="nav-link active sidebar-link" href="#" onclick="switchTab('dashboard'); return false;">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link" href="#" onclick="switchTab('simulation'); return false;">
+                        <i class="bi bi-play-circle"></i> Simulation
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link" href="#" onclick="switchTab('performance'); return false;">
+                        <i class="bi bi-graph-up"></i> Performance
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link" href="#" onclick="switchTab('logs'); return false;">
+                        <i class="bi bi-file-text"></i> Logs
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link sidebar-link" href="#" onclick="switchTab('assets'); return false;">
+                        <i class="bi bi-database"></i> Assets
+                    </a>
+                </li>
+            </ul>
+
+            <hr class="text-muted my-4">
+
+            <div class="quick-actions">
+                <button class="btn btn-sm btn-success w-100 mb-2" onclick="autorunSimulation()">
+                    <small><i class="bi bi-play-fill"></i> Autorun</small>
+                </button>
+                <button class="btn btn-sm btn-danger w-100" onclick="stopSimulation()">
+                    <small><i class="bi bi-stop-fill"></i> Kill</small>
+                </button>
             </div>
+        </nav>
 
+        <!-- Main Content Area -->
+        <div class="flex-grow-1 d-flex flex-column bg-dark">
+            <!-- Top Header -->
+            <header class="bg-darker border-bottom border-secondary p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0 text-white" id="page-title">Dashboard</h2>
+                    <div class="text-muted small" id="status-indicator">
+                        Status: <span class="badge bg-warning">Idle</span>
+                    </div>
+                </div>
+            </header>
 
+            <!-- Tab Content -->
+            <main class="flex-grow-1 overflow-auto p-4">
+                <!-- Dashboard Tab -->
+                <div id="dashboard-tab" class="tab-content-active">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card bg-darker border-secondary mb-3">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">Simulation Progress</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="sim-progress-content">
+                                        <p class="text-muted">No active simulation</p>
+                                        <div id="progress-details"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card bg-darker border-secondary mb-3">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">Batch Progress</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="batch-progress-content">
+                                        <p class="text-muted">No active simulation</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-darker border-secondary mb-3">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">System Status</h5>
+                                </div>
+                                <div class="card-body small">
+                                    <div id="system-status-content">
+                                        <p class="text-muted">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="form-section">
-                <h2>Download Asset Feature File</h2>
-                <form id="get-config-form">
-                    <label for="get_asset_id_config">Asset ID:</label>
-                    <input type="text" id="get_asset_id_config" name="get_asset_id_config"><br>
-                    <label for="get_simulation_name_config">Simulation Name:</label>
-                    <input type="text" id="get_simulation_name_config" name="get_simulation_name_config"><br>
-                    <button type="button" onclick="getAssetConfig()">Get Configuration</button>
-                </form>
-            </div>
+                <!-- Simulation Tab -->
+                <div id="simulation-tab" class="tab-content">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="card bg-darker border-secondary mb-4">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">Full Simulation Run</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="full-simulation-form">
+                                        <div class="mb-3">
+                                            <label for="startsim_asset_geojson_file" class="form-label">Asset GeoJSON File</label>
+                                            <input type="file" class="form-control form-control-dark" id="startsim_asset_geojson_file" name="startsim_asset_geojson_file">
+                                        </div>
 
+                                        <div class="mb-3">
+                                            <label for="startsim_metadata_csv_file" class="form-label">Metadata CSV File</label>
+                                            <input type="file" class="form-control form-control-dark" id="startsim_metadata_csv_file" name="startsim_metadata_csv_file">
+                                        </div>
 
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="show-configuration-settings" name="show_configuration_settings" onclick="toggleConfigurationSettings()">
+                                                <label class="form-check-label" for="show-configuration-settings">
+                                                    Advanced Configuration
+                                                </label>
+                                            </div>
+                                        </div>
 
+                                        <div id="configuration-settings" style="display: none;" class="border-top pt-3">
+                                            <div class="mb-3">
+                                                <label for="weekday_start_time" class="form-label">Weekday Start Time</label>
+                                                <input type="time" class="form-control form-control-dark" id="weekday_start_time" value="08:00">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="weekday_duration" class="form-label">Weekday Duration (HH:MM)</label>
+                                                <input type="text" class="form-control form-control-dark" id="weekday_duration" value="10:00">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="weekend_start_time" class="form-label">Weekend Start Time</label>
+                                                <input type="time" class="form-control form-control-dark" id="weekend_start_time" value="10:00">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="weekend_duration" class="form-label">Weekend Duration (HH:MM)</label>
+                                                <input type="text" class="form-control form-control-dark" id="weekend_duration" value="8:00">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="system_type" class="form-label">System Type</label>
+                                                <select class="form-select form-select-dark system_type" id="system_type"></select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="wall_r_value" class="form-label">Wall R-Value</label>
+                                                <input type="number" class="form-control form-control-dark" id="wall_r_value" value="15.0">
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="roof_r_value" class="form-label">Roof R-Value</label>
+                                                <input type="number" class="form-control form-control-dark" id="roof_r_value" value="15.0">
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="startsim_num_cores" class="form-label">Number of Cores</label>
+                                            <input type="number" class="form-control form-control-dark" id="startsim_num_cores" value="1">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="startsim_hpc_mode" name="startsim_hpc_mode" onchange="toggleHpcSettings()">
+                                                <label class="form-check-label" for="startsim_hpc_mode">
+                                                    Enable HPC Multi-node Execution
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div id="hpc-settings" style="display: none;" class="mb-3">
+                                            <label for="startsim_shared_storage" class="form-label">Shared Storage Path</label>
+                                            <input type="text" class="form-control form-control-dark" id="startsim_shared_storage" placeholder="Path to shared storage">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="startsim_simulation_name" class="form-label">Simulation Name</label>
+                                            <input type="text" class="form-control form-control-dark" id="startsim_simulation_name">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="startsim_keep_dirs" name="startsim_keep_dirs">
+                                                <label class="form-check-label" for="startsim_keep_dirs">
+                                                    Keep Additional Directories
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <button type="button" class="btn btn-primary w-100" onclick="startSimulation()">
+                                            <i class="bi bi-play-fill"></i> Start Simulation
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="card bg-darker border-secondary mb-4">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">Recover Simulation</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="recovery-form">
+                                        <div class="mb-3">
+                                            <label for="corrupted_simulation_name" class="form-label">Corrupted Simulation Name</label>
+                                            <input type="text" class="form-control form-control-dark" id="corrupted_simulation_name">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="recover_batch_id" class="form-label">Corrupted Batch ID (Optional)</label>
+                                            <input type="text" class="form-control form-control-dark" id="recover_batch_id">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="recover_simulation_name" class="form-label">Recovery Simulation Name</label>
+                                            <input type="text" class="form-control form-control-dark" id="recover_simulation_name">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="recover_num_cores" class="form-label">Number of Cores</label>
+                                            <input type="number" class="form-control form-control-dark" id="recover_num_cores" value="1">
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="recover_keep_dirs" name="recover_keep_dirs">
+                                                <label class="form-check-label" for="recover_keep_dirs">
+                                                    Keep Additional Directories
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-warning w-100" onclick="recoverSimulation()">
+                                            <i class="bi bi-arrow-clockwise"></i> Recover
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card bg-darker border-secondary mb-4">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">Simulation Status</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="status-form">
+                                        <div class="mb-3">
+                                            <label for="status_simulation_name" class="form-label">Simulation Name</label>
+                                            <input type="text" class="form-control form-control-dark" id="status_simulation_name">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="status_batch_id" class="form-label">Batch ID (Optional)</label>
+                                            <input type="number" class="form-control form-control-dark" id="status_batch_id">
+                                        </div>
+                                        <button type="button" class="btn btn-info w-100" onclick="getSimulationStatus()">
+                                            <i class="bi bi-info-circle"></i> Get Status
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card bg-darker border-secondary mb-4">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">Delete Simulation</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="delete-form">
+                                        <div class="mb-3">
+                                            <label for="delete_simulation_name" class="form-label">Simulation Name</label>
+                                            <input type="text" class="form-control form-control-dark" id="delete_simulation_name">
+                                        </div>
+                                        <button type="button" class="btn btn-danger w-100" onclick="deleteSimulation()">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Tab -->
+                <div id="performance-tab" class="tab-content">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card bg-darker border-secondary mb-4">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">System Performance Metrics (Last 1 Hour)</h5>
+                                        <small class="text-muted">Last updated: <span id="perf-update-time">--:--:--</span></small>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-4">
+                                            <h6 class="text-white mb-3">CPU Usage (%)</h6>
+                                            <div style="position: relative; height: 250px;">
+                                                <canvas id="cpuChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-4">
+                                            <h6 class="text-white mb-3">Memory Usage (%)</h6>
+                                            <div style="position: relative; height: 250px;">
+                                                <canvas id="memoryChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-4">
+                                            <h6 class="text-white mb-3">Disk Usage (%)</h6>
+                                            <div style="position: relative; height: 250px;">
+                                                <canvas id="diskChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-4">
+                                            <h6 class="text-white mb-3">Database Query Performance</h6>
+                                            <div style="position: relative; height: 250px;">
+                                                <canvas id="dbChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="card bg-darker border-secondary mb-4">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">System Alerts & Warnings</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="alerts-content">
+                                        <p class="text-muted">No alerts at this time</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Tab -->
+                <div id="logs-tab" class="tab-content">
+                    <div class="card bg-darker border-secondary">
+                        <div class="card-header bg-darker border-secondary text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Application Logs</h5>
+                                <div>
+                                    <input type="text" class="form-control form-control-dark form-control-sm d-inline-block" style="width: 200px;" id="log-search" placeholder="Search logs...">
+                                    <button class="btn btn-sm btn-primary ms-2" onclick="getCurrentLogs()">Get Logs</button>
+                                    <button class="btn btn-sm btn-secondary ms-2" onclick="clearLogs()">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <pre id="logs-content" class="bg-darker text-light p-3 rounded" style="height: 500px; overflow-y: auto;">Loading logs...</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assets Tab -->
+                <div id="assets-tab" class="tab-content">
+                    <div class="card bg-darker border-secondary">
+                        <div class="card-header bg-darker border-secondary text-white">
+                            <h5 class="mb-0">Asset Configuration</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="get-config-form">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="get_asset_id_config" class="form-label">Asset ID</label>
+                                        <input type="text" class="form-control form-control-dark" id="get_asset_id_config">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="get_simulation_name_config" class="form-label">Simulation Name</label>
+                                        <input type="text" class="form-control form-control-dark" id="get_simulation_name_config">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="getAssetConfig()">
+                                    <i class="bi bi-download"></i> Get Configuration
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
     <script src="static/index.js"></script>
 </body>
 </html>

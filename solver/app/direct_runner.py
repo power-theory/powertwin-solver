@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""
-PowerTwin Direct Runner for HPC Environments
-
-This module provides direct execution of PowerTwin simulation functions without 
-requiring the Flask web server. It's designed specifically for HPC environments
-where direct process execution is more reliable than client-server architecture.
-"""
+# ======================================================================================
+# PowerTwin Direct Runner for HPC Environments
+# This module provides direct execution of PowerTwin simulation functions without 
+# requiring the Flask web server. It's designed specifically for HPC environments
+# where direct process execution is more reliable than client-server architecture.
+# ======================================================================================
 
 import os
 import sys
@@ -21,21 +20,12 @@ from modules.simulation import initialize_uo, create_featurefiles
 from modules.diagnostics import create_table
 from modules.diagnostics.recover_UOsim import simulation_recovery
 
+# Set up simulation directories for HPC shared storage
 def _setup_simulation_directories(simulation_name, asset_geojson_path, metadata_csv_path, config_json_path, shared_storage):
-    """
-    Set up simulation directories and copy input files to their expected locations
+    # Create necessary directories in shared storage for simulation data and local files
+    # Then copy input files to their expected locations if needed
     
-    Args:
-        simulation_name: Name of the simulation
-        asset_geojson_path: Path to asset GeoJSON file
-        metadata_csv_path: Path to metadata CSV file
-        config_json_path: Path to configuration JSON file
-        shared_storage: Path to shared storage
-        
-    Returns:
-        tuple: (SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path, local_config_path)
-    """
-    # Define directories
+    # Define base directories within shared storage
     DATA_DIR = os.path.join(shared_storage, 'powertwin_data')
     LOCAL_DIR = os.path.join(shared_storage, 'user_files')
     SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
@@ -70,30 +60,20 @@ def _setup_simulation_directories(simulation_name, asset_geojson_path, metadata_
         with open(config_json_path, 'rb') as src, open(local_config_path, 'wb') as dst:
             dst.write(src.read())
             
+    # Return paths to simulation and local directories with input files
     return (SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path, local_config_path)
 
+# Directly create UrbanOpt feature files for a simulation without Flask
 def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_csv_path, 
                           config_json_path, num_cores, 
                           shared_storage=None):
-    """
-    Directly create feature files for a PowerTwin simulation
+    # Create feature files directly by calling simulation functions
+    # Returns simulation and local directories or None if error occurs
     
-    Args:
-        simulation_name: Name of the simulation
-        asset_geojson_path: Path to asset GeoJSON file
-        metadata_csv_path: Path to metadata CSV file
-        config_json_path: Path to configuration JSON file
-        num_cores: Number of cores to use
-        shared_storage: Path to shared storage (required in HPC mode)
-        
-    Returns:
-        tuple: (SIMULATION_DIR, LOCAL_SIMULATION_DIR) or None if error
-    """
-    
-    # Use centralized HPC detection
+    # Check if running in HPC environment
     is_hpc = is_hpc_environment()
     
-    # Validate inputs
+    # Validate HPC requirements
     if is_hpc and not shared_storage:
         logger.error("Shared storage path is required in HCP environment")
         return None
@@ -115,56 +95,60 @@ def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_cs
         # Create diagnostic table if not exists
         create_table()
         
-        # Setup directories and copy files
+        # Setup simulation directories and copy input files to shared storage
         SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path, local_config_path = _setup_simulation_directories(
             simulation_name, asset_geojson_path, metadata_csv_path, config_json_path, shared_storage
         )
         
         # Create feature files (normally done by views.py)
         create_featurefiles(
-            SIMULATION_DIR, 
-            LOCAL_SIMULATION_DIR,
-            local_asset_path, 
-            local_metadata_path, 
-            local_config_path, 
-            num_cores, 
-            simulation_name
+            SIMULATION_DIR,  # Working directory
+            LOCAL_SIMULATION_DIR,  # Persistent storage directory
+            local_asset_path,  # GeoJSON file location
+            local_metadata_path,  # Metadata CSV location
+            local_config_path,  # Configuration file location
+            num_cores,  # Number of cores for parallelization
+            simulation_name  # Simulation identifier
         )
         
+        # Return the directories for use in subsequent simulation steps
         return (SIMULATION_DIR, LOCAL_SIMULATION_DIR)
         
     except Exception as e:
         logger.error(f"Error creating feature files: {str(e)}")
         return None
 
+# Initialize and run UrbanOpt simulation directly
 def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name):
-
+    # Run UrbanOpt initialization and simulation execution
+    
     logger.info(f"Initializing UrbanOpt for: {SIMULATION_DIR}")
     
-    # Use centralized HPC detection
+    # Check if running in HPC environment
     is_hpc = is_hpc_environment()
     
     try:
         # Initialize UrbanOpt simulation
         logger.info("Initializing UrbanOpt simulation...")
         result = initialize_uo(
-            SIMULATION_DIR,
-            LOCAL_SIMULATION_DIR,
-            simulation_name
+            SIMULATION_DIR,  # Working directory
+            LOCAL_SIMULATION_DIR,  # Persistent storage directory
+            simulation_name  # Simulation identifier
         )
         
-        # In HPC mode, initialize_uo returns the batch range
+        # In HPC mode, initialize_uo returns the batch range for distributed processing
         if is_hpc and isinstance(result, list):
             logger.info(f"UrbanOpt initialization for {simulation_name} completed successfully, returned {len(result)} batches")
-            return result
+            return result  # Return batch ranges for parallel execution
         
         logger.info(f"UrbanOpt initialization for {simulation_name} completed successfully")
-        return True
+        return True  # Successful completion
         
     except Exception as e:
         logger.error(f"Error initializing UrbanOpt: {str(e)}")
         return False
 
+# Run simulation batches in parallel across multiple processes
 def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, batch_range=None):
     """
     Run parallel batches for a PowerTwin simulation with distributed SQLite support
@@ -194,6 +178,7 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
     try:
         # If batch_range is not provided, determine it from the database
         if batch_range is None:
+            # Query database to find all batches for this simulation
             from modules.diagnostics import get_batch_total
             batches = get_batch_total(simulation_name)
             batch_range = list(range(batches))

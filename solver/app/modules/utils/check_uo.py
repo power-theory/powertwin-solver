@@ -1,12 +1,21 @@
+# ======================================================================================
+# UrbanOpt CLI Utilities Module
+# Provides utilities for discovering and interacting with the UrbanOpt command-line tool
+# ======================================================================================
+
 import os
 import subprocess
 from modules.utils import initialize_logger
 
+# Initialize logger for this module
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('UrbanOpt CLI', external_log_dir)
 
+# Discover and return the correct UrbanOpt CLI command
 def get_urbanopt_command():
-    """Get the correct UrbanOpt command with fallback options"""
+    # Find the UrbanOpt command in the system with fallback options
+    # Tests multiple possible installation paths
+    
     logger.debug("=== UrbanOpt CLI Discovery ===")
     logger.debug(f"PATH: {os.environ.get('PATH', 'NOT SET')}")
     logger.debug(f"GEM_HOME: {os.environ.get('GEM_HOME', 'NOT SET')}")
@@ -14,30 +23,34 @@ def get_urbanopt_command():
     
     # Try different command options
     test_commands = [
-        'uo',
-        'urbanopt', 
-        '/usr/local/lib/ruby/gems/3.2.2/bin/uo',
-        '/usr/local/bin/uo'
+        'uo',  # Most common case - in PATH
+        'urbanopt',  # Alternative command name
+        '/usr/local/lib/ruby/gems/3.2.2/bin/uo',  # Ruby gems installation path
+        '/usr/local/bin/uo'  # System binary path
     ]
     
+    # Test each command to see if it works
     for cmd in test_commands:
         try:
+            # Run command with version flag to verify it works
             result = subprocess.run(f"{cmd} --version", shell=True, capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
                 #logger.debug(f"Found working UrbanOpt command: {cmd}")
                 #logger.debug(f"Version output: {result.stdout.strip()}")
                 return cmd
         except Exception as e:
+            # Command failed, continue trying others
             logger.debug(f"Command '{cmd}' failed: {e}")
             continue
     
     # Check if binary files exist
     potential_paths = [
-        '/usr/local/lib/ruby/gems/3.2.2/bin/',
-        '/usr/local/bin/',
-        '/usr/bin/'
+        '/usr/local/lib/ruby/gems/3.2.2/bin/',  # Ruby gems path
+        '/usr/local/bin/',  # System binaries
+        '/usr/bin/'  # Alternative system binaries
     ]
     
+    # List files in potential installation directories for debugging
     for path in potential_paths:
         try:
             if os.path.exists(path):
@@ -46,4 +59,5 @@ def get_urbanopt_command():
         except Exception as e:
             logger.debug(f"Could not list directory {path}: {e}")
     
+    # If we get here, UrbanOpt was not found
     raise RuntimeError("UrbanOpt CLI not found in any expected location. Please check gem installation.")

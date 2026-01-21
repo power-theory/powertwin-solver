@@ -1,3 +1,8 @@
+<!-- ======================================================================================
+     PowerTwin Solver - Logs Viewer Template
+     Purpose: Real-time log file display with dark theme and navigation controls
+     ====================================================================================== -->
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -6,6 +11,9 @@
         <title>Logs</title>
         <link rel="icon" href="static/favicon.ico" type="image/x-icon">
         <style>
+            /* ================================================================
+               Global Styles: Dark theme for comfortable viewing
+               ================================================================ */
             body {
                 background-color: #121212;
                 color: #ffffff;
@@ -17,6 +25,9 @@
                 margin: 0;
             }
 
+            /* ================================================================
+               Container: Main content area with fixed dimensions
+               ================================================================ */
             .container {
                 display: grid;
                 grid-template-rows: auto 1fr;
@@ -32,11 +43,17 @@
                 position: relative;
             }
 
+            /* ================================================================
+               Heading: Page title styling
+               ================================================================ */
             h1 {
                 color: #007bff;
                 text-align: center;
             }
 
+            /* ================================================================
+               Log Display: Scrollable code block for log output
+               ================================================================ */
             pre {
                 background-color: #2d2d2d;
                 padding: 20px;
@@ -48,6 +65,9 @@
                 overflow-y: auto;
             }
 
+            /* ================================================================
+               Button Container: Positioned navigation controls
+               ================================================================ */
             .btn-container {
                 position: absolute;
                 top: 20px;
@@ -56,6 +76,9 @@
                 gap: 10px; 
             }
 
+            /* ================================================================
+               Buttons: Styled navigation and action buttons
+               ================================================================ */
             .btn {
                 padding: 5px 10px;
                 font-size: 14px; 
@@ -75,6 +98,9 @@
     </head>
 <body>
     <div class="container">
+        <!-- ================================================================
+             Navigation Bar: Buttons for home and refresh actions
+             ================================================================ -->
         <div class="btn-container">
             <a href="/" class="btn">Home</a>
             <a href="/logs" class="btn">Refresh</a>

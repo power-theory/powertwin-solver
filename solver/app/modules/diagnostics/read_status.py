@@ -1,7 +1,14 @@
+# ======================================================================================
+# Read Status Module
+# Purpose: Provides real-time monitoring of simulation and batch execution progress,
+#          including asset completion tracking, failure detection, and progress visualization
+# ======================================================================================
+
 from modules.utils import initialize_logger
 import os
 from .db import get_status_stats, get_batch_total, get_asset_total, get_bulk_batchids
 
+# Setup logging with external log directory support (for HPC logging)
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Read Batch Status', external_log_dir)
 
@@ -11,12 +18,19 @@ logger = initialize_logger('Read Batch Status', external_log_dir)
 # Description: This function prints the progress of the assets.
 ############################################################################################################
 def print_assets_progress(title, assets_completed, total_assets, progress):
+    # Display progress bar for asset completion with percentage and visual indicator
+    # Format: "assets_completed/total_assets [percent%] |progress_bar| (title)"
+    # Used for both per-batch and overall simulation progress
+    
+    # Calculate filled portion of progress bar (0-10 characters)
     filled_length = int(progress // 10)
     bar = '#' * filled_length + ' ' * (10 - filled_length)
 
+    # Format asset count and percentage with proper spacing
     batch_format = f"{assets_completed}/{total_assets}"
     progress_format = f"[{progress:<4.1f}%]"
 
+    # Construct and log progress output
     output = f"{batch_format: <14s}{progress_format: <10s}|{bar}| ({title})"
     logger.info(output)
     return output
@@ -28,11 +42,14 @@ def print_assets_progress(title, assets_completed, total_assets, progress):
 ############################################################################################################
 def read_batch_status(simulation_name, batch_id):
     
+    # Retrieve asset completion statistics from database
     finished_assets, failed_assets = get_status_stats(simulation_name, batch_id)
-    total_assets = get_asset_total(simulation_name,batch_id)
+    total_assets = get_asset_total(simulation_name, batch_id)
+    # Mark batch as finished only if all assets are complete
     finished_batches = 1 if total_assets > 0 and total_assets == finished_assets else 0
     progress = (finished_assets / total_assets) * 100
     
+    # Only display progress bar in non-HPC environments (avoid clutter in SLURM logs)
     if not os.environ.get('SLURM_JOB_ID'):
         print_assets_progress(f'Batch {batch_id}', finished_assets, total_assets, progress)
     
@@ -59,6 +76,7 @@ def read_simulation_status(simulation_name, batch_id=None):
 
         batch_list = get_bulk_batchids(simulation_name)
         for batch in batch_list:
+            # Query individual batch statistics
             batch_finished, batch_total, batch_failed, batch_completed = read_batch_status(simulation_name, batch)
             
             # Accumulate totals

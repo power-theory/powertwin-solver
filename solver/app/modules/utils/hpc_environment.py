@@ -1,12 +1,14 @@
-"""
-Centralized HPC environment detection for PowerTwin Solver.
-This module provides the single source of truth for HPC environment detection.
-"""
+# ======================================================================================
+# HPC Environment Detection Module
+# Provides centralized detection and information retrieval for HPC cluster environments.
+# This is the single source of truth for determining whether code is running on HPC.
+# ======================================================================================
 
 import os
 import socket
 from modules.utils import initialize_logger
 
+# Initialize logger for this module
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('HPC Environment', external_log_dir)
 
@@ -15,6 +17,7 @@ def is_hpc_environment():
 
 def get_hpc_info():
     
+    # Build dictionary with all HPC configuration data
     hpc_info = {
         'is_hpc': is_hpc_environment(),
         'job_id': os.environ.get('SLURM_JOB_ID'),

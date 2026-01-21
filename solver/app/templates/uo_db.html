@@ -1,3 +1,8 @@
+<!-- ======================================================================================
+     PowerTwin Solver - Assets Database Viewer Template
+     Purpose: Display and sort asset simulation data in interactive table format
+     ====================================================================================== -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,25 +10,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assets</title>
     <style>
+        /* ================================================================
+           Global: Basic font and spacing
+           ================================================================ */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
+        
+        /* ================================================================
+           Table: Responsive data display with grid layout
+           ================================================================ */
         table {
             border-collapse: collapse;
             width: 100%;
             margin-bottom: 20px;
         }
+        
+        /* ================================================================
+           Cells: Table headers and data cells with borders
+           ================================================================ */
         th, td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
+        
+        /* ================================================================
+           Headers: Styled table headers with clickable sorting
+           ================================================================ */
         th {
             background-color: #f2f2f2;
             cursor: pointer;
-            position: relative; /* For positioning the arrow */
+            position: relative; /* For positioning sort indicator arrows */
         }
+        
+        /* ================================================================
+           Sort Indicators: Visual feedback for column sort direction
+           ================================================================ */
         th:after {
             position: absolute;
             right: 5px;
@@ -33,17 +57,27 @@
             color: #888;
         }
         th.asc:before {
-            content: "▲"; /* Up arrow */
+            content: "▲"; /* Up arrow for ascending sort */
         }
         th.desc:before {
-            content: "▼"; /* Down arrow */
+            content: "▼"; /* Down arrow for descending sort */
         }
     </style>
 </head>
 <body>
+    <!-- ================================================================
+         Page Header: Title for assets database view
+         ================================================================ -->
     <h1>Assets</h1>
+    
+    <!-- ================================================================
+         Data Table: Complete asset information with sortable columns
+         ================================================================ -->
     <table id="assetsTable">
         <thead>
+            <!-- ================================================================
+                 Table Headers: Clickable for sorting by column
+                 ================================================================ -->
             <tr>
                 <th onclick="sortTable(0)">Asset ID</th>
                 <th onclick="sortTable(1)">Batch</th>
@@ -60,6 +94,10 @@
             </tr>
         </thead>
         <tbody>
+            <!-- ================================================================
+                 Data Rows: Asset records from Jinja2 template iteration
+                 Iterates through assets list passed from server
+                 ================================================================ -->
             {% for asset in assets %}
             <tr>
                 <td>{{ asset.asset_id }}</td>

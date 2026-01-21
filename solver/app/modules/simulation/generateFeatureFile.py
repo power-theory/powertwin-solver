@@ -509,12 +509,35 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
     
     # Metadata requires the area, subtype and name of the building to be present from the metadata
     building_area_list, building_type_list, building_name_list, building_weather_list = read_metadata(metadata_csv)
-    
-    with open(asset_geojson, 'r') as file:
-        geojson_data = json.load(file)
-    
-    with open(config_json, 'r') as file:
-        custom_config_data = json.load(file)
+
+    # Validate files exist and are not empty
+    if not os.path.exists(asset_geojson) or os.path.getsize(asset_geojson) == 0:
+        logger.error(f"Asset geojson file missing or empty: {asset_geojson}")
+        raise ValueError(f"Asset geojson file missing or empty: {asset_geojson}")
+    if not os.path.exists(config_json) or os.path.getsize(config_json) == 0:
+        logger.error(f"Config json file missing or empty: {config_json}")
+        raise ValueError(f"Config json file missing or empty: {config_json}")
+
+    # Load geojson and config with clear error messages for invalid JSON
+    try:
+        with open(asset_geojson, 'r') as file:
+            geojson_data = json.load(file)
+    except json.JSONDecodeError as e:
+        logger.error(f"Error parsing asset geojson {asset_geojson}: {e}")
+        raise ValueError(f"Invalid JSON in asset geojson: {asset_geojson}: {e}")
+    except Exception as e:
+        logger.error(f"Error reading asset geojson {asset_geojson}: {e}")
+        raise
+
+    try:
+        with open(config_json, 'r') as file:
+            custom_config_data = json.load(file)
+    except json.JSONDecodeError as e:
+        logger.error(f"Error parsing config json {config_json}: {e}")
+        raise ValueError(f"Invalid JSON in config json: {config_json}: {e}")
+    except Exception as e:
+        logger.error(f"Error reading config json {config_json}: {e}")
+        raise
 
 
     # Process each feature in the GeoJSON data 

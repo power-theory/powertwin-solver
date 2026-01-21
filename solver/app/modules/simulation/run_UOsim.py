@@ -1,3 +1,9 @@
+# ======================================================================================
+# UrbanOpt Simulation Executor Module
+# Purpose: Executes UrbanOpt energy simulations on buildings, handles scenario creation,
+#          processes results, and manages energy model transformation
+# ======================================================================================
+
 import os
 import shutil
 import time
@@ -5,13 +11,17 @@ import csv
 import json
 import subprocess
 
+# Import helper functions for report cleanup and utilities
 from .clean_report import clean_single_report
 from modules.utils import initialize_logger, run_command, check_storage
 from modules.utils.check_uo import get_urbanopt_command
 
+# Setup logging with external log directory support (for HPC logging)
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Run UOSim', external_log_dir)
 
+# Set UrbanOpt directory path based on HPC environment
+# In HPC mode (/solver path), use absolute path; otherwise use relative path
 if os.environ.get('SLURM_JOB_ID'):  
     URBANOPT_DIR = os.path.join('/solver', 'app', 'urbanopt')
 else:
@@ -46,6 +56,7 @@ def create_scenario_file(FEATURE_FILE_JSON, MAPPER_FILE, SCENARIO_FILE_CSV):
     # Process the mapper file name
     mapper_filename = os.path.basename(MAPPER_FILE)
 
+    # Remove .rb extension and format as UrbanOpt mapper class name
     if mapper_filename.lower().endswith(".rb"):
         base_mapper = mapper_filename[:-3]
     else:
@@ -68,14 +79,20 @@ def create_scenario_file(FEATURE_FILE_JSON, MAPPER_FILE, SCENARIO_FILE_CSV):
 #   The total time is calculated and the metadata is updated in the database.
 ############################################################################################################
 def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
+    # Execute UrbanOpt energy simulation for feature file
+    # Processes results, cleans reports, and updates database with timing information
+    
     from modules.diagnostics import update_time, get_weather
     
+    # Record simulation start time for performance tracking
     feature_start_time = time.time()
     
+    # Extract asset identifiers from feature file name
     feature_file_name = os.path.basename(FEATURE_FILE_JSON)
     asset_id = feature_file_name.split('_')[0]
     asset_name = '_'.join(feature_file_name.split('_')[1:]).replace('.json', '')
 
+    # Log simulation start information
     logger.info(f"\n{'='*47}\n"
     f"Processing feature file: {feature_file_name}\n"
     f"Asset ID: {asset_id}\n"
@@ -84,16 +101,19 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     f"{'='*47}"
 )
 
+    # Retrieve weather data for building location
     state, weather_file = get_weather(asset_id)
     
-    # NOTE: Remove .epw extension if present (database stores full filename with .epw)
+    # Remove .epw extension if present (database stores full filename with .epw)
     if weather_file.endswith('.epw'):
         weather_file = weather_file[:-4]
                 
+    # Prepare weather and simulation directories
     SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
     WEATHER_DESTINATION = os.path.join(SIMULATION_DIR, "weather")
     ASSET_WEATHER_DIR = os.path.join(WEATHER_DESTINATION, weather_file)
         
+    # Create weather directory if it doesn't exist
     if not os.path.exists(ASSET_WEATHER_DIR):
         logger.warning(f"Weather destination not found, creating weather directory at {WEATHER_DESTINATION}")
         os.makedirs(WEATHER_DESTINATION, exist_ok=True)
@@ -292,12 +312,27 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     
     successful = 0
     failed = 0
+    assets_processed_batch = 0
+    
     for asset_data in assets:
         result, asset_id, error = process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num)
         if result:
             successful += 1
         else:
             failed += 1
+        assets_processed_batch += 1
+        
+        # Update progress after every asset is processed
+        from app.views import save_simulation_state, get_current_simulation
+        current_sim = get_current_simulation()
+        if current_sim:
+            current_progress = current_sim.get('progress', {})
+            # Increment the global counter by 1 for each asset
+            new_assets_processed = current_progress.get('assets_processed', 0) + 1
+            current_progress['assets_processed'] = new_assets_processed
+            current_progress['current_step'] = f'processing_batch_{batch_num}'
+            save_simulation_state(simulation_name, 'running', current_progress)
+            logger.debug(f"BATCH {batch_num}: Updated progress - {new_assets_processed} assets processed")
     
     logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed")
     

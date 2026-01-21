@@ -1,23 +1,23 @@
-"""
-Database environment detection and configuration for PowerTwin Solver.
-Routes to SQLite (HPC) or PostgreSQL (Docker) based on environment.
-"""
+# ======================================================================================
+# Database Environment Module
+# Purpose: Environment detection and configuration routing between SQLite (HPC)
+#          and PostgreSQL (Docker) based on runtime environment
+# ======================================================================================
 
 import os
 from modules.utils import initialize_logger
 from ..utils.hpc_environment import is_hpc_environment, get_hpc_info, should_use_distributed_database
 
+# Setup logging with external log directory support (for HPC logging)
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Database Environment', external_log_dir)
 
 def get_database_config():
-    """
-    Get database configuration based on environment.
+    # Get database configuration based on runtime environment detection
+    # Priority: Explicit override > HPC detection > Default to PostgreSQL
+    # Returns: dict with type, connection params, and distributed flag
     
-    Returns:
-        dict: Database configuration
-    """
-    # Check for explicit database type override
+    # Check for explicit database type override (can force specific backend)
     db_type_override = os.environ.get('DATABASE_TYPE', '').lower()
     
     if db_type_override == 'postgresql':
@@ -62,9 +62,9 @@ def get_database_config():
             }
 
 def log_database_environment():
-    """
-    Log database environment configuration for debugging.
-    """
+    # Log database environment configuration for debugging database issues
+    # Displays environment type, database backend, connection parameters, and mode
+    
     config = get_database_config()
     hpc_info = get_hpc_info()
     
