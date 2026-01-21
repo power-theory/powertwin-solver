@@ -145,7 +145,7 @@ apptainer build flask.sif docker://<docker_username>/powertwin-solver-flask:late
 
 1. Modify simulation parameters in the HPC scripts as needed (Paths injest files)
 2. HPC_SHARED_DIR and <project_directory> should be the same as <HPC_SHARED_STORAGE>
-3. <simulation_name> in simulation parameters should match name of upload/<simulation_name>
+3. <simulation_name> in simulation parameters should match name of <simulation_name> in the upload directory
 4. Submit jobs using SLURM:
 
 ```bash
