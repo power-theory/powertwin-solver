@@ -81,7 +81,9 @@ def read_simulation_status(simulation_name, batch_id=None):
 
 def get_simulation_summary(simulation_name):
     """
-    Get simulation status summary in the format expected by bash scripts
+    Get simulation status summary in the format expected by bash scripts.
+    In SLURM environments, reads from all active node databases.
+    Otherwise, reads from consolidated master database.
     
     Args:
         simulation_name: Name of the simulation to query
@@ -90,12 +92,28 @@ def get_simulation_summary(simulation_name):
         str: Status summary in format 'simulation_name | counts | context' or None if error
     """
     try:
+        table_name = os.environ.get('PGDATABASE', 'powertwin')
+        
+        # Check if we're in SLURM environment (HPC parallel processing)
+        if os.environ.get('SLURM_JOB_ID'):
+            logger.debug(f"SLURM environment detected - reading from active node databases for {simulation_name}")
+            return get_simulation_summary_from_nodes(simulation_name, table_name)
+        else:
+            logger.debug(f"Standard environment - reading from master database for {simulation_name}")
+            return get_simulation_summary_from_master(simulation_name, table_name)
+            
+    except Exception as e:
+        logger.error(f"Error in get_simulation_summary: {str(e)}")
+        return f"{simulation_name} | Status query failed: {str(e)} | Status query completed"
+
+def get_simulation_summary_from_master(simulation_name, table_name):
+    """Get simulation status from consolidated master database"""
+    try:
         from modules.database.sqlite_manager import get_sqlite_manager
         import sqlite3
         
         manager = get_sqlite_manager()
         db_path = manager.db_path
-        table_name = os.environ.get('PGDATABASE', 'powertwin')
         
         if not os.path.exists(db_path):
             return f"{simulation_name} | Database not found | Status query completed"
@@ -103,7 +121,7 @@ def get_simulation_summary(simulation_name):
         conn = sqlite3.connect(db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         
-        # Query asset status counts from correct table
+        # Query asset status counts from master database
         cursor = conn.execute('''
             SELECT 
                 COUNT(CASE WHEN status = 'Finished' THEN 1 END) as finished,
@@ -128,7 +146,113 @@ def get_simulation_summary(simulation_name):
         return summary
         
     except Exception as e:
-        logger.error(f"Error in get_simulation_summary: {str(e)}")
+        logger.error(f"Error in get_simulation_summary_from_master: {str(e)}")
+        return f"{simulation_name} | Status query failed: {str(e)} | Status query completed"
+
+def get_simulation_summary_from_nodes(simulation_name, table_name):
+    """Get simulation status by aggregating from all active node databases in SLURM environment"""
+    try:
+        import sqlite3
+        import glob
+        
+        # Get DATA_DIR from environment
+        data_dir = os.environ.get('DATA_DIR')
+        if not data_dir:
+            logger.error("DATA_DIR environment variable not set - cannot locate node databases")
+            return get_simulation_summary_from_master(simulation_name, table_name)
+        
+        # Node databases are in DATA_DIR/sqlite/node_*_t*/powertwin.db
+        sqlite_dir = os.path.join(data_dir, 'sqlite')
+        
+        if not os.path.exists(sqlite_dir):
+            logger.warning(f"SQLite directory not found: {sqlite_dir}")
+            return get_simulation_summary_from_master(simulation_name, table_name)
+        
+        # Search pattern for node databases: node_*_t*/powertwin.db
+        node_pattern = os.path.join(sqlite_dir, "node_*_t*", "powertwin.db")
+        node_db_files = glob.glob(node_pattern)
+        
+        if not node_db_files:
+            logger.warning(f"No node databases found matching pattern {node_pattern}. Falling back to master database.")
+            return get_simulation_summary_from_master(simulation_name, table_name)
+        
+        logger.info(f"Found {len(node_db_files)} node databases: {[os.path.basename(os.path.dirname(f)) for f in node_db_files]}")
+        
+        # Initialize counters
+        total_finished = 0
+        total_failed = 0
+        total_not_processed = 0
+        total_processing = 0
+        nodes_found = 0
+        
+        # Query each node database
+        for node_db_path in node_db_files:
+            try:
+                if not os.path.exists(node_db_path):
+                    logger.debug(f"Node database not found: {node_db_path}")
+                    continue
+                    
+                conn = sqlite3.connect(node_db_path, timeout=5)
+                conn.row_factory = sqlite3.Row
+                
+                # Check if table exists in this node database
+                table_check = conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    (table_name,)
+                ).fetchone()
+                
+                if not table_check:
+                    logger.debug(f"Table {table_name} not found in {node_db_path}")
+                    conn.close()
+                    continue
+                
+                # Query status counts for this simulation from this node
+                cursor = conn.execute('''
+                    SELECT 
+                        COUNT(CASE WHEN status = 'Finished' THEN 1 END) as finished,
+                        COUNT(CASE WHEN status = 'Failed' THEN 1 END) as failed,
+                        COUNT(CASE WHEN status = 'Not Processed Yet' THEN 1 END) as not_processed,
+                        COUNT(CASE WHEN status = 'Processing' THEN 1 END) as processing
+                    FROM {} 
+                    WHERE simulation_name = ?
+                '''.format(table_name), (simulation_name,))
+                
+                row = cursor.fetchone()
+                if row:
+                    node_finished = row['finished'] or 0
+                    node_failed = row['failed'] or 0
+                    node_not_processed = row['not_processed'] or 0
+                    node_processing = row['processing'] or 0
+                    
+                    # Accumulate totals
+                    total_finished += node_finished
+                    total_failed += node_failed
+                    total_not_processed += node_not_processed
+                    total_processing += node_processing
+                    
+                    if (node_finished + node_failed + node_not_processed + node_processing) > 0:
+                        nodes_found += 1
+                        node_name = os.path.basename(os.path.dirname(node_db_path))
+                        logger.debug(f"Node {node_name}: {node_finished} finished, {node_failed} failed, {node_not_processed} not processed, {node_processing} processing")
+                
+                conn.close()
+                
+            except Exception as e:
+                logger.warning(f"Error reading node database {node_db_path}: {str(e)}")
+                continue
+        
+        if nodes_found == 0:
+            logger.warning(f"No data found in any node databases for simulation {simulation_name}")
+            return f"{simulation_name} | No assets found in node databases | Status query completed"
+        
+        # Format aggregated results
+        summary = f"{simulation_name} | {total_finished}_assets_finished | {total_failed}_assets_failed | {total_not_processed}_assets_not_processed_yet | {total_processing}_assets_processing"
+        logger.info(f"Aggregated status from {nodes_found} nodes: {total_finished} finished, {total_failed} failed, {total_not_processed} not processed, {total_processing} processing")
+        
+        return summary
+        
+    except Exception as e:
+        logger.error(f"Error in get_simulation_summary_from_nodes: {str(e)}")
         return f"{simulation_name} | Status query failed: {str(e)} | Status query completed"
         
 if __name__ == "__main__":

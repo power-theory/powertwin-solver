@@ -891,11 +891,28 @@ process_batches() {
         
         # Wait for batch processing to complete normally
         wait "$batch_pid"
+        
+        # Stop recovery monitoring immediately after batch processing completes
+        if [ -f "${NODE_TMP_DIR}/recovery_monitor_${SLURM_JOB_ID}.pid" ]; then
+            local monitor_pid=$(cat "${NODE_TMP_DIR}/recovery_monitor_${SLURM_JOB_ID}.pid")
+            if kill -0 "$monitor_pid" 2>/dev/null; then
+                print_status "info" "Stopping recovery monitoring after batch completion (PID ${monitor_pid})..."
+                kill "$monitor_pid" 2>/dev/null
+                sleep 2  # Give it a moment to terminate gracefully
+                # Force kill if still running
+                if kill -0 "$monitor_pid" 2>/dev/null; then
+                    kill -9 "$monitor_pid" 2>/dev/null
+                fi
+                rm -f "${NODE_TMP_DIR}/recovery_monitor_${SLURM_JOB_ID}.pid"
+                print_status "info" "Recovery monitoring stopped successfully."
+            fi
+        fi
     else
         # Wait for batch processing without monitoring
         wait "$batch_pid"
     fi
     
+    print_status "info" "Parallel batch processing for ${RECOVERY_SIMULATION_NAME} completed"
     return 0
 }
 

@@ -104,12 +104,19 @@ solver status <simulation_name>
 - Apptainer/Singularity module available
 - Adequate storage allocation in your HPC project directory
 
+Download directory locally and build with Docker
+```bash
+docker compose -f docker-compose-local.yml build
+docker tag powertwin-solver-powertwin-solver-flask:latest <docker_username>/powertwin-solver-flask:latest
+docker push <docker_username>/powertwin-solver-flask:latest
+```
+
 ### Step 1: Set Up Directory Structure
 
 Create the following directory structure in your HPC shared storage:
 
 ```bash
-/project/<your-allocation>/powertwin/
+/<project_directory>/
 ├── sif_containers/     # Container images
 └── upload/             # Input files
     └── <simulation_name>/
@@ -124,20 +131,22 @@ Convert the Docker images to Apptainer/Singularity format:
 
 ```bash
 # Load the Apptainer module
-module load apptainer
+module load apptainer/1.4.1
 
 # Build required container images in your sif_containers directory
-cd /project/<your-allocation>/powertwin/sif_containers
+cd /<project_directory>/sif_containers
 
 # Required: Solver container
-apptainer build flask.sif docker://nicotegui/powertwin-solver-flask:latest
+apptainer build flask.sif docker://<docker_username>/powertwin-solver-flask:latest
 
 ```
 
 ### Step 3: Configure and Run Simulations
 
-1. Modify simulation parameters in the HPC scripts as needed
-2. Submit jobs using SLURM:
+1. Modify simulation parameters in the HPC scripts as needed (Paths injest files)
+2. HPC_SHARED_DIR and <project_directory> should be the same as <HPC_SHARED_STORAGE>
+3. <simulation_name> in simulation parameters should match name of upload/<simulation_name>
+4. Submit jobs using SLURM:
 
 ```bash
 # Default
@@ -149,14 +158,18 @@ sbatch apptainer/sql-start-auto.sh
 
 ### Step 4: Monitor Progress
 
-Check simulation status with:
+-NOTE: There is already a simulation status checker built into the bash script.
 
+-Check simulation status with:
 ```bash
 # View job status
 squeue -u $USER
 
 # Check log files
 tail -f powertwin_*_<job_id>.out
+
+# Post consolidation database statistics
+python read_sqlite_db.py <path_to_db>
 ```
 
 

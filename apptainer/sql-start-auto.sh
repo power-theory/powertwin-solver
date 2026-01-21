@@ -45,7 +45,7 @@ HPC_SHARED_STORAGE="/project/cowy-ptheory/test"
 
 # Auto-recovery settings
 AUTO_RECOVERY_ENABLED=true
-FAILURE_THRESHOLD_PERCENT=10
+FAILURE_THRESHOLD_PERCENT=2
 MAX_RECOVERY_ATTEMPTS=3
 MONITORING_INTERVAL_SECONDS=1500  # 5 minutes
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload/${SIMULATION_NAME}"
@@ -823,11 +823,28 @@ process_batches() {
         
         # Wait for batch processing to complete normally
         wait "$batch_pid"
+        
+        # Stop status monitoring immediately after batch processing completes
+        if [ -f "${STATUS_MONITOR_PID_FILE}" ]; then
+            local monitor_pid=$(cat "${STATUS_MONITOR_PID_FILE}")
+            if kill -0 "$monitor_pid" 2>/dev/null; then
+                print_status "info" "Stopping status monitoring after batch completion (PID ${monitor_pid})..."
+                kill "$monitor_pid" 2>/dev/null
+                sleep 2  # Give it a moment to terminate gracefully
+                # Force kill if still running
+                if kill -0 "$monitor_pid" 2>/dev/null; then
+                    kill -9 "$monitor_pid" 2>/dev/null
+                fi
+                rm -f "${STATUS_MONITOR_PID_FILE}"
+                print_status "info" "Status monitoring stopped successfully."
+            fi
+        fi
     else
         # Wait for batch processing without monitoring
         wait "$batch_pid"
     fi
     
+    print_status "info" "Parallel batch processing for ${SIMULATION_NAME} completed"
     return 0
 }
 

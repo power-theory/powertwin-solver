@@ -16,8 +16,7 @@
 #SBATCH --ntasks-per-node=1        
 #SBATCH --cpus-per-task=5          
 #SBATCH --time=7-00:00:00           
-#SBATCH --mem-per-cpu=6G            
-#SBATCH --account=cowy-ptheory
+#SBATCH --account=cowy-nvhackathon 
 #SBATCH --partition=teton            # Teton partition
 #SBATCH --output=%x_%j.out
 #SBATCH --qos=long                  #debug or long
