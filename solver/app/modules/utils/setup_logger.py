@@ -119,32 +119,15 @@ def initialize_logger(logger_name, external_log_dir=None):
             file_handler_no_debug.setLevel(logging.INFO)
             file_handler_no_debug.setFormatter(file_formatter)
 
-<<<<<<< HEAD
-            # JSON structured log file handler for machine parsing
-            json_log_path = os.path.join(log_dir, 'structured_logs.jsonl')
-            json_handler = RotatingFileHandler(
-                json_log_path,
-                maxBytes=10 * 1024 * 1024,  # 10MB
-                backupCount=10,
-                encoding='utf-8'
-            )
-            json_handler.setLevel(logging.DEBUG)
-            json_handler.setFormatter(JSONFormatter())
-=======
             file_handler.setFormatter(formatter)
             file_handler_no_debug.setFormatter(formatter)
             error_handler.setFormatter(formatter)
->>>>>>> 9c17126313aa70ee83965538680babdb325ba35d
 
             # Add all handlers to logger
             logger.addHandler(console_handler)
             logger.addHandler(file_handler)
             logger.addHandler(file_handler_no_debug)
-<<<<<<< HEAD
-            logger.addHandler(json_handler)
-=======
             logger.addHandler(error_handler)
->>>>>>> 9c17126313aa70ee83965538680babdb325ba35d
             
         except (PermissionError, OSError) as e:
             # If we can't write to the log files, just use console logging
