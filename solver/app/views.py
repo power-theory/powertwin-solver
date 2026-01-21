@@ -863,9 +863,14 @@ def get_logs(shared_storage=None):
     os.makedirs(REQUESTED_FILES_DIR, exist_ok=True)
     os.makedirs(LOGS_DIR, exist_ok=True)
     
+<<<<<<< HEAD
     # Define log file paths
     REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.txt')
     LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
+=======
+    REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev.log')
+    LOG_FILE = os.path.join(LOGS_DIR, 'dev.log')
+>>>>>>> 9c17126313aa70ee83965538680babdb325ba35d
     
     # Create an empty log file if it doesn't exist
     if not os.path.exists(LOG_FILE):
@@ -897,9 +902,50 @@ def get_logs(shared_storage=None):
 
 
 ############################################################################################################
+# Name: def update_asset()
+# Description: This function forces an asset's status to 'Failed' so it will be reprocessed during recovery.
+# Calls the update_status function to set the asset status to 'Failed'.
+############################################################################################################
+def update_asset():
+    from modules.diagnostics.db import update_status
+    
+    logger.debug("Within update_asset()")
+    
+    # Get parameters from request
+    asset_id = request.form.get('asset_id')
+    simulation_name = request.form.get('simulation_name')
+    
+    # Validate parameters
+    if not asset_id:
+        logger.error("Missing asset_id parameter")
+        return jsonify({'error': 'Missing asset_id parameter'}), 400
+        
+    if not simulation_name:
+        logger.error("Missing simulation_name parameter")
+        return jsonify({'error': 'Missing simulation_name parameter'}), 400
+    
+    try:
+        # Update the asset status to Failed
+        result = update_status('Failed', asset_id, simulation_name)
+        
+        if result:
+            logger.info(f"Successfully marked asset {asset_id} in simulation {simulation_name} as Failed")
+            return jsonify({
+                'success': True, 
+                'message': f'Asset {asset_id} has been marked as Failed and will be reprocessed during recovery'
+            })
+        else:
+            logger.error(f"Failed to update status for asset {asset_id}")
+            return jsonify({'error': f'Failed to update status for asset {asset_id}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating asset {asset_id}: {str(e)}")
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+############################################################################################################
 # Name: def log_message()
-# Description: This function logs a message to the dev_logs.txt file.
-# Calls the log_message function to log a message to the dev_logs.txt file.
+# Description: This function logs a message to the dev.log file.
+# Calls the log_message function to log a message to the dev.log file.
 ############################################################################################################
 def log_message():
     # Extract message data from JSON request
@@ -910,8 +956,8 @@ def log_message():
     # Create a timestamp for the log entry
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Define the log file path and create directories if needed
-    log_txt = os.path.join('logs','dev_logs.txt')
+    # Define the log file path
+    log_txt = os.path.join('logs','dev.log')
     os.makedirs(os.path.dirname(log_txt), exist_ok=True)
 
     # Append the log entry to the log file with timestamp and type

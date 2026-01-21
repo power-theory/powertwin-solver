@@ -37,7 +37,7 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
     
     # Use centralized HPC detection
     is_hpc = is_hpc_environment()
-    from modules.diagnostics import get_asset_total, get_batch_total, update_status
+    from modules.diagnostics import get_asset_total, get_batch_total, update_status, get_bulk_assets, bulk_update_status
     
     # Get simulation statistics from database
     batches = get_batch_total(simulation_name)
@@ -117,8 +117,17 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
 
-    
-    update_status("Not Processed Yet",simulation_name=simulation_name)
+    # Initialize all assets with "Not Processed Yet" status using bulk update
+    try:
+        assets_data = get_bulk_assets(simulation_name)
+        if assets_data:
+            asset_ids = [asset['asset_id'] for asset in assets_data]
+            logger.info(f"Setting initial status 'Not Processed Yet' for {len(asset_ids)} assets in {simulation_name}")
+            bulk_update_status(asset_ids, "Not Processed Yet", simulation_name)
+        else:
+            logger.warning(f"No assets found for simulation {simulation_name} to initialize status")
+    except Exception as e:
+        logger.error(f"Failed to initialize asset status for {simulation_name}: {e}")
 
     if is_hpc: return list(range(batches))
         

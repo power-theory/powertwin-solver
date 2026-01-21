@@ -1,48 +1,38 @@
 """
-SQLite database operations for PowerTwin Solver HPC environments.
-Provides the same interface as PostgreSQL operations but uses SQLite for better HPC compatibility.
+SQLite database operations for PowerTwin Solver.
+Provides single SQLite database with file locking for concurrent access from multiple cores.
+Same interface as PostgreSQL operations but uses SQLite with WAL mode for concurrency.
 """
 
 import sqlite3
 import os
 import time
-try:
-    import fcntl  # Unix/Linux file locking
-except ImportError:
-    fcntl = None  # Windows doesn't have fcntl
-import tempfile
 from typing import List, Dict, Any, Optional, Tuple
 import threading
 
 from modules.utils import initialize_logger
-from modules.utils.hpc_environment import get_hpc_info, is_hpc_environment, should_use_distributed_database
-from .distributed_sqlite import get_distributed_manager
+from .sqlite_manager import get_sqlite_manager
 
 # Thread-local storage for database connections
 thread_local = threading.local()
 
 # Setup logger
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
-logger = initialize_logger('SQLiteDatabase', external_log_dir)
+logger = initialize_logger('SQLiteOperations', external_log_dir)
 
 # SQLite database configuration
 DEFAULT_SQLITE_PATH = "/tmp/powertwin.db"
 SQLITE_DB_PATH = os.environ.get("SQLITE_DB_PATH", DEFAULT_SQLITE_PATH)
 
-# Retry configuration for HPC environments
-MAX_RETRIES = 5  # Increased for HPC coordination
+# Retry configuration for SQLite locking
+MAX_RETRIES = 5
 BASE_RETRY_DELAY = 0.5  # seconds
 MAX_RETRY_DELAY = 8.0   # seconds
-
-# HPC coordination configuration
-HPC_LOCK_TIMEOUT = 30.0  # seconds to wait for locks
-DB_LOCK_FILE = f"{SQLITE_DB_PATH}.lock"
-INIT_LOCK_FILE = f"{SQLITE_DB_PATH}.init.lock"
 
 
 def retry_on_database_error(func):
     """
-    Decorator to retry database operations on common SQLite errors in HPC environments.
+    Decorator to retry database operations on SQLite lock errors.
     """
     def wrapper(*args, **kwargs):
         for attempt in range(MAX_RETRIES):
@@ -51,9 +41,9 @@ def retry_on_database_error(func):
             except sqlite3.OperationalError as e:
                 error_msg = str(e).lower()
                 
-                # Check for common recoverable errors
+                # Check for common recoverable SQLite errors
                 if any(phrase in error_msg for phrase in ['locked', 'database is locked', 'locking protocol']):
-                    if attempt < MAX_RETRIES - 1:  # Don't log on final attempt
+                    if attempt < MAX_RETRIES - 1:
                         delay = min(BASE_RETRY_DELAY * (2 ** attempt), MAX_RETRY_DELAY)
                         logger.warning(f"Database locked on attempt {attempt + 1}/{MAX_RETRIES}, retrying in {delay}s: {e}")
                         time.sleep(delay)
@@ -81,117 +71,28 @@ def retry_on_database_error(func):
         return None  # Should never reach here
     
     return wrapper
-
-
-def coordinate_database_access(operation_name: str):
-    """Coordinate database access across HPC nodes using file locks."""
-    hpc_info = get_hpc_info()
-    
-    if not hpc_info['is_master']:
-        # Non-master processes wait for master to complete critical operations
-        max_wait = HPC_LOCK_TIMEOUT
-        wait_time = 0
-        while wait_time < max_wait:
-            if os.path.exists(f"{DB_LOCK_FILE}.{operation_name}.done"):
-                logger.debug(f"Rank {hpc_info['rank']}: Master completed {operation_name}, proceeding")
-                return
-            time.sleep(0.5)
-            wait_time += 0.5
-        
-        logger.warning(f"Rank {hpc_info['rank']}: Timeout waiting for master to complete {operation_name}")
-    else:
-        # Master process creates completion marker
-        try:
-            with open(f"{DB_LOCK_FILE}.{operation_name}.done", 'w') as f:
-                f.write(str(time.time()))
-            logger.debug(f"Rank 0: Marked {operation_name} as completed")
-        except Exception as e:
-            logger.warning(f"Failed to create completion marker for {operation_name}: {e}")
-
-
-def cleanup_coordination_files():
-    """Clean up coordination files when simulation completes."""
-    hpc_info = get_hpc_info()
-    
-    if hpc_info['is_master']:
-        try:
-            import glob
-            coordination_files = glob.glob(f"{DB_LOCK_FILE}.*.done")
-            for file_path in coordination_files:
-                try:
-                    os.remove(file_path)
-                    logger.debug(f"Removed coordination file: {file_path}")
-                except OSError:
-                    pass  # File may have been removed by another process
-        except Exception as e:
-            logger.warning(f"Error cleaning coordination files: {e}")
-
-
 @retry_on_database_error
-def get_sqlite_connection() -> sqlite3.Connection:
-    """
-    Get a SQLite database connection using appropriate database path.
-    In distributed mode, uses local database; otherwise uses master database.
-    """
-    if not hasattr(thread_local, "connection"):
-        # Check if we should use distributed database
-        use_distributed = should_use_distributed_database()
-        
-        if use_distributed:
-            # Use distributed database approach
-            manager = get_distributed_manager()
-            manager.ensure_local_db_exists()
-            db_path = manager.get_local_db_path()
-            
-            logger.debug(f"Using distributed SQLite database: {db_path}")
-        else:
-            # Use traditional single database
-            db_path = SQLITE_DB_PATH
-            
-            logger.debug(f"Using single SQLite database: {db_path}")
-            
-        # Ensure database directory exists
-        db_dir = os.path.dirname(db_path)
-        if db_dir and not os.path.exists(db_dir):
-            os.makedirs(db_dir, exist_ok=True)
-            
-        # Create connection with optimized settings for HPC concurrency
-        conn = sqlite3.connect(
-            db_path,
-            check_same_thread=False,
-            timeout=30.0,  # Timeout for distributed databases
-            isolation_level=None  # Autocommit mode for better performance
-        )
-        
-        # Enable WAL mode for better concurrent access
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")  # Balance safety and performance
-        conn.execute("PRAGMA wal_autocheckpoint=100")  # Auto-checkpoint for WAL
-        conn.execute("PRAGMA cache_size=10000")
-        conn.execute("PRAGMA temp_store=memory")
-        conn.execute("PRAGMA mmap_size=268435456")  # 256MB memory map
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.execute("PRAGMA busy_timeout=30000")  # 30s busy timeout for locks
-        
-        # Set row factory to return rows as dictionaries
-        conn.row_factory = sqlite3.Row
-        
-        thread_local.connection = conn
-        logger.debug(f"Created new SQLite connection to {db_path}")
+def get_sqlite_connection():
+    """Get SQLite database connection using SQLiteManager."""
+    manager = get_sqlite_manager()
+    db_path = manager.get_db_path()
+   
+    # Ensure directory exists for node databases
+    db_dir = os.path.dirname(db_path)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
     
-    return thread_local.connection
-
+    conn = sqlite3.connect(db_path)
+    # Enable Row factory for dictionary-style access
+    conn.row_factory = sqlite3.Row
+    # Enable WAL mode for concurrent access
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=30000")
+    return conn
 
 def create_table() -> bool:
-    """Create the main assets table if it doesn't exist. Coordinated for HPC environments."""
-    hpc_info = get_hpc_info()
-    logger.debug(f'Rank {hpc_info["rank"]}: Creating SQLite table if not exists')
-    
-    # Only master process creates tables
-    if not hpc_info['is_master']:
-        coordinate_database_access("create_table")
-        logger.debug(f'Rank {hpc_info["rank"]}: Table creation coordinated by master')
-        return True
+    """Create the main assets table if it doesn't exist."""
+    logger.debug('Creating SQLite table if not exists')
     
     try:
         conn = get_sqlite_connection()
@@ -200,9 +101,10 @@ def create_table() -> bool:
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         # Create main table with same schema as PostgreSQL version
+        # Note: asset_id stores original building IDs, not auto-incremented values
         conn.execute(f"""
             CREATE TABLE IF NOT EXISTS {table_name} (
-                asset_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                asset_id INTEGER PRIMARY KEY,
                 batch INTEGER,
                 order_rank INTEGER,
                 simulation_name VARCHAR(255),
@@ -221,37 +123,16 @@ def create_table() -> bool:
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.commit()
         
-        # Create indices for performance
-        indices = [
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_simulation_name ON {table_name}(simulation_name)",
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_batch ON {table_name}(batch)",
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_status ON {table_name}(status)",
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_state ON {table_name}(state)",
-            f"CREATE INDEX IF NOT EXISTS idx_{table_name}_order_rank ON {table_name}(order_rank)"
-        ]
-        
-        for index_sql in indices:
-            conn.execute(index_sql)
-        
-        # Create trigger for updating timestamp
-        conn.execute(f"""
-            CREATE TRIGGER IF NOT EXISTS update_{table_name}_timestamp 
-                AFTER UPDATE ON {table_name}
-            BEGIN
-                UPDATE {table_name} SET updated_at = CURRENT_TIMESTAMP WHERE asset_id = NEW.asset_id;
-            END
-        """)
-        
-        # Mark table creation as completed for other processes
-        coordinate_database_access("create_table")
-        
-        logger.info("SQLite table and indices created successfully")
+        logger.debug(f"Table '{table_name}' created or verified to exist")
         return True
         
     except Exception as e:
-        logger.error(f"Error creating SQLite table: {e}")
+        logger.error(f"Error creating table: {e}")
         return False
+
+
 
 
 def insert_asset(asset_id: int, state: str, weather_file: str, floor_area: float, 
@@ -265,10 +146,10 @@ def insert_asset(asset_id: int, state: str, weather_file: str, floor_area: float
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
         conn.execute(f"""
-            INSERT INTO {table_name} (
+            INSERT OR REPLACE INTO {table_name} (
                 asset_id, state, weather_file, floor_area, number_of_stories,
                 complexity, asset_name, subtype, simulation_name, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Processed Yet')
         """, (asset_id, state, weather_file, floor_area, number_of_stories,
               complexity, asset_name, subtype, simulation_name))
         
@@ -280,18 +161,13 @@ def insert_asset(asset_id: int, state: str, weather_file: str, floor_area: float
         return False
 
 
+@retry_on_database_error
 def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
-    """Insert multiple assets in bulk for better performance. Coordinated for HPC environments."""
-    logger.debug(f'Rank {get_hpc_rank()}: Bulk inserting {len(assets)} assets')
+    """Insert multiple assets in bulk for better performance."""
+    logger.debug(f'Bulk inserting {len(assets)} assets')
     
     if not assets:
         logger.debug("No assets to insert")
-        return True
-    
-    # Only master process inserts assets
-    if not is_hpc_master():
-        coordinate_database_access("bulk_insert")
-        logger.debug(f'Rank {get_hpc_rank()}: Bulk insert coordinated by master')
         return True
     
     try:
@@ -318,21 +194,32 @@ def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
                 insert_data.append((
                     asset['asset_id'], asset['state'], asset['weather_file'],
                     asset['floor_area'], asset['number_of_stories'], asset['complexity'],
-                    asset['asset_name'], asset['subtype'], asset['simulation_name'], 'pending'
+                    asset['asset_name'], asset['subtype'], asset['simulation_name'], 
+                    asset.get('status', 'Not Processed Yet')  # Preserve existing status if available
                 ))
             except Exception as e:
                 logger.error(f"Error processing asset {i}: {e}, asset: {asset}")
                 return False
         
+        # Use INSERT OR IGNORE followed by UPDATE for existing records (excluding finished assets)
         conn.executemany(f"""
-            INSERT INTO {table_name} (
+            INSERT OR IGNORE INTO {table_name} (
                 asset_id, state, weather_file, floor_area, number_of_stories,
                 complexity, asset_name, subtype, simulation_name, status
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, insert_data)
         
-        # Mark bulk insert as completed for other processes
-        coordinate_database_access("bulk_insert")
+        # Update existing records but protect finished assets
+        for asset_data in insert_data:
+            conn.execute(f"""
+                UPDATE {table_name} SET 
+                    state = ?, weather_file = ?, floor_area = ?, number_of_stories = ?,
+                    complexity = ?, asset_name = ?, subtype = ?, simulation_name = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE asset_id = ? AND (status IS NULL OR status != 'Finished')
+            """, (asset_data[1], asset_data[2], asset_data[3], asset_data[4], 
+                  asset_data[5], asset_data[6], asset_data[7], asset_data[8], asset_data[0]))
+        conn.commit()
         
         logger.info(f"Bulk inserted {len(assets)} assets successfully")
         return True
@@ -342,6 +229,7 @@ def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
         return False
 
 
+@retry_on_database_error
 def get_bulk_assets(simulation_name: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
     """Get assets for a simulation."""
     logger.debug(f'Getting assets for simulation {simulation_name}')
@@ -371,6 +259,7 @@ def get_bulk_assets(simulation_name: str, limit: Optional[int] = None) -> List[D
         return []
 
 
+@retry_on_database_error
 def bulk_update_status(asset_ids: List[int], status: str, simulation_name: str) -> bool:
     """Efficiently update status for multiple assets in a single transaction."""
     if not asset_ids:
@@ -386,12 +275,12 @@ def bulk_update_status(asset_ids: List[int], status: str, simulation_name: str) 
         # Use executemany for efficient bulk updates
         update_data = [(status, simulation_name, asset_id) for asset_id in asset_ids]
         
-        with conn:
-            conn.executemany(f"""
-                UPDATE {table_name} 
-                SET status = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE simulation_name = ? AND asset_id = ?
-            """, update_data)
+        conn.executemany(f"""
+            UPDATE {table_name} 
+            SET status = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE simulation_name = ? AND asset_id = ?
+        """, update_data)
+        conn.commit()
         
         logger.info(f"Successfully updated status to '{status}' for {len(asset_ids)} assets")
         return True
@@ -401,6 +290,7 @@ def bulk_update_status(asset_ids: List[int], status: str, simulation_name: str) 
         return False
 
 
+@retry_on_database_error
 def update_status(simulation_name: str, asset_id: int, status: str) -> bool:
     """Update asset status. Consider using bulk_update_status for better performance with multiple assets."""
     logger.debug(f'Updating asset {asset_id} status to {status} for simulation {simulation_name}')
@@ -414,6 +304,7 @@ def update_status(simulation_name: str, asset_id: int, status: str) -> bool:
             SET status = ?, updated_at = CURRENT_TIMESTAMP
             WHERE simulation_name = ? AND asset_id = ?
         """, (status, simulation_name, asset_id))
+        conn.commit()
         
         logger.debug(f"Asset {asset_id} status updated to {status}")
         return True
@@ -425,75 +316,30 @@ def update_status(simulation_name: str, asset_id: int, status: str) -> bool:
 
 @retry_on_database_error
 def get_weather(asset_id: int) -> Optional[Tuple[str, str]]:
-    """Get weather file and state for an asset with distributed database support."""
+    """Get weather file and state for an asset."""
     logger.debug(f'Getting weather file for asset {asset_id}')
     
-    # Check if we should use distributed database
-    use_distributed = should_use_distributed_database()
-    
-    if use_distributed:
-        # In distributed mode, check local database first, then master
-        manager = get_distributed_manager()
+    try:
+        conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
-        # First try local database
-        try:
-            conn = get_sqlite_connection()
-            cursor = conn.execute(f"""
-                SELECT state, weather_file FROM {table_name} 
-                WHERE asset_id = ?
-            """, (asset_id,))
-            
-            row = cursor.fetchone()
-            if row:
-                return (row['state'], row['weather_file'])
-        except Exception as e:
-            logger.debug(f"Asset {asset_id} not found in local database, checking master: {e}")
+        cursor = conn.execute(f"""
+            SELECT state, weather_file FROM {table_name} 
+            WHERE asset_id = ?
+        """, (asset_id,))
         
-        # If not found locally, check master database
-        try:
-            master_conn = sqlite3.connect(manager.get_master_db_path(), timeout=5.0)
-            master_conn.row_factory = sqlite3.Row
-            
-            cursor = master_conn.execute(f"""
-                SELECT state, weather_file FROM {table_name} 
-                WHERE asset_id = ?
-            """, (asset_id,))
-            
-            row = cursor.fetchone()
-            master_conn.close()
-            
-            if row:
-                return (row['state'], row['weather_file'])
-                
-        except Exception as e:
-            logger.error(f"Error accessing master database for asset {asset_id}: {e}")
-            
-        # If still not found, this is an error
-        logger.error(f"No weather data found for asset_id {asset_id}")
-        return None
-    else:
-        # Use original single database logic
-        try:
-            conn = get_sqlite_connection()
-            table_name = os.environ.get("PGDATABASE", "powertwin")
-            
-            cursor = conn.execute(f"""
-                SELECT state, weather_file FROM {table_name} 
-                WHERE asset_id = ?
-            """, (asset_id,))
-            
-            row = cursor.fetchone()
-            if row:
-                return (row['state'], row['weather_file'])
-            else:
-                return None
-            
-        except Exception as e:
-            logger.error(f"Error getting weather file: {e}")
+        row = cursor.fetchone()
+        if row:
+            return (row['state'], row['weather_file'])
+        else:
             return None
+        
+    except Exception as e:
+        logger.error(f"Error getting weather file: {e}")
+        return None
 
 
+@retry_on_database_error
 def update_time(simulation_name: str, asset_id: int, uorun_time: float, 
                 uoprocess_time: float, total_time: float) -> bool:
     """Update timing information for an asset."""
@@ -508,6 +354,7 @@ def update_time(simulation_name: str, asset_id: int, uorun_time: float,
             SET uorun_time = ?, uoprocess_time = ?, total_time = ?, updated_at = CURRENT_TIMESTAMP
             WHERE simulation_name = ? AND asset_id = ?
         """, (uorun_time, uoprocess_time, total_time, simulation_name, asset_id))
+        conn.commit()
         
         logger.debug(f"Times updated for asset {asset_id}")
         return True
@@ -517,6 +364,7 @@ def update_time(simulation_name: str, asset_id: int, uorun_time: float,
         return False
 
 
+@retry_on_database_error
 def get_failed_assets(simulation_name: str) -> List[Dict[str, Any]]:
     """Get assets that failed processing."""
     logger.debug(f'Getting failed assets for simulation {simulation_name}')
@@ -527,7 +375,7 @@ def get_failed_assets(simulation_name: str) -> List[Dict[str, Any]]:
         
         cursor = conn.execute(f"""
             SELECT * FROM {table_name} 
-            WHERE simulation_name = ? AND status = 'failed'
+            WHERE simulation_name = ? AND status = 'Failed'
         """, (simulation_name,))
         
         rows = cursor.fetchall()
@@ -541,15 +389,10 @@ def get_failed_assets(simulation_name: str) -> List[Dict[str, Any]]:
         return []
 
 
+@retry_on_database_error
 def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bool:
-    """Distribute assets across batches. Coordinated for HPC environments."""
-    logger.debug(f'Rank {get_hpc_rank()}: Distributing assets to {total_batches} batches for simulation {simulation_name}')
-    
-    # Only master process distributes assets
-    if not is_hpc_master():
-        coordinate_database_access("distribute_batches")
-        logger.debug(f'Rank {get_hpc_rank()}: Asset distribution coordinated by master')
-        return True
+    """Distribute assets across batches."""
+    logger.debug(f'Distributing assets to {total_batches} batches for simulation {simulation_name}')
     
     try:
         conn = get_sqlite_connection()
@@ -592,11 +435,8 @@ def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bo
             
             current_asset += batch_size
         
+        conn.commit()
         logger.info(f"Distributed {total_assets} assets across {total_batches} batches")
-        
-        # Mark distribution as completed for other processes
-        coordinate_database_access("distribute_batches")
-        
         return True
         
     except Exception as e:
@@ -658,8 +498,8 @@ def get_bulk_batchids(simulation_name: str) -> List[int]:
 
 @retry_on_database_error
 def get_batch_total(simulation_name: str) -> int:
-    """Get total number of batches for a simulation. Safe for HPC concurrent access."""
-    logger.debug(f'Rank {get_hpc_rank()}: Getting batch total for simulation {simulation_name}')
+    """Get total number of batches for a simulation."""
+    logger.debug(f'Getting batch total for simulation {simulation_name}')
     
     try:
         conn = get_sqlite_connection()
@@ -674,11 +514,11 @@ def get_batch_total(simulation_name: str) -> int:
         row = cursor.fetchone()
         total = row['count'] if row else 0
         
-        logger.debug(f"Rank {get_hpc_rank()}: Batch total: {total}")
+        logger.debug(f"Batch total: {total}")
         return total
         
     except Exception as e:
-        logger.error(f"Rank {get_hpc_rank()}: Error getting batch total: {e}")
+        logger.error(f"Error getting batch total: {e}")
         return 0
 
 
@@ -706,6 +546,7 @@ def get_asset_total(simulation_name: str) -> int:
         return 0
 
 
+@retry_on_database_error
 def update_batch(asset_id: int, batch: int) -> bool:
     """Update batch for a specific asset."""
     logger.debug(f'Updating asset {asset_id} to batch {batch}')
@@ -719,6 +560,7 @@ def update_batch(asset_id: int, batch: int) -> bool:
             SET batch = ?, updated_at = CURRENT_TIMESTAMP
             WHERE asset_id = ?
         """, (batch, asset_id))
+        conn.commit()
         
         logger.debug(f"Asset {asset_id} batch updated to {batch}")
         return True
@@ -728,9 +570,10 @@ def update_batch(asset_id: int, batch: int) -> bool:
         return False
 
 
-def update_simulation_name(old_name: str, new_name: str) -> bool:
-    """Update simulation name for all assets."""
-    logger.debug(f'Updating simulation name from {old_name} to {new_name}')
+@retry_on_database_error
+def update_simulation_name(recovery_simulation_name: str, corrupted_simulation_name: str, batch_id: int) -> bool:
+    """Update simulation name for assets in a specific batch, excluding finished assets."""
+    logger.debug(f'Updating simulation name from {corrupted_simulation_name} to {recovery_simulation_name} for batch {batch_id}')
     
     try:
         conn = get_sqlite_connection()
@@ -739,10 +582,11 @@ def update_simulation_name(old_name: str, new_name: str) -> bool:
         conn.execute(f"""
             UPDATE {table_name} 
             SET simulation_name = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE simulation_name = ?
-        """, (new_name, old_name))
+            WHERE batch = ? AND simulation_name = ? AND (status IS NULL OR status != 'Finished')
+        """, (recovery_simulation_name, batch_id, corrupted_simulation_name))
+        conn.commit()
         
-        logger.debug(f"Simulation name updated from {old_name} to {new_name}")
+        logger.debug(f"Simulation name updated from {corrupted_simulation_name} to {recovery_simulation_name} for batch {batch_id}")
         return True
         
     except Exception as e:
@@ -750,6 +594,7 @@ def update_simulation_name(old_name: str, new_name: str) -> bool:
         return False
 
 
+@retry_on_database_error
 def delete_table(simulation_name: str) -> bool:
     """Delete all assets for a simulation."""
     logger.debug(f'Deleting assets for simulation {simulation_name}')
@@ -761,6 +606,7 @@ def delete_table(simulation_name: str) -> bool:
         conn.execute(f"""
             DELETE FROM {table_name} WHERE simulation_name = ?
         """, (simulation_name,))
+        conn.commit()
         
         logger.debug(f"Assets deleted for simulation {simulation_name}")
         return True
@@ -770,6 +616,7 @@ def delete_table(simulation_name: str) -> bool:
         return False
 
 
+@retry_on_database_error
 def get_asset_stats(simulation_name: str) -> Dict[str, Any]:
     """Get comprehensive statistics for a simulation."""
     logger.debug(f'Getting asset stats for simulation {simulation_name}')
@@ -806,29 +653,505 @@ def get_asset_stats(simulation_name: str) -> Dict[str, Any]:
         return {}
 
 
-# Distributed Database Functions
+@retry_on_database_error
+def create_preservation_database(master_db_path: str, simulation_name: str) -> Tuple[str, int]:
+    """
+    Create a preservation database to save all 'Finished' assets before consolidation.
+    This ensures completed work is never lost during the consolidation process.
+    
+    Returns:
+        Tuple[str, int]: (preservation_db_path, preserved_count)
+    """
+    import time
+    import shutil
+    
+    # Create preservation database path
+    timestamp = int(time.time())
+    base_dir = os.path.dirname(master_db_path)
+    preservation_db_path = os.path.join(base_dir, f"preservation_{simulation_name}_{timestamp}.db")
+    
+    logger.info(f"Creating preservation database: {preservation_db_path}")
+    
+    try:
+        # Connect to master database
+        master_conn = sqlite3.connect(master_db_path)
+        master_conn.row_factory = sqlite3.Row
+        table_name = os.environ.get("PGDATABASE", "powertwin")
+        
+        # Get all finished assets from master
+        finished_cursor = master_conn.execute(
+            f"SELECT * FROM {table_name} WHERE simulation_name = ? AND status = 'Finished'",
+            (simulation_name,)
+        )
+        finished_assets = finished_cursor.fetchall()
+        
+        if not finished_assets:
+            logger.info("No finished assets found to preserve")
+            master_conn.close()
+            return preservation_db_path, 0
+        
+        # Create preservation database
+        preserve_conn = sqlite3.connect(preservation_db_path)
+        preserve_conn.row_factory = sqlite3.Row
+        
+        # Create table with same schema
+        preserve_conn.execute(f"""
+            CREATE TABLE {table_name} (
+                asset_id INTEGER PRIMARY KEY,
+                batch INTEGER,
+                order_rank INTEGER,
+                simulation_name VARCHAR(255),
+                state VARCHAR(255),
+                weather_file VARCHAR(255),
+                floor_area REAL,
+                number_of_stories INTEGER,
+                complexity INTEGER,
+                uorun_time REAL,
+                uoprocess_time REAL,
+                asset_name VARCHAR(255),
+                subtype VARCHAR(255),
+                status VARCHAR(255),
+                total_time REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Copy finished assets to preservation database
+        preserved_count = 0
+        for asset_row in finished_assets:
+            asset_dict = dict(asset_row)
+            columns = ', '.join(asset_dict.keys())
+            placeholders = ', '.join(['?' for _ in asset_dict])
+            
+            preserve_conn.execute(
+                f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})",
+                list(asset_dict.values())
+            )
+            preserved_count += 1
+        
+        preserve_conn.commit()
+        preserve_conn.close()
+        master_conn.close()
+        
+        logger.info(f"✓ Preserved {preserved_count} finished assets in preservation database")
+        return preservation_db_path, preserved_count
+        
+    except Exception as e:
+        logger.error(f"Failed to create preservation database: {e}")
+        # Clean up partial preservation database
+        if os.path.exists(preservation_db_path):
+            try:
+                os.remove(preservation_db_path)
+            except:
+                pass
+        raise
 
-def consolidate_distributed_databases(simulation_name=None):
-    """Consolidate all distributed databases into master database."""
-    manager = get_distributed_manager()
-    return manager.consolidate_databases(simulation_name)
+@retry_on_database_error
+def merge_preservation_database(master_conn, preservation_db_path: str, simulation_name: str) -> int:
+    """
+    Merge preserved finished assets back into the master database.
+    
+    Args:
+        master_conn: Active connection to master database
+        preservation_db_path: Path to preservation database
+        simulation_name: Name of the simulation
+        
+    Returns:
+        int: Number of preserved assets merged back
+    """
+    if not os.path.exists(preservation_db_path):
+        logger.info("No preservation database found to merge")
+        return 0
+    
+    try:
+        # Connect to preservation database
+        preserve_conn = sqlite3.connect(preservation_db_path)
+        preserve_conn.row_factory = sqlite3.Row
+        table_name = os.environ.get("PGDATABASE", "powertwin")
+        
+        # Get all preserved assets
+        preserve_cursor = preserve_conn.execute(
+            f"SELECT * FROM {table_name} WHERE simulation_name = ?",
+            (simulation_name,)
+        )
+        preserved_assets = preserve_cursor.fetchall()
+        
+        if not preserved_assets:
+            logger.info("No preserved assets to merge back")
+            preserve_conn.close()
+            return 0
+        
+        # Merge preserved assets back to master
+        merged_count = 0
+        for asset_row in preserved_assets:
+            asset_dict = dict(asset_row)
+            columns = ', '.join(asset_dict.keys())
+            placeholders = ', '.join(['?' for _ in asset_dict])
+            
+            # Use INSERT OR REPLACE to ensure finished assets take priority
+            master_conn.execute(
+                f"INSERT OR REPLACE INTO {table_name} ({columns}) VALUES ({placeholders})",
+                list(asset_dict.values())
+            )
+            merged_count += 1
+        
+        preserve_conn.close()
+        logger.info(f"✓ Merged {merged_count} preserved finished assets back to master")
+        return merged_count
+        
+    except Exception as e:
+        logger.error(f"Failed to merge preservation database: {e}")
+        raise
 
-def copy_master_to_local(simulation_name):
-    """Copy master database data to local database for this process."""
-    manager = get_distributed_manager()
-    return manager.copy_master_data_to_local(simulation_name)
-
-def setup_distributed_database(simulation_name):
-    """Setup distributed database for this process."""
-    if should_use_distributed_database():
-        manager = get_distributed_manager()
-        manager.ensure_local_db_exists()
-        # Copy initial data from master if it exists
-        copy_master_to_local(simulation_name)
+@retry_on_database_error
+def consolidate_databases(simulation_name: str, node_dirs: List[str], master_db_path: str) -> bool:
+    """
+    Atomic consolidation of node-specific databases back to master database.
+    Implements backup/rollback mechanism and preservation database to prevent data loss.
+    Preserves ALL finished assets and verifies asset counts throughout process.
+    """
+    import time
+    import shutil
+    
+    logger.info(f"Starting ATOMIC consolidation with PRESERVATION for simulation {simulation_name}")
+    logger.info(f"Found {len(node_dirs)} node directories to process")
+    
+    # Create backup of master database before consolidation
+    backup_path = f"{master_db_path}.backup_before_consolidation_{int(time.time())}"
+    backup_created = False
+    preservation_db_path = None
+    preserved_finished_count = 0
+    
+    try:
+        if os.path.exists(master_db_path):
+            shutil.copy2(master_db_path, backup_path)
+            backup_created = True
+            logger.info(f"Created backup: {backup_path}")
+    except Exception as e:
+        logger.error(f"Failed to create backup: {e}")
+        return False
+    
+    # Create preservation database for finished assets
+    try:
+        preservation_db_path, preserved_finished_count = create_preservation_database(master_db_path, simulation_name)
+        if preserved_finished_count > 0:
+            logger.info(f"✓ Preservation database created with {preserved_finished_count} finished assets")
+        else:
+            logger.info("No finished assets to preserve")
+    except Exception as e:
+        logger.error(f"Failed to create preservation database: {e}")
+        if backup_created:
+            try:
+                shutil.copy2(backup_path, master_db_path)
+                logger.error("Restored from backup due to preservation failure")
+            except:
+                pass
+        return False
+    
+    # Pre-consolidation verification
+    original_asset_count = 0
+    original_status_counts = {}
+    
+    try:
+        if os.path.exists(master_db_path):
+            master_conn = sqlite3.connect(master_db_path)
+            table_name = os.environ.get("PGDATABASE", "powertwin")
+            
+            # Get original counts
+            count_cursor = master_conn.execute(
+                f"SELECT COUNT(*) as count FROM {table_name} WHERE simulation_name = ?",
+                (simulation_name,)
+            )
+            original_asset_count = count_cursor.fetchone()[0]
+            
+            # Get original status distribution
+            status_cursor = master_conn.execute(
+                f"SELECT status, COUNT(*) as count FROM {table_name} WHERE simulation_name = ? GROUP BY status",
+                (simulation_name,)
+            )
+            for row in status_cursor:
+                original_status_counts[row[0]] = row[1]
+            
+            master_conn.close()
+            logger.info(f"Pre-consolidation: {original_asset_count} total assets")
+            logger.info(f"Pre-consolidation status: {original_status_counts}")
+            
+    except Exception as e:
+        logger.warning(f"Could not verify pre-consolidation state: {e}")
+    
+    # Collect all node data first (verification phase)
+    node_data_summary = []
+    total_node_records = 0
+    node_status_counts = {}
+    
+    base_dir = os.path.dirname(master_db_path)
+    
+    for node_dir in node_dirs:
+        try:
+            full_node_dir = os.path.join(base_dir, node_dir)
+            node_db_path = None
+            
+            # Find the database file
+            for file in os.listdir(full_node_dir):
+                if file.endswith('.db'):
+                    node_db_path = os.path.join(full_node_dir, file)
+                    break
+            
+            if not node_db_path or not os.path.exists(node_db_path):
+                logger.warning(f"No database found in {node_dir}")
+                continue
+            
+            # Verify node database
+            node_conn = sqlite3.connect(node_db_path)
+            table_name = os.environ.get("PGDATABASE", "powertwin")
+            
+            # Check if table exists
+            table_check = node_conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (table_name,)
+            ).fetchone()
+            
+            if not table_check:
+                logger.info(f"No data table in {node_dir}")
+                node_conn.close()
+                continue
+            
+            # Count records for this simulation
+            count_cursor = node_conn.execute(
+                f"SELECT COUNT(*) as count FROM {table_name} WHERE simulation_name = ?",
+                (simulation_name,)
+            )
+            node_record_count = count_cursor.fetchone()[0]
+            
+            # Get status distribution
+            node_status_cursor = node_conn.execute(
+                f"SELECT status, COUNT(*) as count FROM {table_name} WHERE simulation_name = ? GROUP BY status",
+                (simulation_name,)
+            )
+            node_statuses = {}
+            for row in node_status_cursor:
+                node_statuses[row[0]] = row[1]
+                node_status_counts[row[0]] = node_status_counts.get(row[0], 0) + row[1]
+            
+            node_conn.close()
+            
+            if node_record_count > 0:
+                node_data_summary.append({
+                    'node_dir': node_dir,
+                    'db_path': node_db_path,
+                    'record_count': node_record_count,
+                    'status_counts': node_statuses
+                })
+                total_node_records += node_record_count
+                logger.info(f"✓ {node_dir}: {node_record_count} records verified")
+            
+        except Exception as e:
+            logger.error(f"Failed to verify node {node_dir}: {e}")
+            # Rollback on verification failure
+            if backup_created:
+                try:
+                    shutil.copy2(backup_path, master_db_path)
+                    logger.info("Restored from backup due to verification failure")
+                except:
+                    pass
+            # Clean up preservation database
+            if preservation_db_path and os.path.exists(preservation_db_path):
+                try:
+                    os.remove(preservation_db_path)
+                except:
+                    pass
+            return False
+    
+    logger.info(f"Verification complete: {total_node_records} total records from {len(node_data_summary)} nodes")
+    logger.info(f"Node status distribution: {node_status_counts}")
+    
+    # Calculate expected final count (node records + preserved finished assets)
+    expected_final_count = total_node_records + preserved_finished_count
+    logger.info(f"Expected final count: {expected_final_count} ({total_node_records} from nodes + {preserved_finished_count} preserved)")
+    
+    if total_node_records == 0 and preserved_finished_count == 0:
+        logger.info("No records to consolidate")
+        if backup_created:
+            os.remove(backup_path)
+        if preservation_db_path and os.path.exists(preservation_db_path):
+            os.remove(preservation_db_path)
         return True
-    return False
-
-def get_available_distributed_databases():
-    """Get list of available distributed databases."""
-    manager = get_distributed_manager()
-    return manager.get_available_databases()
+    
+    # Atomic consolidation phase
+    try:
+        master_conn = sqlite3.connect(master_db_path)
+        master_conn.row_factory = sqlite3.Row
+        table_name = os.environ.get("PGDATABASE", "powertwin")
+        
+        # Create table if needed
+        master_conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                asset_id INTEGER PRIMARY KEY,
+                batch INTEGER,
+                order_rank INTEGER,
+                simulation_name VARCHAR(255),
+                state VARCHAR(255),
+                weather_file VARCHAR(255),
+                floor_area REAL,
+                number_of_stories INTEGER,
+                complexity INTEGER,
+                uorun_time REAL,
+                uoprocess_time REAL,
+                asset_name VARCHAR(255),
+                subtype VARCHAR(255),
+                status VARCHAR(255),
+                total_time REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Begin atomic transaction
+        master_conn.execute("BEGIN TRANSACTION")
+        
+        # Clear existing data for this simulation INSIDE transaction
+        logger.info(f"Removing old data for simulation {simulation_name} (within transaction)")
+        master_conn.execute(f"DELETE FROM {table_name} WHERE simulation_name = ?", (simulation_name,))
+        
+        consolidated_count = 0
+        
+        # Step 1: Consolidate each node's data
+        logger.info("Phase 1: Consolidating node databases...")
+        for node_info in node_data_summary:
+            try:
+                node_conn = sqlite3.connect(node_info['db_path'])
+                node_conn.row_factory = sqlite3.Row
+                
+                # Get all simulation data from this node  
+                node_cursor = node_conn.execute(
+                    f"SELECT * FROM {table_name} WHERE simulation_name = ?",
+                    (simulation_name,)
+                )
+                
+                # Insert preserving original asset_ids and latest status
+                for row in node_cursor:
+                    row_dict = dict(row)
+                    columns = ', '.join(row_dict.keys())
+                    placeholders = ', '.join(['?' for _ in row_dict])
+                    
+                    # Insert with conflict resolution to preserve latest updates
+                    master_conn.execute(f"""
+                        INSERT OR REPLACE INTO {table_name} ({columns}) 
+                        VALUES ({placeholders})
+                    """, list(row_dict.values()))
+                    
+                    consolidated_count += 1
+                
+                node_conn.close()
+                logger.info(f"✓ Consolidated {node_info['record_count']} records from {node_info['node_dir']}")
+                
+            except Exception as e:
+                logger.error(f"Failed to consolidate {node_info['node_dir']}: {e}")
+                # Rollback the entire transaction
+                master_conn.execute("ROLLBACK")
+                master_conn.close()
+                
+                # Restore backup
+                if backup_created:
+                    shutil.copy2(backup_path, master_db_path)
+                    logger.error("Restored from backup due to consolidation failure")
+                
+                # Clean up preservation database
+                if preservation_db_path and os.path.exists(preservation_db_path):
+                    try:
+                        os.remove(preservation_db_path)
+                    except:
+                        pass
+                return False
+        
+        # Step 2: Merge preserved finished assets back
+        logger.info("Phase 2: Merging preserved finished assets...")
+        merged_preserved_count = merge_preservation_database(master_conn, preservation_db_path, simulation_name)
+        
+        # Final verification before commit
+        final_count_cursor = master_conn.execute(
+            f"SELECT COUNT(*) as count FROM {table_name} WHERE simulation_name = ?",
+            (simulation_name,)
+        )
+        final_count = final_count_cursor.fetchone()[0]
+        
+        # Verify total count matches expectation
+        if final_count != expected_final_count:
+            logger.error(f"CRITICAL: Asset count mismatch after consolidation: expected {expected_final_count}, got {final_count}")
+            logger.error(f"Node records: {total_node_records}, Preserved: {preserved_finished_count}, Merged: {merged_preserved_count}")
+            master_conn.execute("ROLLBACK")
+            master_conn.close()
+            
+            if backup_created:
+                shutil.copy2(backup_path, master_db_path)
+                logger.error("Restored from backup due to count mismatch")
+            
+            # Clean up preservation database
+            if preservation_db_path and os.path.exists(preservation_db_path):
+                try:
+                    os.remove(preservation_db_path)
+                except:
+                    pass
+            return False
+        
+        # Verify finished assets are preserved
+        if preserved_finished_count > 0:
+            finished_count_cursor = master_conn.execute(
+                f"SELECT COUNT(*) as count FROM {table_name} WHERE simulation_name = ? AND status = 'Finished'",
+                (simulation_name,)
+            )
+            final_finished_count = finished_count_cursor.fetchone()[0]
+            
+            # Should have at least as many finished assets as we preserved (nodes might have added more)
+            if final_finished_count < preserved_finished_count:
+                logger.error(f"CRITICAL: Finished assets lost! Expected at least {preserved_finished_count}, got {final_finished_count}")
+                master_conn.execute("ROLLBACK")
+                master_conn.close()
+                
+                if backup_created:
+                    shutil.copy2(backup_path, master_db_path)
+                    logger.error("Restored from backup due to finished asset loss")
+                return False
+            
+            logger.info(f"✓ Finished asset preservation verified: {final_finished_count} finished assets in final database")
+        
+        # Commit transaction
+        master_conn.execute("COMMIT")
+        master_conn.close()
+        
+        logger.info(f"✓ ATOMIC CONSOLIDATION WITH PRESERVATION SUCCESSFUL")
+        logger.info(f"✓ Total records consolidated: {consolidated_count}")
+        logger.info(f"✓ Preserved finished assets merged: {merged_preserved_count}")
+        logger.info(f"✓ Final asset count verified: {final_count}")
+        
+        # Clean up backup and preservation database on success
+        if backup_created:
+            os.remove(backup_path)
+            logger.info("Removed backup after successful consolidation")
+        
+        if preservation_db_path and os.path.exists(preservation_db_path):
+            os.remove(preservation_db_path)
+            logger.info("Removed preservation database after successful merge")
+            
+        return True
+        
+    except Exception as e:
+        logger.error(f"Critical error in atomic consolidation: {e}")
+        
+        # Restore from backup
+        if backup_created:
+            try:
+                shutil.copy2(backup_path, master_db_path)
+                logger.error("Restored from backup due to critical error")
+            except Exception as restore_error:
+                logger.error(f"FAILED TO RESTORE BACKUP: {restore_error}")
+        
+        # Clean up preservation database
+        if preservation_db_path and os.path.exists(preservation_db_path):
+            try:
+                os.remove(preservation_db_path)
+            except:
+                pass
+        
+        return False

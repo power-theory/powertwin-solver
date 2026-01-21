@@ -74,34 +74,39 @@ def initialize_logger(logger_name, external_log_dir=None):
                 # Last resort - just use current directory
                 log_dir = '.'
 
-        # Create rich console handler for terminal output
-        console_handler = RichHandler(
-            console=Console(),
-            show_time=True,
-            show_level=True,
-            show_path=False,
-            rich_tracebacks=True,
-            omit_repeated_times=False
-        )
-        console_handler.setLevel(logging.INFO)
-        console_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        console_handler.setFormatter(console_formatter)
+        # Create handlers
+        console_handler = RichHandler(console=Console(), show_time=True, show_level=False, show_path=False)
+        
+        # Create file paths
+        # Check for SLURM environment (HPC detection)
+        slurm_job_id = os.environ.get('SLURM_JOB_ID')
+        
+        if slurm_job_id:
+            # HPC environment detected - prefix dev.log with SLURM job ID
+            dev_log_filename = f"{slurm_job_id}_dev.log"
+            user_log_filename = f"{slurm_job_id}_user.log"
+            error_log_filename = f"{slurm_job_id}_error.log"
+        else:
+            # Standard environment
+            dev_log_filename = "dev.log"
+            user_log_filename = "user.log"
+            error_log_filename = "error.log"
+        
+        dev_log_path = os.path.join(log_dir, dev_log_filename)
+        user_log_path = os.path.join(log_dir, user_log_filename)
+        error_log_path = os.path.join(log_dir, error_log_filename)
         
         try:
-            # DEBUG log file handler with rotation (all messages)
-            dev_log_path = os.path.join(log_dir, 'dev_logs.txt')
-            file_handler = RotatingFileHandler(
-                dev_log_path,
-                maxBytes=10 * 1024 * 1024,  # 10MB
-                backupCount=10,
-                encoding='utf-8'
-            )
+            # Try to create file handlers
+            file_handler = logging.FileHandler(dev_log_path)
+            file_handler_no_debug = logging.FileHandler(user_log_path)
+            error_handler = logging.FileHandler(error_log_path)
+            
+            # Set log levels
+            console_handler.setLevel(logging.INFO)
             file_handler.setLevel(logging.DEBUG)
-            file_formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S'
-            )
-            file_handler.setFormatter(file_formatter)
+            file_handler_no_debug.setLevel(logging.INFO)  # This will exclude DEBUG messages
+            error_handler.setLevel(logging.ERROR)  # Only ERROR and CRITICAL messages
 
             # USER-FACING log file handler with rotation (INFO and above only)
             user_log_path = os.path.join(log_dir, 'user_logs.txt')
@@ -114,6 +119,7 @@ def initialize_logger(logger_name, external_log_dir=None):
             file_handler_no_debug.setLevel(logging.INFO)
             file_handler_no_debug.setFormatter(file_formatter)
 
+<<<<<<< HEAD
             # JSON structured log file handler for machine parsing
             json_log_path = os.path.join(log_dir, 'structured_logs.jsonl')
             json_handler = RotatingFileHandler(
@@ -124,12 +130,21 @@ def initialize_logger(logger_name, external_log_dir=None):
             )
             json_handler.setLevel(logging.DEBUG)
             json_handler.setFormatter(JSONFormatter())
+=======
+            file_handler.setFormatter(formatter)
+            file_handler_no_debug.setFormatter(formatter)
+            error_handler.setFormatter(formatter)
+>>>>>>> 9c17126313aa70ee83965538680babdb325ba35d
 
             # Add all handlers to logger
             logger.addHandler(console_handler)
             logger.addHandler(file_handler)
             logger.addHandler(file_handler_no_debug)
+<<<<<<< HEAD
             logger.addHandler(json_handler)
+=======
+            logger.addHandler(error_handler)
+>>>>>>> 9c17126313aa70ee83965538680babdb325ba35d
             
         except (PermissionError, OSError) as e:
             # If we can't write to the log files, just use console logging

@@ -12,7 +12,7 @@ import argparse
 
 # Configure logging for direct runner
 import modules.utils as utils
-from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
+from modules.utils.hpc_environment import is_hpc_environment
 logger = utils.initialize_logger("DirectRunner", os.environ.get('POWERTWIN_LOG_DIR'))
 
 # Import simulation modules
@@ -151,7 +151,6 @@ def direct_initialize_uo(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name):
 # Run simulation batches in parallel across multiple processes
 def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation_name, batch_range=None):
     """
-    Run parallel batches for a PowerTwin simulation with distributed SQLite support
     
     Args:
         SIMULATION_DIR: Path to the simulation directory
@@ -163,36 +162,53 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
     Returns:
         bool: True if successful, False otherwise
     """
-    from modules.simulation.run_UOsim import run_batch
     from modules.simulation.parallel import run_parallel_batches
-    from modules.diagnostics import setup_distributed_database
     
     logger.info(f"Running parallel batches for: {simulation_name}")
     
-    is_hpc = is_hpc_environment()
-    
-    # Setup distributed database for this process
-    if is_hpc:
-        setup_distributed_database(simulation_name)
-    
     try:
-        # If batch_range is not provided, determine it from the database
+        # If batch_range is not provided, determine it from the MASTER database
+        # to avoid triggering node database creation prematurely
         if batch_range is None:
-            # Query database to find all batches for this simulation
+            from modules.database.sqlite_manager import get_sqlite_manager
             from modules.diagnostics import get_batch_total
-            batches = get_batch_total(simulation_name)
-            batch_range = list(range(batches))
+            
+            # Temporarily force connection to master database for batch query
+            manager = get_sqlite_manager()
+            original_db_path = manager.db_path
+            
+            # Query master database for batch information
+            if manager.is_hpc_environment() and hasattr(manager, 'master_db_path'):
+                # Temporarily use master database path
+                manager.db_path = manager.master_db_path
+                try:
+                    batches = get_batch_total(simulation_name)
+                    batch_range = list(range(batches))
+                finally:
+                    # Restore original path
+                    manager.db_path = original_db_path
+            else:
+                batches = get_batch_total(simulation_name)
+                batch_range = list(range(batches))
             
         # Check if we have any batches to process
         if len(batch_range) == 0:
-            logger.error(f"No batches to process for simulation {simulation_name}. This indicates:")
-            logger.error("1. Asset analysis during feature file generation may have failed")
-            logger.error("2. Database locking issues prevented batch distribution")
-            logger.error("3. Simulation data is not properly initialized")
-            
-            # Try to diagnose the issue
+            logger.error(f"No batches to process for simulation {simulation_name}.")
+            # Try to diagnose the issue using master database
             from modules.diagnostics import get_asset_total
-            assets = get_asset_total(simulation_name=simulation_name)
+            
+            # Use master database for diagnostics
+            manager = get_sqlite_manager()
+            original_db_path = manager.db_path
+            if manager.is_hpc_environment() and hasattr(manager, 'master_db_path'):
+                manager.db_path = manager.master_db_path
+                try:
+                    assets = get_asset_total(simulation_name=simulation_name)
+                finally:
+                    manager.db_path = original_db_path
+            else:
+                assets = get_asset_total(simulation_name=simulation_name)
+                
             logger.info(f"Total assets in database for {simulation_name}: {assets}")
             
             if assets == 0:
@@ -206,7 +222,6 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
         
         # Run the batches in parallel
         run_parallel_batches(
-            run_batch,
             batch_range,
             SIMULATION_DIR,
             LOCAL_SIMULATION_DIR,
@@ -281,6 +296,84 @@ def direct_simulation_status(simulation_name, batch_id=None):
         logger.error(f"Error getting simulation status: {str(e)}")
         return False
 
+def direct_consolidate_databases(simulation_name):
+    """
+    Consolidate node-specific databases back to master database
+    
+    Args:
+        simulation_name: Name of the simulation to consolidate
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    from modules.database.sqlite_manager import get_sqlite_manager
+    
+    logger.info(f"Consolidating databases for simulation: {simulation_name}")
+    
+    try:
+        manager = get_sqlite_manager()
+        success = manager.consolidate_node_databases(simulation_name)
+        if success:
+            logger.info(f"Successfully consolidated databases for {simulation_name}")
+        else:
+            logger.error(f"Failed to consolidate databases for {simulation_name}")
+        return success
+    except Exception as e:
+        logger.error(f"Error consolidating databases: {str(e)}")
+        return False
+
+def direct_get_simulation_summary(simulation_name):
+    """
+    Get simulation status summary in the format needed by bash scripts
+    
+    Args:
+        simulation_name: Name of the simulation to query
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    from modules.diagnostics.read_status import get_simulation_summary
+    
+    logger.info(f"Getting simulation summary for: {simulation_name}")
+    
+    try:
+        summary = get_simulation_summary(simulation_name)
+        if summary:
+            print(summary)  # Output to stdout for bash capture
+            return True
+        else:
+            logger.error(f"Failed to get simulation summary for {simulation_name}")
+            return False
+    except Exception as e:
+        logger.error(f"Error getting simulation summary: {str(e)}")
+        return False
+
+def direct_update_asset(asset_id, simulation_name):
+    """
+    Force set an asset's status to 'Failed' to ensure it gets reprocessed during recovery
+    
+    Args:
+        asset_id: ID of the asset to mark as failed
+        simulation_name: Name of the simulation the asset belongs to
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    from modules.diagnostics.db import update_status
+    
+    logger.info(f"Forcing asset {asset_id} in simulation {simulation_name} to Failed status for reprocessing")
+    
+    try:
+        result = update_status('Failed', asset_id, simulation_name)
+        if result:
+            logger.info(f"Successfully marked asset {asset_id} as Failed")
+        else:
+            logger.error(f"Failed to update status for asset {asset_id}")
+        return result
+    except Exception as e:
+        logger.error(f"Error forcing asset {asset_id} to failed: {str(e)}")
+        return False
+
 def main():
     """Parse command line arguments and run the simulation directly"""
     parser = argparse.ArgumentParser(description="PowerTwin Direct Runner for HPC")
@@ -326,7 +419,16 @@ def main():
     
     # Consolidate databases command
     consolidate_parser = subparsers.add_parser('consolidate-databases', help='Consolidate distributed databases')
-    consolidate_parser.add_argument('--simulation-name', type=str, help='Simulation name to consolidate (optional)')
+    consolidate_parser.add_argument('simulation_name', type=str, help='Simulation name to consolidate')
+    
+    # Force asset failed command
+    force_failed_parser = subparsers.add_parser('update-asset', help='Force set an asset status to Failed for reprocessing')
+    force_failed_parser.add_argument('asset_id', type=str, help='Asset ID to mark as failed in order to reprocess')
+    force_failed_parser.add_argument('simulation_name', type=str, help='Simulation name the asset belongs to')
+    
+    # Get simulation summary command
+    summary_parser = subparsers.add_parser('get-simulation-summary', help='Get simulation status summary for bash scripts')
+    summary_parser.add_argument('simulation_name', type=str, help='Name of the simulation to query')
 
     args = parser.parse_args()
     
@@ -386,18 +488,19 @@ def main():
         )
         result = 0 if success else 1
     elif args.command == 'consolidate-databases':
-        # Consolidate distributed databases
-        from modules.diagnostics import consolidate_distributed_databases
-        
-        logger.info("Starting database consolidation...")
-        success = consolidate_distributed_databases(args.simulation_name)
-        
-        if success:
-            logger.info("Database consolidation completed successfully")
-            result = 0
-        else:
-            logger.error("Database consolidation failed")
-            result = 1
+        # Run the database consolidation function
+        success = direct_consolidate_databases(
+            simulation_name=args.simulation_name
+        )
+        result = 0 if success else 1
+    elif args.command == 'update-asset':
+        logger.info(f"Forcing asset {args.asset_id} to failed status for reprocessing")
+        result = direct_update_asset(args.asset_id, args.simulation_name)
+        result = 0 if result else 1
+    elif args.command == 'get-simulation-summary':
+        # Get simulation summary for bash scripts
+        success = direct_get_simulation_summary(args.simulation_name)
+        result = 0 if success else 1
     else:
         parser.print_help()
         result = 1
