@@ -101,9 +101,14 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
         shutil.rmtree(WEATHER_DESTINATION)
 
         # NOTE: Baseline ruby file should never be deleted, it is the parent file
+        # for rb_file in glob.glob(os.path.join(MAPPER_DESTINATION, "*.rb")):
+        #         if os.path.basename(rb_file) != "Baseline.rb":
+        #             os.remove(rb_file)
+                    
+        # Remove all existing .rb files to prevent conflicts with batch-specific mappers
         for rb_file in glob.glob(os.path.join(MAPPER_DESTINATION, "*.rb")):
-                if os.path.basename(rb_file) != "Baseline.rb":
-                    os.remove(rb_file)
+            os.remove(rb_file)
+            logger.debug(f"Removed existing mapper file: {os.path.basename(rb_file)}")
 
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
@@ -112,7 +117,14 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
     try:
         assets_data = get_bulk_assets(simulation_name)
         if assets_data:
-            asset_ids = [asset['asset_id'] for asset in assets_data]
+            # Handle both return types: List[int] (PostgreSQL) or List[Dict] (SQLite)
+            if isinstance(assets_data[0], dict):
+                # SQLite/HPC environment returns dictionaries
+                asset_ids = [asset['asset_id'] for asset in assets_data]
+            else:
+                # PostgreSQL/Docker environment returns list of integers directly
+                asset_ids = assets_data
+                
             logger.info(f"Setting initial status 'Not Processed Yet' for {len(asset_ids)} assets in {simulation_name}")
             bulk_update_status(asset_ids, "Not Processed Yet", simulation_name)
         else:

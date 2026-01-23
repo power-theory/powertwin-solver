@@ -133,13 +133,12 @@ def bulk_update_status(asset_ids, status, simulation_name):
             logger.error("SQLite version requires both simulation_name and asset_ids")
             return False
     else:
-        # Legacy PostgreSQL environments - fall back to individual updates
-        logger.warning("Bulk update not optimized for PostgreSQL environment, using individual updates")
-        success_count = 0
-        for asset_id in asset_ids:
-            if postgres_ops.update_status(status, asset_id, simulation_name):
-                success_count += 1
-        return success_count == len(asset_ids)
+        # Use optimized PostgreSQL bulk update function
+        if simulation_name and asset_ids:
+            return postgres_ops.bulk_update_status(asset_ids, status, simulation_name)
+        else:
+            logger.error("PostgreSQL bulk update requires both simulation_name and asset_ids")
+            return False
 
 
 def update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, batch_id):
