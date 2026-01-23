@@ -231,19 +231,56 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time):
     
 
 def update_status(status, asset_id=None, simulation_name=None):
-    """Legacy update status method."""
-    # TODO: concerning that asset_id can be updated without simulation_name althought all Failed assets will be transferred to new simulation, this should be handled
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        if simulation_name is not None:
+        # FIXED: Always prioritize asset_id when available
+        if asset_id is not None:
+            cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE asset_id = %s', (status, asset_id))
+        elif simulation_name is not None:
             cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE simulation_name = %s', (status, simulation_name))
         else:
-            cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE asset_id = %s', (status, asset_id))
+            raise ValueError("Either asset_id or simulation_name must be provided")
         conn.commit()
     except Exception as e:
         print(f"Error updating status for asset ID {asset_id}: {e}")
         conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def bulk_update_status(asset_ids, status, simulation_name):
+    """Efficiently update status for multiple assets using bulk SQL operations."""
+    if not asset_ids:
+        logger.debug("No assets to update")
+        return True
+        
+    logger.debug(f'Bulk updating {len(asset_ids)} assets status to {status} for simulation {simulation_name}')
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        # Use unnest() to efficiently update multiple rows in a single query
+        # This is much more efficient than individual updates or loops
+        query = f"""
+            UPDATE {DB_NAME} 
+            SET status = %s 
+            WHERE asset_id = ANY(%s) 
+            AND simulation_name = %s
+        """
+        
+        cur.execute(query, (status, asset_ids, simulation_name))
+        updated_count = cur.rowcount
+        conn.commit()
+        
+        logger.info(f"Successfully updated status to '{status}' for {updated_count} assets")
+        return updated_count == len(asset_ids)
+        
+    except Exception as e:
+        logger.error(f"Error bulk updating asset status: {e}")
+        conn.rollback()
+        return False
     finally:
         cur.close()
         conn.close()
