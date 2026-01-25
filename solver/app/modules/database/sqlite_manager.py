@@ -42,7 +42,7 @@ class SQLiteManager:
             self.node_name = node_name
             
             logger.info(f"Initialized SQLite manager for parallel step: node={self.node_name}, node_id={self.node_id}")
-            logger.info(f"Master DB: {self.master_db_path}")
+            #logger.info(f"Master DB: {self.master_db_path}")
             logger.info(f"Node DB: {self.db_path}")
         elif slurm_job_id:
             # Steps 1-2 - Setup steps in HPC: use master database directly
