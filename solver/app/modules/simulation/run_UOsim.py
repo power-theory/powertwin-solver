@@ -17,6 +17,7 @@ from modules.utils import initialize_logger, run_command, check_storage
 from modules.utils.check_uo import get_urbanopt_command
 
 # Setup logging with external log directory support (for HPC logging)
+# Note: For batch-specific logging, logger is re-initialized in run_batch() with batch_index
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Run UOSim', external_log_dir)
 
@@ -92,14 +93,18 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     asset_id = feature_file_name.split('_')[0]
     asset_name = '_'.join(feature_file_name.split('_')[1:]).replace('.json', '')
 
-    # Log simulation start information
-    logger.info(f"\n{'='*47}\n"
+    # Create batch-specific logger for this asset processing
+    batch_logger = initialize_logger('Run UOSim', external_log_dir, batch_index=batch_index)
+
+    # Log simulation start information to both user and batch logs
+    log_message = (f"Batch {batch_index}:\n"
     f"Processing feature file: {feature_file_name}\n"
     f"Asset ID: {asset_id}\n"
     f"Asset Name: {asset_name}\n"
-    f"Batch Index: {batch_index}\n"
-    f"{'='*47}"
-)
+    f"{'='*47}")
+    
+    logger.info(log_message)  # Log to user logs
+    batch_logger.info(log_message)  # Log to batch logs
 
     # Retrieve weather data for building location
     state, weather_file = get_weather(asset_id)
@@ -211,10 +216,10 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
             logger.error(f"BATCH {batch_index}: UrbanOpt CLI discovery failed: {e}")
             raise
 
-        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
+        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}", batch_index=batch_index)
 
         logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
-        uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
+        uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}", batch_index=batch_index)
         total_time = uo_run_time + uo_process_time
     except Exception as e:
         logger.error(f"BATCH {batch_index}: Error running UrbanOpt commands: {str(e)}")
@@ -296,19 +301,22 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
 ############################################################################################################
 def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     from modules.diagnostics import get_asset_total,get_bulk_assets
-
-    logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")
+    
+    # Initialize batch-specific logger
+    external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
+    batch_logger = initialize_logger('Run UOSim', external_log_dir, batch_index=batch_num)
+    batch_logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")
 
     total_assets = get_asset_total(simulation_name,batch_num)
     
-    logger.debug(f"BATCH {batch_num}: Processing {total_assets} assets...")
+    batch_logger.debug(f"BATCH {batch_num}: Processing {total_assets} assets...")
     
     # Get all assets for this batch, ordered by order_rank
     assets = get_bulk_assets(simulation_name, batch_num)
 
     # NOTE: In UrbanOpt, we need to process assets sequentially to avoid conflicts
     # Each batch can run in parallel, but within a batch, assets must run sequentially
-    logger.info(f"BATCH {batch_num}: Processing {len(assets)} assets sequentially")
+    batch_logger.info(f"BATCH {batch_num}: Processing {len(assets)} assets sequentially")
     
     successful = 0
     failed = 0
@@ -331,21 +339,30 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
             new_assets_processed = current_progress.get('assets_processed', 0) + 1
             current_progress['assets_processed'] = new_assets_processed
             current_progress['current_step'] = f'processing_batch_{batch_num}'
+            
+            # Track per-batch progress
+            batch_key = f'batch_{batch_num}'
+            if 'batches' not in current_progress:
+                current_progress['batches'] = {}
+            if batch_key not in current_progress['batches']:
+                current_progress['batches'][batch_key] = {'completed': 0, 'total': total_assets}
+            current_progress['batches'][batch_key]['completed'] = assets_processed_batch
+            
             save_simulation_state(simulation_name, 'running', current_progress)
-            logger.debug(f"BATCH {batch_num}: Updated progress - {new_assets_processed} assets processed")
+            batch_logger.debug(f"BATCH {batch_num}: Updated progress - {new_assets_processed} assets processed, batch progress: {assets_processed_batch}/{total_assets}")
     
-    logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed")
+    batch_logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed")
     
     # Clean up - delete finished batch
     batch_dir = os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_num}')
     if os.path.exists(batch_dir):
-        logger.debug(f"BATCH {batch_num}: Cleaning up directory: {batch_dir}")
+        batch_logger.debug(f"BATCH {batch_num}: Cleaning up directory: {batch_dir}")
         shutil.rmtree(batch_dir)
     else:
-        logger.warning(f"BATCH {batch_num}: Directory not found for cleanup (unneccesary for hpc mode): {batch_dir}")
+        batch_logger.warning(f"BATCH {batch_num}: Directory not found for cleanup (unneccesary for hpc mode): {batch_dir}")
     
     
-    logger.info(f"\n{'='*47}\n"
+    batch_logger.info(f"\n{'='*47}\n"
     f"Batch {batch_num} finished processing.\n"
     f"Total assets processed: {total_assets}\n"
     f"{'='*47}"

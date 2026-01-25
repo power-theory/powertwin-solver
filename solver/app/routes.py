@@ -24,6 +24,8 @@ routes = [
     ('/api/logs/time-range', get_logs_by_time, ['GET']),
     ('/api/logs/stats', get_log_stats, ['GET']),
     ('/api/logs/get-current', get_current_logs, ['GET']),
+    ('/api/logs/refresh', refresh_logs, ['POST']),
+    ('/api/logs/available-batches', get_available_batch_logs, ['GET']),
     ('/api/simulation/status-summary/<simulation_name>', get_simulation_status_summary, ['GET']),
     ('/api/tracker/stats', get_status_tracker_stats, ['GET']),
     # Performance monitoring endpoints

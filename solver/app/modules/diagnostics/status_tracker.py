@@ -65,7 +65,7 @@ class StatusTracker:
             # Check cache first
             if use_cache and cache_key in self._cache:
                 cached_data = self._cache[cache_key]
-                if datetime.now() - cached_data['timestamp'] < timedelta(seconds=self._cache_ttl):
+                if datetime.now(datetime.timezone.utc) - cached_data['timestamp'] < timedelta(seconds=self._cache_ttl):
                     self._stats['cache_hits'] += 1
                     return cached_data['data']
                 else:

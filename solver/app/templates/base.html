@@ -367,15 +367,19 @@
                         <div class="card-header bg-darker border-secondary text-white">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0">Application Logs</h5>
-                                <div>
-                                    <input type="text" class="form-control form-control-dark form-control-sm d-inline-block" style="width: 200px;" id="log-search" placeholder="Search logs...">
+                                <div class="d-flex align-items-center">
+                                    <select class="form-select form-select-dark form-select-sm me-2" id="log-type-selector" style="width: auto;">
+                                        <option value="user" selected>User Logs</option>
+                                        <option value="dev">Dev Logs</option>
+                                        <option value="error">Error Logs</option>
+                                    </select>
                                     <button class="btn btn-sm btn-primary ms-2" onclick="getCurrentLogs()">Get Logs</button>
                                     <button class="btn btn-sm btn-secondary ms-2" onclick="clearLogs()">Clear</button>
                                 </div>
                             </div>
                         </div>
                         <div class="card-body">
-                            <pre id="logs-content" class="bg-darker text-light p-3 rounded" style="height: 500px; overflow-y: auto;">Loading logs...</pre>
+                            <div id="logs-content" class="bg-darker text-light p-3 rounded" style="height: 500px; overflow: auto; white-space: pre-wrap; word-wrap: break-word; font-family: monospace; font-size: 0.85rem;">Loading logs...</div>
                         </div>
                     </div>
                 </div>

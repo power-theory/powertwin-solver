@@ -83,7 +83,7 @@ class PerformanceMonitor:
             
             # Record metric
             self._metrics_history.append({
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': datetime.now(datetime.timezone.utc).isoformat(),
                 'type': 'db_query',
                 'query_type': query_type,
                 'duration_ms': duration_ms,

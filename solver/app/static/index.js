@@ -123,9 +123,9 @@ function initializeDashboard() {
     fetchSystemStatus();
     fetchCurrentSimulationStatus();
     fetchBatchProgress();
-    setInterval(fetchSystemStatus, 10000);
-    setInterval(fetchCurrentSimulationStatus, 10000);
-    setInterval(fetchBatchProgress, 15000);  // Slower polling for batch progress
+    setInterval(fetchSystemStatus, 60000);
+    setInterval(fetchCurrentSimulationStatus, 60000);
+    setInterval(fetchBatchProgress, 60000);  // Polling for batch progress
 }
 
 function fetchCurrentSimulationStatus() {
@@ -425,6 +425,17 @@ function updatePerformanceData(data) {
     let metrics = data.metrics || data.system || {};
     let dbMetrics = data.database_metrics || data.database || {};
 
+    // Extract nested percentage values from system metrics
+    const cpuValue = metrics.cpu?.percent ?? metrics.cpu_usage ?? 0;
+    const memoryValue = metrics.memory?.percent ?? metrics.memory_usage ?? 0;
+    const diskValue = metrics.disk?.percent ?? metrics.disk_usage ?? 0;
+    const dbTimeValue = dbMetrics.avg_query_time_ms ?? dbMetrics.avg_query_time ?? 0;
+
+    // Debug logging (can be removed after verification)
+    if (performanceData.timestamps.length === 0) {
+        console.log('First performance data received:', { cpu: cpuValue, memory: memoryValue, disk: diskValue, dbTime: dbTimeValue });
+    }
+
     if (performanceData.timestamps.length >= MAX_HISTORY_POINTS) {
         performanceData.timestamps.shift();
         performanceData.cpu.shift();
@@ -434,11 +445,11 @@ function updatePerformanceData(data) {
     }
 
     performanceData.timestamps.push(timestamp);
-    performanceData.cpu.push(metrics.cpu_usage || 0);
-    performanceData.memory.push(metrics.memory_usage || 0);
-    performanceData.disk.push(metrics.disk_usage || 0);
+    performanceData.cpu.push(cpuValue);
+    performanceData.memory.push(memoryValue);
+    performanceData.disk.push(diskValue);
 
-    performanceData.dbTime.push(dbMetrics.avg_query_time || 0);
+    performanceData.dbTime.push(dbTimeValue);
 
     updateChart(performanceCharts.cpu, performanceData.timestamps, performanceData.cpu);
     updateChart(performanceCharts.memory, performanceData.timestamps, performanceData.memory);
@@ -477,13 +488,16 @@ function updateAlertsDisplay(alerts) {
 }
 
 // ============= Logs =============
+// Global variable to track current log type
+let currentLogType = 'user';
+
 function loadLogs() {
-    fetch('/api/logs/tail?lines=50')
+    fetch('/api/logs/get-current?log_type=user')  // Fetch all logs from user_logs (improved format)
         .then(response => response.json())
         .then(data => {
             const logsContent = document.getElementById('logs-content');
-            if (data.logs && data.logs.length > 0) {
-                logsContent.textContent = data.logs.join('\n');
+            if (data.lines && data.lines.length > 0) {
+                logsContent.textContent = data.lines.join('\n');
                 logsContent.scrollTop = logsContent.scrollHeight;
             } else {
                 logsContent.textContent = 'No logs available';
@@ -496,22 +510,93 @@ function loadLogs() {
 }
 
 function getCurrentLogs() {
-    console.log('Fetching current logs...');
-    fetch('/api/logs/get-current?lines=100')
+    console.log('Refreshing logs and fetching ' + currentLogType + ' logs...');
+    
+    // First, refresh the log files
+    fetch('/api/logs/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(refreshData => {
+        console.log('Logs refreshed:', refreshData);
+        
+        // Refresh available batch logs in dropdown
+        fetchAvailableBatchLogs();
+        
+        // Then fetch the current logs
+        return fetch('/api/logs/get-current?lines=100&log_type=' + currentLogType);
+    })
+    .then(response => response.json())
+    .then(data => {
+        const logsContent = document.getElementById('logs-content');
+        if (data.lines && data.lines.length > 0) {
+            logsContent.textContent = data.lines.join('\n');
+            logsContent.scrollTop = logsContent.scrollHeight;
+            console.log('Loaded ' + data.count + ' log lines');
+        } else {
+            logsContent.textContent = data.message || 'No logs available';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching logs:', error);
+        document.getElementById('logs-content').textContent = 'Error fetching logs: ' + error.message;
+    });
+}
+
+// Add event listener for log type dropdown
+document.addEventListener('DOMContentLoaded', function() {
+    const logTypeSelector = document.getElementById('log-type-selector');
+    if (logTypeSelector) {
+        // Fetch available batch logs and populate dropdown
+        fetchAvailableBatchLogs();
+        
+        logTypeSelector.addEventListener('change', function() {
+            currentLogType = this.value;
+            console.log('Switching to ' + currentLogType + ' logs...');
+            
+            // Fetch the new log type
+            fetch('/api/logs/get-current?lines=100&log_type=' + currentLogType)
+                .then(response => response.json())
+                .then(data => {
+                    const logsContent = document.getElementById('logs-content');
+                    if (data.lines && data.lines.length > 0) {
+                        logsContent.textContent = data.lines.join('\n');
+                        logsContent.scrollTop = logsContent.scrollHeight;
+                        console.log('Loaded ' + data.count + ' ' + currentLogType + ' log lines');
+                    } else {
+                        logsContent.textContent = data.message || 'No logs available';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching logs:', error);
+                    document.getElementById('logs-content').textContent = 'Error fetching logs: ' + error.message;
+                });
+        });
+    }
+});
+
+function fetchAvailableBatchLogs() {
+    fetch('/api/logs/available-batches')
         .then(response => response.json())
         .then(data => {
-            const logsContent = document.getElementById('logs-content');
-            if (data.lines && data.lines.length > 0) {
-                logsContent.textContent = data.lines.join('\n');
-                logsContent.scrollTop = logsContent.scrollHeight;
-                console.log('Loaded ' + data.count + ' log lines');
-            } else {
-                logsContent.textContent = data.message || 'No logs available';
+            const logTypeSelector = document.getElementById('log-type-selector');
+            if (logTypeSelector && data.batches && data.batches.length > 0) {
+                // Remove existing batch options
+                const existingBatchOptions = logTypeSelector.querySelectorAll('option[value^="batch_"]');
+                existingBatchOptions.forEach(opt => opt.remove());
+                
+                // Add new batch options
+                data.batches.forEach(batchNum => {
+                    const option = document.createElement('option');
+                    option.value = `batch_${batchNum}`;
+                    option.textContent = `Batch ${batchNum} Logs`;
+                    logTypeSelector.appendChild(option);
+                });
             }
         })
         .catch(error => {
-            console.error('Error fetching logs:', error);
-            document.getElementById('logs-content').textContent = 'Error fetching logs: ' + error.message;
+            console.error('Error fetching available batch logs:', error);
         });
 }
 
@@ -521,17 +606,11 @@ function clearLogs() {
 
 // ============= Periodic Updates =============
 function startPeriodicUpdates() {
-    // Always fetch performance metrics every 5 seconds, regardless of tab visibility
+    // Always fetch performance metrics every 30 seconds, regardless of tab visibility
     setInterval(() => {
         fetchPerformanceMetrics();
-    }, 5000);
-
-    // Logs polling only when tab is active
-    setInterval(() => {
-        if (document.getElementById('logs-tab').classList.contains('tab-content-active')) {
-            loadLogs();
-        }
-    }, 10000);
+    }, 30000);
+    // Removed 10-second log polling to prevent auto-clearing when user views logs
 }
 
 // ============= Simulation API Calls =============
@@ -547,7 +626,8 @@ function autorunSimulation() {
     .then(response => response.json())
     .then(data => {
         alert(data.message);
-        setSimulationStatus('Idle', 'warning');
+        // Immediately fetch updated status from server
+        fetchCurrentSimulationStatus();
     })
     .catch(error => {
         console.error('Error:', error);

@@ -9,6 +9,7 @@ import shutil
 import os
 import json
 import datetime
+from datetime import timezone
 import csv
 import threading
 
@@ -54,7 +55,7 @@ def save_simulation_state(simulation_name, status, progress=None):
         state_data = {
             'simulation_name': simulation_name,
             'status': status,
-            'last_updated': datetime.datetime.now().isoformat(),
+            'last_updated': datetime.datetime.now(timezone.utc).isoformat(),
             'progress': progress or {}
         }
         
@@ -220,6 +221,18 @@ def _run_autorun_simulation_background(data, simulation_name):
     logger.info(f"========== AUTORUN BACKGROUND THREAD STARTED for {simulation_name} ==========")
     
     try:
+        # Clean up old batch log files from previous simulations
+        import glob
+        log_dir = os.path.join('logs')
+        if os.path.exists(log_dir):
+            batch_log_files = glob.glob(os.path.join(log_dir, 'batch_*_logs.txt'))
+            for batch_log_file in batch_log_files:
+                try:
+                    os.remove(batch_log_file)
+                    logger.debug(f"Removed old batch log: {batch_log_file}")
+                except Exception as e:
+                    logger.warning(f"Could not remove batch log {batch_log_file}: {e}")
+        
         # Update state to running
         save_simulation_state(simulation_name, 'running', {
             'assets_processed': 0,
@@ -301,7 +314,6 @@ def _run_autorun_simulation_background(data, simulation_name):
         
         # Step 3: Clean up temporary simulation directory
         logger.info(f"[AUTORUN] ===== STEP 3: Cleaning up =====")
-        get_logs()
         if os.path.exists(sim_dir):
             shutil.rmtree(sim_dir)
             logger.info(f"[AUTORUN] Deleted simulation directory: {sim_dir}")
@@ -464,7 +476,6 @@ def get_current_simulation_status():
                 from modules.diagnostics import get_asset_total
                 total_in_db = get_asset_total(simulation_name)
                 progress['total_assets'] = total_in_db
-                logger.debug(f"Updated total_assets from database: {total_in_db}")
             except Exception as e:
                 logger.debug(f"Could not get total_assets from database: {str(e)}")
         
@@ -500,7 +511,7 @@ def get_current_simulation_status():
             'simulation_name': simulation_name,
             'status': current_sim.get('status'),
             'progress': progress,
-            'last_updated': datetime.datetime.now().isoformat()  # Fresh timestamp on every call
+            'last_updated': datetime.datetime.now(timezone.utc).isoformat()  # Fresh timestamp on every call
         }), 200
         
     except Exception as e:
@@ -514,22 +525,42 @@ def get_current_simulation_status():
 # Useful for a "Get Logs" button that can be clicked to fetch latest logs.
 ############################################################################################################
 def get_current_logs():
-    """Get current logs from the log file"""
+    """Get current logs from the user or dev log file (improved format)"""
     # Disabled debug logging to reduce log spam from frequent polling
     # logger.debug("Within get_current_logs()")
     
     try:
         # Extract optional query parameters
-        num_lines = request.args.get('lines', default=100, type=int)
+        num_lines = request.args.get('lines', default=None, type=int)  # None = all lines
         level_filter = request.args.get('level', default=None, type=str)
+        log_type = request.args.get('log_type', default='user', type=str)  # New parameter: 'user' or 'dev'
         
         # Validate parameters
-        if num_lines < 1 or num_lines > 10000:
+        if num_lines is not None and (num_lines < 1 or num_lines > 10000):
             num_lines = 100
+        
+        # Validate log_type parameter
+        if log_type.startswith('batch_'):
+            # Extract batch number from batch_N format
+            try:
+                batch_num = int(log_type.split('_')[1])
+                log_filename = f'batch_{batch_num}_logs.txt'
+            except (IndexError, ValueError):
+                log_type = 'user'
+                log_filename = 'user_logs.txt'
+        elif log_type == 'user':
+            log_filename = 'user_logs.txt'
+        elif log_type == 'dev':
+            log_filename = 'dev_logs.txt'
+        elif log_type == 'error':
+            log_filename = 'error_logs.txt'
+        else:
+            log_type = 'user'
+            log_filename = 'user_logs.txt'
         
         # Define log file path
         LOGS_DIR = os.path.join('logs')
-        LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
+        LOG_FILE = os.path.join(LOGS_DIR, log_filename)
         
         # Create log file if it doesn't exist
         if not os.path.exists(LOG_FILE):
@@ -539,19 +570,172 @@ def get_current_logs():
                 'message': 'No logs available yet'
             }), 200
         
-        # Get the last N log lines
-        log_streamer = get_log_streamer(LOG_FILE)
-        lines = log_streamer.get_logs_tail(num_lines, level_filter)
+        # Read full log file or tail
+        try:
+            with open(LOG_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+                if num_lines is None:
+                    # Read entire file
+                    all_lines = f.readlines()
+                    lines = [line.rstrip('\n') for line in all_lines]
+                else:
+                    # Read last N lines
+                    f.seek(0, 2)  # Seek to end
+                    file_size = f.tell()
+                    f.seek(max(0, file_size - 100000))  # Go back ~100KB
+                    chunk = f.read()
+                    all_lines = chunk.split('\n')
+                    lines = [line for line in all_lines if line.strip()][-num_lines:]
+        except IOError as e:
+            return jsonify({'error': f'Error reading log file: {str(e)}'}), 500
         
         return jsonify({
             'lines': lines,
             'count': len(lines),
             'level_filter': level_filter,
-            'timestamp': datetime.datetime.now().isoformat()
+            'timestamp': datetime.datetime.now(timezone.utc).isoformat()
         }), 200
         
     except Exception as e:
         logger.error(f"Exception in get_current_logs: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+############################################################################################################
+# Name: def refresh_logs()
+# Description: Refreshes and copies both dev and user log files to the requested_files folder.
+# Returns JSON response with success/error message.
+# Supports HPC and container modes like get_logs() does.
+############################################################################################################
+def refresh_logs():
+    """Refresh and copy log files to requested_files directory"""
+    # Check if running in HPC environment
+    is_hpc = is_hpc_environment()
+    
+    # Set up log file paths based on deployment mode (HPC vs container)
+    if is_hpc:
+        shared_storage = request.form.get('shared_storage', None)
+        if shared_storage:
+            logger.debug(f"Running in HPC mode with shared storage: {shared_storage}")
+            # In HPC mode, logs are stored in shared storage for multi-node access
+            REQUESTED_FILES_DIR = os.path.join(shared_storage, 'logs', 'requested_files')
+            LOGS_DIR = os.path.join(shared_storage, 'logs')
+        else:
+            # In HPC mode without explicit shared storage, use LOCAL_DIR
+            REQUESTED_FILES_DIR = os.path.join(LOCAL_DIR, 'requested_files')
+            LOGS_DIR = os.path.join('logs')
+    else:
+        # In container/local mode, logs are stored locally
+        REQUESTED_FILES_DIR = os.path.join(LOCAL_DIR, 'requested_files')
+        LOGS_DIR = os.path.join('logs')
+    
+    # Create directories if they don't exist
+    os.makedirs(REQUESTED_FILES_DIR, exist_ok=True)
+    os.makedirs(LOGS_DIR, exist_ok=True)
+    
+    # Define log files (dev, user, and error logs)
+    DEV_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.txt')
+    USER_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'user_logs.txt')
+    ERROR_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'error_logs.txt')
+    DEV_LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
+    USER_LOG_FILE = os.path.join(LOGS_DIR, 'user_logs.txt')
+    ERROR_LOG_FILE = os.path.join(LOGS_DIR, 'error_logs.txt')
+    
+    try:
+        # Copy dev_logs.txt to requested_files
+        if os.path.exists(DEV_LOG_FILE):
+            with open(DEV_LOG_FILE, 'r') as file:
+                dev_logs = file.read()
+            with open(DEV_REQUESTED_LOG_FILE, 'w') as file:
+                file.write(dev_logs)
+            logger.debug(f"Successfully refreshed dev logs to {DEV_REQUESTED_LOG_FILE}")
+        else:
+            logger.warning(f"Dev log file does not exist at {DEV_LOG_FILE}")
+        
+        # Copy user_logs.txt to requested_files
+        if os.path.exists(USER_LOG_FILE):
+            with open(USER_LOG_FILE, 'r') as file:
+                user_logs = file.read()
+            with open(USER_REQUESTED_LOG_FILE, 'w') as file:
+                file.write(user_logs)
+            logger.debug(f"Successfully refreshed user logs to {USER_REQUESTED_LOG_FILE}")
+        else:
+            logger.warning(f"User log file does not exist at {USER_LOG_FILE}")
+        
+        # Copy error_logs.txt to requested_files
+        if os.path.exists(ERROR_LOG_FILE):
+            with open(ERROR_LOG_FILE, 'r') as file:
+                error_logs = file.read()
+            with open(ERROR_REQUESTED_LOG_FILE, 'w') as file:
+                file.write(error_logs)
+            logger.debug(f"Successfully refreshed error logs to {ERROR_REQUESTED_LOG_FILE}")
+        else:
+            logger.warning(f"Error log file does not exist at {ERROR_LOG_FILE}")
+        
+        # Copy all batch_*_logs.txt files to requested_files
+        import glob
+        batch_log_files = glob.glob(os.path.join(LOGS_DIR, 'batch_*_logs.txt'))
+        for batch_log_file in batch_log_files:
+            batch_log_filename = os.path.basename(batch_log_file)
+            batch_requested_file = os.path.join(REQUESTED_FILES_DIR, batch_log_filename)
+            try:
+                with open(batch_log_file, 'r') as file:
+                    batch_logs = file.read()
+                with open(batch_requested_file, 'w') as file:
+                    file.write(batch_logs)
+                logger.debug(f"Successfully refreshed {batch_log_filename} to {batch_requested_file}")
+            except Exception as e:
+                logger.warning(f"Could not copy {batch_log_filename}: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Logs refreshed successfully',
+            'timestamp': datetime.datetime.now(timezone.utc).isoformat()
+        }), 200
+            
+    except Exception as e:
+        logger.error(f"Exception while refreshing log files: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+############################################################################################################
+# Name: def get_available_batch_logs()
+# Description: Returns list of available batch log files from current simulation.
+# Scans logs directory for batch_*_logs.txt files and extracts batch numbers.
+############################################################################################################
+def get_available_batch_logs():
+    """Get list of available batch log files"""
+    try:
+        import glob
+        import re
+        
+        LOGS_DIR = os.path.join('logs')
+        
+        # Find all batch log files
+        batch_log_files = glob.glob(os.path.join(LOGS_DIR, 'batch_*_logs.txt'))
+        
+        # Extract batch numbers from filenames
+        batch_numbers = []
+        for batch_file in batch_log_files:
+            filename = os.path.basename(batch_file)
+            match = re.search(r'batch_(\d+)_logs\.txt', filename)
+            if match:
+                batch_num = int(match.group(1))
+                batch_numbers.append(batch_num)
+        
+        # Sort batch numbers
+        batch_numbers.sort()
+        
+        return jsonify({
+            'batches': batch_numbers,
+            'count': len(batch_numbers),
+            'timestamp': datetime.datetime.now(timezone.utc).isoformat()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Exception in get_available_batch_logs: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -843,8 +1027,6 @@ def recovery():
 # Supports HPC mode by using shared storage when specified.
 ############################################################################################################
 def get_logs(shared_storage=None):
-    logger.debug("Within get_logs()")
-    
     # Check if running in HPC environment
     is_hpc = is_hpc_environment()
     
@@ -863,40 +1045,47 @@ def get_logs(shared_storage=None):
     os.makedirs(REQUESTED_FILES_DIR, exist_ok=True)
     os.makedirs(LOGS_DIR, exist_ok=True)
     
-<<<<<<< HEAD
-    # Define log file paths
-    REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.txt')
-    LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
-=======
-    REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev.log')
-    LOG_FILE = os.path.join(LOGS_DIR, 'dev.log')
->>>>>>> 9c17126313aa70ee83965538680babdb325ba35d
-    
-    # Create an empty log file if it doesn't exist
-    if not os.path.exists(LOG_FILE):
-        logger.warning(f"Log file does not exist at {LOG_FILE}, creating empty file")
-        # Create empty log file if it doesn't exist
-        with open(LOG_FILE, 'w') as file:
-            file.write(f"Log file created at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    # Define log files (both dev and user logs)
+    DEV_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.txt')
+    USER_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'user_logs.txt')
+    DEV_LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
+    USER_LOG_FILE = os.path.join(LOGS_DIR, 'user_logs.txt')
     
     try:
-        # Read logs from the main log file
-        with open(LOG_FILE, 'r') as file:
-            logs = file.read()
-        # Save the log file to the requested_files directory
-        with open(REQUESTED_LOG_FILE, 'w') as file:
-            file.write(logs)
-
-        logger.debug(f"Log file saved to {REQUESTED_LOG_FILE}")
+        # Copy dev_logs.txt to requested_files
+        if os.path.exists(DEV_LOG_FILE):
+            with open(DEV_LOG_FILE, 'r') as file:
+                dev_logs = file.read()
+            with open(DEV_REQUESTED_LOG_FILE, 'w') as file:
+                file.write(dev_logs)
+        else:
+            logger.warning(f"Dev log file does not exist at {DEV_LOG_FILE}")
+        
+        # Copy user_logs.txt to requested_files
+        if os.path.exists(USER_LOG_FILE):
+            with open(USER_LOG_FILE, 'r') as file:
+                user_logs = file.read()
+            with open(USER_REQUESTED_LOG_FILE, 'w') as file:
+                file.write(user_logs)
+        else:
+            logger.warning(f"User log file does not exist at {USER_LOG_FILE}")
+            
     except Exception as e:
-        logger.error(f"Exception while reading/writing log file: {str(e)}")
+        logger.error(f"Exception while reading/writing log files: {str(e)}")
         if not is_hpc:  # Only return response in non-HPC mode
             return jsonify({'error': str(e)}), 500
     
-    # Render logs in HTML template (only in non-HPC mode)
+    # Render logs in HTML template (only in non-HPC mode) - show user logs by default
     if not is_hpc:
-        with open(REQUESTED_LOG_FILE, 'r') as file:
-            logs = file.read()
+        # Try to read user logs first, fall back to dev logs
+        if os.path.exists(USER_REQUESTED_LOG_FILE):
+            with open(USER_REQUESTED_LOG_FILE, 'r') as file:
+                logs = file.read()
+        elif os.path.exists(DEV_REQUESTED_LOG_FILE):
+            with open(DEV_REQUESTED_LOG_FILE, 'r') as file:
+                logs = file.read()
+        else:
+            logs = "No logs available"
         # Display logs in HTML template
         return render_template('logs.html', logs=logs)
 
@@ -908,9 +1097,7 @@ def get_logs(shared_storage=None):
 ############################################################################################################
 def update_asset():
     from modules.diagnostics.db import update_status
-    
-    logger.debug("Within update_asset()")
-    
+
     # Get parameters from request
     asset_id = request.form.get('asset_id')
     simulation_name = request.form.get('simulation_name')
@@ -944,8 +1131,8 @@ def update_asset():
 
 ############################################################################################################
 # Name: def log_message()
-# Description: This function logs a message to the dev.log file.
-# Calls the log_message function to log a message to the dev.log file.
+# Description: This function logs a message to the dev_logs.txt file.
+# Calls the log_message function to log a message to the dev_logs.txt file.
 ############################################################################################################
 def log_message():
     # Extract message data from JSON request
@@ -957,7 +1144,7 @@ def log_message():
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Define the log file path
-    log_txt = os.path.join('logs','dev.log')
+    log_txt = os.path.join('logs','dev_logs.txt')
     os.makedirs(os.path.dirname(log_txt), exist_ok=True)
 
     # Append the log entry to the log file with timestamp and type
@@ -973,9 +1160,6 @@ def log_message():
 
 # Get logs with pagination, filtering, and efficient streaming
 def get_logs_paginated():
-    # Get paginated log lines with optional filtering and search
-    logger.debug("Within get_logs_paginated()")
-    
     try:
         # Extract query parameters for pagination and filtering
         page = request.args.get('page', default=1, type=int)  # Page number (1-indexed)
@@ -996,8 +1180,6 @@ def get_logs_paginated():
         # Create log streamer and retrieve paginated results
         log_streamer = get_log_streamer(LOG_FILE, page_size=page_size)
         result = log_streamer.get_logs_paginated(page, page_size, level_filter, search_text)
-        
-        logger.debug(f"Returning {len(result.get('lines', []))} log lines for page {page}")
         return jsonify(result), 200
         
     except Exception as e:
@@ -1007,9 +1189,6 @@ def get_logs_paginated():
 
 # Efficiently retrieve the last N lines of logs (tail operation)
 def get_logs_tail():
-    # Stream recent logs in real-time tail format
-    logger.debug("Within get_logs_tail()")
-    
     try:
         # Extract query parameters
         num_lines = request.args.get('lines', default=100, type=int)  # Number of lines to retrieve
@@ -1040,9 +1219,6 @@ def get_logs_tail():
 
 # Retrieve logs within a specific time range
 def get_logs_by_time():
-    # Query logs between start and end timestamps with pagination
-    logger.debug("Within get_logs_by_time()")
-    
     try:
         # Extract time range parameters in ISO format
         start_time = request.args.get('start', default=None, type=str)  # Start time (ISO format)
@@ -1141,56 +1317,32 @@ def get_batch_progress():
             }), 200
         
         simulation_name = current_sim.get('simulation_name')
+        progress = current_sim.get('progress', {})
         
-        # Get tracker for detailed status information
-        from modules.diagnostics import get_asset_stats
+        # Read batch progress from state file (same approach as overall progress)
+        batches_dict = progress.get('batches', {})
         
-        try:
-            # Query database for all assets in this simulation, grouped by batch
-            assets_list, _ = get_asset_stats(simulation_name)
-        except:
-            # If database query fails, return empty batches
-            assets_list = []
-        
-        # Group assets by batch
-        batches_dict = {}
-        for asset in assets_list:
-            batch_num = asset.get('batch', 0)
-            if batch_num not in batches_dict:
-                batches_dict[batch_num] = {
-                    'batch': batch_num,
-                    'assets': [],
-                    'completed': 0,
-                    'in_progress': 0,
-                    'failed': 0,
-                    'pending': 0,
-                    'total': 0
-                }
+        # Convert to list format for API response
+        batches_list = []
+        for batch_key, batch_data in batches_dict.items():
+            # Extract batch number from key like 'batch_1'
+            batch_num = int(batch_key.split('_')[1])
+            completed = batch_data.get('completed', 0)
+            total = batch_data.get('total', 0)
             
-            batches_dict[batch_num]['total'] += 1
-            status = asset.get('status', 'pending').lower()
-            
-            if status == 'completed':
-                batches_dict[batch_num]['completed'] += 1
-            elif status == 'in_progress':
-                batches_dict[batch_num]['in_progress'] += 1
-            elif status == 'failed':
-                batches_dict[batch_num]['failed'] += 1
-            else:
-                batches_dict[batch_num]['pending'] += 1
-            
-            # Add asset ID to the batch for tracking
-            batches_dict[batch_num]['assets'].append(asset.get('asset_id', 'unknown'))
+            batch_info = {
+                'batch': batch_num,
+                'completed': completed,
+                'total': total,
+                'pending': total - completed,
+                'in_progress': 0,  # Not tracking separately yet
+                'failed': 0,  # Not tracking separately yet
+                'completion_percentage': round((completed / total * 100), 1) if total > 0 else 0
+            }
+            batches_list.append(batch_info)
         
-        # Convert to list and sort by batch number
-        batches_list = sorted(batches_dict.values(), key=lambda x: x['batch'])
-        
-        # Calculate percentages for each batch
-        for batch in batches_list:
-            if batch['total'] > 0:
-                batch['completion_percentage'] = round((batch['completed'] / batch['total']) * 100, 1)
-            else:
-                batch['completion_percentage'] = 0
+        # Sort by batch number
+        batches_list = sorted(batches_list, key=lambda x: x['batch'])
         
         return jsonify({
             'has_active_simulation': True,
@@ -1242,7 +1394,7 @@ def get_performance_metrics():
         
         # Compile all metrics into a single response
         metrics = {
-            'timestamp': datetime.datetime.now().isoformat(),
+            'timestamp': datetime.datetime.now(timezone.utc).isoformat(),
             'system': system_health,  # CPU, memory, disk stats
             'logs': log_health,  # Log file integrity and size
             'database': report.get('database', {}),  # Query and connection stats

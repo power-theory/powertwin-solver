@@ -254,14 +254,13 @@ class LogStreamer:
             # Count log levels
             level_counts = {level: 0 for level in LOG_LEVELS.keys()}
             total_lines = 0
-            
+
             with open(self.log_file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 for line in f:
                     total_lines += 1
-                    for level in LOG_LEVELS.keys():
-                        if f' - {level} - ' in line:
-                            level_counts[level] += 1
-                            break
+                    line_level = self._extract_log_level(line)
+                    if line_level:
+                        level_counts[line_level] += 1
             
             # Extract timestamp range
             first_timestamp = None
@@ -342,22 +341,42 @@ class LogStreamer:
     
     @staticmethod
     def _extract_log_level(line):
-        """Extract log level from a log line."""
-        for level in LOG_LEVELS.keys():
-            if f' - {level} - ' in line:
-                return level
+        """Extract log level from a log line (text or JSON)."""
+        text_match = re.match(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} (DEBUG|INFO|WARNING|ERROR|CRITICAL)\b', line)
+        if text_match:
+            return text_match.group(1)
+
+        if line.lstrip().startswith('{'):
+            try:
+                payload = json.loads(line)
+                level = payload.get('level')
+                if level in LOG_LEVELS:
+                    return level
+            except Exception:
+                return None
+
         return None
-    
+
     @staticmethod
     def _extract_timestamp(line):
-        """Extract timestamp from a log line."""
-        # Match standard log format: YYYY-MM-DD HH:MM:SS,mmm
+        """Extract timestamp from a log line (text or JSON)."""
         match = re.match(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})', line)
         if match:
             try:
                 return datetime.strptime(match.group(1), '%Y-%m-%d %H:%M:%S')
-            except:
+            except Exception:
                 return None
+
+        if line.lstrip().startswith('{'):
+            try:
+                payload = json.loads(line)
+                ts = payload.get('timestamp')
+                if ts:
+                    # Handle both naive and offset-aware ISO strings
+                    return datetime.fromisoformat(ts.replace('Z', '+00:00'))
+            except Exception:
+                return None
+
         return None
 
 
