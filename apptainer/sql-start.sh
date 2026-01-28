@@ -39,8 +39,8 @@ module load apptainer/1.4.1
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
 # Simulation parameters
-SIMULATION_NAME="wyoming1"
-HPC_SHARED_STORAGE="/project/cowy-ptheory/test"
+SIMULATION_NAME="test1"
+HPC_SHARED_STORAGE="/gscratch/nicolasreategui"
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload/${SIMULATION_NAME}"
 ASSET_GEOJSON_PATH="${UPLOAD_DIR}/wyo_asset_geometries.geojson"
 METADATA_CSV_PATH="${UPLOAD_DIR}/wyo-sensors-assets-geometries-types.csv"
@@ -124,6 +124,9 @@ export LOCAL_SIMULATION_DIR
 #==============================================================================
 # SIGNAL HANDLING
 #==============================================================================
+# Global flag to track consolidation status
+CONSOLIDATION_COMPLETED=0
+
 # Set up signal traps for graceful termination
 trap 'handle_termination SIGTERM' SIGTERM
 trap 'handle_termination SIGINT' SIGINT
@@ -282,11 +285,11 @@ cleanup_temp_files() {
     print_status "info" "Cleaning up temporary files in /tmp..."
     
     
-    # Clean up any temporary files containing the SLURM job ID
+    # Clean up any temporary files containing the SLURM job ID with timeout to prevent hanging
     if [ -n "${SLURM_JOB_ID}" ]; then
-        # Remove any temporary files with the job ID pattern in /tmp
-        find /tmp -name "*${SLURM_JOB_ID}*" -type f -delete 2>/dev/null
-        find /tmp -name "*${SLURM_JOB_ID}*" -type d -exec rm -rf {} \; 2>/dev/null
+        # Use timeout to prevent find operations from hanging on slow filesystems
+        timeout 30 find /tmp -maxdepth 2 -name "*${SLURM_JOB_ID}*" -type f -delete 2>/dev/null || true
+        timeout 30 find /tmp -maxdepth 2 -name "*${SLURM_JOB_ID}*" -type d -exec rm -rf {} \; 2>/dev/null || true
         print_status "info" "Removed temporary files containing job ID: ${SLURM_JOB_ID}"
     fi
     
@@ -324,32 +327,6 @@ cleanup_temp_files() {
         fi
     fi
     
-    # As a fallback, still try to clean specific patterns from system /tmp
-    if [ -d "/tmp/OpenStudio" ]; then
-        rm -rf /tmp/OpenStudio* 2>/dev/null
-        print_status "info" "Removed OpenStudio temporary directories"
-    fi
-    
-    # Clean up EnergyPlus temporary directories
-    if [ -d "/tmp/Temp-" ]; then
-        rm -rf /tmp/Temp-* 2>/dev/null
-        print_status "info" "Removed EnergyPlus temporary directories"
-    fi
-    
-    # Clean up UrbanOpt temporary directories
-    if [ -d "/tmp/urbanopt" ]; then
-        rm -rf /tmp/urbanopt* 2>/dev/null
-        print_status "info" "Removed UrbanOpt temporary directories"
-    fi
-    
-    # Clean up any Ruby temporary directories that might be created
-    if [ -d "/tmp/ruby" ]; then
-        rm -rf /tmp/ruby* 2>/dev/null
-        print_status "info" "Removed Ruby temporary directories"
-    fi
-
-    # Clean up any remaining apptainer temporary files
-    find /tmp -name "apptainer-*" -type d -delete 2>/dev/null
     
     print_status "info" "Temporary file cleanup completed"
 }
@@ -387,8 +364,9 @@ handle_termination() {
     
     print_status "warning" "Received ${signal_name} signal. Performing emergency cleanup..."
     
-    # First, try to consolidate node databases to preserve work
-    if [ -n "${SIMULATION_NAME}" ] && [ -f "${SOLVER_SIF}" ]; then
+    # Only attempt emergency consolidation if normal consolidation hasn't completed
+    # and this is not a normal EXIT from successful completion
+    if [ "$CONSOLIDATION_COMPLETED" -eq 0 ] && [ "$signal_name" != "EXIT" ] && [ -n "${SIMULATION_NAME}" ] && [ -f "${SOLVER_SIF}" ]; then
         print_status "info" "Attempting emergency database consolidation to preserve work..."
         print_status "info" "No timeout applied - large databases require extended time"
         
@@ -457,7 +435,11 @@ handle_termination() {
         fi
         
     else
-        print_status "warning" "Skipping emergency database consolidation - missing required variables or container"
+        if [ "$CONSOLIDATION_COMPLETED" -eq 1 ]; then
+            print_status "info" "Skipping emergency database consolidation - normal consolidation already completed successfully"
+        else
+            print_status "warning" "Skipping emergency database consolidation - missing required variables or container"
+        fi
     fi
     
     # Clean up temporary files
@@ -639,6 +621,9 @@ consolidate_databases() {
     CONSOLIDATE_EXIT_CODE=$?
     if [ $CONSOLIDATE_EXIT_CODE -eq 0 ]; then
         print_status "info" "Database consolidation completed successfully"
+        
+        # Mark consolidation as completed to prevent emergency re-consolidation
+        CONSOLIDATION_COMPLETED=1
         
         # Only clean up SQLite directory after SUCCESSFUL consolidation
         print_status "info" "Cleaning up SQLite directory after successful consolidation..."

@@ -116,6 +116,206 @@ def start_simulation():
     return jsonify({'confirmation': f'Simulation "{simulation_name}" ran successfully'})
 
 ############################################################################################################
+# Name: def process_asset_update()
+# Description: This function processes asset update data from external sources,
+# converts JSON metadata and geometry data to required CSV/GeoJSON formats,
+# and automatically starts a simulation with the converted data.
+############################################################################################################
+def process_asset_update():
+    logger.debug("Within process_asset_update()")
+    
+    try:
+        # Get JSON payload
+        request_data = request.get_json()
+        if not request_data:
+            logger.error("Error: No JSON payload received")
+            return jsonify({'error': 'No JSON payload received'}), 400
+        
+        metadata_json = request_data.get('data', [])
+        geojson_array = request_data.get('geojson', [])
+        
+        if not metadata_json or not geojson_array:
+            logger.error("Error: Missing data or geojson in payload")
+            return jsonify({'error': 'Missing data or geojson in payload'}), 400
+        
+        # Extract asset_id for simulation naming
+        if not metadata_json:
+            logger.error("Error: Empty metadata array")
+            return jsonify({'error': 'Empty metadata array'}), 400
+        
+        asset_id = str(metadata_json[0].get('asset_id', 'unknown'))
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        simulation_name = f"asset_{asset_id}_{timestamp}"
+        
+        logger.info(f"Processing asset update for asset_id: {asset_id}, simulation: {simulation_name}")
+        
+        # Convert data to required formats
+        csv_content = convert_metadata_to_csv(metadata_json)
+        geojson_content = convert_geometry_to_geojson(geojson_array)
+        
+        # Use default configuration
+        default_config_path = os.path.join('upload', 'demo_data', 'default_config.json')
+        if not os.path.exists(default_config_path):
+            logger.error(f"Error: Default config file not found at {default_config_path}")
+            return jsonify({'error': 'Default configuration not found'}), 500
+        
+        with open(default_config_path, 'r') as config_file:
+            config_data = json.load(config_file)
+        
+        # Set up directories
+        LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
+        SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
+        LOCAL_DIR = os.path.join(LOCAL_DIR, simulation_name)
+        
+        if os.path.exists(SIMULATION_DIR) or os.path.exists(LOCAL_DIR):
+            logger.error("Error: Simulation name already exists.")
+            return jsonify({'error': 'Simulation name already exists.'}), 400
+        
+        os.makedirs(SIMULATION_DIR, exist_ok=True)
+        os.makedirs(LOCAL_DIR, exist_ok=True)
+        
+        # Save converted files
+        asset_geojson_path = os.path.join(LOCAL_DIR, f'{simulation_name}_asset.geojson')
+        metadata_csv_path = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
+        config_json_path = os.path.join(LOCAL_DIR, f'{simulation_name}_config.json')
+        
+        # Write files
+        with open(asset_geojson_path, 'w') as f:
+            json.dump(geojson_content, f)
+        
+        with open(metadata_csv_path, 'w', newline='', encoding='utf-8') as f:
+            f.write(csv_content)
+        
+        with open(config_json_path, 'w') as f:
+            json.dump(config_data, f)
+        
+        # Start simulation
+        num_cores = 1  # Default for auto-triggered simulations
+        
+        create_table()
+        logger.debug("Calling create_feature_files from process_asset_update()")
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, simulation_name)
+        logger.debug("Exited create_feature_files")
+        
+        logger.debug("Calling initialize_uo from process_asset_update()")
+        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
+        logger.debug("Exited initialize_uo")
+        
+        # Cleanup simulation directory
+        logger.debug("Deleting simulation directory within container")
+        shutil.rmtree(SIMULATION_DIR)
+        
+        logger.info(f"Asset update processed successfully for simulation: {simulation_name}")
+        return jsonify({
+            'success': True,
+            'simulation_name': simulation_name,
+            'message': f'Simulation "{simulation_name}" started successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Exception in process_asset_update: {str(e)}")
+        send_error_to_mss('process_asset_update', str(e))
+        return jsonify({'error': str(e)}), 500
+
+############################################################################################################
+# Name: def convert_metadata_to_csv(metadata_json)
+# Description: Converts JSON metadata array to CSV format matching expected structure
+############################################################################################################
+def convert_metadata_to_csv(metadata_json):
+    """Convert JSON metadata to CSV format."""
+    if not metadata_json:
+        return ""
+    
+    # CSV headers matching expected format
+    headers = [
+        'sensor_id', 'sensor_type_id', 'sensor_type_name', 'asset_id', 'asset_name',
+        'asset_subtype_id', 'asset_subtype_name', 'asset_metadata', 'asset_geometries_properties'
+    ]
+    
+    # Build CSV content
+    csv_lines = []
+    csv_lines.append(','.join(headers))
+    
+    for row in metadata_json:
+        # Extract values with defaults
+        sensor_id = str(row.get('sensor_id', ''))
+        sensor_type_id = str(row.get('sensor_type_id', ''))
+        sensor_type_name = f'"{row.get("sensor_type_name", "")}"'  # Quote for CSV
+        asset_id = str(row.get('asset_id', ''))
+        asset_name = f'"{row.get("asset_name", "")}"'  # Quote for CSV
+        asset_subtype_id = str(row.get('asset_subtype_id', ''))
+        asset_subtype_name = f'"{row.get("asset_subtype_name", "")}"'  # Quote for CSV
+        
+        # Handle JSON fields - escape quotes and wrap in quotes
+        asset_metadata = row.get('asset_metadata', {})
+        if isinstance(asset_metadata, str):
+            # Already a JSON string
+            asset_metadata_str = f'"{asset_metadata.replace('"', '""')}"'
+        else:
+            # Convert dict to JSON string and escape
+            metadata_json_str = json.dumps(asset_metadata)
+            asset_metadata_str = f'"{metadata_json_str.replace('"', '""')}"'
+        
+        asset_geom_props = row.get('asset_geometries_properties', {})
+        if isinstance(asset_geom_props, str):
+            # Already a JSON string
+            asset_geom_props_str = f'"{asset_geom_props.replace('"', '""')}"'
+        else:
+            # Convert dict to JSON string and escape
+            geom_json_str = json.dumps(asset_geom_props)
+            asset_geom_props_str = f'"{geom_json_str.replace('"', '""')}"'
+        
+        # Build CSV row
+        csv_row = ','.join([
+            sensor_id, sensor_type_id, sensor_type_name, asset_id, asset_name,
+            asset_subtype_id, asset_subtype_name, asset_metadata_str, asset_geom_props_str
+        ])
+        csv_lines.append(csv_row)
+    
+    return '\n'.join(csv_lines)
+
+############################################################################################################
+# Name: def convert_geometry_to_geojson(geojson_array)
+# Description: Converts geometry array to proper GeoJSON FeatureCollection
+############################################################################################################
+def convert_geometry_to_geojson(geojson_array):
+    """Convert geometry array to GeoJSON FeatureCollection."""
+    features = []
+    
+    for geom_item in geojson_array:
+        try:
+            # Parse geometry if it's a string
+            if isinstance(geom_item.get('geometry'), str):
+                geometry = json.loads(geom_item['geometry'])
+            else:
+                geometry = geom_item.get('geometry', {})
+            
+            # Get properties
+            properties = geom_item.get('properties', {})
+            
+            # Ensure asset_id is in properties if available
+            if 'asset_id' in geom_item and 'asset_id' not in properties:
+                properties['asset_id'] = geom_item['asset_id']
+            
+            # Create feature
+            feature = {
+                'type': 'Feature',
+                'geometry': geometry,
+                'properties': properties
+            }
+            
+            features.append(feature)
+            
+        except (json.JSONDecodeError, KeyError) as e:
+            logger.warning(f"Skipping invalid geometry item: {e}")
+            continue
+    
+    return {
+        'type': 'FeatureCollection',
+        'features': features
+    }
+
+############################################################################################################
 # Name: def autorun_simulation()
 # Description: This function reads the simulation.json file and starts the simulation based on the given parameters.
 # Calls the create_featurefiles and initialize_uo functions to generate feature files and start the UrbanOpt simulation.
