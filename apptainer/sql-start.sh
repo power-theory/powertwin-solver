@@ -1,6 +1,6 @@
 #!/bin/bash
 #==============================================================================
-# PowerTwin HPC Start Script
+# PowerTwin HPC Start Script (with Nsight Systems Profiling)
 # 
 # Description: Orchestrates the start of PowerTwin simulations
 #              using containerized execution with SQLite database and SLURM integration.
@@ -12,14 +12,12 @@
 # SLURM CONFIGURATION
 #==============================================================================
 #SBATCH --job-name=test-start
-#SBATCH --nodes=40                   
+#SBATCH --nodes=5                   
 #SBATCH --ntasks-per-node=1        
 #SBATCH --cpus-per-task=20          
 #SBATCH --time=7-00:00:00           
 #SBATCH --account=cowy-nvhackathon 
-#SBATCH --partition=teton            # Teton partition
 #SBATCH --output=%x_%j.out
-#SBATCH --qos=long                  #debug or long
 
 
 set -e  # Exit immediately if a command exits with a non-zero status
@@ -34,6 +32,8 @@ module load slurm
 module load miniconda3/24.3.0
 module load gcc/14.2.0
 module load apptainer/1.4.1
+module load nvhpc-sdk/25.7
+module load nvhpc/25.7
 
 # =====================================================
 # Configuration Variables - MODIFY THESE AS NEEDED
@@ -56,6 +56,7 @@ DATA_DIR="${HPC_SHARED_STORAGE}/powertwin_data"
 USER_FILES_DIR="${HPC_SHARED_STORAGE}/user_files"
 LOG_DIR="${HPC_SHARED_STORAGE}/logs"
 TMP_BASE="${HPC_SHARED_STORAGE}/tmp"
+NSYS_REPORTS_DIR="${HPC_SHARED_STORAGE}/nsys_reports"
 
 # SQLite database configuration
 SQLITE_DB_DIR="${DATA_DIR}/sqlite"
@@ -193,9 +194,10 @@ create_shared_dirs() {
     
     mkdir -p "${LOG_DIR}"
     mkdir -p "${USER_FILES_DIR}"
+    mkdir -p "${NSYS_REPORTS_DIR}"
     
     # Check if directories were created successfully
-    if [ ! -d "${DATA_DIR}" ] || [ ! -d "${LOG_DIR}" ] || [ ! -d "${USER_FILES_DIR}" ]; then
+    if [ ! -d "${DATA_DIR}" ] || [ ! -d "${LOG_DIR}" ] || [ ! -d "${NSYS_REPORTS_DIR}" ] || [ ! -d "${USER_FILES_DIR}" ]; then
         print_status "error" "Failed to create shared directories."
         return 1
     fi
@@ -567,6 +569,12 @@ initialize_urbanopt() {
 process_batches() {
 
     srun --mpi=pmix --exclusive \
+    nsys profile \
+        --output="${NSYS_REPORTS_DIR}/uo_${SLURM_JOB_ID}_node${NODE_ID}_rank%p" \
+        --trace=mpi,osrt,openmp,python-gil \
+        --mpi-impl=mpich \
+        --sample=process-tree \
+        --stats=false \
     apptainer exec \
         --bind "${DATA_DIR}:/powertwin_data:rw" \
         --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files:rw" \
