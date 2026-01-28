@@ -143,7 +143,7 @@ class SQLiteManager:
         base_dir = os.path.dirname(self.master_db_path)
         coord_file = os.path.join(base_dir, f"{simulation_name}_batch_copy_coordination.lock")
         
-        max_wait_time = 300  # 5 minutes maximum wait
+        max_wait_time = 600  # 10 minutes maximum wait (increased from 5 minutes for HPC shared storage)
         start_time = time.time()
         
         try:

@@ -104,7 +104,7 @@ def download_weather_files(weather_title, epw_url):
     # NOTE Some weather stations may result in errors if data within files is missing. 
     # If found delete the station from the master_weather.geojson.
     # Removed list: USA_AZ_Scottsdale.Muni.AP.722789_TMY3, USA_AZ_Phoenix-Deer.Valley.AP.722784_TMY3, USA_AR_Springdale.Muni.AP.723434_TMY3, USA_WY_Evanston-Uinta.County.AP-Burns.Field.725775_TMY3
-    # USA_ID_Soda.Springs-Tigert.AP.725868_TMY3,USA_WY_Rawlins.Muni.AP.725745_TMY3,USA_WY_Riverton.Rgnl.AP.725765_TMY3
+    # USA_ID_Soda.Springs-Tigert.AP.725868_TMY3,USA_WY_Rawlins.Muni.AP.725745_TMY3,USA_WY_Riverton.Rgnl.AP.725765_TMY3, USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3
     file_extensions = ['.epw', '.ddy', '.stat']
     base_url = epw_url.replace('.epw', '')
     
