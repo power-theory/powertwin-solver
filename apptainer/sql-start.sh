@@ -46,6 +46,7 @@ ASSET_GEOJSON_PATH="${UPLOAD_DIR}/wyo_asset_geometries.geojson"
 METADATA_CSV_PATH="${UPLOAD_DIR}/wyo-sensors-assets-geometries-types.csv"
 CONFIG_JSON_PATH="${UPLOAD_DIR}/default_config.json"
 POWERTWIN_KEEP_DIRS=1
+WITH_NSYS_PROFILING=1
 
 # SIF files location
 SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
@@ -568,13 +569,20 @@ initialize_urbanopt() {
 #------------------------------------------------------------------------------
 process_batches() {
 
+    local nsys_cmd=""
+
+    # Check if profiling is enabled (1 = enabled)...
+    if [ "${WITH_NSYS_PROFILING}" -eq 1 ]; then
+        nsys_cmd="nsys profile \
+            --output=${NSYS_REPORTS_DIR}/uo_${SLURM_JOB_ID}_node${NODE_ID}_rank%p \
+            --trace=mpi,osrt,openmp,python-gil \
+            --mpi-impl=mpich \
+            --sample=process-tree \
+            --stats=false"
+    fi
+
     srun --mpi=pmix --exclusive \
-    nsys profile \
-        --output="${NSYS_REPORTS_DIR}/uo_${SLURM_JOB_ID}_node${NODE_ID}_rank%p" \
-        --trace=mpi,osrt,openmp,python-gil \
-        --mpi-impl=mpich \
-        --sample=process-tree \
-        --stats=false \
+    ${nsys_cmd} \
     apptainer exec \
         --bind "${DATA_DIR}:/powertwin_data:rw" \
         --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files:rw" \
