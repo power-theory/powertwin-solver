@@ -11,3 +11,4 @@ postgres_data
 .github/instructions
 .github/prompts
 *.log
+*.out

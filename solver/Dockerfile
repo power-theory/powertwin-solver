@@ -52,6 +52,14 @@ RUN gem install urbanopt-cli -v 1.0.1 && \
     /usr/local/lib/ruby/gems/3.2.2/bin/uo --version && \
     echo "uo command verified successfully"
 
+# Install OpenStudio extension gems required by PowerTwin.rb
+RUN gem install openstudio-common-measures && \
+    gem install openstudio-model-articulation && \
+    gem install openstudio-ee && \
+    gem install openstudio-calibration && \
+    gem install openstudio-load-flexibility-measures && \
+    gem install openstudio-geb
+
 # Final verification that uo is in PATH
 RUN which uo && uo --version
 # Copy application code and set environment variables
