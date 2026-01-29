@@ -578,6 +578,7 @@ process_batches() {
             --trace=mpi,osrt,openmp,python-gil \
             --mpi-impl=mpich \
             --sample=process-tree \
+            --duration=7200 \
             --stats=false"
     fi
 
