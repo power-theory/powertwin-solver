@@ -1,8 +1,8 @@
-# ======================================================================================
-# UrbanOpt Simulation Executor Module
-# Purpose: Executes UrbanOpt energy simulations on buildings, handles scenario creation,
-#          processes results, and manages energy model transformation
-# ======================================================================================
+#############################################################################################################
+# THIS FILE IS NOT IN USE, IF YOUD LIKE TO USE A PER NODE FIFO SCHEDULING RATHER THEN PER BATCH PLEASE PASTE THIS CODE INTO RUN_UOSIM.PY
+############################################################################################################
+
+
 
 import os
 import shutil
@@ -11,18 +11,13 @@ import csv
 import json
 import subprocess
 
-# Import helper functions for report cleanup and utilities
 from .clean_report import clean_single_report
 from modules.utils import initialize_logger, run_command, check_storage
 from modules.utils.check_uo import get_urbanopt_command
 
-# Setup logging with external log directory support (for HPC logging)
-# Note: For batch-specific logging, logger is re-initialized in run_batch() with batch_index
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Run UOSim', external_log_dir)
 
-# Set UrbanOpt directory path based on HPC environment
-# In HPC mode (/solver path), use absolute path; otherwise use relative path
 if os.environ.get('SLURM_JOB_ID'):  
     URBANOPT_DIR = os.path.join('/solver', 'app', 'urbanopt')
 else:
@@ -71,41 +66,43 @@ def wait_for_all_nodes_ready():
 # Name: join_processing_queue()
 # Description: Join a FIFO queue for organized batch processing after all nodes are ready
 ############################################################################################################
-def join_processing_queue(batch_num):
+def join_processing_queue():
     """Join FIFO queue for organized batch processing"""
     if not os.environ.get('SLURM_JOB_ID'):
         return
         
     node_id = os.environ.get('SLURM_NODEID', '0')
+    batch_id = os.environ.get('SLURM_ARRAY_TASK_ID', '1')
     
     # Create queue directory
     queue_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE', '/tmp'), 'processing_queue')
     os.makedirs(queue_dir, exist_ok=True)
     
     # Join the queue with timestamp for FIFO ordering
-    queue_entry = os.path.join(queue_dir, f'{time.time()}_{node_id}_{batch_num}')
+    queue_entry = os.path.join(queue_dir, f'{time.time()}_{node_id}_{batch_id}')
     with open(queue_entry, 'w') as f:
-        f.write(f"Node {node_id}, Batch {batch_num}, Time: {time.time()}")
+        f.write(f"Node {node_id}, Batch {batch_id}, Time: {time.time()}")
     
-    logger.info(f"Node {node_id}, Batch {batch_num}: Joined processing queue")
+    logger.info(f"Node {node_id}: Joined processing queue")
 
 ############################################################################################################
 # Name: wait_for_processing_turn()
 # Description: Wait for turn in FIFO queue before starting batch processing
 ############################################################################################################
-def wait_for_processing_turn(batch_num):
+def wait_for_processing_turn():
     """Wait for turn in FIFO queue before starting batch processing"""
     if not os.environ.get('SLURM_JOB_ID'):
         return
         
     node_id = os.environ.get('SLURM_NODEID', '0')
+    batch_id = os.environ.get('SLURM_ARRAY_TASK_ID', '1')
     
     queue_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE', '/tmp'), 'processing_queue')
     
     max_wait_time = 1800  # 30 minutes maximum wait
     start_time = time.time()
     
-    logger.info(f"Node {node_id}, Batch {batch_num}: Waiting for processing turn...")
+    logger.info(f"Node {node_id}: Waiting for processing turn...")
     
     while time.time() - start_time < max_wait_time:
         try:
@@ -124,19 +121,19 @@ def wait_for_processing_turn(batch_num):
             if queue_files:
                 # Check if we're first in queue
                 first_file = queue_files[0][1]
-                if first_file.endswith(f'_{node_id}_{batch_num}'):
-                    logger.info(f"Node {node_id}, Batch {batch_num}: Got processing turn!")
+                if first_file.endswith(f'_{node_id}_{batch_id}'):
+                    logger.info(f"Node {node_id}, Batch {batch_id}: Got processing turn!")
                     return
                 else:
                     # Log queue position
                     our_position = None
                     for i, (_, filename) in enumerate(queue_files):
-                        if filename.endswith(f'_{node_id}_{batch_num}'):
+                        if filename.endswith(f'_{node_id}_{batch_id}'):
                             our_position = i + 1
                             break
                     
                     if our_position:
-                        logger.debug(f"Node {node_id}, Batch {batch_num}: Queue position {our_position}/{len(queue_files)}")
+                        logger.debug(f"Node {node_id}, Batch {batch_id}: Queue position {our_position}/{len(queue_files)}")
             
         except OSError:
             # Directory might be temporarily unavailable
@@ -144,31 +141,32 @@ def wait_for_processing_turn(batch_num):
             
         time.sleep(5)  # Check queue every 5 seconds
     
-    logger.warning(f"Node {node_id}, Batch {batch_num}: Timeout waiting for processing turn. Proceeding anyway...")
+    logger.warning(f"Node {node_id}, Batch {batch_id}: Timeout waiting for processing turn. Proceeding anyway...")
 
 ############################################################################################################
 # Name: leave_processing_queue()
 # Description: Leave the processing queue after completing batch processing
 ############################################################################################################
-def leave_processing_queue(batch_num):
+def leave_processing_queue():
     """Leave processing queue after completing batch processing"""
     if not os.environ.get('SLURM_JOB_ID'):
         return
         
     node_id = os.environ.get('SLURM_NODEID', '0')
+    batch_id = os.environ.get('SLURM_ARRAY_TASK_ID', '1')
     
     queue_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE', '/tmp'), 'processing_queue')
     
     try:
         # Find and remove our queue entry
         for f in os.listdir(queue_dir):
-            if f.endswith(f'_{node_id}_{batch_num}'):
+            if f.endswith(f'_{node_id}_{batch_id}'):
                 queue_entry = os.path.join(queue_dir, f)
                 os.remove(queue_entry)
-                logger.info(f"Node {node_id}, Batch {batch_num}: Left processing queue")
+                logger.info(f"Node {node_id}, Batch {batch_id}: Left processing queue")
                 break
     except OSError as e:
-        logger.warning(f"Node {node_id}, Batch {batch_num}: Could not remove queue entry: {e}")
+        logger.warning(f"Node {node_id}, Batch {batch_id}: Could not remove queue entry: {e}")
 
 
 
@@ -201,7 +199,6 @@ def create_scenario_file(FEATURE_FILE_JSON, MAPPER_FILE, SCENARIO_FILE_CSV):
     # Process the mapper file name
     mapper_filename = os.path.basename(MAPPER_FILE)
 
-    # Remove .rb extension and format as UrbanOpt mapper class name
     if mapper_filename.lower().endswith(".rb"):
         base_mapper = mapper_filename[:-3]
     else:
@@ -224,45 +221,32 @@ def create_scenario_file(FEATURE_FILE_JSON, MAPPER_FILE, SCENARIO_FILE_CSV):
 #   The total time is calculated and the metadata is updated in the database.
 ############################################################################################################
 def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
-    # Execute UrbanOpt energy simulation for feature file
-    # Processes results, cleans reports, and updates database with timing information
-    
     from modules.diagnostics import update_time, get_weather
     
-    # Record simulation start time for performance tracking
     feature_start_time = time.time()
     
-    # Extract asset identifiers from feature file name
     feature_file_name = os.path.basename(FEATURE_FILE_JSON)
     asset_id = feature_file_name.split('_')[0]
     asset_name = '_'.join(feature_file_name.split('_')[1:]).replace('.json', '')
 
-    # Create batch-specific logger for this asset processing
-    batch_logger = initialize_logger('Run UOSim', external_log_dir, batch_index=batch_index)
-
-    # Log simulation start information to both user and batch logs
-    log_message = (f"Batch {batch_index}:\n"
+    logger.info(f"\n{'='*47}\n"
     f"Processing feature file: {feature_file_name}\n"
     f"Asset ID: {asset_id}\n"
     f"Asset Name: {asset_name}\n"
-    f"{'='*47}")
-    
-    logger.info(log_message)  # Log to user logs
-    batch_logger.info(log_message)  # Log to batch logs
+    f"Batch Index: {batch_index}\n"
+    f"{'='*47}"
+)
 
-    # Retrieve weather data for building location
     state, weather_file = get_weather(asset_id)
     
-    # Remove .epw extension if present (database stores full filename with .epw)
+    # NOTE: Remove .epw extension if present (database stores full filename with .epw)
     if weather_file.endswith('.epw'):
         weather_file = weather_file[:-4]
                 
-    # Prepare weather and simulation directories
     SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
     WEATHER_DESTINATION = os.path.join(SIMULATION_DIR, "weather")
     ASSET_WEATHER_DIR = os.path.join(WEATHER_DESTINATION, weather_file)
         
-    # Create weather directory if it doesn't exist
     if not os.path.exists(ASSET_WEATHER_DIR):
         logger.warning(f"Weather destination not found, creating weather directory at {WEATHER_DESTINATION}")
         os.makedirs(WEATHER_DESTINATION, exist_ok=True)
@@ -362,10 +346,10 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
             logger.error(f"BATCH {batch_index}: UrbanOpt CLI discovery failed: {e}")
             raise
 
-        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}", batch_index=batch_index)
+        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
 
         logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
-        uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}", batch_index=batch_index)
+        uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
         total_time = uo_run_time + uo_process_time
     except Exception as e:
         logger.error(f"BATCH {batch_index}: Error running UrbanOpt commands: {str(e)}")
@@ -399,14 +383,6 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     
     # Update the postgres
     update_time(asset_id, uo_run_time, uo_process_time, total_time)
-    
-    # Store actual processing time in database for performance monitoring
-    try:
-        from modules.diagnostics.db import update_asset_processing_time
-        # simulation_name not available in this scope, let db.py wrapper figure it out from asset_id
-        update_asset_processing_time(asset_id, feature_duration, simulation_name=None)
-    except Exception as e:
-        logger.error(f"Error updating processing time in database: {e}")
 
 ############################################################################################################
 # Name: process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simulation_name)
@@ -456,77 +432,46 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
 def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     from modules.diagnostics import get_asset_total,get_bulk_assets
     
-<<<<<<< HEAD
-    # Initialize batch-specific logger
-    external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
-    batch_logger = initialize_logger('Run UOSim', external_log_dir, batch_index=batch_num)
-    batch_logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")
-=======
     # Add synchronization barrier before processing in HPC environment
     if os.environ.get('SLURM_JOB_ID'):
         wait_for_all_nodes_ready()
-        join_processing_queue(batch_num)
-        wait_for_processing_turn(batch_num)
+        join_processing_queue()
+        wait_for_processing_turn()
 
     logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")
->>>>>>> f03d3fb11551b310cc78d57c17953dcfa81e23dd
 
     total_assets = get_asset_total(simulation_name,batch_num)
     
-    batch_logger.debug(f"BATCH {batch_num}: Processing {total_assets} assets...")
+    logger.debug(f"BATCH {batch_num}: Processing {total_assets} assets...")
     
     # Get all assets for this batch, ordered by order_rank
     assets = get_bulk_assets(simulation_name, batch_num)
 
     # NOTE: In UrbanOpt, we need to process assets sequentially to avoid conflicts
     # Each batch can run in parallel, but within a batch, assets must run sequentially
-    batch_logger.info(f"BATCH {batch_num}: Processing {len(assets)} assets sequentially")
+    logger.info(f"BATCH {batch_num}: Processing {len(assets)} assets sequentially")
     
     successful = 0
     failed = 0
-    assets_processed_batch = 0
-    
     for asset_data in assets:
         result, asset_id, error = process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simulation_name)
         if result:
             successful += 1
         else:
             failed += 1
-        assets_processed_batch += 1
-        
-        # Update progress after every asset is processed
-        from app.views import save_simulation_state, get_current_simulation
-        current_sim = get_current_simulation()
-        if current_sim:
-            current_progress = current_sim.get('progress', {})
-            # Increment the global counter by 1 for each asset
-            new_assets_processed = current_progress.get('assets_processed', 0) + 1
-            current_progress['assets_processed'] = new_assets_processed
-            current_progress['current_step'] = f'processing_batch_{batch_num}'
-            
-            # Track per-batch progress
-            batch_key = f'batch_{batch_num}'
-            if 'batches' not in current_progress:
-                current_progress['batches'] = {}
-            if batch_key not in current_progress['batches']:
-                current_progress['batches'][batch_key] = {'completed': 0, 'total': total_assets}
-            current_progress['batches'][batch_key]['completed'] = assets_processed_batch
-            
-            save_simulation_state(simulation_name, 'running', current_progress)
-            batch_logger.debug(f"BATCH {batch_num}: Updated progress - {new_assets_processed} assets processed, batch progress: {assets_processed_batch}/{total_assets}")
     
-    batch_logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed")
+    logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed")
     
     # Clean up - delete finished batch
     batch_dir = os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_num}')
     if os.path.exists(batch_dir):
-        batch_logger.debug(f"BATCH {batch_num}: Cleaning up directory: {batch_dir}")
+        logger.debug(f"BATCH {batch_num}: Cleaning up directory: {batch_dir}")
         shutil.rmtree(batch_dir)
     else:
-        batch_logger.warning(f"BATCH {batch_num}: Directory not found for cleanup (unneccesary for hpc mode): {batch_dir}")
+        logger.warning(f"BATCH {batch_num}: Directory not found for cleanup (unneccesary for hpc mode): {batch_dir}")
     
     
-    batch_logger.info(f"\n{'='*47}\n"
+    logger.info(f"\n{'='*47}\n"
     f"Batch {batch_num} finished processing.\n"
     f"Total assets processed: {total_assets}\n"
     f"{'='*47}"
@@ -534,7 +479,7 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     
     # Leave processing queue after completion in HPC environment
     if os.environ.get('SLURM_JOB_ID'):
-        leave_processing_queue(batch_num)
+        leave_processing_queue()
     
 
 

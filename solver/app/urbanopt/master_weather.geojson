@@ -35240,21 +35240,6 @@
   }, {
     "type": "Feature",
     "properties": {
-      "title": "USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3",
-      "epw": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3.epw>Download Weather File</a>",
-      "ddy": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3.ddy>Download Design Day File</a>",
-      "stat": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3.stat>Download Statistics File</a>",
-      "mos": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3.mos>Download Modelica Weather File</a>",
-      "all": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3.zip>Download All</a>",
-      "dir": "<a href=https://energyplus.net/weather-location/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Casper-Natrona.County.Intl.AP.725690_TMY3>Go To Folder</a>"
-    },
-    "geometry": {
-      "type": "Point",
-      "coordinates": [-106.47, 42.9]
-    }
-  }, {
-    "type": "Feature",
-    "properties": {
       "title": "USA_WY_Casper.725690_TMY2",
       "epw": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Casper.725690_TMY2/USA_WY_Casper.725690_TMY2.epw>Download Weather File</a>",
       "ddy": "<a href=https://energyplus-weather.s3.amazonaws.com/north_and_central_america_wmo_region_4/USA/WY/USA_WY_Casper.725690_TMY2/USA_WY_Casper.725690_TMY2.ddy>Download Design Day File</a>",

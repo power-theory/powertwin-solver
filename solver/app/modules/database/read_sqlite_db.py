@@ -73,7 +73,7 @@ def read_sqlite_db(db_path, table_name="powertwin", read_timeout=5000):
         for sim_name in simulations:
             print(f"\n--- Simulation: {sim_name} ---")
             
-            # Count by batch
+            # Count by batch for all assets
             cursor = conn.execute(f"""
                 SELECT 
                     batch,
@@ -88,17 +88,17 @@ def read_sqlite_db(db_path, table_name="powertwin", read_timeout=5000):
             batch_info = cursor.fetchall()
             
             if not batch_info:
-                print("No records found for this simulation")
+                print("No batches found for this simulation")
                 continue
                 
-            print("Batch distribution:")
+            print("Batch distribution (All assets):")
             print("Batch | Count | Asset IDs")
             print("-" * 50)
             
             for row in batch_info:
                 batch = row['batch'] if row['batch'] is not None else 'NULL'
                 count = row['count']
-                asset_ids = row['asset_ids'][:50] + '...' if len(row['asset_ids']) > 50 else row['asset_ids']
+                asset_ids = row['asset_ids'][:30] + '...' if len(row['asset_ids']) > 30 else row['asset_ids']
                 print(f"{str(batch):5} | {count:5} | {asset_ids}")
             
             # Count by status
@@ -141,7 +141,7 @@ def read_sqlite_db(db_path, table_name="powertwin", read_timeout=5000):
                 print("Weather File               | Failed | Finished | Total")
                 print("-" * 60)
                 for row in weather_records:
-                    weather_file = (row['weather_file'][:25] + '...') if row['weather_file'] and len(row['weather_file']) > 25 else (row['weather_file'] or 'NULL')
+                    weather_file = (row['weather_file']) if row['weather_file'] and len(row['weather_file']) > 25 else (row['weather_file'] or 'NULL')
                     failed_count = row['failed_count']
                     finished_count = row['finished_count']
                     total_count = row['total_count']
@@ -188,29 +188,29 @@ def read_sqlite_db(db_path, table_name="powertwin", read_timeout=5000):
                 print("No timing data available for this simulation")
             
             # Show sample asset data for each status
-            print(f"\n--- Sample Asset Data by Status for {sim_name} ---")
-            cursor.execute(f"""SELECT DISTINCT status FROM {table_name} WHERE simulation_name = ? ORDER BY status""", (sim_name,))
-            statuses = [row['status'] for row in cursor.fetchall()]
+            # print(f"\n--- Sample Asset Data by Status for {sim_name} ---")
+            # cursor.execute(f"""SELECT DISTINCT status FROM {table_name} WHERE simulation_name = ? ORDER BY status""", (sim_name,))
+            # statuses = [row['status'] for row in cursor.fetchall()]
             
-            for status in statuses:
-                cursor.execute(f"""
-                    SELECT * FROM {table_name} 
-                    WHERE simulation_name = ? AND status = ? 
-                    LIMIT 1
-                """, (sim_name, status))
-                sample_asset = cursor.fetchone()
+            # for status in statuses:
+            #     cursor.execute(f"""
+            #         SELECT * FROM {table_name} 
+            #         WHERE simulation_name = ? AND status = ? 
+            #         LIMIT 1
+            #     """, (sim_name, status))
+            #     sample_asset = cursor.fetchone()
                 
-                if sample_asset:
-                    print(f"\nStatus: {status}")
-                    print("-" * 40)
-                    for column_name in sample_asset.keys():
-                        value = sample_asset[column_name]
-                        # Format large values for readability
-                        if isinstance(value, str) and len(str(value)) > 50:
-                            display_value = str(value)[:50] + "..."
-                        else:
-                            display_value = value
-                        print(f"  {column_name:20}: {display_value}")
+            #     if sample_asset:
+            #         print(f"\nStatus: {status}")
+            #         print("-" * 40)
+            #         for column_name in sample_asset.keys():
+            #             value = sample_asset[column_name]
+            #             # Format large values for readability
+            #             if isinstance(value, str) and len(str(value)) > 50:
+            #                 display_value = str(value)[:50] + "..."
+            #             else:
+            #                 display_value = value
+            #             print(f"  {column_name:20}: {display_value}")
         
         # Global timing analysis across all simulations
         if all_total_times:
