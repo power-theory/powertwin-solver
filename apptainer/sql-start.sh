@@ -12,9 +12,9 @@
 # SLURM CONFIGURATION
 #==============================================================================
 #SBATCH --job-name=test-start
-#SBATCH --nodes=5                   
+#SBATCH --nodes=1                   
 #SBATCH --ntasks-per-node=1        
-#SBATCH --cpus-per-task=20          
+#SBATCH --cpus-per-task=10          
 #SBATCH --time=7-00:00:00           
 #SBATCH --account=cowy-nvhackathon 
 #SBATCH --output=%x_%j.out
@@ -32,21 +32,19 @@ module load slurm
 module load miniconda3/24.3.0
 module load gcc/14.2.0
 module load apptainer/1.4.1
-module load nvhpc-sdk/25.7
-module load nvhpc/25.7
 
 # =====================================================
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
 # Simulation parameters
 SIMULATION_NAME="test1"
-HPC_SHARED_STORAGE="/gscratch/nicolasreategui"
+HPC_SHARED_STORAGE="/gscratch/abalhasa/powertwinhackathon"
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload/${SIMULATION_NAME}"
-ASSET_GEOJSON_PATH="${UPLOAD_DIR}/wyo_asset_geometries.geojson"
-METADATA_CSV_PATH="${UPLOAD_DIR}/wyo-sensors-assets-geometries-types.csv"
+ASSET_GEOJSON_PATH="${UPLOAD_DIR}/asu-asset-geometries.geojson"
+METADATA_CSV_PATH="${UPLOAD_DIR}/asu-metadata.csv"
 CONFIG_JSON_PATH="${UPLOAD_DIR}/default_config.json"
 POWERTWIN_KEEP_DIRS=1
-WITH_NSYS_PROFILING=1
+WITH_NSYS_PROFILING=0
 
 # SIF files location
 SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
