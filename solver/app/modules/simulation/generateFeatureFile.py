@@ -93,6 +93,14 @@ def read_metadata(metadata_csv):
     with open(metadata_csv, 'r') as metadata_file:
         reader = csv.DictReader(metadata_file)
         
+        # Validate required columns
+        required_columns = ['asset_name', 'asset_subtype_name', 'asset_geometries_properties', 'asset_metadata']
+        if reader.fieldnames:
+            missing_columns = [col for col in required_columns if col not in reader.fieldnames]
+            if missing_columns:
+                available_columns = ', '.join(reader.fieldnames) if reader.fieldnames else 'none'
+                raise ValueError(f"Metadata CSV is missing required columns: {', '.join(missing_columns)}. Available columns: {available_columns}")
+        
         # Read each row in the CSV file to assign building data to its corresponding building ID
         for row in reader:
             asset_name = row['asset_name']

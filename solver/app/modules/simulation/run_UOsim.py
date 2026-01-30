@@ -259,6 +259,14 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     
     # Update the postgres
     update_time(asset_id, uo_run_time, uo_process_time, total_time)
+    
+    # Store actual processing time in database for performance monitoring
+    try:
+        from modules.diagnostics.db import update_asset_processing_time
+        # simulation_name not available in this scope, let db.py wrapper figure it out from asset_id
+        update_asset_processing_time(asset_id, feature_duration, simulation_name=None)
+    except Exception as e:
+        logger.error(f"Error updating processing time in database: {e}")
 
 ############################################################################################################
 # Name: process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simulation_name)

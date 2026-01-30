@@ -65,7 +65,8 @@ def create_table():
                 asset_name VARCHAR(255),
                 subtype VARCHAR(255),
                 status VARCHAR(255),
-                total_time NUMERIC
+                total_time NUMERIC,
+                processing_time_seconds NUMERIC
             )
         """)
         conn.commit()
@@ -281,6 +282,28 @@ def bulk_update_status(asset_ids, status, simulation_name):
         logger.error(f"Error bulk updating asset status: {e}")
         conn.rollback()
         return False
+    finally:
+        cur.close()
+        conn.close()
+
+
+def update_asset_processing_time(asset_id, processing_time_seconds):
+    """Update the processing time for a specific asset."""
+    logger.debug(f'Updating processing time for asset {asset_id}: {processing_time_seconds} seconds')
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(f"""
+            UPDATE {DB_NAME} 
+            SET processing_time_seconds = %s 
+            WHERE asset_id = %s
+        """, (processing_time_seconds, asset_id))
+        conn.commit()
+        logger.debug(f'Successfully updated processing time for asset {asset_id}')
+    except Exception as e:
+        logger.error(f"Error updating processing time for asset {asset_id}: {e}")
+        conn.rollback()
     finally:
         cur.close()
         conn.close()
@@ -622,7 +645,8 @@ def ensure_columns_exist():
             'asset_name': 'VARCHAR(255)',
             'subtype': 'VARCHAR(255)',
             'status': 'VARCHAR(255)',
-            'total_time': 'NUMERIC'
+            'total_time': 'NUMERIC',
+            'processing_time_seconds': 'NUMERIC'
         }
         
         # Add missing columns

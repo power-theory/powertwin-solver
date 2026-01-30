@@ -12,6 +12,7 @@ routes = [
     ('/api/simulation/current-status', get_current_simulation_status, ['GET']),
     ('/api/simulation/batch-progress', get_batch_progress, ['GET']),
     ('/api/simulation/delete/<simulation_name>', delete_simulation, ['DELETE']),
+    ('/api/simulation/<simulation_name>/assets', get_simulation_assets, ['GET']),
     ('/api/asset/config/<simulation_name>/<asset_id>', get_asset_config, ['GET']),
     ('/api/simulation/data',get_simulation_data, ['GET']),
     ('/api/diagnostics/recovery', recovery, ['POST']),
@@ -30,6 +31,7 @@ routes = [
     ('/api/tracker/stats', get_status_tracker_stats, ['GET']),
     # Performance monitoring endpoints
     ('/api/monitoring/performance', get_performance_metrics, ['GET']),
+    ('/api/monitoring/simulation-performance', get_simulation_performance, ['GET']),
     ('/api/monitoring/system-health', get_system_health, ['GET']),
     ('/api/monitoring/alerts', get_system_alerts, ['GET']),
     ('/api/monitoring/db-optimization', get_db_optimization_stats, ['GET']),

@@ -119,6 +119,7 @@ def create_table() -> bool:
                 subtype VARCHAR(255),
                 status VARCHAR(255),
                 total_time REAL,
+                processing_time_seconds REAL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -126,6 +127,20 @@ def create_table() -> bool:
         conn.commit()
         
         logger.debug(f"Table '{table_name}' created or verified to exist")
+        
+        # Ensure processing_time_seconds column exists (migration for existing databases)
+        try:
+            cursor = conn.execute(f"PRAGMA table_info({table_name})")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'processing_time_seconds' not in columns:
+                logger.info("Adding processing_time_seconds column to existing table")
+                conn.execute(f"ALTER TABLE {table_name} ADD COLUMN processing_time_seconds REAL")
+                conn.commit()
+                logger.info("Successfully added processing_time_seconds column")
+        except Exception as col_error:
+            logger.error(f"Error checking/adding processing_time_seconds column: {col_error}")
+        
         return True
         
     except Exception as e:
@@ -311,6 +326,30 @@ def update_status(simulation_name: str, asset_id: int, status: str) -> bool:
         
     except Exception as e:
         logger.error(f"Error updating asset status: {e}")
+        return False
+
+
+@retry_on_database_error
+def update_asset_processing_time(simulation_name: str, asset_id: int, processing_time_seconds: float) -> bool:
+    """Update processing time for an asset."""
+    logger.debug(f'Updating processing_time_seconds for asset {asset_id}: {processing_time_seconds}s')
+    
+    try:
+        conn = get_sqlite_connection()
+        table_name = os.environ.get("PGDATABASE", "powertwin")
+        
+        conn.execute(f"""
+            UPDATE {table_name} 
+            SET processing_time_seconds = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE simulation_name = ? AND asset_id = ?
+        """, (processing_time_seconds, simulation_name, asset_id))
+        conn.commit()
+        
+        logger.debug(f"Processing time updated for asset {asset_id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error updating processing time: {e}")
         return False
 
 

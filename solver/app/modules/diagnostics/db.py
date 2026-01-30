@@ -168,6 +168,32 @@ def get_status_stats(simulation_name, batch_id=None):
         return postgres_ops.get_status_stats(simulation_name, batch_id)
 
 
+def update_asset_processing_time(asset_id, processing_time_seconds, simulation_name=None):
+    """Update processing time using appropriate database for the environment."""
+    if IS_HPC_ENVIRONMENT:
+        # SQLite version expects simulation_name
+        if simulation_name is None:
+            logger.warning(f"simulation_name not provided for update_asset_processing_time, asset_id: {asset_id}")
+            # Try to get simulation name from existing record
+            try:
+                from modules.database.sqlite_manager import get_sqlite_manager
+                import sqlite3
+                manager = get_sqlite_manager()
+                conn = sqlite3.connect(manager.db_path, timeout=10)
+                conn.row_factory = sqlite3.Row
+                table_name = os.environ.get('PGDATABASE', 'powertwin')
+                cursor = conn.execute(f"SELECT simulation_name FROM {table_name} WHERE asset_id = ?", (asset_id,))
+                row = cursor.fetchone()
+                conn.close()
+                simulation_name = row['simulation_name'] if row else 'unknown'
+            except Exception as e:
+                logger.error(f"Could not get simulation_name: {e}")
+                simulation_name = 'unknown'
+        return sqlite_ops.update_asset_processing_time(simulation_name, asset_id, processing_time_seconds)
+    else:
+        return postgres_ops.update_asset_processing_time(asset_id, processing_time_seconds)
+
+
 def get_weather(asset_id, simulation_name=None):
     """Get weather using appropriate database for the environment."""
     if IS_HPC_ENVIRONMENT:

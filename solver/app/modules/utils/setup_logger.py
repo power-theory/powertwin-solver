@@ -160,21 +160,21 @@ def initialize_logger(logger_name, external_log_dir=None, batch_index=None):
         
         if batch_index is not None:
             # Batch-specific logging
-            dev_log_filename = f"batch_{batch_index}_logs.txt"
-            user_log_filename = f"batch_{batch_index}_logs.txt"
-            error_log_filename = f"batch_{batch_index}_logs.txt"
+            dev_log_filename = f"batch_{batch_index}_logs.log"
+            user_log_filename = f"batch_{batch_index}_logs.log"
+            error_log_filename = f"batch_{batch_index}_logs.log"
             structured_log_filename = f"batch_{batch_index}_logs.jsonl"
         elif slurm_job_id:
-            # HPC environment detected - prefix dev_logs.txt with SLURM job ID
-            dev_log_filename = f"{slurm_job_id}_dev_logs.txt"
-            user_log_filename = f"{slurm_job_id}_user_logs.txt"
-            error_log_filename = f"{slurm_job_id}_error_logs.txt"
+            # HPC environment detected - prefix dev_logs.log with SLURM job ID
+            dev_log_filename = f"{slurm_job_id}_dev_logs.log"
+            user_log_filename = f"{slurm_job_id}_user_logs.log"
+            error_log_filename = f"{slurm_job_id}_error_logs.log"
             structured_log_filename = f"{slurm_job_id}_structured_logs.jsonl"
         else:
             # Standard environment
-            dev_log_filename = "dev_logs.txt"
-            user_log_filename = "user_logs.txt"
-            error_log_filename = "error_logs.txt"
+            dev_log_filename = "dev_logs.log"
+            user_log_filename = "user_logs.log"
+            error_log_filename = "error_logs.log"
             structured_log_filename = "structured_logs.jsonl"
         
         dev_log_path = os.path.join(log_dir, dev_log_filename)

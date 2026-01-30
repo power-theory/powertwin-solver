@@ -306,54 +306,93 @@
 
                 <!-- Performance Tab -->
                 <div id="performance-tab" class="tab-content">
-                    <div class="row">
+                    <!-- Controls Row -->
+                    <div class="row mb-3">
                         <div class="col-12">
-                            <div class="card bg-darker border-secondary mb-4">
-                                <div class="card-header bg-darker border-secondary text-white">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-0">System Performance Metrics (Last 1 Hour)</h5>
-                                        <small class="text-muted">Last updated: <span id="perf-update-time">--:--:--</span></small>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-6 mb-4">
-                                            <h6 class="text-white mb-3">CPU Usage (%)</h6>
-                                            <div style="position: relative; height: 250px;">
-                                                <canvas id="cpuChart"></canvas>
+                            <div class="card bg-darker border-secondary">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <div>
+                                            <h6 class="text-white mb-2">Time Range</h6>
+                                            <div class="btn-group" role="group" id="time-range-selector">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="setTimeRange(1)">1h</button>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="setTimeRange(6)">6h</button>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="setTimeRange(24)">24h</button>
+                                                <button type="button" class="btn btn-sm btn-outline-primary active" onclick="setTimeRange(null)">All</button>
                                             </div>
                                         </div>
-                                        <div class="col-md-6 mb-4">
-                                            <h6 class="text-white mb-3">Memory Usage (%)</h6>
-                                            <div style="position: relative; height: 250px;">
-                                                <canvas id="memoryChart"></canvas>
+                                        <div>
+                                            <h6 class="text-white mb-2">Export Data</h6>
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-sm btn-success" onclick="exportData('csv')">
+                                                    <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-info" onclick="exportData('json')">
+                                                    <i class="bi bi-filetype-json"></i> JSON
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-warning" onclick="exportData('png')">
+                                                    <i class="bi bi-image"></i> PNG
+                                                </button>
                                             </div>
                                         </div>
-                                        <div class="col-md-6 mb-4">
-                                            <h6 class="text-white mb-3">Disk Usage (%)</h6>
-                                            <div style="position: relative; height: 250px;">
-                                                <canvas id="diskChart"></canvas>
-                                            </div>
+                                        <div>
+                                            <h6 class="text-white mb-2">Simulation Status</h6>
+                                            <input type="text" class="form-control form-control-sm form-control-dark" id="sim-name-input" placeholder="Simulation Name">
                                         </div>
-                                        <div class="col-md-6 mb-4">
-                                            <h6 class="text-white mb-3">Database Query Performance</h6>
-                                            <div style="position: relative; height: 250px;">
-                                                <canvas id="dbChart"></canvas>
-                                            </div>
+                                        <div>
+                                            <h6 class="text-white mb-2">Actions</h6>
+                                            <button type="button" class="btn btn-sm btn-success w-100" onclick="fetchSimulationPerformanceMetrics()">
+                                                <i class="bi bi-arrow-clockwise"></i> Refresh Now
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="col-12">
-                            <div class="card bg-darker border-secondary mb-4">
+                    <!-- Charts Row -->
+                    <div class="row">
+                        <!-- Simulation Performance Chart (Dual Y-Axis) -->
+                        <div class="col-12 mb-4">
+                            <div class="card bg-darker border-secondary">
                                 <div class="card-header bg-darker border-secondary text-white">
-                                    <h5 class="mb-0">System Alerts & Warnings</h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0" id="perf-chart-title">Simulation Performance - ETA: --</h5>
+                                        <small class="text-muted">Last updated: <span id="perf-update-time">--:--:--</span></small>
+                                    </div>
                                 </div>
                                 <div class="card-body">
-                                    <div id="alerts-content">
-                                        <p class="text-muted">No alerts at this time</p>
+                                    <div style="position: relative; height: 350px;">
+                                        <canvas id="simulationPerformanceChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Throughput Chart -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-darker border-secondary h-100">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">Throughput (Assets/Minute)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div style="position: relative; height: 300px;">
+                                        <canvas id="throughputChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Success Rate Chart -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-darker border-secondary h-100">
+                                <div class="card-header bg-darker border-secondary text-white">
+                                    <h5 class="mb-0">Success Rate (%)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div style="position: relative; height: 300px;">
+                                        <canvas id="successRateChart"></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -388,24 +427,19 @@
                 <div id="assets-tab" class="tab-content">
                     <div class="card bg-darker border-secondary">
                         <div class="card-header bg-darker border-secondary text-white">
-                            <h5 class="mb-0">Asset Configuration</h5>
+                            <h5 class="mb-0">Browse Simulation Assets</h5>
                         </div>
                         <div class="card-body">
-                            <form id="get-config-form">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="get_asset_id_config" class="form-label">Asset ID</label>
-                                        <input type="text" class="form-control form-control-dark" id="get_asset_id_config">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="get_simulation_name_config" class="form-label">Simulation Name</label>
-                                        <input type="text" class="form-control form-control-dark" id="get_simulation_name_config">
-                                    </div>
-                                </div>
-                                <button type="button" class="btn btn-primary" onclick="getAssetConfig()">
-                                    <i class="bi bi-download"></i> Get Configuration
+                            <div class="mb-3">
+                                <label for="browse_simulation_name" class="form-label">Simulation Name</label>
+                                <input type="text" class="form-control form-control-dark" id="browse_simulation_name" placeholder="Enter simulation name">
+                                <button type="button" class="btn btn-primary mt-2" onclick="loadSimulationAssets()">
+                                    <i class="bi bi-search"></i> Load Assets
                                 </button>
-                            </form>
+                            </div>
+                            <div id="assets-list" class="mt-3">
+                                <p class="text-muted">Enter a simulation name and click "Load Assets" to browse</p>
+                            </div>
                         </div>
                     </div>
                 </div>

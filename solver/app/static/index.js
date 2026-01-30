@@ -1,23 +1,23 @@
 console.log("PowerTwin Solver UI v2.0 loaded");
 
 // ============= Global Variables =============
-let performanceCharts = {
-    cpu: null,
-    memory: null,
-    disk: null,
-    db: null
+let simulationPerformanceCharts = {
+    performance: null,
+    throughput: null,
+    successRate: null
 };
 
-let performanceData = {
+let simulationPerformanceData = {
     timestamps: [],
-    cpu: [],
-    memory: [],
-    disk: [],
-    dbQueries: [],
-    dbTime: []
+    avgSimulationTime: [],
+    completionPercentage: [],
+    throughput: [],
+    successRate: []
 };
 
-const MAX_HISTORY_POINTS = 60;
+let currentTimeRange = null;  // null = All
+let simulationPollingInterval = null;
+const MAX_HISTORY_POINTS = 1000;
 
 // ============= Initialization =============
 document.addEventListener('DOMContentLoaded', function() {
@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSystemTypes();
     loadBuildingTypes();
     initializeDashboard();
+    initializePerformanceMonitoring();
     loadLogs();
     startPeriodicUpdates();
 });
@@ -62,10 +63,9 @@ function switchTab(tabName) {
     };
     document.getElementById('page-title').textContent = titles[tabName] || 'Dashboard';
     
-    if (tabName === 'performance' && !performanceCharts.cpu) {
+    if (tabName === 'performance' && !simulationPerformanceCharts.performance) {
         setTimeout(() => {
-            initializePerformanceCharts();
-            fetchPerformanceMetrics();
+            initializeSimulationPerformanceCharts();
         }, 100);
     }
 }
@@ -128,6 +128,13 @@ function initializeDashboard() {
     setInterval(fetchBatchProgress, 60000);  // Polling for batch progress
 }
 
+// ============= Performance Monitoring =============
+function initializePerformanceMonitoring() {
+    fetchSimulationPerformanceMetrics();
+    setInterval(fetchSimulationPerformanceMetrics, 60000);  // Poll every 60 seconds
+    console.log('Started continuous performance monitoring (60s interval)');
+}
+
 function fetchCurrentSimulationStatus() {
     fetch('/api/simulation/current-status')
         .then(response => response.json())
@@ -144,8 +151,9 @@ function updateSimulationProgressDisplay(data) {
         return;
     }
     
-    // Update status indicator
-    updateStatusIndicator('Running');
+    // Update status indicator based on actual simulation status
+    const statusDisplay = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+    updateStatusIndicator(statusDisplay);
     
     const sim = {
         name: data.simulation_name,
@@ -288,120 +296,234 @@ function getDiskClass(value) {
     return 'text-success';
 }
 
-// ============= Performance Charts =============
-function initializePerformanceCharts() {
-    const chartConfig = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                labels: {
-                    color: '#b0b0b0',
-                    font: { size: 11 }
+// ============= Simulation Performance Charts =============
+function initializeSimulationPerformanceCharts() {
+    console.log('Initializing simulation performance charts...');
+    
+    // Simulation Performance Chart (Dual Y-Axis)
+    const perfCtx = document.getElementById('simulationPerformanceChart');
+    if (perfCtx && !simulationPerformanceCharts.performance) {
+        simulationPerformanceCharts.performance = new Chart(perfCtx, {
+            type: 'line',
+            data: {
+                labels: simulationPerformanceData.timestamps,
+                datasets: [
+                    {
+                        label: 'Avg Simulation Time (s)',
+                        data: simulationPerformanceData.avgSimulationTime,
+                        type: 'line',
+                        borderColor: '#4ecdc4',
+                        backgroundColor: 'rgba(78, 205, 196, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        yAxisID: 'y-left'
+                    },
+                    {
+                        label: 'Completion %',
+                        data: simulationPerformanceData.completionPercentage,
+                        type: 'line',
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        yAxisID: 'y-right'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#b0b0b0',
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 12,
+                        titleColor: '#fff',
+                        bodyColor: '#fff'
+                    }
+                },
+                scales: {
+                    'y-left': {
+                        type: 'linear',
+                        position: 'left',
+                        beginAtZero: true,
+                        ticks: { 
+                            color: '#4ecdc4',
+                            callback: function(value) {
+                                return value + 's';
+                            }
+                        },
+                        grid: { color: '#404040' },
+                        title: {
+                            display: true,
+                            text: 'Avg Simulation Time (seconds)',
+                            color: '#4ecdc4'
+                        }
+                    },
+                    'y-right': {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { 
+                            color: '#ff6b6b',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Completion %',
+                            color: '#ff6b6b'
+                        }
+                    },
+                    x: {
+                        ticks: { 
+                            color: '#b0b0b0',
+                            maxRotation: 45,
+                            minRotation: 0
+                        },
+                        grid: { color: '#404040' }
+                    }
                 }
             }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                max: 100,
-                ticks: { color: '#b0b0b0' },
-                grid: { color: '#404040' }
-            },
-            x: {
-                ticks: { color: '#b0b0b0' },
-                grid: { color: '#404040' }
-            }
-        }
-    };
-
-    const cpuCtx = document.getElementById('cpuChart');
-    if (cpuCtx && !performanceCharts.cpu) {
-        performanceCharts.cpu = new Chart(cpuCtx, {
-            type: 'line',
-            data: {
-                labels: performanceData.timestamps,
-                datasets: [{
-                    label: 'CPU Usage (%)',
-                    data: performanceData.cpu,
-                    borderColor: '#ff6b6b',
-                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 5
-                }]
-            },
-            options: chartConfig
         });
     }
 
-    const memoryCtx = document.getElementById('memoryChart');
-    if (memoryCtx && !performanceCharts.memory) {
-        performanceCharts.memory = new Chart(memoryCtx, {
+    // Throughput Chart
+    const throughputCtx = document.getElementById('throughputChart');
+    if (throughputCtx && !simulationPerformanceCharts.throughput) {
+        simulationPerformanceCharts.throughput = new Chart(throughputCtx, {
             type: 'line',
             data: {
-                labels: performanceData.timestamps,
+                labels: simulationPerformanceData.timestamps,
                 datasets: [{
-                    label: 'Memory Usage (%)',
-                    data: performanceData.memory,
-                    borderColor: '#4ecdc4',
-                    backgroundColor: 'rgba(78, 205, 196, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 5
-                }]
-            },
-            options: chartConfig
-        });
-    }
-
-    const diskCtx = document.getElementById('diskChart');
-    if (diskCtx && !performanceCharts.disk) {
-        performanceCharts.disk = new Chart(diskCtx, {
-            type: 'line',
-            data: {
-                labels: performanceData.timestamps,
-                datasets: [{
-                    label: 'Disk Usage (%)',
-                    data: performanceData.disk,
+                    label: 'Assets/Minute',
+                    data: simulationPerformanceData.throughput,
                     borderColor: '#f7b731',
-                    backgroundColor: 'rgba(247, 183, 49, 0.1)',
+                    backgroundColor: 'rgba(247, 183, 49, 0.2)',
                     borderWidth: 2,
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 5
-                }]
-            },
-            options: chartConfig
-        });
-    }
-
-    const dbCtx = document.getElementById('dbChart');
-    if (dbCtx && !performanceCharts.db) {
-        performanceCharts.db = new Chart(dbCtx, {
-            type: 'bar',
-            data: {
-                labels: performanceData.timestamps,
-                datasets: [{
-                    label: 'Avg Query Time (ms)',
-                    data: performanceData.dbTime,
-                    backgroundColor: '#5f27cd',
-                    borderColor: '#8b5fc7',
-                    borderWidth: 1
+                    pointRadius: 2,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
-                ...chartConfig,
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#b0b0b0',
+                            font: { size: 12 }
+                        }
+                    }
+                },
                 scales: {
-                    ...chartConfig.scales,
                     y: {
-                        ...chartConfig.scales.y,
-                        max: undefined
+                        beginAtZero: true,
+                        ticks: { color: '#b0b0b0' },
+                        grid: { color: '#404040' },
+                        title: {
+                            display: true,
+                            text: 'Assets per Minute',
+                            color: '#b0b0b0'
+                        }
+                    },
+                    x: {
+                        ticks: { 
+                            color: '#b0b0b0',
+                            maxRotation: 45
+                        },
+                        grid: { color: '#404040' }
+                    }
+                }
+            }
+        });
+    }
+
+    // Success Rate Chart
+    const successCtx = document.getElementById('successRateChart');
+    if (successCtx && !simulationPerformanceCharts.successRate) {
+        simulationPerformanceCharts.successRate = new Chart(successCtx, {
+            type: 'line',
+            data: {
+                labels: simulationPerformanceData.timestamps,
+                datasets: [
+                    {
+                        label: 'Success Rate %',
+                        data: simulationPerformanceData.successRate,
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: '95% Target',
+                        data: Array(simulationPerformanceData.timestamps.length).fill(95),
+                        borderColor: '#27ae60',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0,
+                        pointHoverRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#b0b0b0',
+                            font: { size: 12 }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { 
+                            color: '#b0b0b0',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: { color: '#404040' },
+                        title: {
+                            display: true,
+                            text: 'Success Rate %',
+                            color: '#b0b0b0'
+                        }
+                    },
+                    x: {
+                        ticks: { 
+                            color: '#b0b0b0',
+                            maxRotation: 45
+                        },
+                        grid: { color: '#404040' }
                     }
                 }
             }
@@ -409,82 +531,206 @@ function initializePerformanceCharts() {
     }
 }
 
-function fetchPerformanceMetrics() {
-    fetch('/api/monitoring/performance')
-        .then(response => response.json())
-        .then(data => updatePerformanceData(data))
-        .catch(error => console.error('Error fetching performance metrics:', error));
-}
-
-function updatePerformanceData(data) {
-    if (!data || (!data.metrics && !data.system)) return;
-
-    const timestamp = new Date().toLocaleTimeString();
+function fetchSimulationPerformanceMetrics() {
+    const simName = document.getElementById('sim-name-input')?.value || '';
+    let url = '/api/monitoring/simulation-performance';
     
-    // Handle both old and new data formats
-    let metrics = data.metrics || data.system || {};
-    let dbMetrics = data.database_metrics || data.database || {};
-
-    // Extract nested percentage values from system metrics
-    const cpuValue = metrics.cpu?.percent ?? metrics.cpu_usage ?? 0;
-    const memoryValue = metrics.memory?.percent ?? metrics.memory_usage ?? 0;
-    const diskValue = metrics.disk?.percent ?? metrics.disk_usage ?? 0;
-    const dbTimeValue = dbMetrics.avg_query_time_ms ?? dbMetrics.avg_query_time ?? 0;
-
-    // Debug logging (can be removed after verification)
-    if (performanceData.timestamps.length === 0) {
-        console.log('First performance data received:', { cpu: cpuValue, memory: memoryValue, disk: diskValue, dbTime: dbTimeValue });
+    // Add query parameters
+    const params = new URLSearchParams();
+    if (currentTimeRange) {
+        params.append('time_range', currentTimeRange);
     }
-
-    if (performanceData.timestamps.length >= MAX_HISTORY_POINTS) {
-        performanceData.timestamps.shift();
-        performanceData.cpu.shift();
-        performanceData.memory.shift();
-        performanceData.disk.shift();
-        performanceData.dbTime.shift();
+    if (simName) {
+        params.append('simulation_name', simName);
     }
-
-    performanceData.timestamps.push(timestamp);
-    performanceData.cpu.push(cpuValue);
-    performanceData.memory.push(memoryValue);
-    performanceData.disk.push(diskValue);
-
-    performanceData.dbTime.push(dbTimeValue);
-
-    updateChart(performanceCharts.cpu, performanceData.timestamps, performanceData.cpu);
-    updateChart(performanceCharts.memory, performanceData.timestamps, performanceData.memory);
-    updateChart(performanceCharts.disk, performanceData.timestamps, performanceData.disk);
-    updateChart(performanceCharts.db, performanceData.timestamps, performanceData.dbTime);
-
-    document.getElementById('perf-update-time').textContent = timestamp;
-
-    if (data.recent_alerts && data.recent_alerts.length > 0) {
-        updateAlertsDisplay(data.recent_alerts);
+    
+    if (params.toString()) {
+        url += '?' + params.toString();
     }
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => updateSimulationPerformanceData(data))
+        .catch(error => console.error('Error fetching simulation performance:', error));
 }
 
-function updateChart(chart, labels, data) {
-    if (chart) {
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = data;
-        chart.update('none');
-    }
-}
-
-function updateAlertsDisplay(alerts) {
-    const alertsContent = document.getElementById('alerts-content');
-    if (alerts.length === 0) {
-        alertsContent.innerHTML = '<p class="text-muted">No alerts at this time</p>';
+function updateSimulationPerformanceData(data) {
+    if (!data) {
+        console.log('No data received');
         return;
     }
-
-    let html = '<div>';
-    alerts.forEach(alert => {
-        const alertClass = alert.severity === 'WARNING' ? 'alert-warning' : 'alert-info';
-        html += `<div class="alert ${alertClass} mb-2 py-2 px-3"><small><strong>${alert.severity}:</strong> ${alert.message}</small></div>`;
+    
+    const historical = data.historical_data || [];
+    
+    if (historical.length === 0) {
+        console.log('No historical data available yet');
+        // Show message on charts that no data is available
+        document.getElementById('perf-chart-title').textContent = 
+            'Simulation Performance - No Data Available';
+        return;
+    }
+    
+    // Clear existing data
+    simulationPerformanceData.timestamps = [];
+    simulationPerformanceData.avgSimulationTime = [];
+    simulationPerformanceData.completionPercentage = [];
+    simulationPerformanceData.throughput = [];
+    simulationPerformanceData.successRate = [];
+    
+    // Populate from historical data
+    historical.forEach(point => {
+        const time = new Date(point.timestamp);
+        const timeStr = time.toLocaleTimeString();
+        
+        simulationPerformanceData.timestamps.push(timeStr);
+        simulationPerformanceData.avgSimulationTime.push(point.avg_simulation_time || 0);
+        simulationPerformanceData.completionPercentage.push(point.completion_percentage || 0);
+        simulationPerformanceData.throughput.push(point.throughput || 0);
+        simulationPerformanceData.successRate.push(point.success_rate || 0);
     });
-    html += '</div>';
-    alertsContent.innerHTML = html;
+    
+    // Update charts
+    updateSimulationChart(simulationPerformanceCharts.performance, 
+        simulationPerformanceData.timestamps,
+        [simulationPerformanceData.avgSimulationTime, simulationPerformanceData.completionPercentage]);
+    
+    updateSimulationChart(simulationPerformanceCharts.throughput,
+        simulationPerformanceData.timestamps,
+        [simulationPerformanceData.throughput]);
+    
+    // Update success rate chart with threshold line
+    if (simulationPerformanceCharts.successRate) {
+        const thresholdData = Array(simulationPerformanceData.timestamps.length).fill(95);
+        simulationPerformanceCharts.successRate.data.labels = simulationPerformanceData.timestamps;
+        simulationPerformanceCharts.successRate.data.datasets[0].data = simulationPerformanceData.successRate;
+        simulationPerformanceCharts.successRate.data.datasets[1].data = thresholdData;
+        simulationPerformanceCharts.successRate.update('none');
+    }
+    
+    // Update ETA in title
+    if (data.eta_formatted) {
+        document.getElementById('perf-chart-title').textContent = 
+            `Simulation Performance - ETA: ${data.eta_formatted}`;
+    } else if (data.latest) {
+        document.getElementById('perf-chart-title').textContent = 
+            'Simulation Performance - ETA: Calculating...';
+    } else {
+        document.getElementById('perf-chart-title').textContent = 
+            'Simulation Performance - No Active Simulation';
+    }
+    
+    // Update timestamp
+    const now = new Date();
+    document.getElementById('perf-update-time').textContent = now.toLocaleTimeString();
+    
+    console.log(`Updated charts with ${historical.length} data points`);
+}
+
+function updateSimulationChart(chart, labels, datasetsData) {
+    if (!chart) return;
+    
+    chart.data.labels = labels;
+    datasetsData.forEach((data, index) => {
+        if (chart.data.datasets[index]) {
+            chart.data.datasets[index].data = data;
+        }
+    });
+    chart.update('none');
+}
+
+function startSimulationPerformancePolling() {
+    // Polling is now handled by initializePerformanceMonitoring() on page load
+    // This function kept for backward compatibility
+    console.log('Performance monitoring polling is continuous (started on page load)');
+}
+
+// ============= Time Range & Export Functions =============
+function setTimeRange(hours) {
+    currentTimeRange = hours;
+    
+    // Update button states
+    const buttons = document.querySelectorAll('#time-range-selector button');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Just filter displayed data, don't call API - use manual Refresh button for new data
+    console.log(`Time range set to: ${hours || 'All'} (filters display only)`);
+}
+
+function exportData(format) {
+    if (format === 'csv') {
+        exportCSV();
+    } else if (format === 'json') {
+        exportJSON();
+    } else if (format === 'png') {
+        exportPNG();
+    }
+}
+
+function exportCSV() {
+    let csv = 'Timestamp,Avg Simulation Time (s),Completion %,Throughput (assets/min),Success Rate %\\n';
+    
+    for (let i = 0; i < simulationPerformanceData.timestamps.length; i++) {
+        csv += `${simulationPerformanceData.timestamps[i]},`;
+        csv += `${simulationPerformanceData.avgSimulationTime[i]},`;
+        csv += `${simulationPerformanceData.completionPercentage[i]},`;
+        csv += `${simulationPerformanceData.throughput[i]},`;
+        csv += `${simulationPerformanceData.successRate[i]}\\n`;
+    }
+    
+    downloadFile(csv, 'simulation-performance.csv', 'text/csv');
+    console.log('Exported CSV data');
+}
+
+function exportJSON() {
+    const jsonData = {
+        exported_at: new Date().toISOString(),
+        time_range: currentTimeRange || 'all',
+        data_points: simulationPerformanceData.timestamps.length,
+        metrics: []
+    };
+    
+    for (let i = 0; i < simulationPerformanceData.timestamps.length; i++) {
+        jsonData.metrics.push({
+            timestamp: simulationPerformanceData.timestamps[i],
+            avg_simulation_time: simulationPerformanceData.avgSimulationTime[i],
+            completion_percentage: simulationPerformanceData.completionPercentage[i],
+            throughput: simulationPerformanceData.throughput[i],
+            success_rate: simulationPerformanceData.successRate[i]
+        });
+    }
+    
+    downloadFile(JSON.stringify(jsonData, null, 2), 'simulation-performance.json', 'application/json');
+    console.log('Exported JSON data');
+}
+
+function exportPNG() {
+    // Export the main performance chart as PNG
+    const canvas = document.getElementById('simulationPerformanceChart');
+    if (!canvas) {
+        alert('Chart not found');
+        return;
+    }
+    
+    canvas.toBlob(function(blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = 'simulation-performance-chart.png';
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+        console.log('Exported PNG chart');
+    });
+}
+
+function downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
 // ============= Logs =============
@@ -582,6 +828,9 @@ function fetchAvailableBatchLogs() {
         .then(data => {
             const logTypeSelector = document.getElementById('log-type-selector');
             if (logTypeSelector && data.batches && data.batches.length > 0) {
+                // Save current selection before rebuilding
+                const currentSelection = logTypeSelector.value;
+                
                 // Remove existing batch options
                 const existingBatchOptions = logTypeSelector.querySelectorAll('option[value^="batch_"]');
                 existingBatchOptions.forEach(opt => opt.remove());
@@ -593,6 +842,12 @@ function fetchAvailableBatchLogs() {
                     option.textContent = `Batch ${batchNum} Logs`;
                     logTypeSelector.appendChild(option);
                 });
+                
+                // Restore previous selection if it still exists
+                const optionExists = Array.from(logTypeSelector.options).some(opt => opt.value === currentSelection);
+                if (optionExists) {
+                    logTypeSelector.value = currentSelection;
+                }
             }
         })
         .catch(error => {
@@ -734,6 +989,9 @@ async function startSimulation() {
         alert('Simulation started successfully!');
         setSimulationStatus('Running', 'warning');
         switchTab('dashboard');
+        // Immediately fetch updated status from server (like autorun does)
+        fetchCurrentSimulationStatus();
+        fetchBatchProgress();
     } catch (error) {
         console.error('Error:', error);
         alert('Failed to start simulation');
@@ -753,14 +1011,14 @@ async function recoverSimulation() {
 
     const formData = new FormData();
     formData.append('corrupted_simulation_name', corrupted_name);
-    formData.append('batch_id', document.getElementById('recover_batch_id').value);
-    formData.append('recovery_simulation_name', recover_name);
+    formData.append('recover_batch_id', document.getElementById('recover_batch_id').value);
+    formData.append('recover_simulation_name', recover_name);
     formData.append('num_cores', num_cores);
     formData.append('keep_dirs', document.getElementById('recover_keep_dirs').checked);
 
     try {
         setSimulationStatus('Recovering...', 'info');
-        const response = await fetch('/api/simulation/recover', {
+        const response = await fetch('/api/diagnostics/recovery', {
             method: 'POST',
             body: formData
         });
@@ -866,34 +1124,291 @@ async function deleteSimulation() {
     }
 }
 
-async function getAssetConfig() {
-    const asset_id = document.getElementById('get_asset_id_config').value;
-    const simulation_name = document.getElementById('get_simulation_name_config').value;
-
-    if (!asset_id || !simulation_name) {
-        alert('Please enter asset ID and simulation name.');
+// ============= Assets Tab Functions =============
+async function loadSimulationAssets() {
+    const simulationName = document.getElementById('browse_simulation_name').value;
+    
+    if (!simulationName) {
+        alert('Please enter a simulation name');
         return;
     }
-
+    
+    // Show loading message
+    const container = document.getElementById('assets-list');
+    container.innerHTML = '<p class="text-muted"><i class="bi bi-hourglass-split"></i> Loading assets...</p>';
+    
     try {
-        const response = await fetch(`/api/asset/config/${simulation_name}/${asset_id}`);
+        const response = await fetch(`/api/simulation/${simulationName}/assets`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            container.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ${data.error}</div>`;
+            return;
+        }
+        
+        displayAssetsList(data.assets, simulationName);
+    } catch (error) {
+        console.error('Error:', error);
+        container.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Failed to load assets</div>';
+    }
+}
 
+function displayAssetsList(assets, simulationName) {
+    const container = document.getElementById('assets-list');
+    
+    if (assets.length === 0) {
+        container.innerHTML = '<div class="alert alert-warning"><i class="bi bi-info-circle"></i> No assets found for this simulation</div>';
+        return;
+    }
+    
+    // Store assets globally for pagination and filtering
+    window.allAssets = assets;
+    window.filteredAssets = assets;
+    window.currentSimulationName = simulationName;
+    window.currentPage = 1;
+    window.itemsPerPage = 50;
+    
+    let html = `<div class="alert alert-info mb-3"><i class="bi bi-info-circle"></i> Found <strong>${assets.length}</strong> assets for simulation: <strong>${simulationName}</strong></div>`;
+    
+    // Add search bar
+    html += `<div class="mb-3">
+        <div class="input-group mb-2">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="assetSearchInput" placeholder="Search by asset ID or name..." onkeyup="searchAssets()">
+            <button class="btn btn-outline-secondary" onclick="clearAssetSearch()">Clear</button>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="form-text text-muted">Showing <span id="assetStart">1</span>-<span id="assetEnd">50</span> of <span id="assetTotal">${assets.length}</span> assets</small>
+            <div>
+                <label class="form-label mb-0">Items per page:</label>
+                <select class="form-select form-select-sm" id="itemsPerPageSelect" style="width: auto; display: inline-block;" onchange="changeItemsPerPage()">
+                    <option value="25">25</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+    </div>`;
+    
+    html += '<div class="table-responsive" id="tableContainer">';
+    html += '<table class="table table-dark table-striped table-hover">';
+    html += '<thead><tr>';
+    html += '<th>Asset ID</th>';
+    html += '<th>Name</th>';
+    html += '<th>Floor Area (m²)</th>';
+    html += '<th>Stories</th>';
+    html += '<th>Building Type</th>';
+    html += '<th style="text-align: center;">Action</th>';
+    html += '</tr></thead><tbody id="assetTableBody">';
+    html += '</tbody></table></div>';
+    
+    // Add pagination controls
+    html += `<nav aria-label="Asset pagination" class="mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <button class="btn btn-sm btn-outline-secondary" id="prevBtn" onclick="previousPage()"><i class="bi bi-chevron-left"></i> Previous</button>
+                <button class="btn btn-sm btn-outline-secondary" id="nextBtn" onclick="nextPage()">Next <i class="bi bi-chevron-right"></i></button>
+            </div>
+            <div>
+                <label class="form-label mb-0 me-2">Go to page:</label>
+                <div style="display: inline-flex; gap: 5px;">
+                    <input type="number" class="form-control form-control-sm" id="pageInput" style="width: 70px;" min="1">
+                    <button class="btn btn-sm btn-outline-primary" onclick="goToPage()">Go</button>
+                </div>
+            </div>
+            <div>
+                <span id="pageInfo">Page 1 of 1</span>
+            </div>
+        </div>
+    </nav>`;
+    
+    container.innerHTML = html;
+    renderAssetPage();
+}
+
+function renderAssetPage() {
+    const startIdx = (window.currentPage - 1) * window.itemsPerPage;
+    const endIdx = startIdx + window.itemsPerPage;
+    const pageAssets = window.filteredAssets.slice(startIdx, endIdx);
+    
+    let html = '';
+    pageAssets.forEach(asset => {
+        html += `<tr>
+            <td><code>${asset.asset_id}</code></td>
+            <td>${asset.asset_name}</td>
+            <td>${asset.floor_area}</td>
+            <td>${asset.number_of_stories}</td>
+            <td><span class="badge bg-secondary">${asset.building_type}</span></td>
+            <td style="text-align: center;">
+                <button class="btn btn-sm btn-primary" onclick="viewAssetConfig('${window.currentSimulationName}', '${asset.asset_id}')">
+                    <i class="bi bi-eye"></i> View
+                </button>
+            </td>
+        </tr>`;
+    });
+    
+    document.getElementById('assetTableBody').innerHTML = html;
+    updatePaginationControls();
+}
+
+function updatePaginationControls() {
+    const totalPages = Math.ceil(window.filteredAssets.length / window.itemsPerPage);
+    const startIdx = (window.currentPage - 1) * window.itemsPerPage + 1;
+    const endIdx = Math.min(window.currentPage * window.itemsPerPage, window.filteredAssets.length);
+    
+    // Update info text
+    document.getElementById('assetStart').textContent = startIdx;
+    document.getElementById('assetEnd').textContent = endIdx;
+    document.getElementById('assetTotal').textContent = window.filteredAssets.length;
+    document.getElementById('pageInfo').textContent = `Page ${window.currentPage} of ${totalPages}`;
+    document.getElementById('pageInput').value = window.currentPage;
+    document.getElementById('pageInput').max = totalPages;
+    
+    // Update button states
+    document.getElementById('prevBtn').disabled = window.currentPage === 1;
+    document.getElementById('nextBtn').disabled = window.currentPage === totalPages;
+}
+
+function searchAssets() {
+    const searchInput = document.getElementById('assetSearchInput').value.toLowerCase();
+    
+    window.filteredAssets = window.allAssets.filter(asset => {
+        return asset.asset_id.toLowerCase().includes(searchInput) || 
+               asset.asset_name.toLowerCase().includes(searchInput);
+    });
+    
+    window.currentPage = 1;
+    renderAssetPage();
+}
+
+function clearAssetSearch() {
+    document.getElementById('assetSearchInput').value = '';
+    window.filteredAssets = window.allAssets;
+    window.currentPage = 1;
+    renderAssetPage();
+}
+
+function changeItemsPerPage() {
+    window.itemsPerPage = parseInt(document.getElementById('itemsPerPageSelect').value);
+    window.currentPage = 1;
+    renderAssetPage();
+}
+
+function previousPage() {
+    if (window.currentPage > 1) {
+        window.currentPage--;
+        renderAssetPage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function nextPage() {
+    const totalPages = Math.ceil(window.filteredAssets.length / window.itemsPerPage);
+    if (window.currentPage < totalPages) {
+        window.currentPage++;
+        renderAssetPage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function goToPage() {
+    const pageNum = parseInt(document.getElementById('pageInput').value);
+    const totalPages = Math.ceil(window.filteredAssets.length / window.itemsPerPage);
+    
+    if (pageNum >= 1 && pageNum <= totalPages) {
+        window.currentPage = pageNum;
+        renderAssetPage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+        alert(`Please enter a page number between 1 and ${totalPages}`);
+    }
+}
+
+async function viewAssetConfig(simulationName, assetId) {
+    try {
+        const response = await fetch(`/api/asset/config/${simulationName}/${assetId}`);
+        
         if (!response.ok) {
             const errorData = await response.json();
             alert(`Error: ${errorData.error}`);
             return;
         }
-
-        const blob = await response.blob();
-        const element = document.createElement('a');
-        element.setAttribute('href', URL.createObjectURL(blob));
-        element.setAttribute('download', `${asset_id}_config.json`);
-        element.style.display = 'none';
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
+        
+        const text = await response.text();
+        const jsonData = JSON.parse(text);
+        
+        // Store for download functionality
+        window.currentAssetConfig = { assetId, jsonData, simulationName };
+        
+        displayAssetConfig(assetId, jsonData, simulationName);
     } catch (error) {
         console.error('Error:', error);
-        alert('Failed to get asset configuration');
+        alert('Failed to load asset configuration');
     }
+}
+
+function displayAssetConfig(assetId, jsonData, simulationName) {
+    const container = document.getElementById('assets-list');
+    const jsonString = JSON.stringify(jsonData, null, 2);
+    const highlightedJson = syntaxHighlight(jsonString);
+    
+    const html = `
+        <div class="card bg-dark text-light">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Asset Configuration: <code>${assetId}</code></h5>
+                <div>
+                    <button class="btn btn-sm btn-success me-2" onclick="downloadCurrentAssetConfig()">
+                        <i class="bi bi-download"></i> Download JSON
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="loadSimulationAssets()">
+                        <i class="bi bi-arrow-left"></i> Back to List
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <pre class="bg-dark text-light p-3 rounded" style="max-height: 600px; overflow-y: auto;"><code>${highlightedJson}</code></pre>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function syntaxHighlight(json) {
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        let cls = 'text-info'; // numbers
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'text-warning'; // keys
+            } else {
+                cls = 'text-success'; // strings
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'text-primary'; // booleans
+        } else if (/null/.test(match)) {
+            cls = 'text-muted'; // null
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+    });
+}
+
+function downloadCurrentAssetConfig() {
+    if (!window.currentAssetConfig) {
+        alert('No asset configuration loaded');
+        return;
+    }
+    
+    const { assetId, jsonData } = window.currentAssetConfig;
+    const jsonString = JSON.stringify(jsonData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${assetId}_config.json`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }

@@ -12,6 +12,7 @@ import datetime
 from datetime import timezone
 import csv
 import threading
+import zipfile
 
 from flask import request, jsonify, render_template, send_file
 
@@ -24,6 +25,7 @@ from modules.diagnostics.performance_monitor import (
     get_monitor, check_log_health, check_system_health, 
     get_performance_report, get_recent_alerts, record_query_metric
 )
+from modules.diagnostics.simulation_performance import get_performance_tracker
 from modules.utils import initialize_logger, send_error_to_mss
 from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
 
@@ -178,34 +180,121 @@ def start_simulation():
     with open(config_json_path, 'w') as config_file:
         json.dump(json.loads(config_data), config_file)
 
-    # Call the create_feature_files and initialize_uo to run the simulation and 
-    # delete the simulation directory (container)
+    # Prepare data for background thread
+    sim_data = {
+        'simulation_name': simulation_name,
+        'asset_geojson_path': asset_geojson_path,
+        'metadata_csv_path': metadata_csv_path,
+        'config_json_path': config_json_path,
+        'num_cores': num_cores,
+        'simulation_dir': SIMULATION_DIR,
+        'local_dir': LOCAL_DIR
+    }
+    
+    # Start the simulation in a background thread
+    logger.info(f"Starting simulation '{simulation_name}' in background thread")
+    thread = threading.Thread(
+        target=_run_start_simulation_background,
+        args=(sim_data,),
+        daemon=False  # Don't make it a daemon thread so it continues even if main thread exits
+    )
+    thread.start()
+    
+    # Return immediately to the client
+    return jsonify({
+        'message': f'Simulation "{simulation_name}" started successfully',
+        'simulation_name': simulation_name,
+        'status': 'running'
+    }), 200
+
+############################################################################################################
+# Name: def _run_start_simulation_background()
+# Description: Background thread worker function that executes the simulation.
+# This runs in a separate thread to avoid blocking the HTTP request.
+############################################################################################################
+def _run_start_simulation_background(sim_data):
+    """Background worker function for start simulation"""
+    simulation_name = sim_data['simulation_name']
+    SIMULATION_DIR = sim_data['simulation_dir']
+    LOCAL_DIR = sim_data['local_dir']
+    
+    logger.info(f"========== START SIMULATION BACKGROUND THREAD STARTED for {simulation_name} ==========")
+    
     try:
+        # Update state to running immediately
+        save_simulation_state(simulation_name, 'running', {
+            'assets_processed': 0,
+            'total_assets': 0,
+            'current_step': 'initializing'
+        })
+        logger.info(f"[START] State saved: running")
+        
         # Initialize database status table for tracking
         create_table()
+        logger.info(f"[START] Database table initialized")
         
         # Step 1: Generate UrbanOpt feature files from GeoJSON
-        logger.debug("Calling create_feature_files from start_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, simulation_name)
-        logger.debug("Exited create_feature_files to start_simulation()")
+        logger.info(f"[START] ===== STEP 1: Creating feature files =====")
+        save_simulation_state(simulation_name, 'running', {
+            'assets_processed': 0,
+            'total_assets': 0,
+            'current_step': 'creating_feature_files'
+        })
+        create_featurefiles(
+            SIMULATION_DIR, 
+            LOCAL_DIR, 
+            sim_data['asset_geojson_path'], 
+            sim_data['metadata_csv_path'], 
+            sim_data['config_json_path'], 
+            sim_data['num_cores'], 
+            simulation_name
+        )
+        logger.info(f"[START] ===== STEP 1 COMPLETED: Feature files created =====")
         
         # Step 2: Initialize and run UrbanOpt simulation with parallelization
-        logger.debug("Calling initialize_uo from start_simulation()")
+        logger.info(f"[START] ===== STEP 2: Running UrbanOpt simulation =====")
+        save_simulation_state(simulation_name, 'running', {
+            'assets_processed': 0,
+            'total_assets': 0,
+            'current_step': 'running_urbanopt'
+        })
         initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
-        logger.debug("Exited initialize_uo to start_simulation()")
+        logger.info(f"[START] ===== STEP 2 COMPLETED: UrbanOpt simulation finished =====")
+        
+        # Update state to completed
+        save_simulation_state(simulation_name, 'completed', {
+            'current_step': 'completed'
+        })
         
         # Step 3: Clean up temporary simulation directory
-        logger.debug("Deleting simulation directory, within the container")
-        get_logs()
-        shutil.rmtree(SIMULATION_DIR)
+        logger.info(f"[START] ===== STEP 3: Cleaning up =====")
+        if os.path.exists(SIMULATION_DIR):
+            shutil.rmtree(SIMULATION_DIR)
+            logger.info(f"[START] Deleted simulation directory: {SIMULATION_DIR}")
+        
+        logger.info(f"========== START SIMULATION BACKGROUND THREAD COMPLETED SUCCESSFULLY for {simulation_name} ==========")
+        
     except Exception as e:
-        # Log error and send notification via Slack if configured
-        logger.error(f"Exception: {str(e)}")
+        logger.error(f"========== START SIMULATION BACKGROUND THREAD FAILED for {simulation_name} ==========")
+        logger.error(f"[START] Exception: {str(e)}")
+        logger.error(f"[START] Exception type: {type(e).__name__}")
+        import traceback
+        logger.error(f"[START] Traceback:\n{traceback.format_exc()}")
         send_error_to_mss('start_simulation', str(e))
-        return jsonify({'error': str(e)}), 500
-    
-    logger.debug("start_simulation() ran successfully")
-    return jsonify({'confirmation': f'Simulation "{simulation_name}" ran successfully'})
+        
+        # Update state to failed
+        save_simulation_state(simulation_name, 'failed', {
+            'error': str(e),
+            'current_step': 'error'
+        })
+        
+        # Clean up simulation directory if it exists
+        if SIMULATION_DIR and os.path.exists(SIMULATION_DIR):
+            try:
+                shutil.rmtree(SIMULATION_DIR)
+                logger.info(f"[START] Cleaned up failed simulation directory: {SIMULATION_DIR}")
+            except Exception as cleanup_err:
+                logger.error(f"[START] Error cleaning up simulation directory: {str(cleanup_err)}")
 
 ############################################################################################################
 # Name: def _run_autorun_simulation_background()
@@ -225,7 +314,7 @@ def _run_autorun_simulation_background(data, simulation_name):
         import glob
         log_dir = os.path.join('logs')
         if os.path.exists(log_dir):
-            batch_log_files = glob.glob(os.path.join(log_dir, 'batch_*_logs.txt'))
+            batch_log_files = glob.glob(os.path.join(log_dir, 'batch_*_logs.log'))
             for batch_log_file in batch_log_files:
                 try:
                     os.remove(batch_log_file)
@@ -428,15 +517,20 @@ def stop_simulation():
         if current_sim:
             logger.info(f"Stopping simulation: {current_sim.get('simulation_name')}")
         
-        logger.debug("Calling stop_UOsimulation()")
-        stop_UOsimulation()
-        logger.info("stop_UOsimulation() completed successfully")
-        
-        # Clear the simulation state
+        # Clear the simulation state immediately
         clear_simulation_state()
         logger.info("Cleared simulation state")
-        logger.info("========== SIMULATION STOPPED SUCCESSFULLY ==========")
         
+        # Start background thread to kill processes
+        logger.info("Starting stop process in background thread")
+        thread = threading.Thread(
+            target=_run_stop_simulation_background,
+            daemon=False
+        )
+        thread.start()
+        
+        # Return immediately to the client
+        logger.info("========== SIMULATION STOP REQUEST ACCEPTED ==========")
         return jsonify({'message': 'Simulation stopped successfully'}), 200
         
     except Exception as e:
@@ -446,6 +540,24 @@ def stop_simulation():
         logger.error(f"Traceback: {traceback.format_exc()}")
         send_error_to_mss('stop_simulation', str(e))
         return jsonify({'error': f"Failed to stop simulation: {str(e)}"}), 500
+
+
+def _run_stop_simulation_background():
+    """Background worker function for stopping simulation"""
+    logger.info("========== STOP SIMULATION BACKGROUND THREAD STARTED ==========")
+    
+    try:
+        logger.debug("Calling stop_UOsimulation()")
+        stop_UOsimulation()
+        logger.info("stop_UOsimulation() completed successfully")
+        logger.info("========== STOP SIMULATION BACKGROUND THREAD COMPLETED ==========")
+        
+    except Exception as e:
+        logger.error(f"========== STOP SIMULATION BACKGROUND THREAD FAILED ==========")
+        logger.error(f"Exception: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        send_error_to_mss('stop_simulation_background', str(e))
 
 
 ############################################################################################################
@@ -544,19 +656,19 @@ def get_current_logs():
             # Extract batch number from batch_N format
             try:
                 batch_num = int(log_type.split('_')[1])
-                log_filename = f'batch_{batch_num}_logs.txt'
+                log_filename = f'batch_{batch_num}_logs.log'
             except (IndexError, ValueError):
                 log_type = 'user'
-                log_filename = 'user_logs.txt'
+                log_filename = 'user_logs.log'
         elif log_type == 'user':
-            log_filename = 'user_logs.txt'
+            log_filename = 'user_logs.log'
         elif log_type == 'dev':
-            log_filename = 'dev_logs.txt'
+            log_filename = 'dev_logs.log'
         elif log_type == 'error':
-            log_filename = 'error_logs.txt'
+            log_filename = 'error_logs.log'
         else:
             log_type = 'user'
-            log_filename = 'user_logs.txt'
+            log_filename = 'user_logs.log'
         
         # Define log file path
         LOGS_DIR = os.path.join('logs')
@@ -633,15 +745,15 @@ def refresh_logs():
     os.makedirs(LOGS_DIR, exist_ok=True)
     
     # Define log files (dev, user, and error logs)
-    DEV_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.txt')
-    USER_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'user_logs.txt')
-    ERROR_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'error_logs.txt')
-    DEV_LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
-    USER_LOG_FILE = os.path.join(LOGS_DIR, 'user_logs.txt')
-    ERROR_LOG_FILE = os.path.join(LOGS_DIR, 'error_logs.txt')
+    DEV_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.log')
+    USER_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'user_logs.log')
+    ERROR_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'error_logs.log')
+    DEV_LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.log')
+    USER_LOG_FILE = os.path.join(LOGS_DIR, 'user_logs.log')
+    ERROR_LOG_FILE = os.path.join(LOGS_DIR, 'error_logs.log')
     
     try:
-        # Copy dev_logs.txt to requested_files
+        # Copy dev_logs.log to requested_files
         if os.path.exists(DEV_LOG_FILE):
             with open(DEV_LOG_FILE, 'r') as file:
                 dev_logs = file.read()
@@ -651,7 +763,7 @@ def refresh_logs():
         else:
             logger.warning(f"Dev log file does not exist at {DEV_LOG_FILE}")
         
-        # Copy user_logs.txt to requested_files
+        # Copy user_logs.log to requested_files
         if os.path.exists(USER_LOG_FILE):
             with open(USER_LOG_FILE, 'r') as file:
                 user_logs = file.read()
@@ -661,7 +773,7 @@ def refresh_logs():
         else:
             logger.warning(f"User log file does not exist at {USER_LOG_FILE}")
         
-        # Copy error_logs.txt to requested_files
+        # Copy error_logs.log to requested_files
         if os.path.exists(ERROR_LOG_FILE):
             with open(ERROR_LOG_FILE, 'r') as file:
                 error_logs = file.read()
@@ -671,9 +783,9 @@ def refresh_logs():
         else:
             logger.warning(f"Error log file does not exist at {ERROR_LOG_FILE}")
         
-        # Copy all batch_*_logs.txt files to requested_files
+        # Copy all batch_*_logs.log files to requested_files
         import glob
-        batch_log_files = glob.glob(os.path.join(LOGS_DIR, 'batch_*_logs.txt'))
+        batch_log_files = glob.glob(os.path.join(LOGS_DIR, 'batch_*_logs.log'))
         for batch_log_file in batch_log_files:
             batch_log_filename = os.path.basename(batch_log_file)
             batch_requested_file = os.path.join(REQUESTED_FILES_DIR, batch_log_filename)
@@ -703,7 +815,7 @@ def refresh_logs():
 ############################################################################################################
 # Name: def get_available_batch_logs()
 # Description: Returns list of available batch log files from current simulation.
-# Scans logs directory for batch_*_logs.txt files and extracts batch numbers.
+# Scans logs directory for batch_*_logs.log files and extracts batch numbers.
 ############################################################################################################
 def get_available_batch_logs():
     """Get list of available batch log files"""
@@ -714,13 +826,13 @@ def get_available_batch_logs():
         LOGS_DIR = os.path.join('logs')
         
         # Find all batch log files
-        batch_log_files = glob.glob(os.path.join(LOGS_DIR, 'batch_*_logs.txt'))
+        batch_log_files = glob.glob(os.path.join(LOGS_DIR, 'batch_*_logs.log'))
         
         # Extract batch numbers from filenames
         batch_numbers = []
         for batch_file in batch_log_files:
             filename = os.path.basename(batch_file)
-            match = re.search(r'batch_(\d+)_logs\.txt', filename)
+            match = re.search(r'batch_(\d+)_logs\.log', filename)
             if match:
                 batch_num = int(match.group(1))
                 batch_numbers.append(batch_num)
@@ -801,6 +913,7 @@ def delete_simulation(simulation_name):
 # Name: def get_asset_config()
 # Description: This function reads the feature files and returns the configuration of the asset.
 # Searches for the feature file based on the asset ID and simulation name.
+# If feature_files directory doesn't exist, extracts from feature_files.zip.
 # Returns the feature file as a response. Available in the request_files directory.
 ############################################################################################################
 def get_asset_config(simulation_name, asset_id):
@@ -820,28 +933,48 @@ def get_asset_config(simulation_name, asset_id):
 
         # Look for the feature_files subdirectory containing UrbanOpt feature JSON files
         FEATURE_FILE_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
+        FEATURE_FILE_ZIP = os.path.join(SIMULATION_DIR, 'feature_files.zip')
+        
+        # If feature_files directory doesn't exist, try to extract from zip
         if not os.path.exists(FEATURE_FILE_DIR):
-            logger.error(F"{FEATURE_FILE_DIR} directory found")
-            return jsonify({'error': 'No feature files directory found'}), 404
+            if os.path.exists(FEATURE_FILE_ZIP):
+                logger.debug(f"feature_files directory not found, extracting from {FEATURE_FILE_ZIP}")
+                try:
+                    os.makedirs(FEATURE_FILE_DIR, exist_ok=True)
+                    with zipfile.ZipFile(FEATURE_FILE_ZIP, 'r') as zip_ref:
+                        zip_ref.extractall(FEATURE_FILE_DIR)
+                    logger.debug(f"Successfully extracted feature files from zip")
+                except Exception as e:
+                    logger.error(f"Error extracting feature files from zip: {str(e)}")
+                    return jsonify({'error': f'Error extracting feature files: {str(e)}'}), 500
+            else:
+                logger.error(f"Neither feature_files directory nor feature_files.zip found")
+                return jsonify({'error': 'No feature files found for this simulation'}), 404
 
         # Search for the asset ID in the feature files
         logger.debug(f"Searching for feature file in {FEATURE_FILE_DIR}")
-        for file_name in os.listdir(FEATURE_FILE_DIR):
-            # Match files with pattern: <asset_id>_<descriptor>.json
-            if file_name.startswith(f"{asset_id}_") and file_name.endswith('.json'):
-                file_path = os.path.join(FEATURE_FILE_DIR, file_name)
-                
-                # Copy to requested_files directory for download
-                DOWNLOAD_DIR = os.path.join(LOCAL_DIR, 'requested_files')
-                os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-                requested_file_path = os.path.join(DOWNLOAD_DIR, file_name)
-                
-                # Copy the configuration file to the requested_files directory
-                shutil.copy(file_path, requested_file_path)
-                
-                # Return the file as an attachment download
-                response = send_file(requested_file_path, as_attachment=True)
-                return response
+        if not os.path.exists(FEATURE_FILE_DIR):
+            logger.error(f"Feature files directory does not exist")
+            return jsonify({'error': 'No feature files directory found'}), 404
+        
+        # Search recursively for the file (in case zip extracted with nested structure)
+        found_file = None
+        for root, dirs, files in os.walk(FEATURE_FILE_DIR):
+            for file_name in files:
+                # Match files with pattern: <asset_id>_<descriptor>.json
+                if file_name.startswith(f"{asset_id}_") and file_name.endswith('.json'):
+                    found_file = os.path.join(root, file_name)
+                    logger.debug(f"Found matching file: {found_file}")
+                    break
+            if found_file:
+                break
+        
+        if found_file and os.path.exists(found_file):
+            logger.info(f"Successfully found asset config for {asset_id} at {found_file}")
+            # Read and return the JSON content directly
+            with open(found_file, 'r') as f:
+                json_content = f.read()
+            return json_content, 200, {'Content-Type': 'application/json'}
     
         logger.error(f"No feature file found for asset ID: {asset_id}")
         return jsonify({'error': f'No feature file found for asset ID: {asset_id}'}), 404
@@ -849,6 +982,98 @@ def get_asset_config(simulation_name, asset_id):
     except Exception as e:
         logger.error(f"Exception: {str(e)}")
         send_error_to_mss('get_asset_config', str(e))
+        return jsonify({'error': str(e)}), 500
+
+
+############################################################################################################
+# Name: def get_simulation_assets()
+# Description: Returns a list of all assets for a given simulation with their details.
+# Extracts feature files from zip if needed and returns asset metadata.
+############################################################################################################
+def get_simulation_assets(simulation_name):
+    logger.debug(f"Within get_simulation_assets() for simulation: {simulation_name}")
+    
+    try:
+        # Validate simulation directory exists
+        SIMULATION_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
+        if not os.path.exists(SIMULATION_DIR):
+            logger.error(f"Simulation directory does not exist: {SIMULATION_DIR}")
+            return jsonify({'error': 'Simulation directory does not exist'}), 404
+
+        FEATURE_FILE_DIR = os.path.join(SIMULATION_DIR, 'feature_files')
+        FEATURE_FILE_ZIP = os.path.join(SIMULATION_DIR, 'feature_files.zip')
+        
+        # Extract from zip if needed
+        if not os.path.exists(FEATURE_FILE_DIR):
+            if os.path.exists(FEATURE_FILE_ZIP):
+                logger.debug(f"Extracting feature files from {FEATURE_FILE_ZIP}")
+                try:
+                    os.makedirs(FEATURE_FILE_DIR, exist_ok=True)
+                    with zipfile.ZipFile(FEATURE_FILE_ZIP, 'r') as zip_ref:
+                        zip_ref.extractall(FEATURE_FILE_DIR)
+                except Exception as e:
+                    logger.error(f"Error extracting feature files: {str(e)}")
+                    return jsonify({'error': f'Error extracting feature files: {str(e)}'}), 500
+            else:
+                logger.error("No feature files found for this simulation")
+                return jsonify({'error': 'No feature files found for this simulation'}), 404
+
+        # Collect all asset files
+        assets = []
+        for root, dirs, files in os.walk(FEATURE_FILE_DIR):
+            for file_name in files:
+                if file_name.endswith('.json'):
+                    # Extract asset ID and name from filename (format: assetID_name.json)
+                    try:
+                        parts = file_name.rsplit('.', 1)[0].split('_', 1)
+                        if len(parts) >= 2:
+                            asset_id = parts[0]
+                            asset_name = parts[1].replace('_', ' ')
+                            
+                            # Read file to get additional details
+                            file_path = os.path.join(root, file_name)
+                            try:
+                                with open(file_path, 'r') as f:
+                                    config = json.load(f)
+                                    feature = config.get('features', [{}])[0]
+                                    properties = feature.get('properties', {})
+                                    
+                                    assets.append({
+                                        'asset_id': asset_id,
+                                        'asset_name': asset_name,
+                                        'filename': file_name,
+                                        'floor_area': properties.get('floor_area', 'N/A'),
+                                        'number_of_stories': properties.get('number_of_stories', 'N/A'),
+                                        'building_type': properties.get('building_type', 'N/A')
+                                    })
+                            except json.JSONDecodeError:
+                                logger.warning(f"Could not parse JSON from {file_name}")
+                                assets.append({
+                                    'asset_id': asset_id,
+                                    'asset_name': asset_name,
+                                    'filename': file_name,
+                                    'floor_area': 'N/A',
+                                    'number_of_stories': 'N/A',
+                                    'building_type': 'N/A'
+                                })
+                    except (ValueError, IndexError):
+                        logger.warning(f"Could not parse asset info from filename: {file_name}")
+                        continue
+        
+        # Sort by asset ID
+        assets.sort(key=lambda x: int(x['asset_id']) if x['asset_id'].isdigit() else 0)
+        
+        logger.info(f"Found {len(assets)} assets for simulation {simulation_name}")
+        return jsonify({
+            'simulation_name': simulation_name,
+            'asset_count': len(assets),
+            'assets': assets
+        }), 200
+    
+    except Exception as e:
+        logger.error(f"Exception in get_simulation_assets: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 
@@ -943,7 +1168,7 @@ def recovery():
     corrupted_simulation_name = request.form.get('corrupted_simulation_name')  # Name of the failed simulation
     recover_simulation_name = request.form.get('recover_simulation_name')  # Name for the recovery run
     batch_id = request.form.get('recover_batch_id', default=None, type=int)  # Optional: specific batch to recover
-    num_cores = int(request.form.get('recover_num_cores', 1))  # Number of CPU cores for recovery
+    num_cores = int(request.form.get('num_cores', 1))  # Number of CPU cores for recovery
     keep_dirs = request.form.get('keep_dirs', 'false').lower() == 'true'  # Flag to preserve directories
 
     # Set environment variable for keep directories flag if requested
@@ -1003,23 +1228,109 @@ def recovery():
     shutil.copy(geojson_path, new_geojson_name_path)
     shutil.copy(config_path, new_config_name_path)
     
-    # Execute the recovery simulation process
+    # Save initial state and start recovery in background thread
+    save_simulation_state(recover_simulation_name, 'running', {
+        'current_step': 'initializing'
+    })
+    logger.info(f"[RECOVERY] Initial state saved for {recover_simulation_name}")
+    
+    # Prepare recovery data for background thread
+    recovery_data = {
+        'recover_simulation_name': recover_simulation_name,
+        'recovery_dir_container': RECOVERY_DIR_CONTAINER,
+        'recovery_dir_local': RECOVERY_DIR_LOCAL,
+        'corrupted_simulation_dir': CORRUPTED_SIMULATION_DIR,
+        'corrupted_simulation_name': corrupted_simulation_name,
+        'num_cores': num_cores,
+        'batch_id': batch_id
+    }
+    
+    # Start recovery in background thread and return immediately
+    recovery_thread = threading.Thread(
+        target=_run_recovery_simulation_background,
+        args=(recovery_data,),
+        daemon=False
+    )
+    recovery_thread.start()
+    logger.info(f"[RECOVERY] Background thread started for {recover_simulation_name}")
+    
+    return jsonify({'message': 'Recovery simulation started in background'}), 200
+
+
+
+def _run_recovery_simulation_background(recovery_data):
+    """Background worker function for recovery simulation"""
+    recover_simulation_name = recovery_data['recover_simulation_name']
+    RECOVERY_DIR_CONTAINER = recovery_data['recovery_dir_container']
+    RECOVERY_DIR_LOCAL = recovery_data['recovery_dir_local']
+    CORRUPTED_SIMULATION_DIR = recovery_data['corrupted_simulation_dir']
+    corrupted_simulation_name = recovery_data['corrupted_simulation_name']
+    num_cores = recovery_data['num_cores']
+    batch_id = recovery_data['batch_id']
+    
+    logger.info(f"========== RECOVERY SIMULATION BACKGROUND THREAD STARTED for {recover_simulation_name} ==========")
+    
     try:
-        # Initialize recovery process - removes incomplete assets and reruns simulation
-        logger.debug("Calling simulation_recovery from recovery()")
-        simulation_recovery(RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, CORRUPTED_SIMULATION_DIR, corrupted_simulation_name, recover_simulation_name, num_cores, batch_id)
+        # Update state to running immediately
+        save_simulation_state(recover_simulation_name, 'running', {
+            'current_step': 'initializing'
+        })
+        logger.info(f"[RECOVERY] State saved: running")
         
-        # Clean up temporary container directory after recovery completes
-        logger.debug("Exited simulation_recovery to recovery(), deleting recovery directory within the container")
-        get_logs()
-        shutil.rmtree(RECOVERY_DIR_CONTAINER)
-        return jsonify({'message': 'Simulation recovery process completed successfully'}), 200
+        # Initialize database status table for tracking
+        create_table()
+        logger.info(f"[RECOVERY] Database table initialized")
+        
+        # Step 1: Generate UrbanOpt feature files from GeoJSON (with recovery logic)
+        logger.info(f"[RECOVERY] ===== STEP 1: Creating feature files =====")
+        save_simulation_state(recover_simulation_name, 'running', {
+            'current_step': 'creating_feature_files'
+        })
+        simulation_recovery(RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, CORRUPTED_SIMULATION_DIR, corrupted_simulation_name, recover_simulation_name, num_cores, batch_id)
+        logger.info(f"[RECOVERY] ===== STEP 1 COMPLETED: Feature files created =====")
+        
+        # Step 2: Initialize and run UrbanOpt simulation with parallelization
+        logger.info(f"[RECOVERY] ===== STEP 2: Running UrbanOpt simulation =====")
+        save_simulation_state(recover_simulation_name, 'running', {
+            'current_step': 'running_urbanopt'
+        })
+        initialize_uo(RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, recover_simulation_name)
+        logger.info(f"[RECOVERY] ===== STEP 2 COMPLETED: UrbanOpt simulation finished =====")
+        
+        # Update state to completed
+        save_simulation_state(recover_simulation_name, 'completed', {
+            'current_step': 'completed'
+        })
+        
+        # Step 3: Clean up temporary recovery directory
+        logger.info(f"[RECOVERY] ===== STEP 3: Cleaning up =====")
+        if os.path.exists(RECOVERY_DIR_CONTAINER):
+            shutil.rmtree(RECOVERY_DIR_CONTAINER)
+            logger.info(f"[RECOVERY] Deleted recovery directory: {RECOVERY_DIR_CONTAINER}")
+        
+        logger.info(f"========== RECOVERY SIMULATION BACKGROUND THREAD COMPLETED SUCCESSFULLY for {recover_simulation_name} ==========")
+        
     except Exception as e:
-        logger.error(f"Exception during simulation recovery: {str(e)}")
+        logger.error(f"========== RECOVERY SIMULATION BACKGROUND THREAD FAILED for {recover_simulation_name} ==========")
+        logger.error(f"[RECOVERY] Exception: {str(e)}")
+        logger.error(f"[RECOVERY] Exception type: {type(e).__name__}")
+        import traceback
+        logger.error(f"[RECOVERY] Traceback:\n{traceback.format_exc()}")
         send_error_to_mss('recovery', str(e))
-        return jsonify({'error': str(e)}), 500
-
-
+        
+        # Update state to failed
+        save_simulation_state(recover_simulation_name, 'failed', {
+            'error': str(e),
+            'current_step': 'error'
+        })
+        
+        # Clean up recovery directory if it exists
+        if RECOVERY_DIR_CONTAINER and os.path.exists(RECOVERY_DIR_CONTAINER):
+            try:
+                shutil.rmtree(RECOVERY_DIR_CONTAINER)
+                logger.info(f"[RECOVERY] Cleaned up failed recovery directory: {RECOVERY_DIR_CONTAINER}")
+            except Exception as cleanup_err:
+                logger.error(f"[RECOVERY] Error cleaning up recovery directory: {str(cleanup_err)}")
 
 ############################################################################################################
 # Name: def get_logs()
@@ -1046,13 +1357,13 @@ def get_logs(shared_storage=None):
     os.makedirs(LOGS_DIR, exist_ok=True)
     
     # Define log files (both dev and user logs)
-    DEV_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.txt')
-    USER_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'user_logs.txt')
-    DEV_LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
-    USER_LOG_FILE = os.path.join(LOGS_DIR, 'user_logs.txt')
+    DEV_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'dev_logs.log')
+    USER_REQUESTED_LOG_FILE = os.path.join(REQUESTED_FILES_DIR, 'user_logs.log')
+    DEV_LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.log')
+    USER_LOG_FILE = os.path.join(LOGS_DIR, 'user_logs.log')
     
     try:
-        # Copy dev_logs.txt to requested_files
+        # Copy dev_logs.log to requested_files
         if os.path.exists(DEV_LOG_FILE):
             with open(DEV_LOG_FILE, 'r') as file:
                 dev_logs = file.read()
@@ -1061,7 +1372,7 @@ def get_logs(shared_storage=None):
         else:
             logger.warning(f"Dev log file does not exist at {DEV_LOG_FILE}")
         
-        # Copy user_logs.txt to requested_files
+        # Copy user_logs.log to requested_files
         if os.path.exists(USER_LOG_FILE):
             with open(USER_LOG_FILE, 'r') as file:
                 user_logs = file.read()
@@ -1131,8 +1442,8 @@ def update_asset():
 
 ############################################################################################################
 # Name: def log_message()
-# Description: This function logs a message to the dev_logs.txt file.
-# Calls the log_message function to log a message to the dev_logs.txt file.
+# Description: This function logs a message to the dev_logs.log file.
+# Calls the log_message function to log a message to the dev_logs.log file.
 ############################################################################################################
 def log_message():
     # Extract message data from JSON request
@@ -1144,7 +1455,7 @@ def log_message():
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Define the log file path
-    log_txt = os.path.join('logs','dev_logs.txt')
+    log_txt = os.path.join('logs','dev_logs.log')
     os.makedirs(os.path.dirname(log_txt), exist_ok=True)
 
     # Append the log entry to the log file with timestamp and type
@@ -1175,7 +1486,7 @@ def get_logs_paginated():
         
         # Define log file path
         LOGS_DIR = os.path.join('logs')
-        LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
+        LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.log')
         
         # Create log streamer and retrieve paginated results
         log_streamer = get_log_streamer(LOG_FILE, page_size=page_size)
@@ -1200,7 +1511,7 @@ def get_logs_tail():
         
         # Define log file path
         LOGS_DIR = os.path.join('logs')
-        LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
+        LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.log')
         
         # Get the last N log lines
         log_streamer = get_log_streamer(LOG_FILE)
@@ -1228,7 +1539,7 @@ def get_logs_by_time():
         
         # Define log file path
         LOGS_DIR = os.path.join('logs')
-        LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
+        LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.log')
         
         # Retrieve logs within the specified time range
         log_streamer = get_log_streamer(LOG_FILE, page_size=page_size)
@@ -1257,7 +1568,7 @@ def get_log_stats():
     
     try:
         LOGS_DIR = os.path.join('logs')
-        LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.txt')
+        LOG_FILE = os.path.join(LOGS_DIR, 'dev_logs.log')
         
         log_streamer = get_log_streamer(LOG_FILE)
         stats = log_streamer.get_log_statistics()
@@ -1386,7 +1697,7 @@ def get_performance_metrics():
         
         # Analyze log file health and integrity
         logs_dir = os.path.join('logs')
-        log_file = os.path.join(logs_dir, 'dev_logs.txt')
+        log_file = os.path.join(logs_dir, 'dev_logs.log')
         log_health = check_log_health(log_file)
         
         # Get database and query performance statistics
@@ -1490,4 +1801,60 @@ def get_full_diagnostics():
         
     except Exception as e:
         logger.error(f"Exception in get_full_diagnostics: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# Get simulation performance metrics for visualization
+def get_simulation_performance():
+    """
+    Get simulation performance metrics including timing, throughput, and failure rates.
+    Returns historical data for chart rendering.
+    """
+    logger.debug("Within get_simulation_performance()")
+    
+    try:
+        # Get query parameters
+        time_range = request.args.get('time_range', default=None, type=int)  # Hours (1, 6, 24, or None)
+        simulation_name = request.args.get('simulation_name', default=None, type=str)
+        
+        # If no simulation name provided, try to get current
+        if not simulation_name:
+            current_sim = get_current_simulation()
+            if current_sim:
+                simulation_name = current_sim.get('simulation_name')
+        
+        # Get performance tracker
+        tracker = get_performance_tracker()
+        
+        # Record current snapshot (pass simulation_name even if None)
+        tracker.record_performance_snapshot(simulation_name)
+        
+        # Get historical data
+        historical_data = tracker.get_historical_data(time_range_hours=time_range)
+        
+        # Get latest snapshot for summary
+        latest = tracker.get_latest_snapshot()
+        
+        # Calculate ETA in human-readable format
+        eta_formatted = None
+        if latest and latest.get('eta_seconds') and latest['eta_seconds']:
+            eta_seconds = latest['eta_seconds']
+            hours = int(eta_seconds // 3600)
+            minutes = int((eta_seconds % 3600) // 60)
+            eta_formatted = f"{hours}h {minutes}m"
+        
+        response = {
+            'timestamp': datetime.datetime.now(timezone.utc).isoformat(),
+            'latest': latest,
+            'eta_formatted': eta_formatted,
+            'historical_data': historical_data,
+            'data_points': len(historical_data),
+            'time_range_hours': time_range,
+            'simulation_name': simulation_name
+        }
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        logger.error(f"Exception in get_simulation_performance: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
