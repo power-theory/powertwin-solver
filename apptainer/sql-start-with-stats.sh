@@ -208,7 +208,7 @@ start_process_monitoring() {
             local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
             
             # Collect top N processes by CPU usage
-            ps -eo pid,pri,ni,vsz,rss,shr,%cpu,%mem,time,comm \
+            ps -u ${USER} -o pid,ppid,pri,ni,vsz,rss,pcpu,pmem,time,comm \
                 --sort=-%cpu \
                 --no-headers \
                 | head -n ${PROCESS_STATS_TOP_N} \
