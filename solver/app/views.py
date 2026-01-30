@@ -249,21 +249,25 @@ def convert_metadata_to_csv(metadata_json):
         # Handle JSON fields - escape quotes and wrap in quotes
         asset_metadata = row.get('asset_metadata', {})
         if isinstance(asset_metadata, str):
-            # Already a JSON string
-            asset_metadata_str = f'"{asset_metadata.replace('"', '""')}"'
+            # Already a JSON string - escape double quotes by doubling them
+            escaped_metadata = asset_metadata.replace('"', '""')
+            asset_metadata_str = f'"{escaped_metadata}"'
         else:
             # Convert dict to JSON string and escape
             metadata_json_str = json.dumps(asset_metadata)
-            asset_metadata_str = f'"{metadata_json_str.replace('"', '""')}"'
+            escaped_metadata = metadata_json_str.replace('"', '""')
+            asset_metadata_str = f'"{escaped_metadata}"'
         
         asset_geom_props = row.get('asset_geometries_properties', {})
         if isinstance(asset_geom_props, str):
-            # Already a JSON string
-            asset_geom_props_str = f'"{asset_geom_props.replace('"', '""')}"'
+            # Already a JSON string - escape double quotes by doubling them
+            escaped_geom = asset_geom_props.replace('"', '""')
+            asset_geom_props_str = f'"{escaped_geom}"'
         else:
             # Convert dict to JSON string and escape
             geom_json_str = json.dumps(asset_geom_props)
-            asset_geom_props_str = f'"{geom_json_str.replace('"', '""')}"'
+            escaped_geom = geom_json_str.replace('"', '""')
+            asset_geom_props_str = f'"{escaped_geom}"'
         
         # Build CSV row
         csv_row = ','.join([
