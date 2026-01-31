@@ -4,6 +4,7 @@ from joblib import Parallel, delayed, parallel_backend
 from modules.utils import initialize_logger
 from modules.utils.hpc_environment import is_hpc_environment
 from .run_UOsim import run_batch
+from modules.utils import wait_for_all_nodes_ready
 
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
@@ -151,6 +152,8 @@ def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name
             n_jobs = min(cpus_per_task, len(node_batches))
             logger.debug(f"Node {node_name}: Using {n_jobs} cores for joblib parallel processing (SLURM_CPUS_PER_TASK={cpus_per_task})")
             try:
+                wait_for_all_nodes_ready()
+                
                 with parallel_backend('loky', n_jobs=n_jobs):
                     Parallel(verbose=10)(
                         delayed(run_batch)(
@@ -167,6 +170,8 @@ def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name
     else:
         # Truly local environment (no HPC, no SLURM)
         logger.warning(f"Running in local mode with joblib: {total_batches} batches")
+        
+        
         return _run_joblib_parallel(batch_range, simulation_dir, local_dir, simulation_name)
 
 def _run_joblib_parallel(batch_range, simulation_dir, local_dir, simulation_name):
