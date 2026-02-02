@@ -11,14 +11,13 @@
 #==============================================================================
 # SLURM CONFIGURATION
 #==============================================================================
-#SBATCH --job-name=test-start
-#SBATCH --nodes=10                   
+#SBATCH --job-name=hack-sql-start-auto-v3
+#SBATCH --nodes=1                   
 #SBATCH --ntasks-per-node=1        
-#SBATCH --cpus-per-task=20          
+#SBATCH --cpus-per-task=1          
 #SBATCH --time=7-00:00:00           
 #SBATCH --mem-per-cpu=6G            
-#SBATCH --account=cowy-ptheory
-#SBATCH --partition=teton            # Teton partition
+#SBATCH --account=cowy-nvhackathon
 #SBATCH --output=%x_%j.out
 #SBATCH --qos=long                  #debug or long
 
@@ -40,8 +39,8 @@ module load apptainer/1.4.1
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
 # Simulation parameters
-SIMULATION_NAME="wyoming1"
-HPC_SHARED_STORAGE="/project/cowy-ptheory/test"
+SIMULATION_NAME="asu3"
+HPC_SHARED_STORAGE="/gscratch/lukemacy"
 
 # Auto-recovery settings
 AUTO_RECOVERY_ENABLED=true
@@ -49,8 +48,8 @@ FAILURE_THRESHOLD_PERCENT=2
 MAX_RECOVERY_ATTEMPTS=3
 MONITORING_INTERVAL_SECONDS=1500  # 5 minutes
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload/${SIMULATION_NAME}"
-ASSET_GEOJSON_PATH="${UPLOAD_DIR}/wyo_asset_geometries.geojson"
-METADATA_CSV_PATH="${UPLOAD_DIR}/wyo-sensors-assets-geometries-types.csv"
+ASSET_GEOJSON_PATH="${UPLOAD_DIR}/1_asset_geometries.geojson"
+METADATA_CSV_PATH="${UPLOAD_DIR}/1_metadata.csv"
 CONFIG_JSON_PATH="${UPLOAD_DIR}/default_config.json"
 POWERTWIN_KEEP_DIRS=1
 
@@ -525,7 +524,19 @@ cleanup_temp_files() {
 
     # Clean up any remaining apptainer temporary files
     find /tmp -name "apptainer-*" -type d -delete 2>/dev/null
-    
+
+    # Clean up processing queue directories (per-node FIFO queues)
+    if [ -d "${HPC_SHARED_STORAGE}/processing_queue" ]; then
+        rm -rf "${HPC_SHARED_STORAGE}/processing_queue" 2>/dev/null
+        print_status "info" "Removed processing queue directories"
+    fi
+
+    # Clean up node_ready synchronization directory
+    if [ -d "${HPC_SHARED_STORAGE}/node_ready" ]; then
+        rm -rf "${HPC_SHARED_STORAGE}/node_ready" 2>/dev/null
+        print_status "info" "Removed node_ready synchronization directory"
+    fi
+
     print_status "info" "Temporary file cleanup completed"
 }
 
@@ -655,6 +666,14 @@ handle_termination() {
 # Returns: 0 on success, exits on failure
 #------------------------------------------------------------------------------
 initialize_environment() {
+    # Clean up stale queue directories from previous runs to prevent deadlocks
+    if [ -d "${HPC_SHARED_STORAGE}/processing_queue" ]; then
+        rm -rf "${HPC_SHARED_STORAGE}/processing_queue" 2>/dev/null
+    fi
+    if [ -d "${HPC_SHARED_STORAGE}/node_ready" ]; then
+        rm -rf "${HPC_SHARED_STORAGE}/node_ready" 2>/dev/null
+    fi
+
     # SQLite database setup
     print_status "info" "Setting up SQLite database..."
     check_sqlite_database || handle_error "SQLite database setup failed" 1

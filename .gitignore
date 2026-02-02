@@ -8,6 +8,7 @@ __pycache__
 solver/app/test/
 powertwin_data
 postgres_data
+tmp
 .github/instructions
 .github/prompts
 *.log
