@@ -456,6 +456,9 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
 def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     from modules.diagnostics import get_asset_total,get_bulk_assets
     
+    # Initialize batch logger
+    batch_logger = initialize_logger('Run UOSim', external_log_dir, batch_index=batch_num)
+    
     # Add synchronization barrier before processing in HPC environment
     if os.environ.get('SLURM_JOB_ID'):
         wait_for_all_nodes_ready()
