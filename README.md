@@ -42,7 +42,7 @@ docker top <container_id>
 Access the PowerTwin Solver CLI by opening a new terminal session in your container:
 
 ```sh
-docker exec -it <container_id_or_name> /bin/bash
+docker exec -it powertwin-solver-flask /bin/bash
 ```
 
 ### Available Commands

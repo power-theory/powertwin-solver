@@ -3,5 +3,5 @@
     "asset_geojson_path": "upload/demo_data/albanycounty.geojson",
     "metadata_csv_path": "upload/demo_data/albanycounty-metadata.csv",
     "config_json_path": "upload/demo_data/default_config.json",
-    "num_cores": 4
+    "num_cores": 1
 }
