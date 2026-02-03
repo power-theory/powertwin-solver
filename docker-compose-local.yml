@@ -13,11 +13,16 @@ services:
       - ./powertwin_data:/solver/powertwin-solver-pg
       - ./postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    networks:
+      powertwin-network:
+        aliases:
+          - postgres-db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d powertwin"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
 
   pgbouncer:
@@ -25,7 +30,7 @@ services:
     container_name: powertwin-pgbouncer
     environment:
       # Required environment variables for the container
-      - DATABASES_HOST=powertwin-solver-pg
+      - DATABASES_HOST=postgres-db
       - DATABASES_PORT=5432
       - DATABASES_USER=postgres
       - DATABASES_PASSWORD=admin
@@ -50,16 +55,22 @@ services:
       powertwin-solver-pg:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      powertwin-network:
+        aliases:
+          - pgbouncer-db
     healthcheck:
-      test: ["CMD-SHELL", "psql -h localhost -p 6432 -U postgres -d powertwin -c 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "nc -z localhost 6432 || exit 1"]     
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 30s
 
   powertwin-solver-flask:
     container_name: powertwin-solver-flask
     build: 
       context: ./solver
+    command: ["sh", "-c", "sleep 30 && python run.py"]
     ports:
       - "8080:8080"
     volumes:
@@ -68,15 +79,24 @@ services:
       pgbouncer:
         condition: service_healthy
     environment:
-      - PGHOST=pgbouncer
+      - PGHOST=pgbouncer-db
       - PGPORT=6432
       - PGUSER=postgres
       - PGPASSWORD=admin
       - PGDATABASE=powertwin
     tty: true
     restart: unless-stopped
+    networks:
+      - powertwin-network
 
 volumes:
   powertwin-solver-flask:
   postgres_data:
   powertwin_data:
+
+networks:
+  powertwin-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_dns: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"

@@ -22,7 +22,7 @@ PORT = os.environ.get("PGPORT", "5432")
 
 def get_db_connection():
     
-    #logger.info(f"Attempting connection with HOST={HOST}, PORT={PORT}, USER={USER}, DB={DB_NAME}")
+    logger.info(f"Attempting connection with HOST={HOST}, PORT={PORT}, USER={USER}, DB={DB_NAME}")
 
     try:
         conn = psycopg.connect(
