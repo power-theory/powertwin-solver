@@ -149,13 +149,26 @@ def asset_analysis(SIMULATION_DIR, num_cores, simulation_name):
         insert_bulk_assets(asset_data)
     
     logger.info(f"Processed total of {asset_count} assets")
-    
-    
+
+    if asset_count <= 0:
+        logger.warning("No assets were processed. Skipping batch distribution.")
+        return 0
+
     logger.info(f"Distributing assets to batches...")
 
-    # Sort the asset data by complexity, number of stories, and floor area
-    total_assets = distribute_assets_to_batches(num_cores, simulation_name)
+    # Ensure core count never exceeds total assets
+    requested_cores = int(num_cores)
+    effective_cores = max(1, min(requested_cores, asset_count))
+    if effective_cores != requested_cores:
+        logger.warning(
+            f"Requested cores ({requested_cores}) exceeds total assets ({asset_count}). "
+            f"Using {effective_cores} core(s) instead."
+        )
+
+    # Sort/distribute assets by complexity, stories, and floor area into valid number of batches
+    total_assets = distribute_assets_to_batches(effective_cores, simulation_name)
     logger.info(f"Successfully processed {total_assets} assets")
+    return total_assets
 
 
 

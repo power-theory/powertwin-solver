@@ -39,14 +39,14 @@ module load nvhpc/25.7
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
 # Simulation parameters
-SIMULATION_NAME="test1"
-HPC_SHARED_STORAGE="/gscratch/nicolasreategui"
+SIMULATION_NAME="teton1"
+HPC_SHARED_STORAGE="/project/cowy-nvhackathon/nicolasreategui"
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload/${SIMULATION_NAME}"
-ASSET_GEOJSON_PATH="${UPLOAD_DIR}/wyo-geometries.geojson"
-METADATA_CSV_PATH="${UPLOAD_DIR}/wyo-metadata.csv"
+ASSET_GEOJSON_PATH="${UPLOAD_DIR}/7_asset_geometries.geojson"
+METADATA_CSV_PATH="${UPLOAD_DIR}/7_metadata.csv"
 CONFIG_JSON_PATH="${UPLOAD_DIR}/default_config.json"
 POWERTWIN_KEEP_DIRS=1
-WITH_NSYS_PROFILING=1
+WITH_NSYS_PROFILING=0
 
 # SIF files location
 SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"

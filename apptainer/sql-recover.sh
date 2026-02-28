@@ -12,15 +12,12 @@
 # SLURM CONFIGURATION
 #==============================================================================
 #SBATCH --job-name=test-recover
-#SBATCH --nodes=3      
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=5
-#SBATCH --time=7-00:00:00            
-#SBATCH --mem-per-cpu=8G             
-#SBATCH --account=cowy-ptheory
-#SBATCH --partition=teton            # Teton partition
+#SBATCH --nodes=20                   
+#SBATCH --ntasks-per-node=1        
+#SBATCH --cpus-per-task=40          
+#SBATCH --time=7-00:00:00           
+#SBATCH --account=cowy-nvhackathon 
 #SBATCH --output=%x_%j.out
-#SBATCH --qos=long                   # debug or long
 
 set -e  # Exit immediately if a command exits with a non-zero status
 
@@ -38,10 +35,10 @@ module load apptainer/1.4.1
 # Configuration Variables - MODIFY THESE AS NEEDED
 #==============================================================================
 # Simulation parameters
-RECOVERY_SIMULATION_NAME="test2"
-CORRUPTED_SIMULATION_NAME="test1"
+RECOVERY_SIMULATION_NAME="teton2"
+CORRUPTED_SIMULATION_NAME="teton1"
 BATCH_ID=""  # Optional - leave empty to recover all batches, or specify a batch number
-HPC_SHARED_STORAGE="/project/cowy-ptheory/test" # Retain same as corrupted simulation for recovery to ensure access to all necessary files
+HPC_SHARED_STORAGE="/project/cowy-nvhackathon/nicolasreategui" # Retain same as corrupted simulation for recovery to ensure access to all necessary files
 POWERTWIN_KEEP_DIRS=1
 
 # SIF files location
