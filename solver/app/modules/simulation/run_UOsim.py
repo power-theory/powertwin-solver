@@ -19,107 +19,24 @@ else:
 
 
 ############################################################################################################
-# Name: join_processing_queue()
-# Description: Join a FIFO queue for organized batch processing after all nodes are ready
+# FIFO queue functions - DISABLED
+# The FIFO queue was previously used to serialize batch processing across all nodes to prevent
+# Ruby gem loading race conditions (LoadError for openstudio/common_measures). However, it
+# serialized globally (1 batch at a time across ALL nodes), making the system single-threaded.
+# The root cause was a shared GEM_HOME - now fixed by pre-warming a shared GEM_HOME during
+# setup before parallel processing begins. See prewarm_gem_home() in sql-start.sh.
 ############################################################################################################
 def join_processing_queue(batch_num):
-    """Join FIFO queue for organized batch processing"""
-    if not os.environ.get('SLURM_JOB_ID'):
-        return
-        
-    node_id = os.environ.get('SLURM_NODEID', '0')
-    
-    # Create queue directory
-    queue_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE', '/tmp'), 'processing_queue')
-    os.makedirs(queue_dir, exist_ok=True)
-    
-    # Join the queue with timestamp for FIFO ordering
-    queue_entry = os.path.join(queue_dir, f'{time.time()}_{node_id}_{batch_num}')
-    with open(queue_entry, 'w') as f:
-        f.write(f"Node {node_id}, Batch {batch_num}, Time: {time.time()}")
-    
-    logger.info(f"Node {node_id}, Batch {batch_num}: Joined processing queue")
+    """No-op: GEM_HOME race condition fixed by pre-warming shared gems during setup."""
+    logger.debug(f"Batch {batch_num}: FIFO queue disabled (shared GEM_HOME pre-warmed)")
 
-############################################################################################################
-# Name: wait_for_processing_turn()
-# Description: Wait for turn in FIFO queue before starting batch processing
-############################################################################################################
 def wait_for_processing_turn(batch_num):
-    """Wait for turn in FIFO queue before starting batch processing"""
-    if not os.environ.get('SLURM_JOB_ID'):
-        return
-        
-    node_id = os.environ.get('SLURM_NODEID', '0')
-    
-    queue_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE', '/tmp'), 'processing_queue')
-    
-    max_wait_time = 1800  # 30 minutes maximum wait
-    start_time = time.time()
-    
-    logger.info(f"Node {node_id}, Batch {batch_num}: Waiting for processing turn...")
-    
-    while time.time() - start_time < max_wait_time:
-        try:
-            # Get all queue entries sorted by timestamp (FIFO)
-            queue_files = []
-            for f in os.listdir(queue_dir):
-                if f.count('_') >= 2:  # Ensure proper format
-                    try:
-                        timestamp = float(f.split('_')[0])
-                        queue_files.append((timestamp, f))
-                    except ValueError:
-                        continue
-            
-            queue_files.sort()  # Sort by timestamp (FIFO)
-            
-            if queue_files:
-                # Check if we're first in queue
-                first_file = queue_files[0][1]
-                if first_file.endswith(f'_{node_id}_{batch_num}'):
-                    logger.info(f"Node {node_id}, Batch {batch_num}: Got processing turn!")
-                    return
-                else:
-                    # Log queue position
-                    our_position = None
-                    for i, (_, filename) in enumerate(queue_files):
-                        if filename.endswith(f'_{node_id}_{batch_num}'):
-                            our_position = i + 1
-                            break
-                    
-                    if our_position:
-                        logger.debug(f"Node {node_id}, Batch {batch_num}: Queue position {our_position}/{len(queue_files)}")
-            
-        except OSError:
-            # Directory might be temporarily unavailable
-            pass
-            
-        time.sleep(5)  # Check queue every 5 seconds
-    
-    logger.warning(f"Node {node_id}, Batch {batch_num}: Timeout waiting for processing turn. Proceeding anyway...")
+    """No-op: GEM_HOME race condition fixed by pre-warming shared gems during setup."""
+    pass
 
-############################################################################################################
-# Name: leave_processing_queue()
-# Description: Leave the processing queue after completing batch processing
-############################################################################################################
 def leave_processing_queue(batch_num):
-    """Leave processing queue after completing batch processing"""
-    if not os.environ.get('SLURM_JOB_ID'):
-        return
-        
-    node_id = os.environ.get('SLURM_NODEID', '0')
-    
-    queue_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE', '/tmp'), 'processing_queue')
-    
-    try:
-        # Find and remove our queue entry
-        for f in os.listdir(queue_dir):
-            if f.endswith(f'_{node_id}_{batch_num}'):
-                queue_entry = os.path.join(queue_dir, f)
-                os.remove(queue_entry)
-                logger.info(f"Node {node_id}, Batch {batch_num}: Left processing queue")
-                break
-    except OSError as e:
-        logger.warning(f"Node {node_id}, Batch {batch_num}: Could not remove queue entry: {e}")
+    """No-op: GEM_HOME race condition fixed by pre-warming shared gems during setup."""
+    pass
 
 
 
@@ -365,15 +282,20 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
     # Update status to Processing
     update_status("Processing", asset_id=asset_id, simulation_name=simulation_name)
     
-    logger.debug(f"BATCH {batch_num}: Starting processing asset {asset_id}...")        
+    logger.debug(f"BATCH {batch_num}: Starting processing asset {asset_id}...")
     try:
         run_uosimulation(SIMULATION_DIR, LOCAL_DIR, feature_file, batch_num)
         update_status("Finished", asset_id=asset_id, simulation_name=simulation_name)
         return True, asset_id, None
     except Exception as e:
-        logger.error(f"BATCH {batch_num}: Failed to process asset {asset_id}: {str(e)}")
-        update_status("Failed", asset_id=asset_id, simulation_name=simulation_name)
-        return False, asset_id, str(e)
+        error_msg = str(e)
+        # Capture stderr from subprocess errors for Ruby/UrbanOpt diagnostics
+        if hasattr(e, 'stderr') and e.stderr:
+            error_msg = f"{error_msg}\nSTDERR: {e.stderr[:500]}"
+        logger.error(f"BATCH {batch_num}: Failed to process asset {asset_id}: {error_msg}")
+        update_status("Failed", asset_id=asset_id, simulation_name=simulation_name,
+                      failure_reason=error_msg[:1000])
+        return False, asset_id, error_msg
 
 ############################################################################################################
 # Name: run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name)

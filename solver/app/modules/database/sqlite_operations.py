@@ -119,12 +119,23 @@ def create_table() -> bool:
                 subtype VARCHAR(255),
                 status VARCHAR(255),
                 total_time REAL,
+                failure_reason TEXT,
+                node_name VARCHAR(255),
+                process_id VARCHAR(255),
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
         conn.commit()
-        
+
+        # Add diagnostic columns to existing tables that don't have them
+        for col, col_type in [('failure_reason', 'TEXT'), ('node_name', 'VARCHAR(255)'), ('process_id', 'VARCHAR(255)')]:
+            try:
+                conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {col} {col_type}")
+                conn.commit()
+            except Exception:
+                pass  # Column already exists
+
         logger.debug(f"Table '{table_name}' created or verified to exist")
         return True
         
@@ -291,24 +302,28 @@ def bulk_update_status(asset_ids: List[int], status: str, simulation_name: str) 
 
 
 @retry_on_database_error
-def update_status(simulation_name: str, asset_id: int, status: str) -> bool:
+def update_status(simulation_name: str, asset_id: int, status: str, failure_reason: str = None) -> bool:
     """Update asset status. Consider using bulk_update_status for better performance with multiple assets."""
     logger.debug(f'Updating asset {asset_id} status to {status} for simulation {simulation_name}')
-    
+
     try:
         conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
-        
+
+        import socket
+        node_name = socket.gethostname().split('.')[0]
+        pid = str(os.getpid())
+
         conn.execute(f"""
-            UPDATE {table_name} 
-            SET status = ?, updated_at = CURRENT_TIMESTAMP
+            UPDATE {table_name}
+            SET status = ?, failure_reason = ?, node_name = ?, process_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE simulation_name = ? AND asset_id = ?
-        """, (status, simulation_name, asset_id))
+        """, (status, failure_reason, node_name, pid, simulation_name, asset_id))
         conn.commit()
-        
+
         logger.debug(f"Asset {asset_id} status updated to {status}")
         return True
-        
+
     except Exception as e:
         logger.error(f"Error updating asset status: {e}")
         return False
