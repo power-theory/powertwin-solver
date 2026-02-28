@@ -94,16 +94,18 @@ export TMPDIR="${NODE_TMP_DIR}"
 export TMP="${NODE_TMP_DIR}"
 export TEMP="${NODE_TMP_DIR}"
 
-# Temporary directories for this job - create unique per process to avoid race conditions
-export GEM_HOME="${NODE_TMP_DIR}/gems_${SLURM_JOB_ID}"
-export GEM_PATH="${GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2"
-export BUNDLE_PATH="${GEM_HOME}"
-export RUBYLIB="${GEM_HOME}/lib"
+# Shared GEM_HOME - pre-warmed once during setup, read by all parallel processes
+# This prevents Ruby gem loading race conditions when multiple batches run concurrently
+SHARED_GEM_HOME="${TMP_BASE}/shared_gems_${SLURM_JOB_ID}"
+export GEM_HOME="${SHARED_GEM_HOME}"
+export GEM_PATH="${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2"
+export BUNDLE_PATH="${SHARED_GEM_HOME}"
+export RUBYLIB="${SHARED_GEM_HOME}/lib"
 export HOME="${NODE_TMP_DIR}/home_${PROCESS_ID}"
 export XML_CLEANUP_PID_FILE="${NODE_TMP_DIR}/xml_cleanup_${SLURM_JOB_ID}.pid"
 export PROCESS_ID="${SLURM_JOB_ID}_${SLURM_PROCID}_$$"
 
-mkdir -p "$GEM_HOME" "$HOME" "$LOG_DIR" "$USER_FILES_DIR"
+mkdir -p "$SHARED_GEM_HOME" "$HOME" "$LOG_DIR" "$USER_FILES_DIR"
 
 # Define simulation directories
 SIMULATION_DIR="${DATA_DIR}/${SIMULATION_NAME}"
@@ -296,10 +298,10 @@ cleanup_temp_files() {
         print_status "info" "Removed temporary files containing job ID: ${SLURM_JOB_ID}"
     fi
     
-    # Expand cleanup for GEM_HOME and HOME directories
-    if [ -d "$GEM_HOME" ]; then
-        rm -rf "$GEM_HOME"
-        print_status "info" "Removed GEM_HOME: ${GEM_HOME}"
+    # Expand cleanup for shared GEM_HOME and HOME directories
+    if [ -d "${SHARED_GEM_HOME}" ]; then
+        rm -rf "${SHARED_GEM_HOME}"
+        print_status "info" "Removed shared GEM_HOME: ${SHARED_GEM_HOME}"
     fi
     
     if [ -d "$HOME" ]; then
@@ -562,6 +564,38 @@ initialize_urbanopt() {
 }
 
 #------------------------------------------------------------------------------
+# FUNCTION: prewarm_gem_home
+# Description: Pre-warms the shared GEM_HOME by running uo --version once.
+#              This initializes all Ruby gems before parallel processing starts,
+#              preventing gem loading race conditions between concurrent batches.
+# Arguments: None
+# Returns: 0 on success, 1 on failure
+#------------------------------------------------------------------------------
+prewarm_gem_home() {
+    mkdir -p "${SHARED_GEM_HOME}"
+
+    print_status "info" "Pre-warming GEM_HOME at ${SHARED_GEM_HOME}..."
+
+    apptainer exec \
+        --bind "${DATA_DIR}:/powertwin_data:rw" \
+        --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}:rw" \
+        --bind "${SHARED_GEM_HOME}:${SHARED_GEM_HOME}:rw" \
+        --env "GEM_HOME=${SHARED_GEM_HOME}" \
+        --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2" \
+        --env "BUNDLE_PATH=${SHARED_GEM_HOME}" \
+        "${SOLVER_SIF}" bash -c "uo --version"
+
+    PREWARM_EXIT_CODE=$?
+    if [ $PREWARM_EXIT_CODE -ne 0 ]; then
+        print_status "error" "GEM_HOME pre-warm failed with exit code ${PREWARM_EXIT_CODE}"
+        return 1
+    fi
+
+    print_status "info" "GEM_HOME pre-warmed successfully ($(du -sh ${SHARED_GEM_HOME} | cut -f1))"
+    return 0
+}
+
+#------------------------------------------------------------------------------
 # FUNCTION: process_batches
 # Description: Processes batches in parallel using SLURM
 # Arguments: None
@@ -590,12 +624,14 @@ process_batches() {
         --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}:rw" \
         --bind "${LOG_DIR}:/solver/logs:rw" \
         --bind "${NODE_TMP_DIR}:${NODE_TMP_DIR}:rw" \
+        --bind "${SHARED_GEM_HOME}:${SHARED_GEM_HOME}:ro" \
         --env "TMPDIR=${NODE_TMP_DIR}" \
         --env "TMP=${NODE_TMP_DIR}" \
         --env "TEMP=${NODE_TMP_DIR}" \
         --env "PROCESS_ID=${PROCESS_ID}" \
-        --env "GEM_HOME=${GEM_HOME}" \
-        --env "GEM_PATH=${GEM_PATH}" \
+        --env "GEM_HOME=${SHARED_GEM_HOME}" \
+        --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2" \
+        --env "BUNDLE_PATH=${SHARED_GEM_HOME}" \
         --env "SIMULATION_NAME=${SIMULATION_NAME}" \
         --env "SLURM_JOB_ID=${SLURM_JOB_ID}" \
         --env "PYTHONPATH=/solver" \
@@ -740,6 +776,10 @@ main() {
     print_status "info" "Step 3: Initializing UrbanOpt..."
     initialize_urbanopt || return 1
     print_status "info" "UrbanOpt initialization completed successfully."
+
+    print_status "info" "Step 3.5: Pre-warming shared GEM_HOME..."
+    prewarm_gem_home || return 1
+    print_status "info" "GEM_HOME pre-warmed successfully."
 
     print_status "info" "Step 4: Processing batches..."
     process_batches || return 1

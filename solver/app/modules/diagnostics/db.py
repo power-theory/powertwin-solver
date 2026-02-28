@@ -112,11 +112,11 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time, simulation_nam
         return postgres_ops.update_time(asset_id, uorun_time, uoprocess_time, total_time)
 
     
-def update_status(status, asset_id=None, simulation_name=None):
+def update_status(status, asset_id=None, simulation_name=None, failure_reason=None):
     """Update status using appropriate database for the environment."""
     if IS_HPC_ENVIRONMENT:
         if simulation_name and asset_id:
-            return sqlite_ops.update_status(simulation_name, asset_id, status)
+            return sqlite_ops.update_status(simulation_name, asset_id, status, failure_reason=failure_reason)
         else:
             logger.error("SQLite version requires both simulation_name and asset_id")
             return False
