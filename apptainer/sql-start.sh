@@ -12,11 +12,11 @@
 # SLURM CONFIGURATION
 #==============================================================================
 #SBATCH --job-name=test-start
-#SBATCH --nodes=20                   
-#SBATCH --ntasks-per-node=1        
-#SBATCH --cpus-per-task=40          
-#SBATCH --time=7-00:00:00           
-#SBATCH --account=cowy-nvhackathon 
+#SBATCH --nodes=20
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=40
+#SBATCH --time=7-00:00:00
+#SBATCH --account=cowy-nvhackathon
 #SBATCH --output=%x_%j.out
 
 
@@ -565,16 +565,28 @@ initialize_urbanopt() {
 
 #------------------------------------------------------------------------------
 # FUNCTION: prewarm_gem_home
-# Description: Pre-warms the shared GEM_HOME by running uo --version once.
-#              This initializes all Ruby gems before parallel processing starts,
-#              preventing gem loading race conditions between concurrent batches.
+# Description: Pre-warms the shared GEM_HOME by running bundle install once.
+#              The simulation Gemfile specifies runtime gems (e.g.
+#              openstudio-common-measures) that are NOT pre-installed in the
+#              container. uo run triggers bundle install which installs these
+#              gems to GEM_HOME. Running bundle install once here populates the
+#              shared GEM_HOME so parallel processes don't race on gem
+#              installation.
 # Arguments: None
 # Returns: 0 on success, 1 on failure
 #------------------------------------------------------------------------------
 prewarm_gem_home() {
     mkdir -p "${SHARED_GEM_HOME}"
 
-    print_status "info" "Pre-warming GEM_HOME at ${SHARED_GEM_HOME}..."
+    local SIMULATION_GEMFILE="${DATA_DIR}/${SIMULATION_NAME}/urbanopt_simulation/Gemfile"
+
+    if [ ! -f "${SIMULATION_GEMFILE}" ]; then
+        print_status "error" "Gemfile not found at ${SIMULATION_GEMFILE}"
+        print_status "error" "Run uo create/initialize first to generate the project Gemfile"
+        return 1
+    fi
+
+    print_status "info" "Pre-warming GEM_HOME at ${SHARED_GEM_HOME} via bundle install..."
 
     apptainer exec \
         --bind "${DATA_DIR}:/powertwin_data:rw" \
@@ -583,11 +595,12 @@ prewarm_gem_home() {
         --env "GEM_HOME=${SHARED_GEM_HOME}" \
         --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2" \
         --env "BUNDLE_PATH=${SHARED_GEM_HOME}" \
-        "${SOLVER_SIF}" bash -c "uo --version"
+        --env "BUNDLE_GEMFILE=${SIMULATION_GEMFILE}" \
+        "${SOLVER_SIF}" bash -c "cd $(dirname ${SIMULATION_GEMFILE}) && bundle install --jobs 4 --retry 3"
 
     PREWARM_EXIT_CODE=$?
     if [ $PREWARM_EXIT_CODE -ne 0 ]; then
-        print_status "error" "GEM_HOME pre-warm failed with exit code ${PREWARM_EXIT_CODE}"
+        print_status "error" "GEM_HOME pre-warm (bundle install) failed with exit code ${PREWARM_EXIT_CODE}"
         return 1
     fi
 
@@ -624,7 +637,7 @@ process_batches() {
         --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}:rw" \
         --bind "${LOG_DIR}:/solver/logs:rw" \
         --bind "${NODE_TMP_DIR}:${NODE_TMP_DIR}:rw" \
-        --bind "${SHARED_GEM_HOME}:${SHARED_GEM_HOME}:ro" \
+        --bind "${SHARED_GEM_HOME}:${SHARED_GEM_HOME}:rw" \
         --env "TMPDIR=${NODE_TMP_DIR}" \
         --env "TMP=${NODE_TMP_DIR}" \
         --env "TEMP=${NODE_TMP_DIR}" \
