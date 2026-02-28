@@ -40,6 +40,7 @@ OCCUPANTS_MAPPING = {
 BUILDING_SUBTYPES = {
     "Education": "Educational",
     "Office": "Business",
+    "Mobile Home": "SmallResidential",
     "Single-Family Detached": "SmallResidential",
     "Single-Family Attached": "SmallResidential",
     "Multifamily": "BigResidential",

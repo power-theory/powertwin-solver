@@ -52,8 +52,17 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
                 from modules.diagnostics import distribute_assets_to_batches
                 # Use total cores available for batch calculation
                 import multiprocessing
-                num_cores = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
-                logger.info(f"Using {num_cores} cores for batch distribution")
+                requested_cores = int(os.environ.get('SLURM_CPUS_PER_TASK', multiprocessing.cpu_count()))
+                num_cores = max(1, min(requested_cores, assets))
+
+                if num_cores != requested_cores:
+                    logger.warning(
+                        f"Requested cores ({requested_cores}) exceeds total assets ({assets}). "
+                        f"Using {num_cores} core(s) instead."
+                    )
+                else:
+                    logger.info(f"Using {num_cores} cores for batch distribution")
+
                 distribute_assets_to_batches(num_cores, simulation_name)
                 
                 # Re-check batch count

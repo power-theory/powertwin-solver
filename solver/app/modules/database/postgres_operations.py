@@ -13,8 +13,8 @@ logger = initialize_logger('PostgresOperations', external_log_dir)
 
 
 # PostgreSQL configuration for Docker environments
-DB_NAME = os.environ.get("PGDATABASE", "powertwin")
-PASSWORD = os.environ.get("PGPASSWORD", "admin")
+DB_NAME = os.environ.get("PGDATABASE")
+PASSWORD = os.environ.get("PGPASSWORD")
 USER = os.environ.get("PGUSER", "postgres")
 HOST = os.environ.get("PGHOST", "pgbouncer")
 PORT = os.environ.get("PGPORT", "5432")
