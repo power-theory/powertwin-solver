@@ -98,7 +98,7 @@ export TEMP="${NODE_TMP_DIR}"
 # This prevents Ruby gem loading race conditions when multiple batches run concurrently
 SHARED_GEM_HOME="${TMP_BASE}/shared_gems_${SLURM_JOB_ID}"
 export GEM_HOME="${SHARED_GEM_HOME}"
-export GEM_PATH="${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2"
+export GEM_PATH="${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2:/usr/local/lib/ruby/gems/3.2.0"
 export BUNDLE_PATH="${SHARED_GEM_HOME}"
 export RUBYLIB="${SHARED_GEM_HOME}/lib"
 export HOME="${NODE_TMP_DIR}/home_${PROCESS_ID}"
@@ -593,7 +593,7 @@ prewarm_gem_home() {
         --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}:rw" \
         --bind "${SHARED_GEM_HOME}:${SHARED_GEM_HOME}:rw" \
         --env "GEM_HOME=${SHARED_GEM_HOME}" \
-        --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2" \
+        --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2:/usr/local/lib/ruby/gems/3.2.0" \
         --env "BUNDLE_PATH=${SHARED_GEM_HOME}" \
         --env "BUNDLE_GEMFILE=${SIMULATION_GEMFILE}" \
         "${SOLVER_SIF}" bash -c "cd $(dirname ${SIMULATION_GEMFILE}) && bundle install --jobs 4 --retry 3"
@@ -643,7 +643,7 @@ process_batches() {
         --env "TEMP=${NODE_TMP_DIR}" \
         --env "PROCESS_ID=${PROCESS_ID}" \
         --env "GEM_HOME=${SHARED_GEM_HOME}" \
-        --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2" \
+        --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2:/usr/local/lib/ruby/gems/3.2.0" \
         --env "BUNDLE_PATH=${SHARED_GEM_HOME}" \
         --env "SIMULATION_NAME=${SIMULATION_NAME}" \
         --env "SLURM_JOB_ID=${SLURM_JOB_ID}" \
