@@ -85,15 +85,33 @@ def get_sqlite_connection():
     conn = sqlite3.connect(db_path)
     # Enable Row factory for dictionary-style access
     conn.row_factory = sqlite3.Row
-    # Enable WAL mode for concurrent access
-    conn.execute("PRAGMA journal_mode=WAL")
+    # Use DELETE journal mode for node databases on network filesystems (WAL requires mmap)
+    if 'node_' in db_path:
+        conn.execute("PRAGMA journal_mode=DELETE")
+        conn.execute("PRAGMA synchronous=FULL")
+    else:
+        conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=30000")
     return conn
 
 def create_table() -> bool:
     """Create the main assets table if it doesn't exist."""
     logger.debug('Creating SQLite table if not exists')
-    
+
+    # Clean stale node directories from previous runs (assumes fresh run)
+    manager = get_sqlite_manager()
+    db_dir = os.path.dirname(manager.get_db_path())
+    if db_dir and os.path.exists(db_dir):
+        import shutil
+        for entry in os.listdir(db_dir):
+            entry_path = os.path.join(db_dir, entry)
+            if os.path.isdir(entry_path) and entry.startswith('node_'):
+                try:
+                    shutil.rmtree(entry_path)
+                    logger.info(f"Cleaned stale node directory: {entry}")
+                except Exception as e:
+                    logger.warning(f"Could not clean stale node dir {entry}: {e}")
+
     try:
         conn = get_sqlite_connection()
         
@@ -920,7 +938,13 @@ def consolidate_databases(simulation_name: str, node_dirs: List[str], master_db_
             # Verify node database
             node_conn = sqlite3.connect(node_db_path)
             table_name = os.environ.get("PGDATABASE", "powertwin")
-            
+
+            # Force WAL checkpoint in case node used WAL mode on network FS
+            try:
+                node_conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            except Exception:
+                pass  # No WAL file, that's fine
+
             # Check if table exists
             table_check = node_conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name=?",

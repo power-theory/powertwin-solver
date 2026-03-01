@@ -244,7 +244,7 @@ validate_input_files() {
 # Returns: 0 on success, 1 on failure
 #------------------------------------------------------------------------------
 check_sqlite_database() {
-    
+
     # Create SQLite database directory if it doesn't exist
     if [ ! -d "${SQLITE_DB_DIR}" ]; then
         print_status "info" "Creating SQLite database directory: ${SQLITE_DB_DIR}"
@@ -254,6 +254,18 @@ check_sqlite_database() {
             return 1
         fi
     fi
+
+    # Clean stale node directories and DB from previous runs (fresh run assumed)
+    print_status "info" "Cleaning stale data from previous runs in ${SQLITE_DB_DIR}..."
+    find "${SQLITE_DB_DIR}" -maxdepth 1 -type d -name "node_*" -exec rm -rf {} + 2>/dev/null
+    find "${SQLITE_DB_DIR}" -name "*.db-wal" -delete 2>/dev/null
+    find "${SQLITE_DB_DIR}" -name "*.db-shm" -delete 2>/dev/null
+    find "${SQLITE_DB_DIR}" -name "preservation_*" -delete 2>/dev/null
+    find "${SQLITE_DB_DIR}" -name "*.backup_*" -delete 2>/dev/null
+    find "${SQLITE_DB_DIR}" -name "*coordination*" -delete 2>/dev/null
+    # Remove old master DB so this run starts fresh
+    rm -f "${SQLITE_DB_PATH}"
+    print_status "info" "Previous run data cleaned"
     
     # Check if SQLite database file exists
     if [ ! -f "${SQLITE_DB_PATH}" ]; then

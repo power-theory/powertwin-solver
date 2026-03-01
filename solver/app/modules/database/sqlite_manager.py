@@ -89,6 +89,19 @@ class SQLiteManager:
         
         # In parallel step (Step 3)
         if hasattr(self, 'is_parallel_step') and self.is_parallel_step:
+            # Clean stale node DB from previous runs (this node's directory only)
+            if os.path.exists(self.db_path):
+                try:
+                    os.remove(self.db_path)
+                    # Also remove WAL/SHM leftovers
+                    for suffix in ['-wal', '-shm']:
+                        leftover = self.db_path + suffix
+                        if os.path.exists(leftover):
+                            os.remove(leftover)
+                    logger.info(f"Cleaned stale node database: {self.db_path}")
+                except Exception as e:
+                    logger.warning(f"Could not clean stale node DB: {e}")
+
             if not os.path.exists(self.db_path):
                 if os.path.exists(self.master_db_path):
                     if assigned_batches:
@@ -214,10 +227,12 @@ class SQLiteManager:
             # Create the node database with same schema
             node_conn = sqlite3.connect(self.db_path)
             node_conn.row_factory = sqlite3.Row
-            
-            # Enable WAL mode for better concurrency
-            node_conn.execute("PRAGMA journal_mode=WAL")
-            node_conn.execute("PRAGMA synchronous=NORMAL")
+
+            # Use DELETE journal mode for node databases on shared/network filesystems.
+            # WAL mode requires shared memory (mmap) which NFS/Lustre/GPFS don't support,
+            # causing data to stay in the -wal file and never merge to the main .db file.
+            node_conn.execute("PRAGMA journal_mode=DELETE")
+            node_conn.execute("PRAGMA synchronous=FULL")
             node_conn.execute("PRAGMA busy_timeout=30000")
             
             # Connect to master database with timeout
@@ -325,17 +340,33 @@ class SQLiteManager:
                 
                 # Commit transaction
                 node_conn.execute("COMMIT")
-                
+
+                # Force sync to disk - critical for network filesystems
+                node_conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+
                 logger.info(f"✓ Node {self.node_name}: Successfully copied {copied_count} records for batches {assigned_batches}")
                 if status_counts:
                     status_summary = ', '.join([f"{status}: {count}" for status, count in status_counts.items()])
                     logger.info(f"Status distribution in copied data - {status_summary}")
-                
+
                 return True
-                
+
             finally:
                 master_conn.close()
                 node_conn.close()
+
+                # Verify data persisted by reopening and checking
+                verify_conn = sqlite3.connect(self.db_path)
+                table_name = os.environ.get("PGDATABASE", "powertwin")
+                try:
+                    count = verify_conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+                    logger.info(f"Node {self.node_name}: Post-write verification: {count} records in node DB")
+                    if count == 0:
+                        logger.error(f"Node {self.node_name}: CRITICAL - Node DB is empty after write!")
+                except Exception as e:
+                    logger.error(f"Node {self.node_name}: Post-write verification failed: {e}")
+                finally:
+                    verify_conn.close()
                 
         except Exception as e:
             logger.error(f"Error copying assigned batches: {e}")
