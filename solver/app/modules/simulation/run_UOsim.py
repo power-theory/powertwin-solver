@@ -115,10 +115,10 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
                 
     SIMULATION_DIR = os.path.join(SIMULATION_DIR,'urbanopt_simulation')
     WEATHER_DESTINATION = os.path.join(SIMULATION_DIR, "weather")
-    ASSET_WEATHER_DIR = os.path.join(WEATHER_DESTINATION, weather_file)
-        
-    if not os.path.exists(ASSET_WEATHER_DIR):
-        logger.warning(f"Weather destination not found, creating weather directory at {WEATHER_DESTINATION}")
+    WEATHER_EPW_FILE = os.path.join(WEATHER_DESTINATION, f"{weather_file}.epw")
+
+    if not os.path.exists(WEATHER_EPW_FILE):
+        logger.warning(f"Weather file not found at {WEATHER_EPW_FILE}, copying...")
         os.makedirs(WEATHER_DESTINATION, exist_ok=True)
 
         # Use HPC shared storage for weather files when available
@@ -126,11 +126,14 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
             weather_files_base_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE'), 'weather_files')
         else:
             weather_files_base_dir = os.path.join(URBANOPT_DIR, 'weather_files')
-        
+
         WEATHER_BASE_NAME = os.path.join(weather_files_base_dir, weather_file, weather_file)
-        logger.info (f"BATCH {batch_index}: {asset_id} Copying weather files for {weather_file}")
+        logger.info(f"BATCH {batch_index}: {asset_id} Copying weather files for {weather_file}")
         for ext in ["ddy", "stat", "epw"]:
-            shutil.copy(f"{WEATHER_BASE_NAME}.{ext}", WEATHER_DESTINATION)
+            src = f"{WEATHER_BASE_NAME}.{ext}"
+            dst = os.path.join(WEATHER_DESTINATION, f"{weather_file}.{ext}")
+            if os.path.exists(src) and not os.path.exists(dst):
+                shutil.copy2(src, dst)
 
     LOCAL_BATCH_SIMULATION_DIR = os.path.join(LOCAL_DIR, 'urbanopt_simulation', f'batch_{batch_index}')
     
