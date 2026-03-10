@@ -105,8 +105,10 @@ def read_metadata(metadata_csv):
             floor_area = asset_metadata.get('area')
             building_id = str(asset_geometries_properties.get('id')) # Most important id, considered the PK
 
-            if not floor_area or not building_id or not asset_subtype_name or asset_subtype_name == "NULL" or asset_subtype_name == "null"  or building_id in processed_building_ids:
+            if not floor_area or not building_id or building_id in processed_building_ids:
                 continue
+            if not asset_subtype_name or asset_subtype_name in ("NULL", "null"):
+                asset_subtype_name = "Single-Family"
 
             # Exclude big residential buildings (Lodging and low highrise Multifamily are an exceptions) (Limited by UrbanOpt)
             # https://docs.urbanopt.net/workflows/residential_workflows/building_types.html
