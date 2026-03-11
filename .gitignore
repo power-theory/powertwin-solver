@@ -3,7 +3,7 @@
 .env.local
 .env.production
 node_modules
-tippecanoe
+tmp
 __pycache__
 solver/app/test/
 powertwin_data

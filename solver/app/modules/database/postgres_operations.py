@@ -365,6 +365,24 @@ def get_status_stats(simulation_name, batch_id=None):
         conn.close()  
 
 
+def get_distinct_weather_files(simulation_name):
+    """Get distinct weather file names for a simulation."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(f"""
+            SELECT DISTINCT weather_file FROM {DB_NAME}
+            WHERE simulation_name = %s AND weather_file IS NOT NULL
+        """, (simulation_name,))
+        return [row[0] for row in cur.fetchall()]
+    except Exception as e:
+        logger.error(f"Error getting distinct weather files: {e}")
+        return []
+    finally:
+        cur.close()
+        conn.close()
+
+
 def get_weather(asset_id):
     """
     Retrieve weather information for a given asset.

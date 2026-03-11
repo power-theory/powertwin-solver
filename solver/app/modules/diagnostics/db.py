@@ -168,6 +168,14 @@ def get_status_stats(simulation_name, batch_id=None):
         return postgres_ops.get_status_stats(simulation_name, batch_id)
 
 
+def get_distinct_weather_files(simulation_name):
+    """Get distinct weather file names for a simulation."""
+    if IS_HPC_ENVIRONMENT:
+        return sqlite_ops.get_distinct_weather_files(simulation_name)
+    else:
+        return postgres_ops.get_distinct_weather_files(simulation_name)
+
+
 def get_weather(asset_id, simulation_name=None):
     """Get weather using appropriate database for the environment."""
     if IS_HPC_ENVIRONMENT:

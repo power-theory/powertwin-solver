@@ -348,6 +348,27 @@ def update_status(simulation_name: str, asset_id: int, status: str, failure_reas
 
 
 @retry_on_database_error
+def get_distinct_weather_files(simulation_name: str) -> list:
+    """Get distinct weather file names for a simulation."""
+    logger.debug(f'Getting distinct weather files for simulation {simulation_name}')
+
+    try:
+        conn = get_sqlite_connection()
+        table_name = os.environ.get("PGDATABASE", "powertwin")
+
+        cursor = conn.execute(f"""
+            SELECT DISTINCT weather_file FROM {table_name}
+            WHERE simulation_name = ? AND weather_file IS NOT NULL
+        """, (simulation_name,))
+
+        return [row['weather_file'] for row in cursor.fetchall()]
+
+    except Exception as e:
+        logger.error(f"Error getting distinct weather files: {e}")
+        return []
+
+
+@retry_on_database_error
 def get_weather(asset_id: int) -> Optional[Tuple[str, str]]:
     """Get weather file and state for an asset."""
     logger.debug(f'Getting weather file for asset {asset_id}')

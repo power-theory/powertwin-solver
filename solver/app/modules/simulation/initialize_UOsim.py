@@ -157,6 +157,46 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
         logger.error(f"Error running simulations: {e}")
         return
 
+def pre_copy_weather_files(SIMULATION_DIR, simulation_name):
+    """Pre-copy all weather files before parallel execution to prevent race conditions."""
+    from modules.diagnostics import get_distinct_weather_files
+
+    weather_files = get_distinct_weather_files(simulation_name)
+    if not weather_files:
+        logger.warning(f"No weather files found for simulation {simulation_name}")
+        return
+
+    UO_SIMULATION_DIR = os.path.join(SIMULATION_DIR, 'urbanopt_simulation')
+    WEATHER_DESTINATION = os.path.join(UO_SIMULATION_DIR, 'weather')
+    os.makedirs(WEATHER_DESTINATION, exist_ok=True)
+
+    if os.environ.get('SLURM_JOB_ID') and os.environ.get('HPC_SHARED_STORAGE'):
+        weather_files_base_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE'), 'weather_files')
+    elif os.environ.get('SLURM_JOB_ID'):
+        weather_files_base_dir = os.path.join('/solver', 'app', 'urbanopt', 'weather_files')
+    else:
+        weather_files_base_dir = os.path.join('app', 'urbanopt', 'weather_files')
+
+    logger.info(f"Weather source: SLURM_JOB_ID={os.environ.get('SLURM_JOB_ID')}, "
+                f"HPC_SHARED_STORAGE={os.environ.get('HPC_SHARED_STORAGE')}, "
+                f"base_dir={weather_files_base_dir}")
+
+    copied = 0
+    for weather_file in weather_files:
+        # DB stores weather_file with .epw extension — strip it for path construction
+        if weather_file.endswith('.epw'):
+            weather_file = weather_file[:-4]
+        base_path = os.path.join(weather_files_base_dir, weather_file, weather_file)
+        for ext in ["ddy", "stat", "epw"]:
+            src = f"{base_path}.{ext}"
+            dst = os.path.join(WEATHER_DESTINATION, f"{weather_file}.{ext}")
+            if os.path.exists(src) and not os.path.exists(dst):
+                shutil.copy2(src, dst)
+                copied += 1
+
+    logger.info(f"Pre-copied weather files for {len(weather_files)} stations ({copied} files) to {WEATHER_DESTINATION}")
+
+
 ############################################################################################################
 # Name: initialize_uo(SIMULATION_DIR,LOCAL_DIR, simulation_name)
 # Description: This function initializes the UrbanOpt simulation by extracting the feature files from the zip file.
@@ -196,8 +236,10 @@ def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name):
 
     # Prepare the database and setup UrbanOpt project
     batch_range = prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name)
-    
-    
+
+    # Pre-copy weather files before parallel execution to prevent race conditions
+    pre_copy_weather_files(SIMULATION_DIR, simulation_name)
+
     # In HPC mode, we return the batch range for external parallel execution
     if is_hpc:
         logger.info(f"HPC mode active - returning batch range for external parallel execution")
