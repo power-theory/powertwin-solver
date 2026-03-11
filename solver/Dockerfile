@@ -5,7 +5,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
 ENV LANGUAGE=C.UTF-8
 ENV LC_ALL=C.UTF-8
-# Use base image's default GEM paths - don't override
+ENV GEM_HOME=/usr/local/lib/ruby/gems/3.2.2
+ENV GEM_PATH=/usr/local/lib/ruby/gems/3.2.2
+# Add gem bin directory to PATH so uo command is accessible
+ENV PATH="/usr/local/lib/ruby/gems/3.2.2/bin:/usr/local/bin:${PATH}"
 
 WORKDIR /solver
 
@@ -41,34 +44,16 @@ RUN gem install public_suffix -v 5.1.1
 RUN gem uninstall multipart-post --force --all && \
     gem install multipart-post -v 2.1.1
 
-# Install ruby2_keywords and verify immediately
-RUN gem install ruby2_keywords -v 0.0.5 && \
-    gem list ruby2_keywords && \
-    gem which ruby2_keywords
-
 # Install urbanopt-cli and verify installation
-RUN gem install urbanopt-cli -v 1.1.0 && \
-    echo "Gem installation complete. Checking gem environment:" && \
-    gem env && \
-    echo "Finding uo command:" && \
-    which uo && \
-    uo --version && \
+RUN gem install urbanopt-cli -v 1.0.1 && \
+    echo "Gem installation complete. Checking gem bin directory:" && \
+    ls -la /usr/local/lib/ruby/gems/3.2.2/bin/ || echo "Gem bin directory not found" && \
+    echo "Testing uo command accessibility:" && \
+    /usr/local/lib/ruby/gems/3.2.2/bin/uo --version && \
     echo "uo command verified successfully"
 
-# Install OpenStudio extension gems required by PowerTwin.rb
-# Versions pinned for compatibility with urbanopt-cli 1.1.0 / openstudio-extension 0.9.4
-RUN gem install openstudio-common-measures -v 0.12.3 && \
-    gem install openstudio-model-articulation -v 0.12.1 && \
-    gem install openstudio-ee -v 0.12.3 && \
-    gem install openstudio-calibration -v 0.12.1 && \
-    gem install openstudio-load-flexibility-measures -v 0.11.1 && \
-    gem install openstudio-geb -v 0.7.0
-
-# Final verification
-RUN echo "=== INSTALLED GEMS ===" && \
-    gem list | grep -E "ruby2_keywords|urbanopt|openstudio" && \
-    echo "=== UO VERIFICATION ===" && \
-    which uo && uo --version
+# Final verification that uo is in PATH
+RUN which uo && uo --version
 # Copy application code and set environment variables
 COPY . .
 
