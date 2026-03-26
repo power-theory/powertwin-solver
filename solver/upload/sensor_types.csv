@@ -1,0 +1,11 @@
+id,name,columns
+1,Electricity,Electricity:Facility(kWh)
+2,Renewables,ElectricityProduced:Facility()
+3,Hot Water,WaterSystems:NaturalGas(kBtu)|WaterSystems:Propane(kBtu)|WaterSystems:FuelOilNo2(kBtu)|WaterSystems:OtherFuels(kBtu)
+4,Water,
+5,Chilled Water,
+6,CO2 Emissions,Historical_Hourly_Electricity_Emissions(MT)|Natural_Gas_Emissions(MT)|Propane_Emissions(MT)|FuelOilNo2_Emissions(MT)
+7,Steam,
+8,Natural Gas,NaturalGas:Facility(kBtu)
+9,Propane,Propane:Facility(kBtu)
+10,Fuel Oil,FuelOilNo2:Facility(kBtu)

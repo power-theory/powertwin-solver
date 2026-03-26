@@ -22,60 +22,16 @@ external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Clean Report', external_log_dir)
 
 
-# Define the column mapping for different sections of the report
-# TODO: Locate this elsewhere to make it easier to update
-data_mapping = {
-    1: {
-        "name": "Electricity",
-        "columns": ["Electricity:Facility(kWh)"]
-    },
-    2: {
-        "name": "Renewables",
-        "columns": ["ElectricityProduced:Facility()"]
-    },
-    3: {
-        "name": "Hot Water",
-        "columns": [
-            "WaterSystems:NaturalGas(kBtu)",
-            "WaterSystems:Propane(kBtu)",
-            "WaterSystems:FuelOilNo2(kBtu)",
-            "WaterSystems:OtherFuels(kBtu)"
-        ]
-    },
-    4: {
-        "name": "Water",
-        "columns": []
-    },
-    5: {
-        "name": "Chilled Water",
-        "columns": []
-    },
-    6: {
-        "name": "CO2 Emissions",
-        "columns": [
-            "Historical_Hourly_Electricity_Emissions(MT)",
-            "Natural_Gas_Emissions(MT)",
-            "Propane_Emissions(MT)",
-            "FuelOilNo2_Emissions(MT)"
-        ]
-    },
-    7: {
-        "name": "Steam",
-        "columns": []
-    },
-    8: {
-        "name": "Natural Gas",
-        "columns": ["NaturalGas:Facility(kBtu)"]
-    },
-    9: {
-        "name": "Propane",
-        "columns": ["Propane:Facility(kBtu)"]
-    },
-    10: {
-        "name": "Fuel Oil",
-        "columns": ["FuelOilNo2:Facility(kBtu)"]
-    }
-}
+# Load sensor type mappings from CSV
+SENSOR_TYPES_CSV = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'upload', 'sensor_types.csv')
+data_mapping = {}
+with open(SENSOR_TYPES_CSV, 'r') as f:
+    for row in csv.DictReader(f):
+        columns = [c for c in row['columns'].split('|') if c] if row['columns'] else []
+        data_mapping[int(row['id'])] = {
+            "name": row['name'],
+            "columns": columns
+        }
 
 ############################################################################################################
 # Name: clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR)

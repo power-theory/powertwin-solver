@@ -17,7 +17,6 @@ from modules.utils import initialize_logger
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
 
-# TODO: Move these to a separate file
 OCCUPANTS_MAPPING = {
     "Educational": 355,
     "Business": 100,
@@ -36,39 +35,24 @@ OCCUPANTS_MAPPING = {
     "Unknown": 0
 }
 
-# TODO: Move these to a separate file
-BUILDING_SUBTYPES = {
-    "Education": "Educational",
-    "Office": "Business",
-    "Mobile Home": "SmallResidential",
-    "Single-Family Detached": "SmallResidential",
-    "Single-Family Attached": "SmallResidential",
-    "Multifamily": "BigResidential",
-    "Single-Family": "SmallResidential",
-    "Multifamily (2 to 4 units)": "BigResidential",
-    "Multifamily (5 or more units)": "BigResidential",
-    "Vacant": "Vacant",
-    "Laboratory": "Industrial",
-    "Nonrefrigerated warehouse": "Storage",
-    "Food sales": "FoodMercantile",
-    "Public order and safety": "Institutional",
-    "Outpatient health care": "Health Care",
-    "Refrigerated warehouse": "Storage",
-    "Religious worship": "Assembly",
-    "Public assembly": "Assembly",
-    "Food service": "FoodMercantile",
-    "Inpatient health care": "Health Care",
-    "Nursing": "Health Care",
-    "Lodging": "BigResidential",
-    "Strip shopping mall": "Mercantile",
-    "Enclosed mall": "Mercantile",
-    "Retail other than mall": "Mercantile",
-    "Service": "Business",
-    "Mixed use": "Mixed",
-    "Uncovered Parking": "Parking",
-    "Covered Parking": "Parking",
-    "null": "Unknown"
-}
+# Load asset subtypes from CSV: id -> {name, occupancy_type, effective_id}
+ASSET_SUBTYPES = {}
+ASSET_SUBTYPES_CSV = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'upload', 'asset_subtypes.csv')
+with open(ASSET_SUBTYPES_CSV, 'r') as f:
+    for row in csv.DictReader(f):
+        ASSET_SUBTYPES[int(row['id'])] = {
+            'name': row['name'],
+            'occupancy_type': row['occupancy_type'],
+            'effective_id': int(row['effective_id']),
+        }
+
+DEFAULT_SUBTYPE_ID = 4  # Single-Family
+
+# Reverse lookup: building_type name -> occupancy_type (from effective/self-referencing rows only)
+BUILDING_TYPE_TO_OCCUPANCY = {}
+for sid, info in ASSET_SUBTYPES.items():
+    if info['effective_id'] == sid:
+        BUILDING_TYPE_TO_OCCUPANCY[info['name']] = info['occupancy_type']
 
 def sanitize_filename(name):
     sanitized = name.replace("'", "")
@@ -97,43 +81,36 @@ def read_metadata(metadata_csv):
         # Read each row in the CSV file to assign building data to its corresponding building ID
         for row in reader:
             asset_name = row['asset_name']
-            asset_subtype_name = row['asset_subtype_name']
+            asset_subtype_id = row.get('asset_subtype_id', '')
             asset_geometries_properties = json.loads(row['asset_geometries_properties'])
             asset_metadata = json.loads(row['asset_metadata'])
-            
 
             floor_area = asset_metadata.get('area')
             building_id = str(asset_geometries_properties.get('id')) # Most important id, considered the PK
 
             if not floor_area or not building_id or building_id in processed_building_ids:
                 continue
-            if not asset_subtype_name or asset_subtype_name in ("NULL", "null"):
-                asset_subtype_name = "Single-Family"
 
-            # Exclude big residential buildings (Lodging and low highrise Multifamily are an exceptions) (Limited by UrbanOpt)
+            # Resolve subtype: parse ID, fall back to default if missing/invalid
+            try:
+                subtype_id = int(asset_subtype_id)
+            except (ValueError, TypeError):
+                subtype_id = DEFAULT_SUBTYPE_ID
+
+            if subtype_id not in ASSET_SUBTYPES:
+                subtype_id = DEFAULT_SUBTYPE_ID
+
+            # Resolve effective subtype via effective_id (handles temporary remappings)
             # https://docs.urbanopt.net/workflows/residential_workflows/building_types.html
-            # NOTE - The Mixed use building type can accommodate up to 4 building types and their corresponding fractions of total floor area. 
-            # If the number of building types is fewer than 4, additional building use types must be added but the fraction of total area can be
-            # entered as 0.
-            # TODO: Mixed use requires a lot more detail to undestand what is mixed and what it contains, Laboratory requires elevator support
-            # Multi/Single-family requires multi geojson assets
-            # Temporarily setting these types to other types
-            if asset_subtype_name == "Single-Family Detached":
-                asset_subtype_name = "Single-Family"
-            elif asset_subtype_name == "Mixed use":
-                asset_subtype_name = "Office"  # Mixed use buildings temporarily mapped to Office
-            elif asset_subtype_name == "Laboratory":
-                asset_subtype_name = "Education"  # Laboratory buildings temporarily mapped to Education
-            elif asset_subtype_name in ["Multifamily", "Multifamily (2 to 4 units)", "Multifamily (5 or more units)"]:
-                asset_subtype_name = "Lodging"  # All multifamily buildings mapped to Lodging
-            
-            
+            effective_id = ASSET_SUBTYPES[subtype_id]['effective_id']
+            effective_subtype = ASSET_SUBTYPES[effective_id]
+            building_type = effective_subtype['name']
 
             processed_building_ids.add(building_id)
-            
+
             building_name_list[building_id] = asset_name
             building_area_list[building_id] = int(floor_area)
-            building_type_list[building_id] = asset_subtype_name
+            building_type_list[building_id] = building_type
             building_weather_list[building_id] = get_location(asset_metadata)
     
     # Return the building area, type, name, and weather data
@@ -192,7 +169,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     building_name = sanitize_filename(building_name_list[building_id])
         
     #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
-    occupancy_subtype = BUILDING_SUBTYPES.get(building_type, "Unknown")
+    occupancy_subtype = BUILDING_TYPE_TO_OCCUPANCY.get(building_type, "Unknown")
     number_of_occupants = OCCUPANTS_MAPPING.get(occupancy_subtype, 0)
 
     # Create new properties (must be first)

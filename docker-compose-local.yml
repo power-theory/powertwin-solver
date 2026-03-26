@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_DB=powertwin
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=!#4Dm1N#!2026?
+      - POSTGRES_PASSWORD=${PG_DB_TOKEN_ADMIN}
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
     volumes:
       - ./powertwin_data:/solver/powertwin-solver-pg
@@ -24,11 +24,11 @@ services:
 
   powertwin-solver-flask:
     container_name: powertwin-solver-flask
-    build: 
+    build:
       context: ./solver
     command: ["sh", "-c", "sleep 30 && python run.py"]
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${FLASK_PORT}:8080"
     volumes:
       - ./powertwin_data:/solver/powertwin-solver-pg
     depends_on:
@@ -36,9 +36,9 @@ services:
         condition: service_healthy
     environment:
       - PGHOST=postgres-db
-      - PGPORT=5432
+      - PGPORT=${PG_DB_PORT}
       - PGUSER=postgres
-      - PGPASSWORD=!#4Dm1N#!2026?
+      - PGPASSWORD=${PG_DB_TOKEN_ADMIN}
       - PGDATABASE=powertwin
     tty: true
     restart: unless-stopped
