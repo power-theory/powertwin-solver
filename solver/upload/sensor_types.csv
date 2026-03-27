@@ -1,11 +1,11 @@
-id,name,columns
-1,Electricity,Electricity:Facility(kWh)
-2,Renewables,ElectricityProduced:Facility()
-3,Hot Water,WaterSystems:NaturalGas(kBtu)|WaterSystems:Propane(kBtu)|WaterSystems:FuelOilNo2(kBtu)|WaterSystems:OtherFuels(kBtu)
-4,Water,
-5,Chilled Water,
-6,CO2 Emissions,Historical_Hourly_Electricity_Emissions(MT)|Natural_Gas_Emissions(MT)|Propane_Emissions(MT)|FuelOilNo2_Emissions(MT)
-7,Steam,
-8,Natural Gas,NaturalGas:Facility(kBtu)
-9,Propane,Propane:Facility(kBtu)
-10,Fuel Oil,FuelOilNo2:Facility(kBtu)
+id,name,columns,conversion_factor
+1,Electricity,Electricity:Facility(kWh),1
+2,Renewables,ElectricityProduced:Facility(),1
+3,Hot Water,WaterSystems:NaturalGas(kBtu)|WaterSystems:Propane(kBtu)|WaterSystems:FuelOilNo2(kBtu)|WaterSystems:OtherFuels(kBtu),0.001
+4,Water,,1
+5,Chilled Water,DistrictCooling:Facility(kBtu),0.083333
+6,CO2 Emissions,Historical_Hourly_Electricity_Emissions(MT)|Natural_Gas_Emissions(MT)|Propane_Emissions(MT)|FuelOilNo2_Emissions(MT),1
+7,Steam,DistrictHeating:Facility(kBtu),1.030928
+8,Natural Gas,NaturalGas:Facility(kBtu),0.001
+9,Propane,Propane:Facility(kBtu),0.010935
+10,Fuel Oil,FuelOilNo2:Facility(kBtu),0.007210

@@ -30,7 +30,8 @@ with open(SENSOR_TYPES_CSV, 'r') as f:
         columns = [c for c in row['columns'].split('|') if c] if row['columns'] else []
         data_mapping[int(row['id'])] = {
             "name": row['name'],
-            "columns": columns
+            "columns": columns,
+            "conversion_factor": float(row.get('conversion_factor', 1))
         }
 
 ############################################################################################################
@@ -147,8 +148,9 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
             clean_df['id'] = sensor_id_list[data_id]
             clean_df['metadata'] = "{}"
             
-            # Sum the columns together and name the result 'value'
-            clean_df['value'] = clean_df[unclean_columns].sum(axis=1)
+            # Sum the columns together and apply unit conversion (e.g. kBtu -> MMBtu)
+            conversion_factor = data_info.get("conversion_factor", 1)
+            clean_df['value'] = clean_df[unclean_columns].sum(axis=1) * conversion_factor
             
             # Reorder columns 
             columns_order = ["id", "ts", "value", "metadata"]

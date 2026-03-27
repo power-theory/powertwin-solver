@@ -190,6 +190,30 @@ python read_sqlite_db.py <path_to_db>
 ### Type Mappings
 - **Asset Subtypes:** `solver/upload/asset_subtypes.csv` — building subtypes with occupancy categories and simulation type overrides
 - **Sensor Types:** `solver/upload/sensor_types.csv` — sensor type to EnergyPlus output column mappings
+- **Sensor Type Units:** `solver/upload/sensor_type_units.csv` — expected output units per sensor type
+
+### Unit Conversions (Clean Reports)
+
+EnergyPlus/UrbanOpt outputs are converted to the target units defined in `sensor_types.csv` via `conversion_factor`. The raw EnergyPlus units are kBtu for thermal energy, kWh for electricity, and metric tons (MT) for emissions ([UrbanOpt Reporting Schema](https://docs.urbanopt.net/resources/customization/feature_reports.html)).
+
+| ID | Sensor | EnergyPlus Column | Raw Unit | Output Unit | Factor | Source |
+|----|--------|-------------------|----------|-------------|--------|--------|
+| 1 | Electricity | `Electricity:Facility` | kWh | kWh | 1 | — |
+| 2 | Renewables | `ElectricityProduced:Facility` | kWh | kWh | 1 | — |
+| 3 | Hot Water | `WaterSystems:*` (4 fuels summed) | kBtu | MMBtu | 0.001 | 1 MMBtu = 1,000 kBtu |
+| 4 | Water | *(not simulated)* | — | Gal | — | No EnergyPlus meter available |
+| 5 | Chilled Water | `DistrictCooling:Facility` | kBtu | Ton-Hr | 0.083333 | 1 Ton-Hr = 12,000 BTU = 12 kBtu |
+| 6 | CO2 Emissions | `*_Emissions(MT)` (4 sources summed) | MT | MT | 1 | [UrbanOpt schema](https://docs.urbanopt.net/resources/customization/feature_reports.html): "emissions in metric ton (mt)"; [Cambium/NREL](https://docs.nrel.gov/docs/fy24osti/89309.pdf) |
+| 7 | Steam | `DistrictHeating:Facility` | kBtu | lbs | 1.030928 | 970 BTU/lb latent heat of vaporization at atmospheric pressure ([Engineering Toolbox](https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html)) |
+| 8 | Natural Gas | `NaturalGas:Facility` | kBtu | MMBtu | 0.001 | 1 MMBtu = 1,000 kBtu |
+| 9 | Propane | `Propane:Facility` | kBtu | Gal | 0.010935 | 91,452 BTU/gal ([EIA](https://www.eia.gov/energyexplained/units-and-calculators/british-thermal-units.php)) |
+| 10 | Fuel Oil | `FuelOilNo2:Facility` | kBtu | Gal | 0.007210 | 138,690 BTU/gal ([EIA](https://www.eia.gov/totalenergy/data/monthly/pdf/sec12_2.pdf)) |
+
+**Notes:**
+- Propane: EIA thermal conversion factor is 3.841 MMBtu/barrel = 91,452 BTU/gal (NIST combustion enthalpy at 60°F)
+- Fuel Oil #2: EIA thermal conversion factor is 5.825 MMBtu/barrel = 138,690 BTU/gal
+- Steam: 970 BTU/lb is the standard latent heat of vaporization at 14.7 psia (212°F). Actual value varies with pressure.
+- CO2: "MT" = metric ton per UrbanOpt/Cambium convention, consistent with [EPA GHG reporting](https://www.epa.gov/ghgemissions/inventory-us-greenhouse-gas-emissions-and-sinks)
 
 ## Future Development Roadmap
 
