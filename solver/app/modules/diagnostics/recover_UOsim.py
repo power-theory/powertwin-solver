@@ -42,7 +42,7 @@ def get_unique_weather_stations_from_metadata(metadata_csv_path):
     unique_weather_stations = set()
     for lat, lon in unique_coordinates:
         try:
-            state, weather_file = get_location({'latitude': lat, 'longitude': lon})
+            state, weather_file, _ = get_location({'latitude': lat, 'longitude': lon})
             if weather_file:
                 unique_weather_stations.add(weather_file)
         except Exception as e:

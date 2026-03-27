@@ -1,14 +1,57 @@
 import os
+import csv
 import json
 import math
 import re
+import time
 import urllib.request
+import urllib.error
 from modules.utils import initialize_logger
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Weather', external_log_dir)
 
+
+def fetch_url(url, timeout=5, retries=3, backoff=1.0):
+    """Fetch a URL with retry and exponential backoff. Returns the response body as bytes."""
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(url, timeout=timeout) as response:
+                return response.read()
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            if attempt < retries - 1:
+                wait = backoff * (2 ** attempt)
+                logger.debug(f"Fetch failed for {url} (attempt {attempt + 1}/{retries}): {e}, retrying in {wait:.1f}s")
+                time.sleep(wait)
+            else:
+                raise
+
+
+def download_url(url, filepath, timeout=30, retries=3, backoff=1.0):
+    """Download a file from URL to filepath with retry and exponential backoff."""
+    for attempt in range(retries):
+        try:
+            urllib.request.urlretrieve(url, filepath)
+            return True
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            if attempt < retries - 1:
+                wait = backoff * (2 ** attempt)
+                logger.debug(f"Download failed for {url} (attempt {attempt + 1}/{retries}): {e}, retrying in {wait:.1f}s")
+                time.sleep(wait)
+            else:
+                raise
+
 _weather_stations_cache = None
+_climate_zone_by_fips = None
+_county_lookup = None
+_fips_cache = {}
+
+if os.environ.get('SLURM_JOB_ID'):
+    CLIMATE_ZONES_CSV = os.path.join('/solver', 'app', 'urbanopt', 'ClimateZones.csv')
+    US_COUNTIES_GEOJSON = os.path.join('/solver', 'app', 'urbanopt', 'us_counties.geojson')
+else:
+    CLIMATE_ZONES_CSV = os.path.join('app', 'urbanopt', 'ClimateZones.csv')
+    US_COUNTIES_GEOJSON = os.path.join('app', 'urbanopt', 'us_counties.geojson')
 
 if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
     MASTER_WEATHER_GEOJSON = os.path.join('/solver','app','urbanopt','master_weather.geojson')
@@ -121,26 +164,113 @@ def download_weather_files(weather_title, epw_url):
         
         try:
             logger.info(f"Downloading {filename} from {url}")
-            urllib.request.urlretrieve(url, filepath)
+            download_url(url, filepath)
             logger.info(f"Successfully downloaded {filename}")
         except Exception as e:
-            logger.error(f"Failed to download {filename}: {e}")
+            logger.error(f"Failed to download {filename} after retries: {e}")
             success = False
     
     return success
+
+
+def _load_climate_zones():
+    global _climate_zone_by_fips
+
+    if _climate_zone_by_fips is not None:
+        return _climate_zone_by_fips
+
+    _climate_zone_by_fips = {}
+    with open(CLIMATE_ZONES_CSV, 'r') as f:
+        for row in csv.DictReader(f, delimiter=';'):
+            iecc = row.get('IECC21', '').strip()
+            if not iecc:
+                continue
+            fips = row['GEOID'].lstrip('G')
+            moisture = row.get('MOISTURE21', '').strip()
+            _climate_zone_by_fips[fips] = iecc + moisture
+
+    logger.debug(f"Loaded {len(_climate_zone_by_fips)} county climate zones from ClimateZones.csv")
+    return _climate_zone_by_fips
+
+
+def _load_county_boundaries():
+    global _county_lookup
+
+    if _county_lookup is not None:
+        return _county_lookup
+
+    from shapely.geometry import shape
+    from shapely import STRtree
+
+    with open(US_COUNTIES_GEOJSON, 'r') as f:
+        data = json.load(f)
+
+    geometries = []
+    fips_list = []
+    for feature in data['features']:
+        geom = shape(feature['geometry'])
+        geometries.append(geom)
+        fips_list.append(feature['id'])
+
+    tree = STRtree(geometries)
+    _county_lookup = (tree, geometries, fips_list)
+    logger.debug(f"Loaded {len(fips_list)} county boundaries for spatial lookup")
+    return _county_lookup
+
+
+def get_county_fips(lat, lon):
+    cache_key = (round(lat, 3), round(lon, 3))
+    if cache_key in _fips_cache:
+        return _fips_cache[cache_key]
+
+    try:
+        from shapely.geometry import Point
+
+        tree, geometries, fips_list = _load_county_boundaries()
+        point = Point(lon, lat)  # GeoJSON is lon, lat
+        idx = tree.nearest(point)
+        # Verify the point is actually inside the nearest polygon
+        if geometries[idx].contains(point):
+            fips = fips_list[idx]
+        else:
+            # Point outside all polygons (e.g. offshore), find by query
+            fips = None
+            for i in tree.query(point):
+                if geometries[i].contains(point):
+                    fips = fips_list[i]
+                    break
+        _fips_cache[cache_key] = fips
+        if fips is None:
+            logger.warning(f"No county found for coordinates ({lat}, {lon})")
+        return fips
+    except Exception as e:
+        logger.warning(f"County FIPS lookup failed for ({lat}, {lon}): {e}")
+        _fips_cache[cache_key] = None
+        return None
+
+
+def get_climate_zone(lat, lon):
+    fips = get_county_fips(lat, lon)
+    if fips is None:
+        return None
+    zones = _load_climate_zones()
+    zone = zones.get(fips)
+    if zone is None:
+        logger.warning(f"No climate zone found for county FIPS {fips}")
+    return zone
 
 
 def get_location(asset_metadata):
     """
     Match a single building's coordinates to the nearest weather station.
     Downloads weather files if they don't exist locally.
-    
+
     Args:
         asset_metadata: Dictionary containing building metadata with 'latitude' and 'longitude' keys
-        
+
     Returns:
-        tuple: (State, WeatherFile) - State abbreviation and weather file name
-               Returns (None, None) if coordinates are missing or invalid
+        tuple: (State, WeatherFile, ClimateZone) - State abbreviation, weather file name, and IECC climate zone
+               Returns (None, None, None) if coordinates are missing or invalid
     """
     # Load weather stations (will use cache if already loaded)
     weather_stations = _load_weather_stations()
@@ -152,7 +282,7 @@ def get_location(asset_metadata):
         
         # Skip if coordinates are missing
         if building_lat is None or building_lon is None:
-            return None, None
+            return None, None, None
         
         # Find nearest weather station
         min_distance = float('inf')
@@ -180,10 +310,11 @@ def get_location(asset_metadata):
                 if not download_success:
                     logger.warning(f"Failed to download weather files for {weather_title}")
             
-            return nearest_station['state'], nearest_station['title']
+            climate_zone = get_climate_zone(building_lat, building_lon)
+            return nearest_station['state'], nearest_station['title'], climate_zone
         else:
-            return None, None
-            
+            return None, None, None
+
     except (KeyError, ValueError, TypeError, AttributeError) as e:
         logger.error(f"Error processing asset metadata: {e}")
-        return None, None
+        return None, None, None
