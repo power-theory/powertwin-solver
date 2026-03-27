@@ -173,6 +173,24 @@ python read_sqlite_db.py <path_to_db>
 ```
 
 
+## Reference Data Sources
+
+### Weather Files
+- **Source:** TMY3 (Typical Meteorological Year 3) weather data from the National Renewable Energy Laboratory (NREL)
+- **Stations:** 1,470 USA weather stations defined in `solver/app/urbanopt/master_weather.geojson`
+- **Files:** `.epw`, `.ddy`, `.stat` files downloaded on-demand from NREL S3 storage
+- **Selection:** Nearest station by haversine distance from building lat/lon coordinates
+
+### Climate Zones
+- **Zone Data:** IECC 2021 climate zones by county from `solver/app/urbanopt/ClimateZones.csv` (3,220 counties)
+- **County Boundaries:** US Census Bureau cartographic boundaries from [Plotly Datasets](https://github.com/plotly/datasets) stored in `solver/app/urbanopt/us_counties.geojson` (3,221 counties)
+- **Lookup:** Shapely STRtree spatial index for point-in-polygon county resolution at building coordinates
+- **Fallback:** State-level climate zone mapping if county lookup fails
+
+### Type Mappings
+- **Asset Subtypes:** `solver/upload/asset_subtypes.csv` — building subtypes with occupancy categories and simulation type overrides
+- **Sensor Types:** `solver/upload/sensor_types.csv` — sensor type to EnergyPlus output column mappings
+
 ## Future Development Roadmap
 
 ### Building Type Support
