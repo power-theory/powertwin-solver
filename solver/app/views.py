@@ -228,51 +228,45 @@ def convert_metadata_to_csv(metadata_json):
     
     # CSV headers matching expected format
     headers = [
-        'sensor_id', 'sensor_type_id', 'sensor_type_name', 'asset_id', 'asset_name',
-        'asset_subtype_id', 'asset_subtype_name', 'asset_metadata', 'asset_geometries_properties'
+        'sensor_id', 'sensor_type_id', 'asset_id', 'asset_name',
+        'asset_subtype_id', 'asset_metadata', 'asset_geometries_properties'
     ]
-    
+
     # Build CSV content
     csv_lines = []
     csv_lines.append(','.join(headers))
-    
+
     for row in metadata_json:
         # Extract values with defaults
         sensor_id = str(row.get('sensor_id', ''))
         sensor_type_id = str(row.get('sensor_type_id', ''))
-        sensor_type_name = f'"{row.get("sensor_type_name", "")}"'  # Quote for CSV
         asset_id = str(row.get('asset_id', ''))
         asset_name = f'"{row.get("asset_name", "")}"'  # Quote for CSV
         asset_subtype_id = str(row.get('asset_subtype_id', ''))
-        asset_subtype_name = f'"{row.get("asset_subtype_name", "")}"'  # Quote for CSV
-        
+
         # Handle JSON fields - escape quotes and wrap in quotes
         asset_metadata = row.get('asset_metadata', {})
         if isinstance(asset_metadata, str):
-            # Already a JSON string - escape double quotes by doubling them
             escaped_metadata = asset_metadata.replace('"', '""')
             asset_metadata_str = f'"{escaped_metadata}"'
         else:
-            # Convert dict to JSON string and escape
             metadata_json_str = json.dumps(asset_metadata)
             escaped_metadata = metadata_json_str.replace('"', '""')
             asset_metadata_str = f'"{escaped_metadata}"'
-        
+
         asset_geom_props = row.get('asset_geometries_properties', {})
         if isinstance(asset_geom_props, str):
-            # Already a JSON string - escape double quotes by doubling them
             escaped_geom = asset_geom_props.replace('"', '""')
             asset_geom_props_str = f'"{escaped_geom}"'
         else:
-            # Convert dict to JSON string and escape
             geom_json_str = json.dumps(asset_geom_props)
             escaped_geom = geom_json_str.replace('"', '""')
             asset_geom_props_str = f'"{escaped_geom}"'
-        
+
         # Build CSV row
         csv_row = ','.join([
-            sensor_id, sensor_type_id, sensor_type_name, asset_id, asset_name,
-            asset_subtype_id, asset_subtype_name, asset_metadata_str, asset_geom_props_str
+            sensor_id, sensor_type_id, asset_id, asset_name,
+            asset_subtype_id, asset_metadata_str, asset_geom_props_str
         ])
         csv_lines.append(csv_row)
     
