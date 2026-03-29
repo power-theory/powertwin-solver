@@ -204,7 +204,7 @@ EnergyPlus/UrbanOpt outputs are converted to the target units defined in `sensor
 | 4 | Water | *(not simulated)* | — | Gal | — | No EnergyPlus meter available |
 | 5 | Chilled Water | `DistrictCooling:Facility` | kBtu | Ton-Hr | 0.083333 | 1 Ton-Hr = 12,000 BTU = 12 kBtu |
 | 6 | CO2 Emissions | `*_Emissions(MT)` (4 sources summed) | MT | MT | 1 | [UrbanOpt schema](https://docs.urbanopt.net/resources/customization/feature_reports.html): "emissions in metric ton (mt)"; [Cambium/NREL](https://docs.nrel.gov/docs/fy24osti/89309.pdf) |
-| 7 | Steam | `DistrictHeating:Facility` | kBtu | lbs | 1.030928 | 970 BTU/lb latent heat of vaporization at atmospheric pressure ([Engineering Toolbox](https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html)) |
+| 7 | Steam | `DistrictHeatingSteam:Facility` | kBtu | lbs | 1.030928 | 970 BTU/lb latent heat of vaporization at atmospheric pressure ([Engineering Toolbox](https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html)) |
 | 8 | Natural Gas | `NaturalGas:Facility` | kBtu | MMBtu | 0.001 | 1 MMBtu = 1,000 kBtu |
 | 9 | Propane | `Propane:Facility` | kBtu | Gal | 0.010935 | 91,452 BTU/gal ([EIA](https://www.eia.gov/energyexplained/units-and-calculators/british-thermal-units.php)) |
 | 10 | Fuel Oil | `FuelOilNo2:Facility` | kBtu | Gal | 0.007210 | 138,690 BTU/gal ([EIA](https://www.eia.gov/totalenergy/data/monthly/pdf/sec12_2.pdf)) |
