@@ -187,6 +187,17 @@ def _load_climate_zones():
                 continue
             fips = row['GEOID'].lstrip('G')
             moisture = row.get('MOISTURE21', '').strip()
+            # OpenStudio requires a moisture suffix for ASHRAE 169-2013 format.
+            # Some counties (zones 7, 8, and rare zone 4 cases) have empty
+            # MOISTURE21. Derive from BA21: Humid/Very Cold -> A, Dry -> B, Marine -> C.
+            if not moisture and iecc:
+                ba = row.get('BA21', '').strip().lower()
+                if 'dry' in ba:
+                    moisture = 'B'
+                elif 'marine' in ba:
+                    moisture = 'C'
+                else:
+                    moisture = 'A'
             _climate_zone_by_fips[fips] = iecc + moisture
 
     logger.debug(f"Loaded {len(_climate_zone_by_fips)} county climate zones from ClimateZones.csv")
