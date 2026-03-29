@@ -317,13 +317,13 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     
     # Fallback state-level climate zones (used when FCC county-level lookup is unavailable)
     climate_zone_fallback = {
-        'AL': '3A', 'AK': '7', 'AZ': '2B', 'AR': '3A', 'CA': '3B',
+        'AL': '3A', 'AK': '7A', 'AZ': '2B', 'AR': '3A', 'CA': '3B',
         'CO': '5B', 'CT': '5A', 'DE': '4A', 'FL': '2A', 'GA': '3A',
         'HI': '1A', 'ID': '5B', 'IL': '5A', 'IN': '5A', 'IA': '6A',
         'KS': '4A', 'KY': '4A', 'LA': '2A', 'ME': '6A', 'MD': '4A',
         'MA': '5A', 'MI': '6A', 'MN': '6A', 'MS': '3A', 'MO': '4A',
         'MT': '6B', 'NE': '5A', 'NV': '3B', 'NH': '6A', 'NJ': '4A',
-        'NM': '4B', 'NY': '5A', 'NC': '4A', 'ND': '7', 'OH': '5A',
+        'NM': '4B', 'NY': '5A', 'NC': '4A', 'ND': '7A', 'OH': '5A',
         'OK': '3A', 'OR': '4C', 'PA': '5A', 'RI': '5A', 'SC': '3A',
         'SD': '6A', 'TN': '4A', 'TX': '2A', 'UT': '5B', 'VT': '6A',
         'VA': '4A', 'WA': '4C', 'WV': '5A', 'WI': '6A', 'WY': '6B',
