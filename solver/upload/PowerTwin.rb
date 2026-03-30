@@ -1159,6 +1159,8 @@ module URBANopt
         end
 
         # call the default feature reporting measure
+        reporting_frequency = ENV['REPORTING_FREQUENCY'] || 'Timestep'
+        OpenStudio::Extension.set_measure_argument(osw, 'default_feature_reports', 'reporting_frequency', reporting_frequency)
         OpenStudio::Extension.set_measure_argument(osw, 'default_feature_reports', 'feature_id', feature_id)
         OpenStudio::Extension.set_measure_argument(osw, 'default_feature_reports', 'feature_name', feature_name)
         OpenStudio::Extension.set_measure_argument(osw, 'default_feature_reports', 'feature_type', feature_type)

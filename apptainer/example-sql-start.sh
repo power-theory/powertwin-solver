@@ -42,6 +42,7 @@ module load nvhpc/25.7
 # Simulation parameters
 SIMULATION_NAME="teton1"
 SIMULATION_YEAR="2025"
+REPORTING_FREQUENCY="Timestep"  # Timestep, Hourly, Daily, Monthly, Runperiod
 HPC_SHARED_STORAGE="/gscratch/lukemacy/patch"
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload/${SIMULATION_NAME}"
 ASSET_GEOJSON_PATH="${UPLOAD_DIR}/asset_geometries.geojson"
@@ -672,6 +673,7 @@ process_batches() {
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "POWERTWIN_STEP=parallel" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
+        --env "REPORTING_FREQUENCY=${REPORTING_FREQUENCY}" \
         --workdir /solver \
         "${SOLVER_SIF}" python -m app.direct_runner run-parallel-batches \
         "${SIMULATION_DIR}" \
