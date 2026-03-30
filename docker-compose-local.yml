@@ -40,6 +40,7 @@ services:
       - PGUSER=postgres
       - PGPASSWORD=${PG_DB_TOKEN_ADMIN}
       - PGDATABASE=powertwin
+      - REPORTING_FREQUENCY=${REPORTING_FREQUENCY:-Timestep}
     tty: true
     restart: unless-stopped
     networks:

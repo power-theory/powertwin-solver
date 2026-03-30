@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_DB=powertwin
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=!#4Dm1N#!
+      - POSTGRES_PASSWORD=${PG_DB_TOKEN_ADMIN}
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
       - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
     ports:
@@ -32,7 +32,7 @@ services:
       - DATABASES_HOST=postgres-db
       - DATABASES_PORT=5432
       - DATABASES_USER=postgres
-      - DATABASES_PASSWORD=!#4Dm1N#!
+      - DATABASES_PASSWORD=${PG_DB_TOKEN_ADMIN}
       - DATABASES_DBNAME=powertwin
       - LISTEN_ADDR=0.0.0.0
       - LISTEN_PORT=6432
@@ -78,8 +78,9 @@ services:
       - PGHOST=pgbouncer-db
       - PGPORT=6432
       - PGUSER=postgres
-      - PGPASSWORD=!#4Dm1N#!
+      - PGPASSWORD=${PG_DB_TOKEN_ADMIN}
       - PGDATABASE=powertwin
+      - REPORTING_FREQUENCY=${REPORTING_FREQUENCY:-Timestep}
     volumes:
       - ./powertwin_data:/solver/powertwin-solver-pg
     depends_on:
