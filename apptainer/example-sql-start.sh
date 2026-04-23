@@ -41,26 +41,36 @@ module load nvhpc/25.7
 # =====================================================
 # Simulation parameters
 SIMULATION_NAME="teton1"
-SIMULATION_YEAR="2025"
+COLLECTION_ID="7"
+SIMULATION_YEAR="2026"
 REPORTING_FREQUENCY="Timestep"  # Timestep, Hourly, Daily, Monthly, Runperiod
-HPC_SHARED_STORAGE="/gscratch/lukemacy/patch"
-UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload/${SIMULATION_NAME}"
-ASSET_GEOJSON_PATH="${UPLOAD_DIR}/asset_geometries.geojson"
-METADATA_CSV_PATH="${UPLOAD_DIR}/metadata.csv"
+
+# Storage layout:
+#   ${HPC_SHARED_STORAGE}/shared/        — infrastructure (SIF, gem home, logs, tmp)
+#   ${HPC_SHARED_STORAGE}/${COLLECTION_ID}/  — per-state data (upload, powertwin_data, user_files)
+HPC_SHARED_STORAGE="/project/cowy-ptheory/powertwin"
+SHARED_DIR="${HPC_SHARED_STORAGE}/shared"
+COLLECTION_BASE="${HPC_SHARED_STORAGE}/${COLLECTION_ID}"
+
+UPLOAD_DIR="${COLLECTION_BASE}/upload"
+ASSET_GEOJSON_PATH="${UPLOAD_DIR}/${COLLECTION_ID}_asset_geometries.geojson"
+METADATA_CSV_PATH="${UPLOAD_DIR}/${COLLECTION_ID}_metadata.csv"
 CONFIG_JSON_PATH="${UPLOAD_DIR}/default_config.json"
 POWERTWIN_KEEP_DIRS=1
 WITH_NSYS_PROFILING=0
 
-# SIF files location
-SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
+# SIF files location (shared across all states)
+SIF_DIR="${SHARED_DIR}/sif_containers"
 SOLVER_SIF="${SIF_DIR}/flask.sif"
 
-# Shared directories
-DATA_DIR="${HPC_SHARED_STORAGE}/powertwin_data"
-USER_FILES_DIR="${HPC_SHARED_STORAGE}/user_files"
-LOG_DIR="${HPC_SHARED_STORAGE}/logs"
-TMP_BASE="${HPC_SHARED_STORAGE}/tmp"
-NSYS_REPORTS_DIR="${HPC_SHARED_STORAGE}/nsys_reports"
+# Per-state data directories
+DATA_DIR="${COLLECTION_BASE}/powertwin_data"
+USER_FILES_DIR="${COLLECTION_BASE}/user_files"
+
+# Shared infrastructure directories
+LOG_DIR="${SHARED_DIR}/logs"
+TMP_BASE="${SHARED_DIR}/tmp"
+NSYS_REPORTS_DIR="${SHARED_DIR}/nsys_reports"
 
 # SQLite database configuration
 SQLITE_DB_DIR="${DATA_DIR}/sqlite"
@@ -532,7 +542,7 @@ create_feature_files() {
         \"${METADATA_CSV_PATH}\" \
         \"${CONFIG_JSON_PATH}\" \
         \"${TOTAL_CORES}\" \
-        --shared-storage \"${HPC_SHARED_STORAGE}\"" \
+        --shared-storage \"${COLLECTION_BASE}\"" \
         2>&1 | tee "${LOG_DIR}/powertwin_ff_${SLURM_JOB_ID}.log"
     
     FEATURE_FILES_EXIT_CODE=${PIPESTATUS[0]}
@@ -574,7 +584,7 @@ initialize_urbanopt() {
 
     TOTAL_BATCHES=$(echo "$INIT_UO_OUTPUT" | grep -oP 'returned \K[0-9]+(?= batches)' | tail -1)
     if [[ -z "$TOTAL_BATCHES" ]]; then
-        handle_error "error" "Could not determine total batch count from UrbanOpt initialization." 1
+        handle_error "Could not determine total batch count from UrbanOpt initialization." 1
     fi
 
     print_status "info" "UrbanOpt initialization returned ${TOTAL_BATCHES} batches."

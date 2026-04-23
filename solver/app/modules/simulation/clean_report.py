@@ -14,9 +14,10 @@ import csv
 import os
 import shutil
 
-
+from datetime import timezone, timedelta
 from glob import glob
 from modules.utils import initialize_logger
+from modules.utils.weather import get_epw_utc_offset
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Clean Report', external_log_dir)
@@ -113,9 +114,35 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
     # Read the CSV file into a DataFrame
     df = pd.read_csv(UNCLEAN_REPORT_CSV)
 
-    # Convert the datetime format to UTC
-    df['Datetime'] = pd.to_datetime(df['Datetime'], format='%Y/%m/%d %H:%M:%S')
-    df['Datetime'] = df['Datetime'].dt.tz_localize('UTC').dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+    # Convert the datetime values to true UTC.
+    #
+    # EnergyPlus writes timestamps in the EPW file's local standard time (no
+    # DST). Each building is matched to an EPW per-asset via haversine
+    # proximity (see modules/utils/weather.py::get_location), so the offset
+    # must be resolved from the EPW actually used for THIS building, not
+    # inferred from the state. The EPW filename is recorded in in.osw under
+    # the ChangeBuildingLocation measure.
+    osw_path = os.path.join(ASSET_DIR, 'in.osw')
+    with open(osw_path, 'r') as f:
+        osw = json.load(f)
+    weather_file_name = None
+    for step in osw.get('steps', []):
+        if step.get('measure_dir_name') == 'ChangeBuildingLocation':
+            weather_file_name = step.get('arguments', {}).get('weather_file_name')
+            break
+    if not weather_file_name:
+        raise ValueError(
+            f"ChangeBuildingLocation weather_file_name missing in {osw_path}"
+        )
+    weather_title = weather_file_name[:-4] if weather_file_name.endswith('.epw') else weather_file_name
+    utc_offset_hours = get_epw_utc_offset(weather_title)
+    epw_tz = timezone(timedelta(hours=utc_offset_hours))
+    df['Datetime'] = (
+        pd.to_datetime(df['Datetime'], format='%Y/%m/%d %H:%M:%S')
+          .dt.tz_localize(epw_tz)         # attach EPW local standard time label
+          .dt.tz_convert('UTC')            # shift values to true UTC
+          .dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+    )
 
     for data_id, data_info in data_mapping.items():
         data_header = data_info["name"]

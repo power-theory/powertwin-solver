@@ -97,6 +97,31 @@ def extract_state_from_weather_filename(weather_title):
     return None
 
 
+def get_epw_utc_offset(weather_title):
+    """
+    Return the UTC offset (float hours) declared in the EPW file's LOCATION
+    header. The header is line 1 of the file, comma-separated, with the
+    timezone field at index 8 (0-based). EPW timestamps are always in this
+    local standard time (no DST).
+
+    Raises FileNotFoundError if the EPW is missing and ValueError if the
+    header cannot be parsed. No silent fallback -- a wrong offset is worse
+    than a loud failure.
+    """
+    epw_file = os.path.join(WEATHER_FILES_DIR, weather_title, f"{weather_title}.epw")
+    if not os.path.exists(epw_file):
+        raise FileNotFoundError(f"EPW file not found: {epw_file}")
+    with open(epw_file, 'r') as f:
+        header = f.readline().strip()
+    parts = header.split(',')
+    if len(parts) < 9 or not parts[0].upper().startswith('LOCATION'):
+        raise ValueError(f"Malformed EPW LOCATION header in {epw_file}: {header!r}")
+    try:
+        return float(parts[8])
+    except ValueError as e:
+        raise ValueError(f"Bad UTC offset field in {epw_file}: {parts[8]!r}") from e
+
+
 def _load_weather_stations():
     global _weather_stations_cache
     
