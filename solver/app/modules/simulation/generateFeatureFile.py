@@ -73,6 +73,7 @@ def read_metadata(metadata_csv):
     building_name_list = {}
     building_weather_list = {}
     building_climate_zone_list = {}
+    building_year_list = {}
     processed_building_ids = set()
 
 
@@ -117,7 +118,14 @@ def read_metadata(metadata_csv):
             building_weather_list[building_id] = (state, weather_title)
             building_climate_zone_list[building_id] = climate_zone
 
-    return building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list
+            raw_year = asset_metadata.get('year_built') or asset_metadata.get('yearBuilt')
+            if raw_year is not None:
+                try:
+                    building_year_list[building_id] = int(raw_year)
+                except (ValueError, TypeError):
+                    logger.warning(f"Invalid year_built value for building {building_id}: {raw_year!r}")
+
+    return building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list
 
 ############################################################################################################
 # Name: flatten_geometry()
@@ -145,7 +153,7 @@ def flatten_geometry(geom):
 # Description: This function processes each feature and creates a new feature structure with additional properties.
 #   It returns the new feature structure.
 ############################################################################################################
-def process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, custom_config_data):
+def process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, custom_config_data):
     # Flatten nested geometries if present
     if 'geometry' in feature:
         flatten_geometry(feature['geometry'])
@@ -230,6 +238,9 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             }
         }
     })
+    if building_id in building_year_list:
+        new_properties["year_built"] = building_year_list[building_id]
+
     # Apply custom properties if SmallResidential subtype
     if occupancy_subtype == "SmallResidential":
     
@@ -400,7 +411,7 @@ def create_bulk_featurefiles(failed_asset_ids, SIMULATION_DIR, LOCAL_RECOVERY_DI
     # Read files once instead of for each asset
     try:
         logger.debug("Reading metadata, geojson, and config files...")
-        building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list = read_metadata(METADATA_CSV)
+        building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list = read_metadata(METADATA_CSV)
 
         with open(ASSET_GEOJSON, 'r') as geojson_file, open(CONFIG_JSON, 'r') as config_file:
             geojson_data = json.load(geojson_file)
@@ -422,7 +433,7 @@ def create_bulk_featurefiles(failed_asset_ids, SIMULATION_DIR, LOCAL_RECOVERY_DI
         # Process feature only if it's in our failed assets list
         if building_id in failed_assets_set:
             result = process_feature(feature, building_area_list, building_type_list,
-                                  building_name_list, building_weather_list, building_climate_zone_list, custom_config_data)
+                                  building_name_list, building_weather_list, building_climate_zone_list, building_year_list, custom_config_data)
             if result:
                 final_json, _, building_name = result
                 new_building_name = sanitize_filename(building_name)
@@ -452,7 +463,7 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
     CONFIG_JSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_config.json')
     
     # Metadata requires the area, subtype and name of the building to be present from the metadata
-    building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list = read_metadata(METADATA_CSV)
+    building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list = read_metadata(METADATA_CSV)
     with open(ASSET_GEOJSON, 'r') as geojson_file, open(CONFIG_JSON, 'r') as config_file:
         geojson_data = json.load(geojson_file)
         custom_config_data = json.load(config_file)
@@ -467,7 +478,7 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
         # Process feature only if it matches the asset_id
         if building_id == int(asset_id):
             result = process_feature(feature, building_area_list, building_type_list,
-                                  building_name_list, building_weather_list, building_climate_zone_list, custom_config_data)
+                                  building_name_list, building_weather_list, building_climate_zone_list, building_year_list, custom_config_data)
             if result:
                 final_json, _, building_name = result
                 new_building_name = sanitize_filename(building_name)
@@ -495,7 +506,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
     os.makedirs(FEATURE_FILES_DIR, exist_ok=True)
     
     # Metadata requires the area, subtype and name of the building to be present from the metadata
-    building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list = read_metadata(metadata_csv)
+    building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list = read_metadata(metadata_csv)
 
     with open(asset_geojson, 'r') as file:
         geojson_data = json.load(file)
@@ -507,7 +518,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
     # Process each feature in the GeoJSON data
     logger.info("Processing features...")
     for feature in geojson_data['features']:
-        result = process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, custom_config_data)
+        result = process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, custom_config_data)
         # If the result is not None, write the feature file
         if result:
             final_json, building_id, building_name = result
