@@ -35,17 +35,26 @@ def process_worker(args):
                 if df['ts'].dt.tz is not None:
                     df['ts'] = df['ts'].dt.tz_convert(None)
 
+                # EnergyPlus uses end-of-period timestamps (hour ending at 01:00,
+                # month ending Feb 1 for January). Shift back 1 second to convert
+                # to start-of-period so grouping never leaks across boundaries,
+                # then floor to the native resolution for clean timestamps.
+                if len(df) >= 2:
+                    native_freq = df['ts'].diff().median()
+                else:
+                    native_freq = pd.Timedelta(hours=1)
+                df['ts'] = df['ts'] - pd.Timedelta(seconds=1)
+                if native_freq >= pd.Timedelta(days=27):
+                    df['ts'] = df['ts'].dt.to_period('M').dt.to_timestamp()
+                else:
+                    df['ts'] = df['ts'].dt.floor(native_freq)
+
                 if resample:
                     df = (df.groupby(df['ts'].dt.to_period(resample))['value']
                           .sum()
                           .reset_index())
                     if resample == 'M':
                         df['ts'] = df['ts'].dt.to_timestamp().dt.normalize() + pd.Timedelta(hours=12)
-                        # EnergyPlus timestamps mark end-of-period (e.g. Jan data → Feb 1).
-                        # The URBANopt measure already converted 24:00 → next-day 00:00, so
-                        # monthly rows arrive shifted forward by one month. Shift back so
-                        # each row labels the month it actually represents.
-                        df['ts'] = df['ts'] - pd.DateOffset(months=1)
                     else:
                         df['ts'] = df['ts'].dt.to_timestamp()
 

@@ -940,9 +940,10 @@ module URBANopt
               begin
                 new_template = nil
                 template = feature.template
+                year_built = building_hash[:year_built]
 
                 # can we override template with year_built info? (keeping same template family)
-                if building_hash.key?(:year_built) && !building_hash[:year_built].nil? && !feature.template.empty?
+                if building_hash.key?(:year_built) && !year_built.nil? && !feature.template.empty?
                   new_template = lookup_template_by_year_built(template, year_built)
                 elsif !feature.template.empty?
                   new_template = template

@@ -90,7 +90,7 @@ def create_scenario_file(FEATURE_FILE_JSON, MAPPER_FILE, SCENARIO_FILE_CSV):
 #   the feature file and the scenario file. The simulation is processed and the metadata is cleaned.
 #   The total time is calculated and the metadata is updated in the database.
 ############################################################################################################
-def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
+def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, simulation_name):
     from modules.diagnostics import update_time, get_weather
     
     feature_start_time = time.time()
@@ -255,7 +255,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index):
     logger.info(f"BATCH {batch_index}: {asset_id} processed in {feature_hours} hours, {feature_minutes} minutes, and {feature_seconds:.2f} seconds.")
     
     # Update the postgres
-    update_time(asset_id, uo_run_time, uo_process_time, total_time)
+    update_time(asset_id, uo_run_time, uo_process_time, total_time, simulation_name)
 
 ############################################################################################################
 # Name: process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simulation_name)
@@ -287,7 +287,7 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
     
     logger.debug(f"BATCH {batch_num}: Starting processing asset {asset_id}...")
     try:
-        run_uosimulation(SIMULATION_DIR, LOCAL_DIR, feature_file, batch_num)
+        run_uosimulation(SIMULATION_DIR, LOCAL_DIR, feature_file, batch_num, simulation_name)
         update_status("Finished", asset_id=asset_id, simulation_name=simulation_name)
         return True, asset_id, None
     except Exception as e:
