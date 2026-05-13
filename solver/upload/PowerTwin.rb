@@ -206,12 +206,16 @@ module URBANopt
             return 'DEER 2020'
           end
         else
-          # ASHRAE
-          if year_built < 1980
-            return 'DOE Ref Pre-1980'
-          elsif year_built <= 2004
-            return 'DOE Ref 1980-2004'
-          elsif year_built <= 2007
+          # ASHRAE — floor at 90.1-2004 because DOE Ref templates lack
+          # floor-specific space types (e.g. GuestRoom123Occ) that the
+          # create_bar prototype builder generates, causing simulation failures
+
+          # if year_built < 1980
+          #   return 'DOE Ref Pre-1980'
+          # elsif year_built <= 2004
+          #   return 'DOE Ref 1980-2004'
+          
+          if year_built <= 2007
             return '90.1-2004'
           elsif year_built <= 2010
             return '90.1-2007'
