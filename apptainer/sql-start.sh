@@ -569,14 +569,9 @@ initialize_urbanopt() {
 
 #------------------------------------------------------------------------------
 # FUNCTION: prewarm_gem_home
-# Description: Pre-warms the shared GEM_HOME by running bundle install once.
-#              The simulation Gemfile specifies runtime gems (e.g.
-#              openstudio-common-measures) that are NOT pre-installed in the
-#              container. uo run triggers bundle install which installs these
-#              gems to GEM_HOME. Running bundle install once here populates the
-#              shared GEM_HOME so parallel processes don't race on gem
-#              installation.
-# Arguments: None
+# Description: Fast no-op when the SIF carries baked gems (Dockerfile prewarm).
+#              Falls back to installing into BUNDLE_PATH (SHARED_GEM_HOME) if
+#              the SIF was built without it.
 # Returns: 0 on success, 1 on failure
 #------------------------------------------------------------------------------
 prewarm_gem_home() {

@@ -585,10 +585,9 @@ initialize_urbanopt() {
 
 #------------------------------------------------------------------------------
 # FUNCTION: prewarm_gem_home
-# Description: Pre-warms the shared GEM_HOME by running uo --version once.
-#              This initializes all Ruby gems before parallel processing starts,
-#              preventing gem loading race conditions between concurrent batches.
-# Arguments: None
+# Description: Fast no-op when the SIF carries baked gems (Dockerfile prewarm).
+#              Falls back to installing into BUNDLE_PATH (SHARED_GEM_HOME) if
+#              the SIF was built without it.
 # Returns: 0 on success, 1 on failure
 #------------------------------------------------------------------------------
 prewarm_gem_home() {
@@ -616,9 +615,7 @@ prewarm_gem_home() {
         --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2:/usr/local/lib/ruby/gems/3.2.0" \
         --env "BUNDLE_PATH=${SHARED_GEM_HOME}" \
         --env "BUNDLE_GEMFILE=${SIMULATION_GEMFILE}" \
-        "${SOLVER_SIF}" bash -c "cd $(dirname ${SIMULATION_GEMFILE}) && rm -rf .bundle/config && bundle install --path ${SHARED_GEM_HOME} --jobs 4 --retry 3"
-    
-    apptainer exec --bind "${SHARED_GEM_HOME}:${SHARED_GEM_HOME}:rw" "${SOLVER_SIF}" gem install ruby2_keywords -v 0.0.5 -i "${SHARED_GEM_HOME}/ruby/3.2.0"
+        "${SOLVER_SIF}" bash -c "cd $(dirname ${SIMULATION_GEMFILE}) && bundle install --jobs 4 --retry 3"
 
     PREWARM_EXIT_CODE=$?
     if [ $PREWARM_EXIT_CODE -ne 0 ]; then
