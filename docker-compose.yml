@@ -7,6 +7,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${PG_DB_TOKEN_ADMIN}
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
+      - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
     volumes:
       - ./powertwin_data:/solver/powertwin-solver-pg
       - ./postgres_data:/var/lib/postgresql/data
@@ -21,26 +22,46 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    depends_on:
+      powertwin-solver-flask:
+        condition: service_healthy
 
   powertwin-solver-flask:
     container_name: powertwin-solver-flask
     build:
       context: ./solver
-    command: ["sh", "-c", "sleep 30 && python run.py"]
+      args:
+        - DEV_MODE=${DEV_MODE:-false}
+    command:
+      - sh
+      - -c
+      - |
+        sleep 30
+        if [ "$$DEV_MODE" = "true" ]; then
+          exec python run.py
+        else
+          exec gunicorn -w 2 -b 0.0.0.0:8080 --access-logfile - --error-logfile - run:app
+        fi
     ports:
-      - "127.0.0.1:${FLASK_PORT}:8080"
+      - "${FLASK_PORT}:8080"
     volumes:
       - ./powertwin_data:/solver/powertwin-solver-pg
-    depends_on:
-      powertwin-solver-pg:
-        condition: service_healthy
+    healthcheck:
+      test: exit 0
     environment:
+      - DEV_MODE=${DEV_MODE:-false}
+      - FLASK_MSS_BASE_URL=${FLASK_MSS_BASE_URL:-}
+      - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
+      - CI_COMMIT_BRANCH=${CI_COMMIT_BRANCH:-}
       - PGHOST=postgres-db
       - PGPORT=${PG_DB_PORT}
       - PGUSER=postgres
       - PGPASSWORD=${PG_DB_TOKEN_ADMIN}
       - PGDATABASE=powertwin
-      - REPORTING_FREQUENCY=${REPORTING_FREQUENCY:-Timestep}
+      - URBANOPT_REPORTING_FREQUENCY=${URBANOPT_REPORTING_FREQUENCY:-Timestep}
+      - URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE:-}
+      - URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS:-false}
+      - URBANOPT_SIMULATION_YEAR=${URBANOPT_SIMULATION_YEAR:-2025}
     tty: true
     restart: unless-stopped
     networks:

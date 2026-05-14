@@ -51,7 +51,6 @@ MONITORING_INTERVAL_SECONDS=1500  # 5 minutes
 UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload/${SIMULATION_NAME}"
 ASSET_GEOJSON_PATH="${UPLOAD_DIR}/wyo_asset_geometries.geojson"
 METADATA_CSV_PATH="${UPLOAD_DIR}/wyo-sensors-assets-geometries-types.csv"
-CONFIG_JSON_PATH="${UPLOAD_DIR}/default_config.json"
 POWERTWIN_KEEP_DIRS=1
 
 # SIF files location
@@ -125,7 +124,6 @@ export HPC_SHARED_STORAGE
 export UPLOAD_DIR
 export ASSET_GEOJSON_PATH
 export METADATA_CSV_PATH
-export CONFIG_JSON_PATH
 export SIMULATION_DIR
 export LOCAL_SIMULATION_DIR
 
@@ -228,11 +226,6 @@ validate_input_files() {
         return 1
     fi
     
-    if [ ! -f "$CONFIG_JSON_PATH" ]; then
-        print_status "error" "Config JSON file not found at: $CONFIG_JSON_PATH"
-        return 1
-    fi
-
     print_status "info" "Input files validated and were located successfully within the ${UPLOAD_DIR} directory."
     return 0
 }
@@ -701,7 +694,6 @@ create_feature_files() {
         \"${SIMULATION_NAME}\" \
         \"${ASSET_GEOJSON_PATH}\" \
         \"${METADATA_CSV_PATH}\" \
-        \"${CONFIG_JSON_PATH}\" \
         \"${TOTAL_CORES}\" \
         --shared-storage \"${HPC_SHARED_STORAGE}\"" \
         2>&1 | tee "${LOG_DIR}/powertwin_ff_${SLURM_JOB_ID}.log"

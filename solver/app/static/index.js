@@ -112,33 +112,11 @@ async function startSimulation() {
         return;
     }
     
-    // Add form data for configuration properties
-    const configData = {
-        weekday_start_time: document.getElementById('weekday_start_time').value,
-        weekday_duration: document.getElementById('weekday_duration').value,
-        weekend_start_time: document.getElementById('weekend_start_time').value,
-        weekend_duration: document.getElementById('weekend_duration').value,
-        system_type: document.querySelector('.system_type').value,
-        heating_system_fuel_type: document.getElementById('heating_system_fuel_type').value,
-        constructions: {
-            wall: {
-                material: document.getElementById('wall_material').value,
-                r_value: document.getElementById('wall_r_value').value
-            },
-            roof: {
-                material: document.getElementById('roof_material').value,
-                r_value: document.getElementById('roof_r_value').value
-            }
-        }
-    };
-
-
     const formData = new FormData();
-    
+
     formData.append('simulation_name', simulation_name);
     formData.append('asset_geojson_file', asset_geojson_file);
     formData.append('metadata_csv_file', metadata_csv_file);
-    formData.append('config_data', JSON.stringify(configData));
     formData.append('num_cores', num_cores);
     formData.append('hpc_mode', hpc_mode);
     if (hpc_mode && shared_storage) {

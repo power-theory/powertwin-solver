@@ -137,11 +137,14 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
     weather_title = weather_file_name[:-4] if weather_file_name.endswith('.epw') else weather_file_name
     utc_offset_hours = get_epw_utc_offset(weather_title)
     epw_tz = timezone(timedelta(hours=utc_offset_hours))
+    # Keep timestamps in EPW local time (with offset) instead of converting to UTC.
+    # The simulation's natural time domain is the EPW's local calendar, and
+    # downstream bucketing (pack_results, consolidate_sensor_logs) needs to operate
+    # in that domain to avoid year-boundary spillover into the next UTC year.
     df['Datetime'] = (
         pd.to_datetime(df['Datetime'], format='%Y/%m/%d %H:%M:%S')
-          .dt.tz_localize(epw_tz)         # attach EPW local standard time label
-          .dt.tz_convert('UTC')            # shift values to true UTC
-          .dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+          .dt.tz_localize(epw_tz)
+          .map(lambda x: x.isoformat() if pd.notna(x) else None)
     )
 
     for data_id, data_info in data_mapping.items():

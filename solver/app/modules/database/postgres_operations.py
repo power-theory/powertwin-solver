@@ -130,7 +130,7 @@ def insert_bulk_assets(asset_data_list):
         values_clause = ", ".join(values_parts)
         
         query = f"""
-            INSERT INTO {DB_NAME} 
+            INSERT INTO {DB_NAME}
             (asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
             VALUES {values_clause}
             ON CONFLICT (asset_id) DO UPDATE SET
@@ -141,8 +141,18 @@ def insert_bulk_assets(asset_data_list):
                 complexity = EXCLUDED.complexity,
                 asset_name = EXCLUDED.asset_name,
                 subtype = EXCLUDED.subtype,
-                simulation_name = EXCLUDED.simulation_name
-            WHERE {DB_NAME}.status IS NULL OR {DB_NAME}.status != 'Finished'
+                simulation_name = EXCLUDED.simulation_name,
+                status = NULL,
+                batch = NULL,
+                order_rank = NULL,
+                uorun_time = NULL,
+                uoprocess_time = NULL,
+                total_time = NULL
+            -- Same simulation_name + already Finished: skip (HPC re-submission protection).
+            -- Different simulation_name: refresh fully (on-demand re-run for the asset).
+            WHERE {DB_NAME}.simulation_name IS DISTINCT FROM EXCLUDED.simulation_name
+               OR {DB_NAME}.status IS NULL
+               OR {DB_NAME}.status != 'Finished'
         """
         
         cur.execute(query, all_params)

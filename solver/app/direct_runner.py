@@ -21,113 +21,100 @@ from modules.simulation import initialize_uo, create_featurefiles
 from modules.diagnostics import create_table
 from modules.diagnostics.recover_UOsim import simulation_recovery
 
-def _setup_simulation_directories(simulation_name, asset_geojson_path, metadata_csv_path, config_json_path, shared_storage):
+def _setup_simulation_directories(simulation_name, asset_geojson_path, metadata_csv_path, shared_storage):
     """
     Set up simulation directories and copy input files to their expected locations
-    
+
     Args:
         simulation_name: Name of the simulation
         asset_geojson_path: Path to asset GeoJSON file
         metadata_csv_path: Path to metadata CSV file
-        config_json_path: Path to configuration JSON file
         shared_storage: Path to shared storage
-        
+
     Returns:
-        tuple: (SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path, local_config_path)
+        tuple: (SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path)
     """
     # Define directories
     DATA_DIR = os.path.join(shared_storage, 'powertwin_data')
     LOCAL_DIR = os.path.join(shared_storage, 'user_files')
     SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
     LOCAL_SIMULATION_DIR = os.path.join(LOCAL_DIR, simulation_name)
-    
+
     # Create directories if they don't exist
     os.makedirs(SIMULATION_DIR, exist_ok=True)
     os.makedirs(LOCAL_SIMULATION_DIR, exist_ok=True)
-    
+
     # Also create feature_files directory that will be referenced later
     feature_files_dir = os.path.join(SIMULATION_DIR, 'feature_files')
     os.makedirs(feature_files_dir, exist_ok=True)
-    
+
     # Copy input files if not already in the expected location
     local_asset_path = os.path.join(LOCAL_SIMULATION_DIR, f'{simulation_name}_asset.geojson')
     local_metadata_path = os.path.join(LOCAL_SIMULATION_DIR, f'{simulation_name}_metadata.csv')
-    local_config_path = os.path.join(LOCAL_SIMULATION_DIR, f'{simulation_name}_config.json')
-    
+
     # Only copy if source and destination are different
     if asset_geojson_path != local_asset_path:
         logger.info(f"Copying asset GeoJSON to {local_asset_path}")
         with open(asset_geojson_path, 'rb') as src, open(local_asset_path, 'wb') as dst:
             dst.write(src.read())
-    
+
     if metadata_csv_path != local_metadata_path:
         logger.info(f"Copying metadata CSV to {local_metadata_path}")
         with open(metadata_csv_path, 'rb') as src, open(local_metadata_path, 'wb') as dst:
             dst.write(src.read())
-    
-    if config_json_path != local_config_path:
-        logger.info(f"Copying config JSON to {local_config_path}")
-        with open(config_json_path, 'rb') as src, open(local_config_path, 'wb') as dst:
-            dst.write(src.read())
-            
-    return (SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path, local_config_path)
 
-def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_csv_path, 
-                          config_json_path, num_cores, 
+    return (SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path)
+
+def direct_create_feature_files(simulation_name, asset_geojson_path, metadata_csv_path,
+                          num_cores,
                           shared_storage=None):
     """
     Directly create feature files for a PowerTwin simulation
-    
+
     Args:
         simulation_name: Name of the simulation
         asset_geojson_path: Path to asset GeoJSON file
         metadata_csv_path: Path to metadata CSV file
-        config_json_path: Path to configuration JSON file
         num_cores: Number of cores to use
         shared_storage: Path to shared storage (required in HPC mode)
-        
+
     Returns:
         tuple: (SIMULATION_DIR, LOCAL_SIMULATION_DIR) or None if error
     """
-    
+
     # Use centralized HPC detection
     is_hpc = is_hpc_environment()
-    
+
     # Validate inputs
     if is_hpc and not shared_storage:
         logger.error("Shared storage path is required in HCP environment")
         return None
-    
+
     # Check if files exist
     if not os.path.exists(asset_geojson_path):
         logger.error(f"Asset GeoJSON file not found: {asset_geojson_path}")
         return None
-    
+
     if not os.path.exists(metadata_csv_path):
         logger.error(f"Metadata CSV file not found: {metadata_csv_path}")
         return None
-    
-    if not os.path.exists(config_json_path):
-        logger.error(f"Config JSON file not found: {config_json_path}")
-        return None
-    
+
     try:
         # Create diagnostic table if not exists
         create_table()
-        
+
         # Setup directories and copy files
-        SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path, local_config_path = _setup_simulation_directories(
-            simulation_name, asset_geojson_path, metadata_csv_path, config_json_path, shared_storage
+        SIMULATION_DIR, LOCAL_SIMULATION_DIR, local_asset_path, local_metadata_path = _setup_simulation_directories(
+            simulation_name, asset_geojson_path, metadata_csv_path, shared_storage
         )
-        
+
         # Create feature files (normally done by views.py)
         create_featurefiles(
-            SIMULATION_DIR, 
+            SIMULATION_DIR,
             LOCAL_SIMULATION_DIR,
-            local_asset_path, 
-            local_metadata_path, 
-            local_config_path, 
-            num_cores, 
+            local_asset_path,
+            local_metadata_path,
+            num_cores,
             simulation_name
         )
         
@@ -400,7 +387,6 @@ def main():
     create_ff_parser.add_argument('simulation_name', type=str, help='Name of the simulation')
     create_ff_parser.add_argument('asset_geojson_path', type=str, help='Path to the asset geojson file')
     create_ff_parser.add_argument('metadata_csv_path', type=str, help='Path to the metadata CSV file')
-    create_ff_parser.add_argument('config_json_path', type=str, help='Path to the config JSON file')
     create_ff_parser.add_argument('num_cores', type=int, help='Number of cores to use')
     create_ff_parser.add_argument('--shared-storage', type=str, help='Path to shared storage for HPC mode (required in HPC mode)')
     
@@ -454,7 +440,6 @@ def main():
             simulation_name=args.simulation_name,
             asset_geojson_path=args.asset_geojson_path,
             metadata_csv_path=args.metadata_csv_path,
-            config_json_path=args.config_json_path,
             num_cores=args.num_cores,
 
             shared_storage=args.shared_storage

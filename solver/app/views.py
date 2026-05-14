@@ -3,12 +3,18 @@ import os
 import json
 import datetime
 import csv
+import glob
+import hmac
+import threading
 
 from flask import request, jsonify, render_template, send_file
 
 from modules.simulation import initialize_uo, create_featurefiles, stop_UOsimulation
 from modules.diagnostics import read_simulation_status, simulation_recovery, create_table
-from modules.utils import initialize_logger, send_error_to_mss
+from modules.utils import (
+    initialize_logger, send_error_to_mss,
+    pack_simulation_results, atomic_write_json, write_status,
+)
 from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
@@ -17,6 +23,40 @@ logger = initialize_logger('Views', external_log_dir)
 
 # Define the output directory for the simulation files
 DATA_DIR = os.path.join('data')
+
+# Reporting-frequency translation: user-facing labels ↔ urbanopt natives.
+# Loaded once at import; the file lives alongside the other upload/ defaults.
+_REPORTING_FREQ_MAP_PATH = os.path.join('upload', 'reporting_frequency_map.json')
+_REPORTING_FREQ_MAP = None
+
+
+def _load_reporting_freq_map():
+    global _REPORTING_FREQ_MAP
+    if _REPORTING_FREQ_MAP is None:
+        try:
+            with open(_REPORTING_FREQ_MAP_PATH, 'r') as f:
+                _REPORTING_FREQ_MAP = json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not load {_REPORTING_FREQ_MAP_PATH}: {e}")
+            _REPORTING_FREQ_MAP = {'user_to_urbanopt': {}, 'urbanopt_to_user': {}}
+    return _REPORTING_FREQ_MAP
+
+
+def _resolve_reporting_frequency(user_value):
+    """Translate a user-facing reporting frequency (minutely/hourly/daily/monthly/yearly)
+    to its urbanopt-native equivalent. Returns None when unset (= caller keeps the default).
+    Raises ValueError on an unknown user label."""
+    if user_value is None:
+        return None
+    label = str(user_value).strip().lower()
+    if not label:
+        return None
+    fmap = _load_reporting_freq_map().get('user_to_urbanopt', {})
+    native = fmap.get(label)
+    if not native:
+        valid = ', '.join(sorted(fmap.keys()))
+        raise ValueError(f"unknown reporting_frequency '{label}' (valid: {valid})")
+    return native
 LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 
 def home():
@@ -26,7 +66,7 @@ def home():
 
 ############################################################################################################
 # Name: def start_simulation()
-# Description: This function requires ASSET_GEOJSON, METADATA_CSV, config_data, and simulation_name, 
+# Description: This function requires ASSET_GEOJSON, METADATA_CSV, and simulation_name,
 # and num_cores to start the simulation. Performs error checking and creates a directory 
 # based on the given simulation name. Calls the create_featurefiles and initialize_uo functions to
 # generate feature files and start the UrbanOpt simulation. This function parallelizes the 
@@ -38,7 +78,6 @@ def start_simulation():
     # Inputs
     ASSET_GEOJSON = request.files.get('asset_geojson_file')
     METADATA_CSV = request.files.get('metadata_csv_file')
-    config_data = request.form.get('config_data')
     simulation_name = request.form.get('simulation_name')
     num_cores = int(request.form.get('num_cores', 1))
     shared_storage = request.form.get('shared_storage')
@@ -59,7 +98,7 @@ def start_simulation():
     
     # Error checking
     #TODO: Metadata csv should be optional since its ideally  only required for report cleaning
-    if not ASSET_GEOJSON or not METADATA_CSV or not config_data or not simulation_name or num_cores <= 0:
+    if not ASSET_GEOJSON or not METADATA_CSV or not simulation_name or num_cores <= 0:
         logger.error("Error: missing or invalid parameter.")
         return jsonify({'error': 'missing or invalid parameter'}), 400
     
@@ -85,19 +124,16 @@ def start_simulation():
     # Define and save the paths for the uploaded files in Local directory
     asset_geojson_path = os.path.join(LOCAL_DIR, f'{simulation_name}_asset.geojson')
     metadata_csv_path = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
-    config_json_path = os.path.join(LOCAL_DIR, f'{simulation_name}_config.json')
 
     ASSET_GEOJSON.save(asset_geojson_path)
     METADATA_CSV.save(metadata_csv_path)
-    with open(config_json_path, 'w') as config_file:
-        json.dump(json.loads(config_data), config_file)
 
-    # Call the create_feature_files and initialize_uo to run the simulation and 
+    # Call the create_feature_files and initialize_uo to run the simulation and
     # delete the simulation directory (container)
     try:
         create_table()
         logger.debug("Calling create_feature_files from start_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, simulation_name)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, num_cores, simulation_name)
         logger.debug("Exited create_feature_files to start_simulation()")
         
         logger.debug("Calling initialize_uo from start_simulation()")
@@ -116,106 +152,196 @@ def start_simulation():
     return jsonify({'confirmation': f'Simulation "{simulation_name}" ran successfully'})
 
 ############################################################################################################
+# Name: def _check_api_token()
+# Description: Reject requests without the shared service token (PG_DB_TOKEN_ADMIN).
+# Fails closed: if the env var is unset on this Flask process, every request is rejected with 500
+# (operator misconfig — surfaces in monitoring rather than silently authorizing all traffic).
+# Returns a Flask response tuple to short-circuit the handler, or None when authorized.
+############################################################################################################
+def _check_api_token():
+    expected = os.environ.get('PG_DB_TOKEN_ADMIN')
+    if not expected:
+        logger.error("PG_DB_TOKEN_ADMIN is not set; refusing request")
+        return jsonify({'error': 'Server misconfigured: PG_DB_TOKEN_ADMIN not set'}), 500
+    presented = request.headers.get('api_token') or ''
+    if not hmac.compare_digest(presented, expected):
+        return jsonify({'error': 'Unauthorized'}), 403
+    return None
+
+
+############################################################################################################
 # Name: def process_asset_update()
-# Description: This function processes asset update data from external sources,
-# converts JSON metadata and geometry data to required CSV/GeoJSON formats,
-# and automatically starts a simulation with the converted data.
+# Description: Async kickoff. Validates input, writes input files + an initial
+# status.json('received'), then spawns a daemon thread that runs urbanopt and
+# writes status.json after each phase plus an atomic results.json on completion.
+# Returns 202 Accepted with {simulation_name} immediately so the caller (the
+# powertwin-db API listener) can release its connection slot. The API polls
+# /api/simulation/status/<name> and pulls /api/simulation/results/<name> when
+# the worker thread reports completed.
 ############################################################################################################
 def process_asset_update():
     logger.debug("Within process_asset_update()")
-    
+
+    auth_err = _check_api_token()
+    if auth_err is not None:
+        return auth_err
+
+    started_at = datetime.datetime.now(datetime.timezone.utc)
     try:
-        # Get JSON payload
         request_data = request.get_json()
         if not request_data:
-            logger.error("Error: No JSON payload received")
             return jsonify({'error': 'No JSON payload received'}), 400
-        
         metadata_json = request_data.get('data', [])
         geojson_array = request_data.get('geojson', [])
-        
         if not metadata_json or not geojson_array:
-            logger.error("Error: Missing data or geojson in payload")
             return jsonify({'error': 'Missing data or geojson in payload'}), 400
-        
-        # Extract asset_id for simulation naming
-        if not metadata_json:
-            logger.error("Error: Empty metadata array")
-            return jsonify({'error': 'Empty metadata array'}), 400
-        
+
+        # Optional per-request window for post-processing slicing. The simulation
+        # itself still runs the full URBANOPT_SIMULATION_YEAR range; these only narrow what
+        # gets returned/ingested. Either bound is independent.
+        request_start_date_time = (request_data.get('start_date_time') or '').strip() or None
+        request_end_date_time = (request_data.get('end_date_time') or '').strip() or None
+
+        # Optional per-request reporting frequency. Accepts user-facing labels:
+        # minutely | hourly | daily | monthly | yearly. Translated to urbanopt
+        # natives via upload/reporting_frequency_map.json. Unset → keep the
+        # server-wide URBANOPT_REPORTING_FREQUENCY default.
+        try:
+            request_reporting_frequency = _resolve_reporting_frequency(
+                request_data.get('reporting_frequency')
+            )
+        except ValueError as ve:
+            return jsonify({'error': str(ve)}), 400
+
         asset_id = str(metadata_json[0].get('asset_id', 'unknown'))
-        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = started_at.strftime('%Y%m%d_%H%M%S')
         simulation_name = f"asset_{asset_id}_{timestamp}"
-        
-        logger.info(f"Processing asset update for asset_id: {asset_id}, simulation: {simulation_name}")
-        
-        # Convert data to required formats
+        logger.info(f"Accepted async simulation {simulation_name} for asset {asset_id}")
+
         csv_content = convert_metadata_to_csv(metadata_json)
         geojson_content = convert_geometry_to_geojson(geojson_array)
-        
-        # Use default configuration
-        default_config_path = os.path.join('upload', 'demo_data', 'default_config.json')
-        if not os.path.exists(default_config_path):
-            logger.error(f"Error: Default config file not found at {default_config_path}")
-            return jsonify({'error': 'Default configuration not found'}), 500
-        
-        with open(default_config_path, 'r') as config_file:
-            config_data = json.load(config_file)
-        
-        # Set up directories
-        LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
+
+        LOCAL_BASE = os.path.join('powertwin-solver-pg', 'user_files')
         SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
-        LOCAL_DIR = os.path.join(LOCAL_DIR, simulation_name)
-        
-        if os.path.exists(SIMULATION_DIR) or os.path.exists(LOCAL_DIR):
-            logger.error("Error: Simulation name already exists.")
+        sim_local_dir = os.path.join(LOCAL_BASE, simulation_name)
+        if os.path.exists(SIMULATION_DIR) or os.path.exists(sim_local_dir):
             return jsonify({'error': 'Simulation name already exists.'}), 400
-        
+
         os.makedirs(SIMULATION_DIR, exist_ok=True)
-        os.makedirs(LOCAL_DIR, exist_ok=True)
-        
-        # Save converted files
-        asset_geojson_path = os.path.join(LOCAL_DIR, f'{simulation_name}_asset.geojson')
-        metadata_csv_path = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
-        config_json_path = os.path.join(LOCAL_DIR, f'{simulation_name}_config.json')
-        
-        # Write files
+        os.makedirs(sim_local_dir, exist_ok=True)
+        write_status(sim_local_dir, 'received',
+                     simulation_name=simulation_name, asset_id=asset_id)
+
+        asset_geojson_path = os.path.join(sim_local_dir, f'{simulation_name}_asset.geojson')
+        metadata_csv_path = os.path.join(sim_local_dir, f'{simulation_name}_metadata.csv')
         with open(asset_geojson_path, 'w') as f:
             json.dump(geojson_content, f)
-        
         with open(metadata_csv_path, 'w', newline='', encoding='utf-8') as f:
             f.write(csv_content)
-        
-        with open(config_json_path, 'w') as f:
-            json.dump(config_data, f)
-        
-        # Start simulation
-        num_cores = 1  # Default for auto-triggered simulations
-        
-        create_table()
-        logger.debug("Calling create_feature_files from process_asset_update()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, config_json_path, num_cores, simulation_name)
-        logger.debug("Exited create_feature_files")
-        
-        logger.debug("Calling initialize_uo from process_asset_update()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
-        logger.debug("Exited initialize_uo")
-        
-        # Cleanup simulation directory
-        logger.debug("Deleting simulation directory within container")
-        shutil.rmtree(SIMULATION_DIR)
-        
-        logger.info(f"Asset update processed successfully for simulation: {simulation_name}")
+
+        thread = threading.Thread(
+            target=_run_asset_update_simulation,
+            args=(simulation_name, SIMULATION_DIR, sim_local_dir,
+                  asset_geojson_path, metadata_csv_path,
+                  started_at, request_start_date_time, request_end_date_time,
+                  request_reporting_frequency),
+            daemon=True,
+        )
+        thread.start()
         return jsonify({
             'success': True,
             'simulation_name': simulation_name,
-            'message': f'Simulation "{simulation_name}" started successfully'
-        })
-        
+            'status': 'accepted',
+        }), 202
+
     except Exception as e:
         logger.error(f"Exception in process_asset_update: {str(e)}")
         send_error_to_mss('process_asset_update', str(e))
         return jsonify({'error': str(e)}), 500
+
+
+def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
+                                 asset_geojson_path, metadata_csv_path,
+                                 started_at, request_start_date_time=None,
+                                 request_end_date_time=None,
+                                 request_reporting_frequency=None):
+    """Background worker. Runs without a Flask request context — do not reference `request`."""
+    # Per-request URBANOPT_REPORTING_FREQUENCY override. PowerTwin.rb (the urbanopt mapper)
+    # reads ENV['URBANOPT_REPORTING_FREQUENCY'] when building the OSW. With
+    # SIMULATION_CONCURRENCY=1 there's only ever one sim in flight, so mutating
+    # os.environ around the urbanopt subprocess is safe. Always restore.
+    prev_reporting_freq = os.environ.get('URBANOPT_REPORTING_FREQUENCY')
+    if request_reporting_frequency:
+        os.environ['URBANOPT_REPORTING_FREQUENCY'] = request_reporting_frequency
+        logger.info(f"URBANOPT_REPORTING_FREQUENCY override for {simulation_name}: {request_reporting_frequency}")
+    try:
+        num_cores = 1
+        create_table()
+        write_status(sim_local_dir, 'feature_files_starting', simulation_name=simulation_name)
+        create_featurefiles(simulation_dir, sim_local_dir, asset_geojson_path,
+                            metadata_csv_path, num_cores, simulation_name)
+        write_status(sim_local_dir, 'urbanopt_running', simulation_name=simulation_name)
+        initialize_uo(simulation_dir, sim_local_dir, simulation_name)
+        write_status(sim_local_dir, 'cleaning_reports', simulation_name=simulation_name)
+
+        # prepare_record swallows per-asset failures (EnergyPlus fatal, uo process
+        # crash, etc.), so an empty cleaned_reports/ is the only signal that the
+        # sim didn't actually produce output. Raise so the except below writes
+        # status='failed' instead of shipping a zero-row 'completed'.
+        if not glob.glob(os.path.join(sim_local_dir, 'cleaned_reports', '*', 'cleaned_predicted_*.csv')):
+            raise RuntimeError(
+                f"Simulation {simulation_name} produced no cleaned_reports output — "
+                "EnergyPlus/urbanopt failed (see earlier Flask logs)"
+            )
+
+        if os.path.exists(simulation_dir):
+            shutil.rmtree(simulation_dir)
+
+        runtime_seconds = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds()
+        # URBANOPT_RESAMPLE: 'H' | 'D' | 'W' | 'M' | 'Y' | '' (native passthrough).
+        # Same convention as the HPC consolidate-state.sh RESAMPLE arg.
+        resample = os.environ.get('URBANOPT_RESAMPLE', '').strip() or None
+        results_payload = pack_simulation_results(
+            sim_local_dir,
+            runtime_seconds=runtime_seconds,
+            resample=resample,
+            start_date_time=request_start_date_time,
+            end_date_time=request_end_date_time,
+        )
+        response = {
+            'success': True,
+            'simulation_name': simulation_name,
+            'results': results_payload['results'],
+            'runtime_seconds': runtime_seconds,
+            'datelevel': results_payload['datelevel'],
+            'resample': results_payload.get('resample'),
+        }
+        atomic_write_json(os.path.join(sim_local_dir, 'results.json'), response)
+        write_status(sim_local_dir, 'completed',
+                     simulation_name=simulation_name,
+                     completed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                     runtime_seconds=runtime_seconds,
+                     datelevel=results_payload['datelevel'])
+        logger.info(f"Async simulation completed: {simulation_name}")
+    except Exception as e:
+        logger.error(f"Async simulation failed for {simulation_name}: {str(e)}")
+        try:
+            write_status(sim_local_dir, 'failed',
+                         simulation_name=simulation_name, error=str(e))
+        except Exception:
+            pass
+        try:
+            send_error_to_mss('process_asset_update_async', str(e))
+        except Exception:
+            pass
+    finally:
+        # Restore the prior URBANOPT_REPORTING_FREQUENCY so this override doesn't leak
+        # to the next sim that doesn't supply one.
+        if request_reporting_frequency:
+            if prev_reporting_freq is None:
+                os.environ.pop('URBANOPT_REPORTING_FREQUENCY', None)
+            else:
+                os.environ['URBANOPT_REPORTING_FREQUENCY'] = prev_reporting_freq
 
 ############################################################################################################
 # Name: def convert_metadata_to_csv(metadata_json)
@@ -342,12 +468,11 @@ def autorun_simulation():
     simulation_name = data.get('simulation_name')
     asset_geojson_path = data.get('asset_geojson_path')
     metadata_csv_path = data.get('metadata_csv_path')
-    config_json_path = data.get('config_json_path')
     num_cores = data.get('num_cores', 1)
 
     # Error checking
     #TODO: Metadata csv should be optional since ideally it should only required for report cleaning
-    if not simulation_name or not asset_geojson_path or not metadata_csv_path or not config_json_path or num_cores <= 0:
+    if not simulation_name or not asset_geojson_path or not metadata_csv_path or num_cores <= 0:
         logger.error("Error: Missing required fields in simulation.json")
         return jsonify({'error': 'Missing required fields in simulation.json'}), 400
 
@@ -368,11 +493,9 @@ def autorun_simulation():
     # Copy the files to the Local directory
     ASSET_GEOJSON = os.path.join(LOCAL_DIR, f'{simulation_name}_asset.geojson')
     METADATA_CSV = os.path.join(LOCAL_DIR, f'{simulation_name}_metadata.csv')
-    CONFIG_JSON = os.path.join(LOCAL_DIR, f'{simulation_name}_config.json')
-    
+
     shutil.copy(asset_geojson_path, ASSET_GEOJSON)
     shutil.copy(metadata_csv_path, METADATA_CSV)
-    shutil.copy(config_json_path, CONFIG_JSON)
 
     # Call the create_feature_files and initialize_uo to run the simulation and 
     # delete the simulation directory (container)
@@ -388,7 +511,7 @@ def autorun_simulation():
         logger.debug(f"HPC Environment: {is_hpc}, Shared Storage: {shared_storage}")
         
         logger.debug("Calling create_feature_files from autorun_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, CONFIG_JSON, num_cores, simulation_name)
+        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, num_cores, simulation_name)
         logger.debug("Exited create_feature_files")
                 
         logger.debug("Calling initialize_uo from autorun_simulation()")
@@ -440,11 +563,23 @@ def get_simulation_status(simulation_name):
         logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
     
-    # Read and log the simulation status files
+    # Prefer the status.json the async worker writes after each phase.
+    sim_local_dir = os.path.join('powertwin-solver-pg', 'user_files', simulation_name)
+    status_path = os.path.join(sim_local_dir, 'status.json')
+    if os.path.isfile(status_path):
+        try:
+            with open(status_path, 'r') as f:
+                return jsonify(json.load(f)), 200
+        except Exception as e:
+            logger.error(f"Failed to read status.json for {simulation_name}: {e}")
+            send_error_to_mss('get_simulation_status', str(e))
+            return jsonify({'error': str(e)}), 500
+
+    # Fallback to legacy diagnostics for non-async callers.
     try:
-        logger.debug(f"Entering read_simulation_status() from simulation_status() with batch_id={batch_id}")
+        logger.debug(f"Entering read_simulation_status() with batch_id={batch_id}")
         read_simulation_status(simulation_name, batch_id)
-        return jsonify({'message': 'Simulation status files read successfully'}), 200
+        return jsonify({'phase': 'unknown', 'message': 'no status.json on disk'}), 200
     except Exception as e:
         logger.error(f"Exception while reading simulation status files: {str(e)}")
         send_error_to_mss('get_simulation_status', str(e))
@@ -457,23 +592,30 @@ def get_simulation_status(simulation_name):
 ############################################################################################################
 def delete_simulation(simulation_name):
     logger.debug("Within delete_simulation()")
-    
-    # Check param
-    
+
+    auth_err = _check_api_token()
+    if auth_err is not None:
+        return auth_err
+
     if simulation_name is None:
         logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
 
-    SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)    
-    if not os.path.exists(SIMULATION_DIR):
-        logger.error("Simulation status directory not found")
-        return jsonify({'error': 'Simulation status directory not found'}), 404
-    
-    # Delete simulation directory
+    SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
+    LOCAL_DIR_SIM = os.path.join('powertwin-solver-pg', 'user_files', simulation_name)
+
+    removed = []
     try:
-        shutil.rmtree(SIMULATION_DIR)
-        logger.info(f"Simulation directory {SIMULATION_DIR} deleted successfully.")
-        return jsonify({'message': f'Simulation directory {SIMULATION_DIR} deleted successfully.'}), 200
+        if os.path.isdir(SIMULATION_DIR):
+            shutil.rmtree(SIMULATION_DIR)
+            removed.append(SIMULATION_DIR)
+        if os.path.isdir(LOCAL_DIR_SIM):
+            shutil.rmtree(LOCAL_DIR_SIM)
+            removed.append(LOCAL_DIR_SIM)
+        if not removed:
+            return jsonify({'message': 'Nothing to delete', 'simulation_name': simulation_name}), 200
+        logger.info(f"Simulation '{simulation_name}' cleanup removed: {removed}")
+        return jsonify({'message': 'Simulation cleaned up', 'removed': removed}), 200
     except Exception as e:
         logger.error(f"Exception while trying to delete simulation: {str(e)}")
         send_error_to_mss('delete_simulation', str(e))
@@ -659,21 +801,18 @@ def recovery():
 
     metadata_csv_path = os.path.join(CORRUPTED_SIMULATION_DIR, f'{corrupted_simulation_name}_metadata.csv')
     geojson_path = os.path.join(CORRUPTED_SIMULATION_DIR, f'{corrupted_simulation_name}_asset.geojson')
-    config_path = os.path.join(CORRUPTED_SIMULATION_DIR, f'{corrupted_simulation_name}_config.json')
 
     # Only this file requires error handling
     if not os.path.exists(metadata_csv_path):
         logger.error("Metadata CSV file not found in the corrupted simulation directory")
         return jsonify({'error': 'Metadata CSV file not found in the corrupted simulation directory'}), 404
 
-    # Copy and rename the metadata CSV, geojson, and config file to the recovery directory
+    # Copy and rename the metadata CSV and geojson to the recovery directory
     new_metadata_csv_path = os.path.join(RECOVERY_DIR_LOCAL, f'{recover_simulation_name}_metadata.csv')
     new_geojson_name_path = os.path.join(RECOVERY_DIR_LOCAL, f'{recover_simulation_name}_asset.geojson')
-    new_config_name_path = os.path.join(RECOVERY_DIR_LOCAL, f'{recover_simulation_name}_config.json')
-    
+
     shutil.copy(metadata_csv_path, new_metadata_csv_path)
     shutil.copy(geojson_path, new_geojson_name_path)
-    shutil.copy(config_path, new_config_name_path)
     
     try:
         
@@ -813,4 +952,27 @@ def log_message():
 
     return jsonify({'status': 'success', 'log_file': log_txt}), 200
 
+
+############################################################################################################
+# Name: def get_simulation_results()
+# Description: Serve the persisted results.json for the API to ingest. 404 when the simulation is still
+# in flight (no results.json yet) or never existed. The API polls until completed and then reads this.
+############################################################################################################
+def get_simulation_results(simulation_name):
+    auth_err = _check_api_token()
+    if auth_err is not None:
+        return auth_err
+    if simulation_name is None:
+        return jsonify({'error': 'Simulation name is required.'}), 400
+    sim_local_dir = os.path.join('powertwin-solver-pg', 'user_files', simulation_name)
+    results_path = os.path.join(sim_local_dir, 'results.json')
+    if not os.path.isfile(results_path):
+        return jsonify({'error': 'results.json not found', 'simulation_name': simulation_name}), 404
+    try:
+        with open(results_path, 'r') as f:
+            return jsonify(json.load(f))
+    except Exception as e:
+        logger.error(f"Failed to read results.json for {simulation_name}: {e}")
+        send_error_to_mss('get_simulation_results', str(e))
+        return jsonify({'error': str(e)}), 500
 

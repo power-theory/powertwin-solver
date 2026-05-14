@@ -42,8 +42,8 @@ module load nvhpc/25.7
 # Simulation parameters
 SIMULATION_NAME="teton1"
 COLLECTION_ID="7"
-SIMULATION_YEAR="2026"
-REPORTING_FREQUENCY="Timestep"  # Timestep, Hourly, Daily, Monthly, Runperiod
+URBANOPT_SIMULATION_YEAR="2026"
+URBANOPT_REPORTING_FREQUENCY="Timestep"  # Timestep, Hourly, Daily, Monthly, Runperiod
 
 # Storage layout:
 #   ${HPC_SHARED_STORAGE}/shared/        — infrastructure (SIF, gem home, logs, tmp)
@@ -55,7 +55,6 @@ COLLECTION_BASE="${HPC_SHARED_STORAGE}/${COLLECTION_ID}"
 UPLOAD_DIR="${COLLECTION_BASE}/upload"
 ASSET_GEOJSON_PATH="${UPLOAD_DIR}/${COLLECTION_ID}_asset_geometries.geojson"
 METADATA_CSV_PATH="${UPLOAD_DIR}/${COLLECTION_ID}_metadata.csv"
-CONFIG_JSON_PATH="${UPLOAD_DIR}/default_config.json"
 POWERTWIN_KEEP_DIRS=1
 WITH_NSYS_PROFILING=0
 
@@ -134,7 +133,6 @@ export HPC_SHARED_STORAGE
 export UPLOAD_DIR
 export ASSET_GEOJSON_PATH
 export METADATA_CSV_PATH
-export CONFIG_JSON_PATH
 export SIMULATION_DIR
 export LOCAL_SIMULATION_DIR
 
@@ -241,11 +239,6 @@ validate_input_files() {
         return 1
     fi
     
-    if [ ! -f "$CONFIG_JSON_PATH" ]; then
-        print_status "error" "Config JSON file not found at: $CONFIG_JSON_PATH"
-        return 1
-    fi
-
     print_status "info" "Input files validated and were located successfully within the ${UPLOAD_DIR} directory."
     return 0
 }
@@ -534,13 +527,12 @@ create_feature_files() {
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "POWERTWIN_STEP=setup" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
-      --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
-        --env "SIMULATION_YEAR=${SIMULATION_YEAR}" \
+        --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
+        --env "URBANOPT_SIMULATION_YEAR=${URBANOPT_SIMULATION_YEAR}" \
         "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner create-feature-files \
         \"${SIMULATION_NAME}\" \
         \"${ASSET_GEOJSON_PATH}\" \
         \"${METADATA_CSV_PATH}\" \
-        \"${CONFIG_JSON_PATH}\" \
         \"${TOTAL_CORES}\" \
         --shared-storage \"${COLLECTION_BASE}\"" \
         2>&1 | tee "${LOG_DIR}/powertwin_ff_${SLURM_JOB_ID}.log"
@@ -683,7 +675,7 @@ process_batches() {
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "POWERTWIN_STEP=parallel" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
-        --env "REPORTING_FREQUENCY=${REPORTING_FREQUENCY}" \
+        --env "URBANOPT_REPORTING_FREQUENCY=${URBANOPT_REPORTING_FREQUENCY}" \
         --workdir /solver \
         "${SOLVER_SIF}" python -m app.direct_runner run-parallel-batches \
         "${SIMULATION_DIR}" \
