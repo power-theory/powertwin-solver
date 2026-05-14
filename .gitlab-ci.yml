@@ -117,7 +117,7 @@ deploy_dev_db:
   variables:
     FLASK_PORT: 5443
     PG_DB_PORT: 5333
-    MSS_PORT: 5113
+    MSS_PORT: 5813
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_db_template
   environment:
@@ -133,7 +133,7 @@ deploy_dev_flask:
   variables:
     FLASK_PORT: 5443
     PG_DB_PORT: 5333
-    MSS_PORT: 5113
+    MSS_PORT: 5813
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_flask_template
   environment:
@@ -149,7 +149,7 @@ deploy_dev_mss:
   variables:
     FLASK_PORT: 5443
     PG_DB_PORT: 5333
-    MSS_PORT: 5113
+    MSS_PORT: 5813
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_mss_template
   environment:
@@ -166,7 +166,7 @@ deploy_prev_db:
   variables:
     FLASK_PORT: 5444
     PG_DB_PORT: 5334
-    MSS_PORT: 5114
+    MSS_PORT: 5814
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_db_template
   environment:
@@ -182,7 +182,7 @@ deploy_prev_flask:
   variables:
     FLASK_PORT: 5444
     PG_DB_PORT: 5334
-    MSS_PORT: 5114
+    MSS_PORT: 5814
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_flask_template
   environment:
@@ -198,7 +198,7 @@ deploy_prev_mss:
   variables:
     FLASK_PORT: 5444
     PG_DB_PORT: 5334
-    MSS_PORT: 5114
+    MSS_PORT: 5814
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_mss_template
   environment:
@@ -215,7 +215,7 @@ deploy_main_db:
   variables:
     FLASK_PORT: 5445
     PG_DB_PORT: 5335
-    MSS_PORT: 5115
+    MSS_PORT: 5815
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_db_template
   environment:
@@ -231,7 +231,7 @@ deploy_main_flask:
   variables:
     FLASK_PORT: 5445
     PG_DB_PORT: 5335
-    MSS_PORT: 5115
+    MSS_PORT: 5815
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_flask_template
   environment:
@@ -247,7 +247,7 @@ deploy_main_mss:
   variables:
     FLASK_PORT: 5445
     PG_DB_PORT: 5335
-    MSS_PORT: 5115
+    MSS_PORT: 5815
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_mss_template
   environment:
