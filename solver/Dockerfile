@@ -52,6 +52,15 @@ RUN gem install urbanopt-cli -v 1.0.1 && \
     /usr/local/lib/ruby/gems/3.2.2/bin/uo --version && \
     echo "uo command verified successfully"
 
+# Pre-warm urbanopt's runtime gems so the first `uo run` doesn't pay a ~5-min
+RUN rm -f /usr/local/bin/bundle /usr/local/bin/bundler && \
+    gem install --no-document bundler -v 2.4.10 && \
+    uo create --project-folder /tmp/prewarm && \
+    cd /tmp/prewarm && \
+    bundle install --jobs 4 --retry 3 && \
+    gem install ruby2_keywords -v 0.0.5 && \
+    rm -rf /tmp/prewarm
+
 # Final verification that uo is in PATH
 RUN which uo && uo --version
 # Copy application code and set environment variables
@@ -59,6 +68,9 @@ COPY . .
 
 # Install the solver package
 RUN pip install -e ./app
+
+RUN chmod +x /solver/entrypoint.sh
+ENTRYPOINT ["/solver/entrypoint.sh"]
 
 # Expose the required port
 EXPOSE 8080
