@@ -7,9 +7,9 @@ source ./.env.local
 set +o allexport
 
 echo "Killing old Docker processes"
-docker compose -f docker-compose-local.yml rm -fs
+docker compose rm -fs
 
 echo "Spinning up Docker containers"
-docker compose -f docker-compose-local.yml build && \
-docker compose -f docker-compose-local.yml up --detach && \
-docker compose -f docker-compose-local.yml logs --follow
+docker compose build && \
+docker compose up --detach && \
+docker compose logs --follow

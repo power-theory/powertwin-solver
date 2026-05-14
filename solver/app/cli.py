@@ -18,7 +18,6 @@ def start_simulation(args):
     }
     data = {
         'simulation_name': args.simulation_name,
-        'config_data': args.config_json_path,
         'num_cores': args.num_cores,
         'shared_storage': args.shared_storage if is_hpc else None,
         'keep_dirs': args.keep
@@ -150,7 +149,6 @@ def main():
     parser_start.add_argument('simulation_name', type=str, help='Name of the simulation')
     parser_start.add_argument('asset_geojson_path', type=str, help='Path to the asset geojson file')
     parser_start.add_argument('metadata_csv_path', type=str, help='Path to the metadata CSV file')
-    parser_start.add_argument('config_json_path', type=str, help='Path to the config JSON file')
     parser_start.add_argument('num_cores', type=int, help='Number of cores to use')
     parser_start.add_argument('--shared-storage', type=str, help='Path to shared storage for HPC environments')
     parser_start.add_argument('-k', '--keep', action='store_true', help='Keep additional directories (feature_reports, generated_files) during asset cleanup')

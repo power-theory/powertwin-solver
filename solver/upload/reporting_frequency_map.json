@@ -1,0 +1,18 @@
+{
+  "user_to_urbanopt": {
+    "minutely": "Detailed",
+    "hourly":   "Hourly",
+    "daily":    "Daily",
+    "monthly":  "Monthly",
+    "yearly":   "Runperiod"
+  },
+  "urbanopt_to_user": {
+    "Detailed":      "minutely",
+    "Timestep":      "hourly",
+    "Hourly":        "hourly",
+    "Daily":         "daily",
+    "BillingPeriod": "monthly",
+    "Monthly":       "monthly",
+    "Runperiod":     "yearly"
+  }
+}

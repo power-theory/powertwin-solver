@@ -84,7 +84,7 @@ CONSOL_POLL_TIMEOUT=14400   # 4 hours (consolidation sbatch limit)
 #      lived on), we poll it instead of submitting a duplicate
 #   2. Skip-if-done: if the output CSV already exists, skip the state
 
-# Resample frequency for consolidation. Leave empty when REPORTING_FREQUENCY
+# Resample frequency for consolidation. Leave empty when URBANOPT_REPORTING_FREQUENCY
 # in the sim script is already Monthly (or coarser) — no resample needed.
 # Set to "M" when running Timestep/Hourly to aggregate to monthly.
 RESAMPLE=""
@@ -477,7 +477,7 @@ if [ ${DRY_RUN} -eq 1 ]; then
             dry_missing=$((dry_missing + 1))
             continue
         fi
-        for f in asset_geometries.geojson metadata.csv default_config.json; do
+        for f in asset_geometries.geojson metadata.csv; do
             if [ ! -f "${dry_state_root}/upload/${f}" ]; then
                 log "  WARN:    ${dry_state_root}/upload/${f} missing (${dry_state})"
             fi
@@ -553,7 +553,7 @@ while IFS= read -r raw_line || [ -n "${raw_line}" ]; do
         log "ERROR: Upload dir missing: ${state_root}/upload"
         fail_fast "${state}" "${collection_id}" "${state_root}" "no_upload_dir"
     fi
-    for f in asset_geometries.geojson metadata.csv default_config.json; do
+    for f in asset_geometries.geojson metadata.csv; do
         if [ ! -f "${state_root}/upload/${f}" ]; then
             log "WARNING: Missing upload file: ${state_root}/upload/${f}"
         fi

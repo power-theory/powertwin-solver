@@ -12,6 +12,7 @@ import pandas as pd
 def process_worker(args):
     """Process a slice of sensor directories and write to a temp file."""
     worker_id, sensor_dirs, collection_id, resample, types, temp_dir = args
+    apply_translations = os.environ.get('URBANOPT_POSTPROCESS_TRANSLATIONS') == 'true'
 
     temp_path = os.path.join(temp_dir, f'worker_{worker_id}.csv')
     header_written = False
@@ -32,18 +33,26 @@ def process_worker(args):
 
                 sensor_id = df['id'].iloc[0] if 'id' in df.columns else sensor_dir.name
 
-                if df['ts'].dt.tz is not None:
-                    df['ts'] = df['ts'].dt.tz_convert(None)
+                # Strip tz info to a naive wall clock so bucketing operates in
+                # the EPW's local time domain (which is what clean_report.py
+                # now emits). tz_localize(None) preserves the local wall clock;
+                # tz_convert(None) would force UTC and re-introduce the
+                # year-boundary spillover into the following UTC year.
+                local_tz = df['ts'].dt.tz if df['ts'].dt.tz is not None else None
+                if local_tz is not None:
+                    df['ts'] = df['ts'].dt.tz_localize(None)
 
-                # EnergyPlus uses end-of-period timestamps (hour ending at 01:00,
-                # month ending Feb 1 for January). Shift back 1 second to convert
-                # to start-of-period so grouping never leaks across boundaries,
-                # then floor to the native resolution for clean timestamps.
+                # EnergyPlus uses end-of-period timestamps. When
+                # URBANOPT_POSTPROCESS_TRANSLATIONS is truthy, subtract 1 second
+                # so the last hour of Dec 31 rolls back into December's bucket
+                # instead of spilling into the next year's January. Off by
+                # default — vanilla pandas grouping.
                 if len(df) >= 2:
                     native_freq = df['ts'].diff().median()
                 else:
                     native_freq = pd.Timedelta(hours=1)
-                df['ts'] = df['ts'] - pd.Timedelta(seconds=1)
+                if apply_translations:
+                    df['ts'] = df['ts'] - pd.Timedelta(seconds=1)
                 if native_freq >= pd.Timedelta(days=27):
                     df['ts'] = df['ts'].dt.to_period('M').dt.to_timestamp()
                 else:
@@ -53,10 +62,16 @@ def process_worker(args):
                     df = (df.groupby(df['ts'].dt.to_period(resample))['value']
                           .sum()
                           .reset_index())
-                    if resample == 'M':
+                    if resample == 'M' and apply_translations:
                         df['ts'] = df['ts'].dt.to_timestamp().dt.normalize() + pd.Timedelta(hours=12)
                     else:
                         df['ts'] = df['ts'].dt.to_timestamp()
+
+                # Convert bucket markers to naive UTC for emission. Bucketing
+                # ran in local time (correctness); the stored value is UTC with
+                # no offset.
+                if local_tz is not None:
+                    df['ts'] = df['ts'].dt.tz_localize(local_tz).dt.tz_convert('UTC').dt.tz_localize(None)
 
                 df['sensor_id'] = sensor_id
                 df['collection_id'] = collection_id

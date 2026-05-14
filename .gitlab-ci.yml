@@ -15,11 +15,31 @@ stages:
   - deploy_main_mss
 
 variables:
-  # .env.local
+  # .env.local — Mode
+  DEV_MODE: $DEV_MODE
+
+  # .env.local — Postgres
+  PG_DB_TOKEN_ADMIN: $PG_DB_TOKEN_ADMIN
+  PG_DB_PORT: $PG_DB_PORT
+
+  # .env.local — Flask
+  FLASK_PORT: $FLASK_PORT
+
+  # .env.local — Simulation
+  URBANOPT_SIMULATION_YEAR: $URBANOPT_SIMULATION_YEAR
+  URBANOPT_REPORTING_FREQUENCY: $URBANOPT_REPORTING_FREQUENCY
+  URBANOPT_RESAMPLE: $URBANOPT_RESAMPLE
+  URBANOPT_POSTPROCESS_TRANSLATIONS: $URBANOPT_POSTPROCESS_TRANSLATIONS
+
+  # .env.local — MSS
+  MSS_PORT: $MSS_PORT
   MSS_SLACK_VERIFICATION_TOKEN: $MSS_SLACK_VERIFICATION_TOKEN
   MSS_SLACK_SIGNING_SECRET: $MSS_SLACK_SIGNING_SECRET
   MSS_SLACK_WEBHOOK_URL: $MSS_SLACK_WEBHOOK_URL
   MSS_SLACK_CHANNEL: $MSS_SLACK_CHANNEL
+
+  # .env.local — Other
+  POWERTWIN_LOG_DIR: $POWERTWIN_LOG_DIR
 
   # Disable Logic
   PG_DB_DISABLE_DEPLOY: $PG_DB_DISABLE_DEPLOY
@@ -56,6 +76,8 @@ variables:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-pg
     - echo "DB Deployed @ ${ENVIRONMENT_URL_DB}"
   after_script:
+    - docker image prune -f
+    - docker builder prune -af
     - echo "DB deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
@@ -68,6 +90,8 @@ variables:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-flask
     - echo "FLASK Deployed @ ${ENVIRONMENT_URL_FLASK}"
   after_script:
+    - docker image prune -f
+    - docker builder prune -af
     - echo "FLASK deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
@@ -80,6 +104,8 @@ variables:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d --no-deps powertwin-solver-mss
     - echo "Microservices Deployed @ ${ENVIRONMENT_URL_MSS}"
   after_script:
+    - docker image prune -f
+    - docker builder prune -af
     - echo "Microservices deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 

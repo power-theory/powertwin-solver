@@ -457,10 +457,9 @@ setup_dirs() {
         print_status "info" "Created recovery directories."
     fi
 
-    # Define paths for the metadata, geojson, and config files
+    # Define paths for the metadata and geojson files
     METADATA_CSV_PATH="${CORRUPTED_SIMULATION_DIR}/${CORRUPTED_SIMULATION_NAME}_metadata.csv"
     GEOJSON_PATH="${CORRUPTED_SIMULATION_DIR}/${CORRUPTED_SIMULATION_NAME}_asset.geojson"
-    CONFIG_PATH="${CORRUPTED_SIMULATION_DIR}/${CORRUPTED_SIMULATION_NAME}_config.json"
 
     # Check if required files exist
     if [ ! -f "${METADATA_CSV_PATH}" ]; then
@@ -472,24 +471,15 @@ setup_dirs() {
         print_status "warning" "Asset GeoJSON file not found: ${GEOJSON_PATH}"
     fi
 
-    if [ ! -f "${CONFIG_PATH}" ]; then
-        print_status "warning" "Config JSON file not found: ${CONFIG_PATH}"
-    fi
-
     # Define paths for the new files
     NEW_METADATA_CSV_PATH="${RECOVERY_DIR_LOCAL}/${RECOVERY_SIMULATION_NAME}_metadata.csv"
     NEW_GEOJSON_PATH="${RECOVERY_DIR_LOCAL}/${RECOVERY_SIMULATION_NAME}_asset.geojson"
-    NEW_CONFIG_PATH="${RECOVERY_DIR_LOCAL}/${RECOVERY_SIMULATION_NAME}_config.json"
-    
+
     # Copy and rename the files to the recovery directory
     cp "${METADATA_CSV_PATH}" "${NEW_METADATA_CSV_PATH}"
-    
+
     if [ -f "${GEOJSON_PATH}" ]; then
         cp "${GEOJSON_PATH}" "${NEW_GEOJSON_PATH}"
-    fi
-    
-    if [ -f "${CONFIG_PATH}" ]; then
-        cp "${CONFIG_PATH}" "${NEW_CONFIG_PATH}"
     fi
     
     # Check if critical directories were created successfully

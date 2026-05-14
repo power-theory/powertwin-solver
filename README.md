@@ -50,7 +50,7 @@ docker exec -it powertwin-solver-flask /bin/bash
 | Command | Description | Usage |
 |---------|-------------|-------|
 | `solver autorun` | Run simulation using `simulation.json` | `solver autorun` |
-| `solver start` | Start a new simulation | `solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_json_path> <location> <num_cores>` |
+| `solver start` | Start a new simulation | `solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <location> <num_cores>` |
 | `solver status` | Check simulation status | `solver status <simulation_name> [-b <batch_id>]` |
 | `solver stop` | Stop running simulation | `solver stop` |
 | `solver delete` | Delete a simulation | `solver delete <simulation_name>` |
@@ -63,7 +63,7 @@ docker exec -it powertwin-solver-flask /bin/bash
 
 #### Start Simulation
 ```sh
-solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <config_json_path> <location> <num_cores>
+solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <location> <num_cores>
 ```
 - Starts a new simulation with specified parameters
 - Required files:
@@ -121,8 +121,7 @@ Create the following directory structure in your HPC shared storage:
 └── upload/             # Input files
     └── <simulation_name>/
         ├── asset-geometries.geojson
-        ├── metadata.csv
-        └── default_config.json
+        └── metadata.csv
 ```
 
 ### Step 2: Build Container Images
