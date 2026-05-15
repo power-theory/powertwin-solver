@@ -15,9 +15,9 @@ stages:
   - deploy_main_mss
 
   # Demo stages
-  - deploy_demo_db
-  - deploy_demo_flask
-  - deploy_demo_mss
+  # - deploy_demo_db
+  # - deploy_demo_flask
+  # - deploy_demo_mss
 
   # Public stages
   - deploy_public_db
@@ -267,53 +267,52 @@ deploy_main_mss:
     - if: '$CI_COMMIT_BRANCH == "main" && $MSS_DISABLE_DEPLOY != "true"'
 
 # Demo Environment
-deploy_demo_db:
-  stage: deploy_demo_db
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5446
-    PG_DB_PORT: 5336
-    MSS_PORT: 5816
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_db_template
-  environment:
-    name: $ENVIRONMENT_NAME_DB
-    url: $ENVIRONMENT_URL_DB
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "demo" && $PG_DB_DISABLE_DEPLOY != "true"'
-
-deploy_demo_flask:
-  stage: deploy_demo_flask
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5446
-    PG_DB_PORT: 5336
-    MSS_PORT: 5816
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_flask_template
-  environment:
-    name: $ENVIRONMENT_NAME_FLASK
-    url: $ENVIRONMENT_URL_FLASK
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "demo"'
-
-deploy_demo_mss:
-  stage: deploy_demo_mss
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5446
-    PG_DB_PORT: 5336
-    MSS_PORT: 5816
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_mss_template
-  environment:
-    name: $ENVIRONMENT_NAME_MSS
-    url: $ENVIRONMENT_URL_MSS
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "demo" && $MSS_DISABLE_DEPLOY != "true"'
+#   stage: deploy_demo_db
+#   tags:
+#     - solver
+#   variables:
+#     FLASK_PORT: 5446
+#     PG_DB_PORT: 5336
+#     MSS_PORT: 5816
+#     PG_DB_COLLECTION_ID: 1
+#   <<: *deploy_db_template
+#   environment:
+#     name: $ENVIRONMENT_NAME_DB
+#     url: $ENVIRONMENT_URL_DB
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "demo" && $PG_DB_DISABLE_DEPLOY != "true"'
+#
+# deploy_demo_flask:
+#   stage: deploy_demo_flask
+#   tags:
+#     - solver
+#   variables:
+#     FLASK_PORT: 5446
+#     PG_DB_PORT: 5336
+#     MSS_PORT: 5816
+#     PG_DB_COLLECTION_ID: 1
+#   <<: *deploy_flask_template
+#   environment:
+#     name: $ENVIRONMENT_NAME_FLASK
+#     url: $ENVIRONMENT_URL_FLASK
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "demo"'
+#
+# deploy_demo_mss:
+#   stage: deploy_demo_mss
+#   tags:
+#     - solver
+#   variables:
+#     FLASK_PORT: 5446
+#     PG_DB_PORT: 5336
+#     MSS_PORT: 5816
+#     PG_DB_COLLECTION_ID: 1
+#   <<: *deploy_mss_template
+#   environment:
+#     name: $ENVIRONMENT_NAME_MSS
+#     url: $ENVIRONMENT_URL_MSS
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "demo" && $MSS_DISABLE_DEPLOY != "true"'
 
 # Public Environment
 deploy_public_db:
