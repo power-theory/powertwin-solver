@@ -182,6 +182,18 @@ def pack_simulation_results(local_dir, runtime_seconds=None, resample=None,
 
     resample = (resample or '').strip().upper() or None
 
+    # Build building_id → asset_id mapping from the metadata CSV.
+    # cleaned_reports directories are keyed by building_id (GeoJSON feature id),
+    # but the API expects the powertwin-db asset_id.
+    simulation_name = os.path.basename(local_dir)
+    geojson_path = os.path.join(local_dir, f'{simulation_name}_asset.geojson')
+    with open(geojson_path, 'r') as f:
+        geojson = json.load(f)
+    id_map = {
+        str(feat['properties']['id']): str(feat['properties']['asset_id'])
+        for feat in geojson['features']
+    }
+
     if not os.path.isdir(cleaned_root):
         return {
             'results': results,
@@ -236,7 +248,7 @@ def pack_simulation_results(local_dir, runtime_seconds=None, resample=None,
                 continue
 
             results.append({
-                'asset_id': asset_id,
+                'asset_id': id_map[asset_id],
                 'sensor_type_id': sensor_type_id,
                 'sensor_type_name': sensor_type_name,
                 'rows': rows,
