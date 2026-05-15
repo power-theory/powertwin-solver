@@ -167,9 +167,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     if floor_count == str(floor_count):
         floor_count = int(floor_count)
 
-    # No floor count leads to high unpredictable results, could potentially set to 1 however do not expect accurate results when comparing to real data
     if floor_count is None:
-        return None
+        floor_count = 1
 
     # Essential data missing in metadata
     if building_id not in building_area_list or building_id not in building_type_list or building_id not in building_name_list:
