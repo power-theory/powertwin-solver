@@ -26,7 +26,7 @@ services:
       powertwin-solver-flask:
         condition: service_healthy
 
-  pgbouncer:
+  powertwin-solver-pgbouncer:
     image: pgbouncer/pgbouncer:1.15.0
     container_name: ${NAME_PREFIX:-}powertwin-solver-pgbouncer
     environment:
@@ -49,7 +49,7 @@ services:
       - LOG_POOLER_ERRORS=1
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits,application_name
     ports:
-      - "6432:6432"
+      - "${PGBOUNCER_PORT}:6432"
     depends_on:
       powertwin-solver-pg:
         condition: service_healthy

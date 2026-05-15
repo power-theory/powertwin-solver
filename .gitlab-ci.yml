@@ -1,26 +1,31 @@
 stages:
   # Development stages
   - deploy_dev_db
+  - deploy_dev_pgbouncer
   - deploy_dev_flask
   - deploy_dev_mss
 
   # Preview stages
   - deploy_prev_db
+  - deploy_prev_pgbouncer
   - deploy_prev_flask
   - deploy_prev_mss
 
   # Production stages
   - deploy_main_db
+  - deploy_main_pgbouncer
   - deploy_main_flask
   - deploy_main_mss
 
   # Demo stages
   # - deploy_demo_db
+  # - deploy_demo_pgbouncer
   # - deploy_demo_flask
   # - deploy_demo_mss
 
   # Public stages
   - deploy_public_db
+  - deploy_public_pgbouncer
   - deploy_public_flask
   - deploy_public_mss
 
@@ -31,6 +36,7 @@ variables:
   # .env.local — Postgres
   PG_DB_TOKEN_ADMIN: $PG_DB_TOKEN_ADMIN
   PG_DB_PORT: $PG_DB_PORT
+  PGBOUNCER_PORT: $PGBOUNCER_PORT
 
   # .env.local — Flask
   FLASK_PORT: $FLASK_PORT
@@ -57,6 +63,7 @@ variables:
   # Container Name Elements
   NAME_PREFIX: ${CI_COMMIT_BRANCH}-
   NAME_SUFFIX_DB: pg
+  NAME_SUFFIX_PGBOUNCER: pgbouncer
   NAME_SUFFIX_FLASK: flask
   NAME_SUFFIX_MSS: mss
 
@@ -65,11 +72,13 @@ variables:
 
   # Environment Names
   ENVIRONMENT_NAME_DB: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_DB}
+  ENVIRONMENT_NAME_PGBOUNCER: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_PGBOUNCER}
   ENVIRONMENT_NAME_FLASK: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_FLASK}
   ENVIRONMENT_NAME_MSS: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_MSS}
 
   # Environment URLs
   ENVIRONMENT_URL_DB: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_DB}.${DOMAIN_NAME}:${BALANCER_PORT}
+  ENVIRONMENT_URL_PGBOUNCER: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_PGBOUNCER}.${DOMAIN_NAME}:${BALANCER_PORT}
   ENVIRONMENT_URL_FLASK: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_FLASK}.${DOMAIN_NAME}:${BALANCER_PORT}
   ENVIRONMENT_URL_MSS: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_MSS}.${DOMAIN_NAME}:${BALANCER_PORT}
 
@@ -89,6 +98,20 @@ variables:
     - docker image prune -f
     - docker builder prune -af
     - echo "DB deployment to $CI_COMMIT_BRANCH complete"
+  when: on_success
+
+.deploy_pgbouncer_template: &deploy_pgbouncer_template
+  script:
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-pgbouncer
+    - echo "Building Docker image for PgBouncer in $CI_COMMIT_BRANCH environment..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-pgbouncer
+    - echo "Deploying PgBouncer Docker container to $CI_COMMIT_BRANCH environment..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-pgbouncer
+    - echo "PgBouncer Deployed @ ${ENVIRONMENT_URL_PGBOUNCER}"
+  after_script:
+    - docker image prune -f
+    - docker builder prune -af
+    - echo "PgBouncer deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
 .deploy_flask_template: &deploy_flask_template
@@ -125,8 +148,9 @@ deploy_dev_db:
   tags:
     - dev
   variables:
-    FLASK_PORT: 5443
-    PG_DB_PORT: 5333
+    FLASK_PORT: 5463
+    PG_DB_PORT: 5353
+    PGBOUNCER_PORT: 5363
     MSS_PORT: 5813
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_db_template
@@ -136,13 +160,31 @@ deploy_dev_db:
   rules:
     - if: '$CI_COMMIT_BRANCH == "dev" && $PG_DB_DISABLE_DEPLOY != "true"'
 
+deploy_dev_pgbouncer:
+  stage: deploy_dev_pgbouncer
+  tags:
+    - dev
+  variables:
+    FLASK_PORT: 5463
+    PG_DB_PORT: 5353
+    PGBOUNCER_PORT: 5363
+    MSS_PORT: 5813
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_pgbouncer_template
+  environment:
+    name: $ENVIRONMENT_NAME_PGBOUNCER
+    url: $ENVIRONMENT_URL_PGBOUNCER
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+
 deploy_dev_flask:
   stage: deploy_dev_flask
   tags:
     - dev
   variables:
-    FLASK_PORT: 5443
-    PG_DB_PORT: 5333
+    FLASK_PORT: 5463
+    PG_DB_PORT: 5353
+    PGBOUNCER_PORT: 5363
     MSS_PORT: 5813
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_flask_template
@@ -157,8 +199,9 @@ deploy_dev_mss:
   tags:
     - dev
   variables:
-    FLASK_PORT: 5443
-    PG_DB_PORT: 5333
+    FLASK_PORT: 5463
+    PG_DB_PORT: 5353
+    PGBOUNCER_PORT: 5363
     MSS_PORT: 5813
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_mss_template
@@ -174,8 +217,9 @@ deploy_prev_db:
   tags:
     - prev
   variables:
-    FLASK_PORT: 5444
-    PG_DB_PORT: 5334
+    FLASK_PORT: 5464
+    PG_DB_PORT: 5354
+    PGBOUNCER_PORT: 5364
     MSS_PORT: 5814
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_db_template
@@ -185,13 +229,31 @@ deploy_prev_db:
   rules:
     - if: '$CI_COMMIT_BRANCH == "prev" && $PG_DB_DISABLE_DEPLOY != "true"'
 
+deploy_prev_pgbouncer:
+  stage: deploy_prev_pgbouncer
+  tags:
+    - prev
+  variables:
+    FLASK_PORT: 5464
+    PG_DB_PORT: 5354
+    PGBOUNCER_PORT: 5364
+    MSS_PORT: 5814
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_pgbouncer_template
+  environment:
+    name: $ENVIRONMENT_NAME_PGBOUNCER
+    url: $ENVIRONMENT_URL_PGBOUNCER
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "prev"'
+
 deploy_prev_flask:
   stage: deploy_prev_flask
   tags:
     - prev
   variables:
-    FLASK_PORT: 5444
-    PG_DB_PORT: 5334
+    FLASK_PORT: 5464
+    PG_DB_PORT: 5354
+    PGBOUNCER_PORT: 5364
     MSS_PORT: 5814
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_flask_template
@@ -206,8 +268,9 @@ deploy_prev_mss:
   tags:
     - prev
   variables:
-    FLASK_PORT: 5444
-    PG_DB_PORT: 5334
+    FLASK_PORT: 5464
+    PG_DB_PORT: 5354
+    PGBOUNCER_PORT: 5364
     MSS_PORT: 5814
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_mss_template
@@ -223,8 +286,9 @@ deploy_main_db:
   tags:
     - solver
   variables:
-    FLASK_PORT: 5445
-    PG_DB_PORT: 5335
+    FLASK_PORT: 5465
+    PG_DB_PORT: 5355
+    PGBOUNCER_PORT: 5365
     MSS_PORT: 5815
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_db_template
@@ -234,13 +298,31 @@ deploy_main_db:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main" && $PG_DB_DISABLE_DEPLOY != "true"'
 
+deploy_main_pgbouncer:
+  stage: deploy_main_pgbouncer
+  tags:
+    - solver
+  variables:
+    FLASK_PORT: 5465
+    PG_DB_PORT: 5355
+    PGBOUNCER_PORT: 5365
+    MSS_PORT: 5815
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_pgbouncer_template
+  environment:
+    name: $ENVIRONMENT_NAME_PGBOUNCER
+    url: $ENVIRONMENT_URL_PGBOUNCER
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
 deploy_main_flask:
   stage: deploy_main_flask
   tags:
     - solver
   variables:
-    FLASK_PORT: 5445
-    PG_DB_PORT: 5335
+    FLASK_PORT: 5465
+    PG_DB_PORT: 5355
+    PGBOUNCER_PORT: 5365
     MSS_PORT: 5815
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_flask_template
@@ -255,8 +337,9 @@ deploy_main_mss:
   tags:
     - solver
   variables:
-    FLASK_PORT: 5445
-    PG_DB_PORT: 5335
+    FLASK_PORT: 5465
+    PG_DB_PORT: 5355
+    PGBOUNCER_PORT: 5365
     MSS_PORT: 5815
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_mss_template
@@ -271,8 +354,9 @@ deploy_main_mss:
 #   tags:
 #     - solver
 #   variables:
-#     FLASK_PORT: 5446
-#     PG_DB_PORT: 5336
+#     FLASK_PORT: 5466
+#     PG_DB_PORT: 5356
+#     PGBOUNCER_PORT: 5366
 #     MSS_PORT: 5816
 #     PG_DB_COLLECTION_ID: 1
 #   <<: *deploy_db_template
@@ -282,13 +366,31 @@ deploy_main_mss:
 #   rules:
 #     - if: '$CI_COMMIT_BRANCH == "demo" && $PG_DB_DISABLE_DEPLOY != "true"'
 #
+# deploy_demo_pgbouncer:
+#   stage: deploy_demo_pgbouncer
+#   tags:
+#     - solver
+#   variables:
+#     FLASK_PORT: 5466
+#     PG_DB_PORT: 5356
+#     PGBOUNCER_PORT: 5366
+#     MSS_PORT: 5816
+#     PG_DB_COLLECTION_ID: 1
+#   <<: *deploy_pgbouncer_template
+#   environment:
+#     name: $ENVIRONMENT_NAME_PGBOUNCER
+#     url: $ENVIRONMENT_URL_PGBOUNCER
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "demo"'
+#
 # deploy_demo_flask:
 #   stage: deploy_demo_flask
 #   tags:
 #     - solver
 #   variables:
-#     FLASK_PORT: 5446
-#     PG_DB_PORT: 5336
+#     FLASK_PORT: 5466
+#     PG_DB_PORT: 5356
+#     PGBOUNCER_PORT: 5366
 #     MSS_PORT: 5816
 #     PG_DB_COLLECTION_ID: 1
 #   <<: *deploy_flask_template
@@ -303,8 +405,9 @@ deploy_main_mss:
 #   tags:
 #     - solver
 #   variables:
-#     FLASK_PORT: 5446
-#     PG_DB_PORT: 5336
+#     FLASK_PORT: 5466
+#     PG_DB_PORT: 5356
+#     PGBOUNCER_PORT: 5366
 #     MSS_PORT: 5816
 #     PG_DB_COLLECTION_ID: 1
 #   <<: *deploy_mss_template
@@ -320,8 +423,9 @@ deploy_public_db:
   tags:
     - solver
   variables:
-    FLASK_PORT: 5447
-    PG_DB_PORT: 5337
+    FLASK_PORT: 5467
+    PG_DB_PORT: 5357
+    PGBOUNCER_PORT: 5367
     MSS_PORT: 5817
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_db_template
@@ -331,13 +435,31 @@ deploy_public_db:
   rules:
     - if: '$CI_COMMIT_BRANCH == "public" && $PG_DB_DISABLE_DEPLOY != "true"'
 
+deploy_public_pgbouncer:
+  stage: deploy_public_pgbouncer
+  tags:
+    - solver
+  variables:
+    FLASK_PORT: 5467
+    PG_DB_PORT: 5357
+    PGBOUNCER_PORT: 5367
+    MSS_PORT: 5817
+    PG_DB_COLLECTION_ID: 1
+  <<: *deploy_pgbouncer_template
+  environment:
+    name: $ENVIRONMENT_NAME_PGBOUNCER
+    url: $ENVIRONMENT_URL_PGBOUNCER
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "public"'
+
 deploy_public_flask:
   stage: deploy_public_flask
   tags:
     - solver
   variables:
-    FLASK_PORT: 5447
-    PG_DB_PORT: 5337
+    FLASK_PORT: 5467
+    PG_DB_PORT: 5357
+    PGBOUNCER_PORT: 5367
     MSS_PORT: 5817
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_flask_template
@@ -352,8 +474,9 @@ deploy_public_mss:
   tags:
     - solver
   variables:
-    FLASK_PORT: 5447
-    PG_DB_PORT: 5337
+    FLASK_PORT: 5467
+    PG_DB_PORT: 5357
+    PGBOUNCER_PORT: 5367
     MSS_PORT: 5817
     PG_DB_COLLECTION_ID: 1
   <<: *deploy_mss_template
