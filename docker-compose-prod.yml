@@ -137,9 +137,6 @@ volumes:
   powertwin_data:
 
 networks:
-  powertwin-network:
-    name: powertwin-network
-    driver: bridge
-    driver_opts:
-      com.docker.network.bridge.enable_dns: "true"
-      com.docker.network.bridge.enable_ip_masquerade: "true"
+  default:
+    name: gitlab-network
+    external: true
