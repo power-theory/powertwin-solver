@@ -13,7 +13,7 @@ services:
       - ./postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
-      powertwin-network:
+      default:
         aliases:
           - postgres-db
     healthcheck:
@@ -55,7 +55,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      powertwin-network:
+      default:
         aliases:
           - pgbouncer-db
     healthcheck:
@@ -104,7 +104,7 @@ services:
     tty: true
     restart: unless-stopped
     networks:
-      - powertwin-network
+      - default
 
   powertwin-solver-mss:
     container_name: ${NAME_PREFIX:-}powertwin-solver-mss
@@ -129,7 +129,7 @@ services:
       - powertwin-solver-pg
     restart: unless-stopped
     networks:
-      - powertwin-network
+      - default
 
 volumes:
   powertwin-solver-flask:
