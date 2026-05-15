@@ -1,7 +1,7 @@
 services:
   powertwin-solver-pg:
     image: postgres:17
-    container_name: powertwin-solver-pg
+    container_name: ${NAME_PREFIX:-}powertwin-solver-pg
     environment:
       - POSTGRES_DB=powertwin
       - POSTGRES_USER=postgres
@@ -28,7 +28,7 @@ services:
 
   pgbouncer:
     image: pgbouncer/pgbouncer:1.15.0
-    container_name: powertwin-pgbouncer
+    container_name: ${NAME_PREFIX:-}powertwin-solver-pgbouncer
     environment:
       - DATABASES_HOST=postgres-db
       - DATABASES_PORT=5432
@@ -66,7 +66,7 @@ services:
       start_period: 30s
 
   powertwin-solver-flask:
-    container_name: powertwin-solver-flask
+    container_name: ${NAME_PREFIX:-}powertwin-solver-flask
     build:
       context: ./solver
       args:
@@ -107,7 +107,7 @@ services:
       - powertwin-network
 
   powertwin-solver-mss:
-    container_name: powertwin-solver-mss
+    container_name: ${NAME_PREFIX:-}powertwin-solver-mss
     build:
       context: ./mss
       args:
