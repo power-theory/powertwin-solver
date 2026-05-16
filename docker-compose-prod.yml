@@ -87,6 +87,7 @@ services:
       - DEV_MODE=${DEV_MODE:-false}
       - FLASK_MSS_BASE_URL=${FLASK_MSS_BASE_URL:-}
       - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
+      - API_SOLVER_TOKEN=${API_SOLVER_TOKEN}
       - CI_COMMIT_BRANCH=${CI_COMMIT_BRANCH:-}
       - PGHOST=pgbouncer-db
       - PGPORT=6432
@@ -122,6 +123,7 @@ services:
       - MSS_SLACK_WEBHOOK_URL=${MSS_SLACK_WEBHOOK_URL}
       - MSS_SLACK_CHANNEL=${MSS_SLACK_CHANNEL}
       - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
+      - API_SOLVER_TOKEN=${API_SOLVER_TOKEN}
       - FLASK_PORT=${FLASK_PORT}
     depends_on:
       - powertwin-solver-pg

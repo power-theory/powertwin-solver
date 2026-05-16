@@ -14,7 +14,7 @@ logging.getLogger().setLevel(logging.INFO)
 
 app = Flask(__name__)
 
-PG_DB_TOKEN_ADMIN = os.getenv('PG_DB_TOKEN_ADMIN')
+API_SOLVER_TOKEN = os.getenv('API_SOLVER_TOKEN')
 MSS_SLACK_VERIFICATION_TOKEN = os.getenv('MSS_SLACK_VERIFICATION_TOKEN')
 MSS_SLACK_SIGNING_SECRET = os.getenv('MSS_SLACK_SIGNING_SECRET')
 MSS_SLACK_WEBHOOK_URL = os.getenv('MSS_SLACK_WEBHOOK_URL')
@@ -79,8 +79,8 @@ def log_db_error():
     # Get api_token from the request header
     api_token = request.headers.get('api_token')
 
-    # Verify the api_token matches PG_DB_TOKEN_ADMIN
-    if not api_token or api_token != PG_DB_TOKEN_ADMIN:
+    # Verify the api_token matches API_SOLVER_TOKEN
+    if not api_token or api_token != API_SOLVER_TOKEN:
       app.logger.warning(f"Unauthorized access attempt with token: {api_token}")
       return jsonify({'error': 'Unauthorized'}), 403
 

@@ -7,7 +7,7 @@ import requests
 ############################################################################################################
 def send_error_to_mss(function_name, error_message):
     url = os.getenv('FLASK_MSS_BASE_URL')
-    api_token = os.getenv('PG_DB_TOKEN_ADMIN')
+    api_token = os.getenv('API_SOLVER_TOKEN')
     commit_branch = os.getenv('CI_COMMIT_BRANCH')
 
     combined_error_message = f"""

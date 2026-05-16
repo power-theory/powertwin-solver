@@ -153,16 +153,16 @@ def start_simulation():
 
 ############################################################################################################
 # Name: def _check_api_token()
-# Description: Reject requests without the shared service token (PG_DB_TOKEN_ADMIN).
+# Description: Reject requests without the shared service token (API_SOLVER_TOKEN).
 # Fails closed: if the env var is unset on this Flask process, every request is rejected with 500
 # (operator misconfig — surfaces in monitoring rather than silently authorizing all traffic).
 # Returns a Flask response tuple to short-circuit the handler, or None when authorized.
 ############################################################################################################
 def _check_api_token():
-    expected = os.environ.get('PG_DB_TOKEN_ADMIN')
+    expected = os.environ.get('API_SOLVER_TOKEN')
     if not expected:
-        logger.error("PG_DB_TOKEN_ADMIN is not set; refusing request")
-        return jsonify({'error': 'Server misconfigured: PG_DB_TOKEN_ADMIN not set'}), 500
+        logger.error("API_SOLVER_TOKEN is not set; refusing request")
+        return jsonify({'error': 'Server misconfigured: API_SOLVER_TOKEN not set'}), 500
     presented = request.headers.get('api_token') or ''
     if not hmac.compare_digest(presented, expected):
         return jsonify({'error': 'Unauthorized'}), 403

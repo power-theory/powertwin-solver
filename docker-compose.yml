@@ -52,6 +52,7 @@ services:
       - DEV_MODE=${DEV_MODE:-false}
       - FLASK_MSS_BASE_URL=${FLASK_MSS_BASE_URL:-}
       - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
+      - API_SOLVER_TOKEN=${API_SOLVER_TOKEN}
       - CI_COMMIT_BRANCH=${CI_COMMIT_BRANCH:-}
       - PGHOST=postgres-db
       - PGPORT=${PG_DB_PORT}

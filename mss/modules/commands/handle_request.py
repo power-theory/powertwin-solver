@@ -8,11 +8,11 @@ load_dotenv('../.env.local')
 
 def handle_request(api_endpoint, payload):
   api_domain = os.getenv('MSS_FLASK_BASE_URL')
-  api_token = os.getenv('PG_DB_TOKEN_ADMIN')
+  api_token = os.getenv('API_SOLVER_TOKEN')
   FLASK_PORT = os.getenv('FLASK_PORT')
 
   if not api_domain or not FLASK_PORT or not api_token:
-    print("Error: Missing one or more environment variables (MSS_FLASK_BASE_URL, FLASK_PORT, PG_DB_TOKEN_ADMIN)")
+    print("Error: Missing one or more environment variables (MSS_FLASK_BASE_URL, FLASK_PORT, API_SOLVER_TOKEN)")
     return jsonify(response_type='ephemeral', text="Configuration error: Missing environment variables"), 500
 
   url = f'{api_domain}:{FLASK_PORT}{api_endpoint}'
