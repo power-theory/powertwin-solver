@@ -15,6 +15,7 @@ default_pool_size = ${DEFAULT_POOL_SIZE:-25}
 max_db_connections = ${MAX_DB_CONNECTIONS:-100}
 admin_users = ${ADMIN_USERS:-postgres}
 ignore_startup_parameters = ${IGNORE_STARTUP_PARAMETERS:-extra_float_digits,application_name}
+server_reset_query = DISCARD ALL
 resolv_conf = /etc/resolv.conf
 EOF
 
