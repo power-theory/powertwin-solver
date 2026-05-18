@@ -1,9 +1,16 @@
 #!/bin/sh
 set -e
 
+# Resolve hostname to IP so pgbouncer's c-ares DNS doesn't need to talk to Docker DNS
+DB_HOST=${DATABASES_HOST:-postgres-db}
+RESOLVED_IP=$(getent hosts "$DB_HOST" | awk '{print $1}' | head -1)
+if [ -n "$RESOLVED_IP" ]; then
+  DB_HOST=$RESOLVED_IP
+fi
+
 cat > /etc/pgbouncer/pgbouncer.ini <<EOF
 [databases]
-* = host=${DATABASES_HOST:-postgres-db} port=${DATABASES_PORT:-5432} user=${DATABASES_USER:-postgres} password=${DATABASES_PASSWORD} dbname=${DATABASES_DBNAME:-powertwin}
+* = host=${DB_HOST} port=${DATABASES_PORT:-5432} user=${DATABASES_USER:-postgres} password=${DATABASES_PASSWORD} dbname=${DATABASES_DBNAME:-powertwin}
 
 [pgbouncer]
 listen_addr = 0.0.0.0
