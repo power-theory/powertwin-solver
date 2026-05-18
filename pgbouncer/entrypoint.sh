@@ -2,13 +2,8 @@
 set -e
 
 # Resolve hostname to IP — c-ares cannot talk to Docker's embedded DNS (127.0.0.11)
-# Retry briefly in case postgres hasn't registered in Docker DNS yet
 DB_HOST=${DATABASES_HOST:-postgres-db}
-for i in 1 2 3 4 5; do
-  RESOLVED_IP=$(getent hosts "$DB_HOST" | awk '{print $1}' | head -1)
-  [ -n "$RESOLVED_IP" ] && break
-  sleep 2
-done
+RESOLVED_IP=$(getent hosts "$DB_HOST" | awk '{print $1}' | head -1)
 if [ -n "$RESOLVED_IP" ]; then
   DB_HOST=$RESOLVED_IP
 fi
