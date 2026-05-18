@@ -22,9 +22,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    depends_on:
-      powertwin-solver-flask:
-        condition: service_healthy
 
   powertwin-solver-pgbouncer:
     image: pgbouncer/pgbouncer:1.15.0
@@ -50,9 +47,6 @@ services:
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits,application_name
     ports:
       - "${PGBOUNCER_PORT}:6432"
-    depends_on:
-      powertwin-solver-pg:
-        condition: service_healthy
     restart: unless-stopped
     networks:
       default:
@@ -125,10 +119,6 @@ services:
       - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
       - API_SOLVER_TOKEN=${API_SOLVER_TOKEN}
       - FLASK_PORT=${FLASK_PORT}
-    depends_on:
-      - powertwin-solver-pg
-    links:
-      - powertwin-solver-pg
     restart: unless-stopped
     networks:
       - default
