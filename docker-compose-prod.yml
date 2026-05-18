@@ -24,11 +24,8 @@ services:
       start_period: 30s
 
   powertwin-solver-pgbouncer:
-    image: pgbouncer/pgbouncer:1.15.0
+    build: ./pgbouncer
     container_name: ${NAME_PREFIX:-}powertwin-solver-pgbouncer
-    volumes:
-      - ./pgbouncer/entrypoint.sh:/opt/pgbouncer/custom-entrypoint.sh:ro
-    entrypoint: ["/opt/pgbouncer/custom-entrypoint.sh"]
     environment:
       - DATABASES_HOST=postgres-db
       - DATABASES_PORT=5432
