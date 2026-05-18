@@ -34,7 +34,7 @@ def get_db_connection():
             # PgBouncer-specific optimizations
             application_name=f"powertwin-{os.environ.get('SLURM_PROCID', 'unknown')}",
             # Disable prepared statements for PgBouncer transaction mode
-            prepare_threshold=0
+            prepare_threshold=None
         )
         return conn
     except Exception as e:
