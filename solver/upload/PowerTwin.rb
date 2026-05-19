@@ -184,7 +184,9 @@ module URBANopt
         end
       end
 
-      def lookup_template_by_year_built(template, year_built)
+      DOE_REF_INCOMPATIBLE = %w[SmallHotel Laboratory].freeze
+
+      def lookup_template_by_year_built(template, year_built, building_type = nil)
         if template.include? 'DEER'
           if year_built <= 1996
             return 'DEER 1985'
@@ -206,16 +208,16 @@ module URBANopt
             return 'DEER 2020'
           end
         else
-          # ASHRAE — floor at 90.1-2004 because DOE Ref templates lack
-          # floor-specific space types (e.g. GuestRoom123Occ) that the
-          # create_bar prototype builder generates, causing simulation failures
+          # SmallHotel and Laboratory lack space types needed by create_bar
+          # in DOE Ref templates (e.g. GuestRoom123Occ). All other building
+          # types are empirically verified compatible — see tmp/compatibility_matrix.csv.
+          can_use_doe_ref = building_type.nil? || !DOE_REF_INCOMPATIBLE.include?(building_type)
 
-          # if year_built < 1980
-          #   return 'DOE Ref Pre-1980'
-          # elsif year_built <= 2004
-          #   return 'DOE Ref 1980-2004'
-          
-          if year_built <= 2007
+          if can_use_doe_ref && year_built < 1980
+            return 'DOE Ref Pre-1980'
+          elsif can_use_doe_ref && year_built <= 2004
+            return 'DOE Ref 1980-2004'
+          elsif year_built <= 2007
             return '90.1-2004'
           elsif year_built <= 2010
             return '90.1-2007'
@@ -946,9 +948,22 @@ module URBANopt
                 template = feature.template
                 year_built = feature.feature_json[:properties][:year_built]
 
+                # For Mixed Use, the template applies to all component types —
+                # fall back to 90.1 if ANY component is DOE-Ref-incompatible.
+                if building_type_1 == 'Mixed use'
+                  all_bar_types = [openstudio_mixed_type_1]
+                  all_bar_types << openstudio_mixed_type_2 unless mixed_type_2.nil?
+                  all_bar_types << openstudio_mixed_type_3 unless mixed_type_3.nil?
+                  all_bar_types << openstudio_mixed_type_4 unless mixed_type_4.nil?
+                  incompatible = all_bar_types.find { |t| DOE_REF_INCOMPATIBLE.include?(t) }
+                  template_building_type = incompatible || all_bar_types.first
+                else
+                  template_building_type = mapped_building_type_1
+                end
+
                 # can we override template with year_built info? (keeping same template family)
                 if !year_built.nil? && !feature.template.empty?
-                  new_template = lookup_template_by_year_built(template, year_built)
+                  new_template = lookup_template_by_year_built(template, year_built, template_building_type)
                 elsif !feature.template.empty?
                   new_template = template
                 end

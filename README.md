@@ -214,6 +214,40 @@ EnergyPlus/UrbanOpt outputs are converted to the target units defined in `sensor
 - Steam: 970 BTU/lb is the standard latent heat of vaporization at 14.7 psia (212°F). Actual value varies with pressure.
 - CO2: "MT" = metric ton per UrbanOpt/Cambium convention, consistent with [EPA GHG reporting](https://www.epa.gov/ghgemissions/inventory-us-greenhouse-gas-emissions-and-sinks)
 
+## DOE Ref Template Compatibility
+
+Buildings with `year_built` data are assigned an ASHRAE/DOE template that determines internal loads, schedules, and construction properties. The `lookup_template_by_year_built` method in `solver/upload/PowerTwin.rb` selects templates as follows:
+
+| Year Built | Template |
+|---|---|
+| < 1980 | DOE Ref Pre-1980 |
+| 1980–2004 | DOE Ref 1980-2004 |
+| 2005–2007 | 90.1-2004 |
+| 2008–2010 | 90.1-2007 |
+| 2011–2013 | 90.1-2010 |
+| > 2013 | 90.1-2013 |
+
+### Incompatible Building Types
+
+Two building types are **incompatible** with DOE Ref templates and always fall back to `90.1-2004`:
+
+| Building Type | Root Cause |
+|---|---|
+| **SmallHotel** | `space_type_ratios.rb` uses floor-specific names (`GuestRoom123Occ`, `GuestRoom123Vac`) that only exist in 90.1-2004+ templates. DOE Ref templates define `GuestRoom` without floor suffixes. |
+| **Laboratory** | No space type definitions exist in DOE Ref Pre-1980 or DOE Ref 1980-2004 templates. Laboratory is only defined in 90.1-2004+. |
+
+These are controlled by the `DOE_REF_INCOMPATIBLE` constant in `PowerTwin.rb`. LargeHotel (Lodging > 3 floors) uses generic `GuestRoom` and **is** compatible.
+
+### Verified Compatible Types
+
+All 12 remaining commercial building types have been empirically verified against DOE Ref Pre-1980 and DOE Ref 1980-2004 templates by running `create_bar_from_building_type_ratios` + `create_typical_building_from_model` through OpenStudio:
+
+SecondarySchool, SmallOffice, MediumOffice, LargeOffice, RetailStandalone, RetailStripmall, FullServiceRestaurant, LargeHotel, Warehouse, Hospital, Outpatient, MidriseApartment
+
+### Mixed Use Buildings
+
+For Mixed Use buildings, the template applies to **all** component types in a single simulation. If any component type is DOE-Ref-incompatible (e.g., a mixed-use building containing a SmallHotel component), the entire building falls back to `90.1-2004`.
+
 ## Future Development Roadmap
 
 ### Building Type Support
