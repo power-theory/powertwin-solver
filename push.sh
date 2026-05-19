@@ -34,20 +34,20 @@ echo "--- Building images ---"
 docker compose -f docker-compose-prod.yml build
 
 # 4. Tag and push to local registry
+# docker compose build tags images using the image: field from compose file
+# e.g. 100.72.180.45:5000/powertwin-solver-flask:dev
 echo ""
 echo "--- Pushing to registry (${REGISTRY}) ---"
 for SERVICE in "${SERVICES[@]}"; do
-  LOCAL_IMAGE="${COMPOSE_PROJECT}-${SERVICE}"
   REGISTRY_IMAGE="${REGISTRY}/${SERVICE}"
 
-  echo "  ${LOCAL_IMAGE} -> ${REGISTRY_IMAGE}:${BRANCH}, :${SHORT_SHA}"
-  docker tag "${LOCAL_IMAGE}" "${REGISTRY_IMAGE}:${BRANCH}"
-  docker tag "${LOCAL_IMAGE}" "${REGISTRY_IMAGE}:${SHORT_SHA}"
+  echo "  ${REGISTRY_IMAGE}:${BRANCH}, :${SHORT_SHA}"
+  docker tag "${REGISTRY_IMAGE}:${BRANCH}" "${REGISTRY_IMAGE}:${SHORT_SHA}"
   docker push "${REGISTRY_IMAGE}:${BRANCH}"
   docker push "${REGISTRY_IMAGE}:${SHORT_SHA}"
 
   if [ "${BRANCH}" = "main" ]; then
-    docker tag "${LOCAL_IMAGE}" "${REGISTRY_IMAGE}:latest"
+    docker tag "${REGISTRY_IMAGE}:${BRANCH}" "${REGISTRY_IMAGE}:latest"
     docker push "${REGISTRY_IMAGE}:latest"
   fi
 done
