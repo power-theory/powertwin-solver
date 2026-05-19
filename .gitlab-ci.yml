@@ -68,6 +68,9 @@ variables:
   NAME_SUFFIX_FLASK: flask
   NAME_SUFFIX_MSS: mss
 
+  # Registry
+  REGISTRY: 100.72.180.45:5000
+
   # Project Name
   PROJECT_NAME: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}
 
@@ -104,42 +107,39 @@ variables:
 .deploy_pgbouncer_template: &deploy_pgbouncer_template
   script:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-pgbouncer
-    - echo "Building Docker image for PgBouncer in $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-pgbouncer
+    - echo "Pulling PgBouncer image from registry..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-pgbouncer || docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm powertwin-solver-pgbouncer
     - echo "Deploying PgBouncer Docker container to $CI_COMMIT_BRANCH environment..."
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-pgbouncer
     - echo "PgBouncer Deployed @ ${ENVIRONMENT_URL_PGBOUNCER}"
   after_script:
     - docker image prune -f
-    - docker builder prune -af
     - echo "PgBouncer deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
 .deploy_flask_template: &deploy_flask_template
   script:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-flask
-    - echo "Building Docker image for FLASK in $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-flask
+    - echo "Pulling Flask image from registry..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-flask || docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm powertwin-solver-flask
     - echo "Deploying FLASK Docker container to $CI_COMMIT_BRANCH environment..."
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-flask
     - echo "FLASK Deployed @ ${ENVIRONMENT_URL_FLASK}"
   after_script:
     - docker image prune -f
-    - docker builder prune -af
     - echo "FLASK deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
 .deploy_mss_template: &deploy_mss_template
   script:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-mss
-    - echo "Building Docker images for Microservices in $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-mss
+    - echo "Pulling MSS image from registry..."
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-mss || docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm powertwin-solver-mss
     - echo "Deploying Microservices Docker container to $CI_COMMIT_BRANCH environment..."
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d --no-deps powertwin-solver-mss
     - echo "Microservices Deployed @ ${ENVIRONMENT_URL_MSS}"
   after_script:
     - docker image prune -f
-    - docker builder prune -af
     - echo "Microservices deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
