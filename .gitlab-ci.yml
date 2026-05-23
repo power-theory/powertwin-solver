@@ -114,6 +114,7 @@ variables:
     - echo "PgBouncer Deployed @ ${ENVIRONMENT_URL_PGBOUNCER}"
   after_script:
     - docker image prune -f
+    - docker builder prune -af
     - echo "PgBouncer deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
@@ -127,6 +128,7 @@ variables:
     - echo "FLASK Deployed @ ${ENVIRONMENT_URL_FLASK}"
   after_script:
     - docker image prune -f
+    - docker builder prune -af
     - echo "FLASK deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
@@ -140,6 +142,7 @@ variables:
     - echo "Microservices Deployed @ ${ENVIRONMENT_URL_MSS}"
   after_script:
     - docker image prune -f
+    - docker builder prune -af
     - echo "Microservices deployment to $CI_COMMIT_BRANCH complete"
   when: on_success
 
