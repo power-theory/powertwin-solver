@@ -6,6 +6,7 @@ node_modules
 tmp
 __pycache__
 solver/app/test/
+tests/
 powertwin_data
 postgres_data
 .github/instructions

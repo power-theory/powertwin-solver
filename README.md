@@ -187,9 +187,9 @@ python read_sqlite_db.py <path_to_db>
 - **Fallback:** State-level climate zone mapping if county lookup fails
 
 ### Type Mappings
-- **Asset Subtypes:** `solver/upload/asset_subtypes.csv` — building subtypes with occupancy categories and simulation type overrides
-- **Sensor Types:** `solver/upload/sensor_types.csv` — sensor type to EnergyPlus output column mappings
-- **Sensor Type Units:** `solver/upload/sensor_type_units.csv` — expected output units per sensor type
+- **Asset Subtypes:** `solver/upload/asset_subtypes.csv` (building subtypes with occupancy categories and simulation type overrides)
+- **Sensor Types:** `solver/upload/sensor_types.csv` (sensor type to EnergyPlus output column mappings)
+- **Sensor Type Units:** `solver/upload/sensor_type_units.csv` (expected output units per sensor type)
 
 ### Unit Conversions (Clean Reports)
 
@@ -197,10 +197,10 @@ EnergyPlus/UrbanOpt outputs are converted to the target units defined in `sensor
 
 | ID | Sensor | EnergyPlus Column | Raw Unit | Output Unit | Factor | Source |
 |----|--------|-------------------|----------|-------------|--------|--------|
-| 1 | Electricity | `Electricity:Facility` | kWh | kWh | 1 | — |
-| 2 | Renewables | `ElectricityProduced:Facility` | kWh | kWh | 1 | — |
+| 1 | Electricity | `Electricity:Facility` | kWh | kWh | 1 | n/a |
+| 2 | Renewables | `ElectricityProduced:Facility` | kWh | kWh | 1 | n/a |
 | 3 | Hot Water | `WaterSystems:*` (4 fuels summed) | kBtu | MMBtu | 0.001 | 1 MMBtu = 1,000 kBtu |
-| 4 | Water | *(not simulated)* | — | Gal | — | No EnergyPlus meter available |
+| 4 | Water | *(not simulated)* | n/a | Gal | n/a | No EnergyPlus meter available |
 | 5 | Chilled Water | `DistrictCooling:Facility` | kBtu | Ton-Hr | 0.083333 | 1 Ton-Hr = 12,000 BTU = 12 kBtu |
 | 6 | CO2 Emissions | `*_Emissions(MT)` (4 sources summed) | MT | MT | 1 | [UrbanOpt schema](https://docs.urbanopt.net/resources/customization/feature_reports.html): "emissions in metric ton (mt)"; [Cambium/NREL](https://docs.nrel.gov/docs/fy24osti/89309.pdf) |
 | 7 | Steam | `DistrictHeatingSteam:Facility` | kBtu | lbs | 1.030928 | 970 BTU/lb latent heat of vaporization at atmospheric pressure ([Engineering Toolbox](https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html)) |
@@ -257,6 +257,40 @@ For Mixed Use buildings, the template applies to **all** component types in a si
   - Single Family Detached homes
   - Various Multifamily configurations (2-4 units, 5+ units)
   - Vacant buildings with minimal systems
+
+## Programmable Simulation Parameters
+
+Each field below can be set per-asset under `assets.metadata` (snake_case key).
+When omitted, the sim falls back to the listed default. Defaults match the
+prior hardcoded behavior, so unmodified assets re-simulate identically.
+
+Defaults live in `solver/app/modules/simulation/sim_params_spec.py` (mirrored
+in `powertwin-db/api/lib/simulationParamsSpec.js`). Enum option lists are
+seeded into `simulation_*_types` tables and served at
+`POST /api/types/simulation/sim-types`. The full spec is served at
+`GET /api/simulation/params-spec`.
+
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| `system_type` | enum | `VAV district chilled water with district hot water reheat` | `simulation_system_types` |
+| `heating_system_fuel_type` | enum | `electricity` | `simulation_fuel_types` |
+| `cooling_system_fuel_type` | enum | `electricity` | `simulation_fuel_types` |
+| `service_water_heating_fuel_type` | enum | `electricity` | `simulation_fuel_types` |
+| `window_type` | enum | `Double Pane` | `simulation_window_types` |
+| `wall_material` | enum | `Super Insulated Wall` | `simulation_wall_materials` |
+| `roof_material` | enum | `Super Insulated Roof` | `simulation_roof_materials` |
+| `window_to_wall_ratio` | number | `0.15` | range `[0.0, 0.8]` |
+| `wall_r_value` | number | `15.0` | range `[1.0, 80.0]` |
+| `roof_r_value` | number | `15.0` | range `[1.0, 80.0]` |
+| `floor_height` | number | `9.0` ft | range `[6.0, 20.0]` |
+| `weekday_start_time` | time `HH:MM` | `""` (template default) | emit only when paired with non-empty `weekday_duration` |
+| `weekday_duration` | time `HH:MM` | `""` (template default) | must not equal `24:00` (schedule collision) |
+| `weekend_start_time` | time `HH:MM` | `""` (template default) | emit only when paired with non-empty `weekend_duration` |
+| `weekend_duration` | time `HH:MM` | `""` (template default) | must not equal `24:00` |
+| `number_of_occupants` | number | `""` (use `OCCUPANTS_MAPPING` lookup) | range `[0, 100000]`. Empty falls back to the per-`occupancy_type` default in `generateFeatureFile.py`; any explicit value (including 0) overrides it. |
+
+Editing any of these fields on a `Building` asset (asset_type_id=6) re-queues
+a simulation via the `notify_asset_update` trigger.
 
 ### Occupancy Modeling
 - Develop dynamic occupancy modeling system

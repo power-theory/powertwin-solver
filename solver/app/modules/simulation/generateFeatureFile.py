@@ -13,27 +13,10 @@ import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
+from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
-
-OCCUPANTS_MAPPING = {
-    "Educational": 355,
-    "Business": 100,
-    "SmallResidential": 4,
-    "BigResidential": 355,
-    "Vacant": 1,
-    "Industrial": 100,
-    "Storage": 10,
-    "FoodMercantile": 30,
-    "Institutional": 40,
-    "Health Care": 60,
-    "Assembly": 200,
-    "Mercantile": 150,
-    "Mixed": 355,
-    "Parking": 1,
-    "Unknown": 0
-}
 
 # Load asset subtypes from CSV: id -> {name, occupancy_type, effective_id}
 ASSET_SUBTYPES = {}
@@ -67,13 +50,14 @@ def sanitize_filename(name):
 ############################################################################################################
 def read_metadata(metadata_csv):
     from modules.utils.weather import get_location
-    
+
     building_area_list = {}
     building_type_list = {}
     building_name_list = {}
     building_weather_list = {}
     building_climate_zone_list = {}
     building_year_list = {}
+    building_metadata_list = {}
     processed_building_ids = set()
 
 
@@ -117,6 +101,7 @@ def read_metadata(metadata_csv):
             building_type_list[building_id] = building_type
             building_weather_list[building_id] = (state, weather_title)
             building_climate_zone_list[building_id] = climate_zone
+            building_metadata_list[building_id] = asset_metadata
 
             raw_year = asset_metadata.get('year_built') or asset_metadata.get('yearBuilt')
             if raw_year is not None:
@@ -125,7 +110,7 @@ def read_metadata(metadata_csv):
                 except (ValueError, TypeError):
                     logger.warning(f"Invalid year_built value for building {building_id}: {raw_year!r}")
 
-    return building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list
+    return building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list
 
 ############################################################################################################
 # Name: flatten_geometry()
@@ -153,7 +138,7 @@ def flatten_geometry(geom):
 # Description: This function processes each feature and creates a new feature structure with additional properties.
 #   It returns the new feature structure.
 ############################################################################################################
-def process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list):
+def process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list):
     # Flatten nested geometries if present
     if 'geometry' in feature:
         flatten_geometry(feature['geometry'])
@@ -177,10 +162,12 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     floor_area = building_area_list[building_id]
     building_type = building_type_list[building_id]
     building_name = sanitize_filename(building_name_list[building_id])
-        
+    asset_metadata = building_metadata_list.get(building_id, {})
+
     #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
     occupancy_subtype = BUILDING_TYPE_TO_OCCUPANCY.get(building_type, "Unknown")
-    number_of_occupants = OCCUPANTS_MAPPING.get(occupancy_subtype, 0)
+    occ_override = get_param(asset_metadata, 'number_of_occupants')
+    number_of_occupants = int(occ_override) if occ_override != '' else OCCUPANTS_MAPPING.get(occupancy_subtype, 0)
 
     # Create new properties (must be first)
     new_properties = {
@@ -188,50 +175,67 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         'asset_id': str(properties.pop('asset_id'))
     }
     new_properties.update(properties)
-    
-    # Calculate the perimeter of the building footprint (assuming a rectangular shape)
-    # Assuming asset is rectangluar
+
+    # Programmable sim params: read from asset_metadata via get_param, which
+    # fallback. See sim_params_spec.py / api/lib/simulationParamsSpec.js.
+    floor_height = get_param(asset_metadata, 'floor_height')
+    window_to_wall_ratio = get_param(asset_metadata, 'window_to_wall_ratio')
+
+    # Calculate the perimeter of the building footprint (assuming rectangular)
     footprint_area = int(floor_area / floor_count)
     side_length = footprint_area ** 0.5
     perimeter = 4 * side_length
-
-    # Calculate the exterior wall area
-    floor_height = 9.0  # 9 feet per floor
     exterior_wall_area = perimeter * floor_count * floor_height
-
-    # Apply a window-to-wall ratio (WWR)
-    window_to_wall_ratio = 0.15  # 15% WWR
     window_area = int(window_to_wall_ratio * exterior_wall_area)
 
     # https://github.com/urbanopt/urbanopt-geojson-gem/blob/master/lib/urbanopt/geojson/schema/building_properties.json
-    # Refer to Baseline.rb for default types found in all buildings (located in urbanopt github repo)
-    # Add default properties
     new_properties.update({
         "name": building_name,
-        "floor_area": int(floor_area),  
-        "footprint_area": int(floor_area / floor_count),  
+        "floor_area": int(floor_area),
+        "footprint_area": footprint_area,
         "type": "Building",
         "building_type": building_type,
         "number_of_stories": floor_count,
-        "windows": [
-            {
-                "window_area": window_area,
-                "window_type": "Double Pane"
-            }
-        ],
-        "system_type": "VAV district chilled water with district hot water reheat",
-        "heating_system_fuel_type": "electricity",
+        "windows": [{
+            "window_area": window_area,
+            "window_type": get_param(asset_metadata, 'window_type'),
+        }],
+        "heating_system_fuel_type":        get_param(asset_metadata, 'heating_system_fuel_type'),
+        "cooling_system_fuel_type":        get_param(asset_metadata, 'cooling_system_fuel_type'),
+        "service_water_heating_fuel_type": get_param(asset_metadata, 'service_water_heating_fuel_type'),
         "constructions": {
             "wall": {
-                "material": "Super Insulated Wall",
-                "r_value": 15.0
+                "material": get_param(asset_metadata, 'wall_material'),
+                "r_value":  get_param(asset_metadata, 'wall_r_value'),
             },
             "roof": {
-                "material": "Super Insulated Roof",
-                "r_value": 15.0
-            }
-        }
+                "material": get_param(asset_metadata, 'roof_material'),
+                "r_value":  get_param(asset_metadata, 'roof_r_value'),
+            },
+        },
     })
+
+    # "Inferred" means "let urbanopt's template pick", so omit the field from
+    # feature.json. urbanopt's building_properties.json enum doesn't include
+    # "Inferred" and will reject the whole feature otherwise.
+    sys_type = get_param(asset_metadata, 'system_type')
+    if sys_type and sys_type != 'Inferred':
+        new_properties["system_type"] = sys_type
+
+    # Operating hours: only emit when both start and duration are set AND duration
+    # isn't 24:00 (which collides with the implicit end-of-day Time(24:00:00) in
+    # OpenStudio's ScheduleDay and trips a BOOST_ASSERT).
+    wkdy_start = get_param(asset_metadata, 'weekday_start_time')
+    wkdy_dur   = get_param(asset_metadata, 'weekday_duration')
+    if wkdy_start and wkdy_dur and wkdy_dur != '24:00':
+        new_properties['weekday_start_time'] = wkdy_start
+        new_properties['weekday_duration']   = wkdy_dur
+    wknd_start = get_param(asset_metadata, 'weekend_start_time')
+    wknd_dur   = get_param(asset_metadata, 'weekend_duration')
+    if wknd_start and wknd_dur and wknd_dur != '24:00':
+        new_properties['weekend_start_time'] = wknd_start
+        new_properties['weekend_duration']   = wknd_dur
+
     if building_id in building_year_list:
         new_properties["year_built"] = building_year_list[building_id]
 
@@ -399,7 +403,7 @@ def create_bulk_featurefiles(failed_asset_ids, SIMULATION_DIR, LOCAL_RECOVERY_DI
     # Read files once instead of for each asset
     try:
         logger.debug("Reading metadata and geojson files...")
-        building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list = read_metadata(METADATA_CSV)
+        building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list = read_metadata(METADATA_CSV)
 
         with open(ASSET_GEOJSON, 'r') as geojson_file:
             geojson_data = json.load(geojson_file)
@@ -420,12 +424,12 @@ def create_bulk_featurefiles(failed_asset_ids, SIMULATION_DIR, LOCAL_RECOVERY_DI
         # Process feature only if it's in our failed assets list
         if building_id in failed_assets_set:
             result = process_feature(feature, building_area_list, building_type_list,
-                                  building_name_list, building_weather_list, building_climate_zone_list, building_year_list)
+                                  building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list)
             if result:
                 final_json, _, building_name = result
                 new_building_name = sanitize_filename(building_name)
                 feature_file_path = os.path.join(FEATURE_FILES_DIR, f'{building_id}_{new_building_name}.json')
-                
+
                 try:
                     with open(feature_file_path, 'w') as feature_file:
                         json.dump(final_json, feature_file, indent=4)
@@ -449,7 +453,7 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
     ASSET_GEOJSON = os.path.join(LOCAL_RECOVERY_DIR, f'{simulation_name}_asset.geojson')
 
     # Metadata requires the area, subtype and name of the building to be present from the metadata
-    building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list = read_metadata(METADATA_CSV)
+    building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list = read_metadata(METADATA_CSV)
     with open(ASSET_GEOJSON, 'r') as geojson_file:
         geojson_data = json.load(geojson_file)
 
@@ -463,7 +467,7 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
         # Process feature only if it matches the asset_id
         if building_id == int(asset_id):
             result = process_feature(feature, building_area_list, building_type_list,
-                                  building_name_list, building_weather_list, building_climate_zone_list, building_year_list)
+                                  building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list)
             if result:
                 final_json, _, building_name = result
                 new_building_name = sanitize_filename(building_name)
@@ -491,7 +495,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
     os.makedirs(FEATURE_FILES_DIR, exist_ok=True)
 
     # Metadata requires the area, subtype and name of the building to be present from the metadata
-    building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list = read_metadata(metadata_csv)
+    building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list = read_metadata(metadata_csv)
 
     with open(asset_geojson, 'r') as file:
         geojson_data = json.load(file)
@@ -500,7 +504,7 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
     # Process each feature in the GeoJSON data
     logger.info("Processing features...")
     for feature in geojson_data['features']:
-        result = process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list)
+        result = process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list)
         # If the result is not None, write the feature file
         if result:
             final_json, building_id, building_name = result

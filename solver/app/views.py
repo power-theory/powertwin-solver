@@ -10,6 +10,7 @@ import threading
 from flask import request, jsonify, render_template, send_file
 
 from modules.simulation import initialize_uo, create_featurefiles, stop_UOsimulation
+from modules.simulation.sim_params_spec import validate_metadata
 from modules.diagnostics import read_simulation_status, simulation_recovery, create_table
 from modules.utils import (
     initialize_logger, send_error_to_mss,
@@ -216,6 +217,21 @@ def process_asset_update():
         asset_id = str(metadata_json[0].get('asset_id', 'unknown'))
         timestamp = started_at.strftime('%Y%m%d_%H%M%S')
         simulation_name = f"asset_{asset_id}_{timestamp}"
+
+        # Validate programmable sim params (enum membership) before doing any
+        # filesystem work. metadata_json[0].asset_metadata is the JSONB blob the
+        # asset carries; reject early on invalid system_type / fuel / etc. so
+        # EnergyPlus doesn't crash 90s later with a cryptic Ruby BOOST_ASSERT.
+        am = metadata_json[0].get('asset_metadata') or {}
+        if isinstance(am, str):
+            try:
+                am = json.loads(am)
+            except (ValueError, TypeError):
+                am = {}
+        ok, errs = validate_metadata(am)
+        if not ok:
+            return jsonify({'error': 'invalid simulation params', 'details': errs}), 400
+
         logger.info(f"Accepted async simulation {simulation_name} for asset {asset_id}")
 
         csv_content = convert_metadata_to_csv(metadata_json)
