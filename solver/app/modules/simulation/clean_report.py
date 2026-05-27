@@ -12,6 +12,7 @@ import pandas as pd
 import json
 import csv
 import os
+import re
 import shutil
 
 from datetime import timezone, timedelta
@@ -34,6 +35,47 @@ with open(SENSOR_TYPES_CSV, 'r') as f:
             "columns": columns,
             "conversion_factor": float(row.get('conversion_factor', 1))
         }
+
+
+# urbanopt's default_feature_report.csv writes columns with parenthesized unit
+# suffixes like 'Electricity:Facility(kWh)' or 'DistrictCooling:Facility(kBtu)'.
+# The actual unit varies by urbanopt version / measure path (we've seen both
+# (kBtu) and (kWh) for DistrictCooling across commercial workflows). Rather
+# than re-pin sensor_types.csv every time urbanopt changes, the matcher below
+# is unit-suffix-aware: it strips the suffix to find the column by prefix,
+# then scales values to the unit declared in sensor_types.csv. The unit-to-kBtu
+# scale lookup lives in solver/upload/unit_scale_factors.json so new unit
+# variants can be added without touching code.
+_UNIT_SCALE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'upload', 'unit_scale_factors.json')
+with open(_UNIT_SCALE_PATH, 'r') as _f:
+    _UNIT_TO_KBTU = json.load(_f)['factors']
+_UNIT_RE = re.compile(r'^(.*)\(([^)]*)\)\s*$')
+
+
+def _split_unit(col):
+    """Strip the trailing '(unit)' from a column name.
+    'Electricity:Facility(kWh)' becomes ('Electricity:Facility', 'kWh').
+    'FooBar' becomes ('FooBar', '')."""
+    m = _UNIT_RE.match(col)
+    return (m.group(1), m.group(2)) if m else (col, '')
+
+
+def _match_column(expected_col, df_columns):
+    """Resolve expected_col against the dataframe, tolerating unit-suffix
+    drift. Returns (actual_col_name, scale) so values from the matched column
+    multiplied by `scale` are in the same unit the sensor_types.csv expected.
+    Returns (None, None) when no prefix-compatible column exists."""
+    if expected_col in df_columns:
+        return (expected_col, 1.0)
+    expected_prefix, expected_unit = _split_unit(expected_col)
+    expected_kbtu = _UNIT_TO_KBTU.get(expected_unit, 1.0)
+    for c in df_columns:
+        c_prefix, c_unit = _split_unit(c)
+        if c_prefix == expected_prefix and c_unit in _UNIT_TO_KBTU:
+            # Convert c's values to kBtu, then to expected unit.
+            scale = _UNIT_TO_KBTU[c_unit] / expected_kbtu if expected_kbtu else 1.0
+            return (c, scale)
+    return (None, None)
 
 ############################################################################################################
 # Name: clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR)
@@ -125,14 +167,28 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
     osw_path = os.path.join(ASSET_DIR, 'in.osw')
     with open(osw_path, 'r') as f:
         osw = json.load(f)
+    # The active EPW depends on which workflow ran. Commercial sets it via
+    # ChangeBuildingLocation.weather_file_name. Residential
+    # (BuildResidentialModel) skips ChangeBuildingLocation and instead carries
+    # the EPW in BuildResidentialModel.weather_station_epw_filepath as a
+    # relative path. Prefer whichever active (non-skipped) step has it.
     weather_file_name = None
     for step in osw.get('steps', []):
-        if step.get('measure_dir_name') == 'ChangeBuildingLocation':
+        if step.get('arguments', {}).get('__SKIP__') is True:
+            continue
+        name = step.get('measure_dir_name')
+        if name == 'BuildResidentialModel':
+            path = step.get('arguments', {}).get('weather_station_epw_filepath')
+            if path:
+                weather_file_name = os.path.basename(path)
+                break
+        elif name == 'ChangeBuildingLocation':
             weather_file_name = step.get('arguments', {}).get('weather_file_name')
-            break
+            if weather_file_name:
+                break
     if not weather_file_name:
         raise ValueError(
-            f"ChangeBuildingLocation weather_file_name missing in {osw_path}"
+            f"weather_file_name not found in active ChangeBuildingLocation or BuildResidentialModel step of {osw_path}"
         )
     weather_title = weather_file_name[:-4] if weather_file_name.endswith('.epw') else weather_file_name
     utc_offset_hours = get_epw_utc_offset(weather_title)
@@ -150,37 +206,43 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
     for data_id, data_info in data_mapping.items():
         data_header = data_info["name"]
         unclean_columns = data_info["columns"]
-        
-        # Check if all required columns exist in the DataFrame
-        missing_columns = [col for col in unclean_columns if col not in df.columns]
-        if missing_columns:
-            logger.debug(f"Skipping {data_header} due to missing columns: {missing_columns}")
-            continue
-        
+
         # Skip if no columns to process
         if not unclean_columns:
             logger.debug(f"Skipping {data_header} as no columns are defined")
             continue
-        
+
+        # Resolve each expected column via _match_column, which tolerates
+        # unit-suffix drift (e.g. CSV says (kBtu), df has (kWh)).
+        resolved = [(_match_column(c, df.columns), c) for c in unclean_columns]
+        missing = [exp for ((actual, _), exp) in resolved if actual is None]
+        if missing:
+            logger.debug(f"Skipping {data_header} due to missing columns: {missing}")
+            continue
+
         # Skip if sensor_id is not available for this data_id
         if data_id not in sensor_id_list:
             logger.debug(f"Skipping {data_header} as no sensor ID found for data_id {data_id}")
             continue
-            
+
+        actual_columns = [actual for ((actual, _), _) in resolved]
+        unit_scales = [scale for ((_, scale), _) in resolved]
+
         # Filter the relevant columns and make a copy of the DataFrame
         try:
-            clean_df = df[["Datetime"] + unclean_columns].copy()
-            
-            # Rename columns to include section name
-            clean_df.columns = ["ts"] + [f"{col}" for col in unclean_columns]
-            
+            clean_df = df[["Datetime"] + actual_columns].copy()
+            clean_df.columns = ["ts"] + actual_columns
+
             # Add id and metadata columns
             clean_df['id'] = sensor_id_list[data_id]
             clean_df['metadata'] = "{}"
-            
-            # Sum the columns together and apply unit conversion (e.g. kBtu -> MMBtu)
+
+            # Sum the columns (each scaled to the unit declared in
+            # sensor_types.csv), then apply the sensor's conversion_factor
+            # (e.g. kBtu to MMBtu, kBtu to Ton-Hr).
             conversion_factor = data_info.get("conversion_factor", 1)
-            clean_df['value'] = clean_df[unclean_columns].sum(axis=1) * conversion_factor
+            scaled = sum(clean_df[c] * s for c, s in zip(actual_columns, unit_scales))
+            clean_df['value'] = scaled * conversion_factor
             
             # Reorder columns 
             columns_order = ["id", "ts", "value", "metadata"]

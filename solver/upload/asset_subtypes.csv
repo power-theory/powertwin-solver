@@ -1,10 +1,10 @@
 id,name,occupancy_type,effective_id,is_active
-1,Single-Family Detached,SmallResidential,4,1
+1,Single-Family Detached,SmallResidential,1,1
 2,Single-Family Attached,SmallResidential,2,1
-3,Multifamily,BigResidential,21,1
-4,Single-Family,SmallResidential,4,1
-5,Multifamily (2 to 4 units),BigResidential,21,1
-6,Multifamily (5 or more units),BigResidential,21,1
+3,Multifamily,BigResidential,3,1
+4,Single-Family,SmallResidential,1,1
+5,Multifamily (2 to 4 units),BigResidential,3,1
+6,Multifamily (5 or more units),BigResidential,3,1
 7,Vacant,Vacant,7,1
 8,Office,Business,8,1
 9,Laboratory,Industrial,17,1
@@ -27,4 +27,4 @@ id,name,occupancy_type,effective_id,is_active
 26,Mixed use,Mixed,8,1
 27,Uncovered Parking,Parking,27,1
 28,Covered Parking,Parking,28,1
-29,null,Unknown,4,1
+29,null,Unknown,1,1

@@ -18,7 +18,7 @@ from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
 
-# Load asset subtypes from CSV: id -> {name, occupancy_type, effective_id}
+# Load asset subtypes from CSV, keyed by id with {name, occupancy_type, effective_id} values
 ASSET_SUBTYPES = {}
 ASSET_SUBTYPES_CSV = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'upload', 'asset_subtypes.csv')
 with open(ASSET_SUBTYPES_CSV, 'r') as f:
@@ -31,7 +31,7 @@ with open(ASSET_SUBTYPES_CSV, 'r') as f:
 
 DEFAULT_SUBTYPE_ID = 4  # Single-Family
 
-# Reverse lookup: building_type name -> occupancy_type (from effective/self-referencing rows only)
+# Reverse lookup from building_type name to occupancy_type (using effective/self-referencing rows only)
 BUILDING_TYPE_TO_OCCUPANCY = {}
 for sid, info in ASSET_SUBTYPES.items():
     if info['effective_id'] == sid:
@@ -95,6 +95,11 @@ def read_metadata(metadata_csv):
             processed_building_ids.add(building_id)
 
             state, weather_title, climate_zone = get_location(asset_metadata)
+
+            # Stash the resolved subtype id on the metadata dict so the
+            # residential block in process_feature can derive per-asset unit
+            # counts without re-reading the CSV.
+            asset_metadata['_subtype_id'] = subtype_id
 
             building_name_list[building_id] = asset_name
             building_area_list[building_id] = int(floor_area)
@@ -204,12 +209,15 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "cooling_system_fuel_type":        get_param(asset_metadata, 'cooling_system_fuel_type'),
         "service_water_heating_fuel_type": get_param(asset_metadata, 'service_water_heating_fuel_type'),
         "constructions": {
+            # Metadata stores just the insulation tier ("Standard",
+            # "Insulated", "Super Insulated"); urbanopt's construction-set
+            # lookup expects the surface-suffixed name, so append it here.
             "wall": {
-                "material": get_param(asset_metadata, 'wall_material'),
+                "material": f"{get_param(asset_metadata, 'wall_material')} Wall",
                 "r_value":  get_param(asset_metadata, 'wall_r_value'),
             },
             "roof": {
-                "material": get_param(asset_metadata, 'roof_material'),
+                "material": f"{get_param(asset_metadata, 'roof_material')} Roof",
                 "r_value":  get_param(asset_metadata, 'roof_r_value'),
             },
         },
@@ -239,17 +247,35 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     if building_id in building_year_list:
         new_properties["year_built"] = building_year_list[building_id]
 
-    # Apply custom properties if SmallResidential subtype
-    if occupancy_subtype == "SmallResidential":
-    
-        #logger.debug(f"Building {building_id} in state {state}, climate zone {climate_zone}: selected system type '{residential_system_type}'")
-        
+    # PowerTwin.rb routes building_type in {Single-Family Detached,
+    # Single-Family Attached, Multifamily} through BuildResidentialModel; every
+    # other building_type goes through the commercial BAR/typical pipeline.
+    # Emit the residential measure args for any asset whose effective
+    # building_type is one of those three. urbanopt requires
+    # number_of_bedrooms to be divisible by number_of_residential_units, so
+    # round bedrooms-per-unit then multiply back.
+    #
+    # Dwelling-unit count per original subtype id (effective_id remapping is
+    # already resolved upstream). Listed explicitly (rather than relying on a
+    # default fallback) so a missing entry for a future residential subtype
+    # surfaces as a visible review failure instead of silently defaulting to 1.
+    if building_type in ('Single-Family Detached', 'Single-Family Attached', 'Multifamily'):
+        units_by_subtype = {
+            1: 1,  # Single-Family Detached
+            2: 1,  # Single-Family Attached
+            3: 4,  # Multifamily (generic, typical mid-size)
+            4: 1,  # Single-Family
+            5: 3,  # Multifamily (2 to 4 units), midpoint
+            6: 8,  # Multifamily (5 or more units), representative
+        }
+        units = units_by_subtype.get(asset_metadata.get('_subtype_id'), 1)
+        bedrooms_per_unit = max(1, round(floor_area / 800 / units))
         new_properties.update({
             "number_of_stories_above_ground": floor_count,
-            "foundation_type": "basement - conditioned", 
-            "attic_type": "attic - unvented",  
-            "number_of_residential_units": 1,
-            "number_of_bedrooms": max(1, round(floor_area / 800))
+            "foundation_type": "basement - conditioned",
+            "attic_type": "attic - unvented",
+            "number_of_residential_units": units,
+            "number_of_bedrooms": bedrooms_per_unit * units,
         })
 
     # Remove useless properties

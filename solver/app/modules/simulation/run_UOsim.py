@@ -222,7 +222,18 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
         uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
 
         logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
-        uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
+        # `uo process` runs the scenario-level post-processor (urbanopt-reopt
+        # etc.). It can fail on residential workflows with a bundler activation
+        # conflict (parallel 1.19.1 vs 1.19.2). clean_single_report below only
+        # needs the per-asset feature_reports/default_feature_report.csv which
+        # `uo run` already produced via the default_feature_reports measure, so
+        # the scenario-level step is non-load-bearing for us. Make it best-
+        # effort: log and continue instead of failing the whole sim.
+        try:
+            uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
+        except Exception as e:
+            logger.warning(f"BATCH {batch_index}: uo process failed (non-fatal — per-asset feature_reports already written): {e}")
+            uo_process_time = 0
         total_time = uo_run_time + uo_process_time
     except Exception as e:
         logger.error(f"BATCH {batch_index}: Error running UrbanOpt commands: {str(e)}")

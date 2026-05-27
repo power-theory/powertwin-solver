@@ -26,8 +26,8 @@ SIM_PARAM_DEFAULTS = {
     'cooling_system_fuel_type': 'electricity',
     'service_water_heating_fuel_type': 'electricity',
     'window_type': 'Double Pane',
-    'wall_material': 'Super Insulated Wall',
-    'roof_material': 'Super Insulated Roof',
+    'wall_material': 'Super Insulated',
+    'roof_material': 'Super Insulated',
 
     # Numeric
     'window_to_wall_ratio': 0.15,
@@ -148,8 +148,10 @@ ENUM_VALUES = {
     'cooling_system_fuel_type':        {'electricity', 'natural gas', 'fuel oil', 'propane', 'wood'},
     'service_water_heating_fuel_type': {'electricity', 'natural gas', 'fuel oil', 'propane', 'wood'},
     'window_type':                     {'Single Pane', 'Double Pane', 'Triple Pane'},
-    'wall_material':                   {'Standard Wall', 'Insulated Wall', 'Super Insulated Wall'},
-    'roof_material':                   {'Standard Roof', 'Insulated Roof', 'Super Insulated Roof'},
+    # Both reference the same insulation tier list; solver appends " Wall"
+    # or " Roof" when building the urbanopt feature.json (see generateFeatureFile.py).
+    'wall_material':                   {'Standard', 'Insulated', 'Super Insulated'},
+    'roof_material':                   {'Standard', 'Insulated', 'Super Insulated'},
 }
 
 
@@ -172,7 +174,7 @@ OCCUPANTS_MAPPING = {
     'Mercantile':       150,
     'Mixed':            355,
     'Parking':          1,
-    'Unknown':          0,
+    'Unknown':          1,
 }
 
 

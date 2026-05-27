@@ -190,10 +190,13 @@ python read_sqlite_db.py <path_to_db>
 - **Asset Subtypes:** `solver/upload/asset_subtypes.csv` (building subtypes with occupancy categories and simulation type overrides)
 - **Sensor Types:** `solver/upload/sensor_types.csv` (sensor type to EnergyPlus output column mappings)
 - **Sensor Type Units:** `solver/upload/sensor_type_units.csv` (expected output units per sensor type)
+- **Unit Scale Factors:** `solver/upload/unit_scale_factors.json` (EnergyPlus unit-suffix to kBtu scaling, used by the column matcher to tolerate urbanopt unit-suffix drift, e.g. `(kBtu)` vs `(kWh)` on the same meter)
 
 ### Unit Conversions (Clean Reports)
 
 EnergyPlus/UrbanOpt outputs are converted to the target units defined in `sensor_types.csv` via `conversion_factor`. The raw EnergyPlus units are kBtu for thermal energy, kWh for electricity, and metric tons (MT) for emissions ([UrbanOpt Reporting Schema](https://docs.urbanopt.net/resources/customization/feature_reports.html)).
+
+`clean_report.py`'s column matcher is **unit-suffix-aware**: when urbanopt writes a column under a different unit than the CSV's expected one (commonly `DistrictCooling:Facility(kWh)` vs the expected `(kBtu)`), the matcher resolves by prefix and scales values using `unit_scale_factors.json` before applying `conversion_factor`. Adding support for a new unit is a one-line JSON edit (no code change).
 
 | ID | Sensor | EnergyPlus Column | Raw Unit | Output Unit | Factor | Source |
 |----|--------|-------------------|----------|-------------|--------|--------|
@@ -213,6 +216,21 @@ EnergyPlus/UrbanOpt outputs are converted to the target units defined in `sensor
 - Fuel Oil #2: EIA thermal conversion factor is 5.825 MMBtu/barrel = 138,690 BTU/gal
 - Steam: 970 BTU/lb is the standard latent heat of vaporization at 14.7 psia (212°F). Actual value varies with pressure.
 - CO2: "MT" = metric ton per UrbanOpt/Cambium convention, consistent with [EPA GHG reporting](https://www.epa.gov/ghgemissions/inventory-us-greenhouse-gas-emissions-and-sinks)
+
+## Commercial and Residential Workflow Support
+
+The solver scaffolds every per-asset urbanopt project with `uo create --combined`, which copies the residential measure tree (`resources/residential-measures`, `mappers/residential`, `xml_building`) alongside the commercial mappers/measures. `PowerTwin.rb` picks the workflow branch per asset based on the resolved `building_type`:
+
+| `building_type` (effective name) | Workflow path | Measure |
+|---|---|---|
+| `Single-Family Detached`, `Single-Family Attached`, `Multifamily` | residential | `BuildResidentialModel` (HPXML-driven) |
+| everything else | commercial | `create_bar_from_building_type_ratios` + `create_typical_building_from_model` |
+
+Residential routing is driven by `solver/upload/asset_subtypes.csv`'s `effective_id` column. Residential subtypes (id 1, 2, 3, 4, 5, 6) point at their residential canonical name; other subtypes route through the commercial path.
+
+`generateFeatureFile.py` emits the residential-specific feature.json properties (`number_of_stories_above_ground`, `foundation_type`, `attic_type`, `number_of_residential_units`, `number_of_bedrooms`) when the resolved `building_type` is one of the three residential names. Unit counts derive from the original `asset_subtype_id`: Single-Family variants get 1 unit, Multifamily (2 to 4 units) gets 3, Multifamily (5 or more units) gets 8, generic Multifamily gets 4. Bedroom count per unit is `max(1, round(floor_area / 800 / units))` and the emitted `number_of_bedrooms` is `bedrooms_per_unit * units` to satisfy urbanopt's divisibility constraint.
+
+`uo process` is invoked best-effort after `uo run`. Its bundler-activation conflict with the residential workflow (`parallel 1.19.1` vs `1.19.2`) is non-fatal: the per-asset `feature_reports/default_feature_report.csv` we consume is written by the `default_feature_reports` measure during `uo run` and doesn't depend on the scenario-level post-processor.
 
 ## DOE Ref Template Compatibility
 

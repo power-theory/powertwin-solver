@@ -1,0 +1,22 @@
+{
+  "_comment": "EnergyPlus / urbanopt unit-suffix to kBtu-equivalent scaling factor. Used by clean_report.py's column matcher to bridge unit drift between what sensor_types.csv declares as the expected column unit and what urbanopt actually writes in default_feature_report.csv. Add a new entry here when a sim surfaces an unknown unit suffix (the matcher logs a warning and skips the column in that case). Non-energy units (m3, Gal, MT, lbs) are passthrough 1.0; the sensor's own conversion_factor in sensor_types.csv governs unit conversion for those.",
+
+  "factors": {
+    "kBtu":   1.0,
+    "MMBtu":  1000.0,
+    "BTU":    0.001,
+    "therm":  100.0,
+    "kWh":    3.412141633,
+    "MWh":    3412.141633,
+    "MJ":     0.9478171203,
+    "GJ":     947.8171203,
+    "kJ":     0.0009478171203,
+    "J":      9.478171203e-7,
+
+    "m3":     1.0,
+    "Gal":    1.0,
+    "MT":     1.0,
+    "lbs":    1.0,
+    "":       1.0
+  }
+}

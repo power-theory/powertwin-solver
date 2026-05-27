@@ -87,16 +87,20 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
         try:
             uo_cmd = get_urbanopt_command()
             logger.debug(f"Using UrbanOpt command: {uo_cmd}")
-            
+
+            # Always scaffold with --combined so both commercial and residential
+            # workflows are available per-asset. PowerTwin.rb picks the right
+            # branch per building_type at runtime; the residential-measures tree
+            # is required for the residential branch, ignored for commercial.
             result = subprocess.run(
-                f"{uo_cmd} create --project-folder {UO_SIMULATION_DIR}", 
-                shell=True, 
-                check=True, 
-                capture_output=True, 
+                f"{uo_cmd} create --combined --project-folder {UO_SIMULATION_DIR}",
+                shell=True,
+                check=True,
+                capture_output=True,
                 text=True
             )
             logger.debug(f"UrbanOpt project creation output: {result.stdout}")
-            
+
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to create UrbanOpt project: {e}")
             logger.error(f"Command output: {e.output}")

@@ -310,9 +310,6 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
                 "EnergyPlus/urbanopt failed (see earlier Flask logs)"
             )
 
-        if os.path.exists(simulation_dir):
-            shutil.rmtree(simulation_dir)
-
         runtime_seconds = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds()
         # URBANOPT_RESAMPLE: 'H' | 'D' | 'W' | 'M' | 'Y' | '' (native passthrough).
         # Same convention as the HPC consolidate-state.sh RESAMPLE arg.
@@ -351,6 +348,16 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
         except Exception:
             pass
     finally:
+        # Always remove the per-sim working dir, success or failure. urbanopt
+        # writes hundreds of MB of intermediate state per run (IDF, eplusout,
+        # measure outputs, weather caches). Leaving these on disk after a
+        # failed sim used to be for debugging, but the API listener already
+        # captures last_error and any structured failure context, and the
+        # disk pressure under high-concurrency sweeps quickly becomes the
+        # bigger problem.
+        if os.path.exists(simulation_dir):
+            shutil.rmtree(simulation_dir)
+
         # Restore the prior URBANOPT_REPORTING_FREQUENCY so this override doesn't leak
         # to the next sim that doesn't supply one.
         if request_reporting_frequency:

@@ -349,7 +349,14 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
         uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
 
         logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
-        uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
+        # Scenario-level post-processor (best-effort). See run_UOsim.py for the
+        # rationale (clean_single_report only needs per-asset feature_reports
+        # which `uo run` already produced).
+        try:
+            uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
+        except Exception as e:
+            logger.warning(f"BATCH {batch_index}: uo process failed (non-fatal): {e}")
+            uo_process_time = 0
         total_time = uo_run_time + uo_process_time
     except Exception as e:
         logger.error(f"BATCH {batch_index}: Error running UrbanOpt commands: {str(e)}")
