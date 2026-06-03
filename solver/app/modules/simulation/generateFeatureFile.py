@@ -172,7 +172,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
     occupancy_subtype = BUILDING_TYPE_TO_OCCUPANCY.get(building_type, "Unknown")
     occ_override = get_param(asset_metadata, 'number_of_occupants')
-    number_of_occupants = int(occ_override) if occ_override != '' else OCCUPANTS_MAPPING.get(occupancy_subtype, 0)
+    number_of_occupants = int(occ_override) if occ_override != '' else OCCUPANTS_MAPPING.get(occupancy_subtype, 1)
 
     # Create new properties (must be first)
     new_properties = {
