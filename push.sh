@@ -29,8 +29,11 @@ else
 fi
 
 # 3. Build images from docker-compose-prod.yml
+# Export CI_COMMIT_BRANCH so compose tags images with the current branch
+# (matches what GitLab CI does automatically).
 echo ""
 echo "--- Building images ---"
+export CI_COMMIT_BRANCH="${BRANCH}"
 docker compose -f docker-compose-prod.yml build
 
 # 4. Tag and push to local registry
