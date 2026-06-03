@@ -14,6 +14,7 @@ routes = [
     ('/api/simulation/data',get_simulation_data, ['GET']),
     ('/api/simulation/asset_update', process_asset_update, ['POST']),
     ('/api/simulation/results/<simulation_name>', get_simulation_results, ['GET']),
+    ('/api/simulation/resolve-defaults', resolve_defaults_preview, ['POST']),
     ('/api/diagnostics/recovery', recovery, ['POST']),
     ('/api/diagnostics/update_asset', update_asset, ['POST']),
     ('/logs', get_logs, ['GET']),

@@ -1,0 +1,50 @@
+{
+  "_source": {
+    "name": "EIA Residential Energy Consumption Survey 2020 (RECS 2020) + NREL ResStock Technical Reference Guide 2025",
+    "publisher": "U.S. Energy Information Administration / National Renewable Energy Laboratory",
+    "urls": {
+      "recs":     "https://www.eia.gov/consumption/residential/data/2020/",
+      "resstock": "https://oedi-data-lake.s3.amazonaws.com/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/resstock_amy2018_release_1/ResStockTechnicalReferenceGuide_2025_1.pdf",
+      "rbsa":     "https://neea.org/data/residential-building-stock-assessment",
+      "iecc":     "https://codes.iccsafe.org/content/IECC2021P1"
+    },
+    "extracted": "2026-05-27",
+    "units": "wall/roof tier name (matches simulation_surface_materials enum), R-values in hr-ft^2-F/Btu",
+    "methodology": "Keyed by (census_region, vintage_bin). Tier names mirror the simulation_surface_materials enum: Standard / Insulated / Super Insulated. R-values follow ResStock TRG (which composites RECS 2020 envelope survey + NEEA RBSA 2012 + Home Innovation Research Labs 1982-2007 data + IECC minimums by vintage). Where ResStock TRG and RECS conflict, the IECC vintage minimum is used as a defensible compromise. Wall R-values are CAVITY only (does not include sheathing/finish layers); roof R-values are CEILING insulation only."
+  },
+  "wall_material": {
+    "Northeast": {"pre-1980": "Standard",  "1980-1999": "Insulated", "2000-2009": "Insulated", "2010+": "Super Insulated"},
+    "Midwest":   {"pre-1980": "Standard",  "1980-1999": "Insulated", "2000-2009": "Insulated", "2010+": "Super Insulated"},
+    "South":     {"pre-1980": "Standard",  "1980-1999": "Insulated", "2000-2009": "Insulated", "2010+": "Insulated"},
+    "West":      {"pre-1980": "Standard",  "1980-1999": "Insulated", "2000-2009": "Insulated", "2010+": "Super Insulated"}
+  },
+  "roof_material": {
+    "Northeast": {"pre-1980": "Insulated", "1980-1999": "Insulated", "2000-2009": "Super Insulated", "2010+": "Super Insulated"},
+    "Midwest":   {"pre-1980": "Insulated", "1980-1999": "Insulated", "2000-2009": "Super Insulated", "2010+": "Super Insulated"},
+    "South":     {"pre-1980": "Standard",  "1980-1999": "Insulated", "2000-2009": "Insulated",       "2010+": "Super Insulated"},
+    "West":      {"pre-1980": "Standard",  "1980-1999": "Insulated", "2000-2009": "Insulated",       "2010+": "Super Insulated"}
+  },
+  "wall_r_value": {
+    "Northeast": {"pre-1980": 7.0,  "1980-1999": 13.0, "2000-2009": 13.0, "2010+": 20.0},
+    "Midwest":   {"pre-1980": 7.0,  "1980-1999": 13.0, "2000-2009": 13.0, "2010+": 20.0},
+    "South":     {"pre-1980": 5.0,  "1980-1999": 11.0, "2000-2009": 13.0, "2010+": 13.0},
+    "West":      {"pre-1980": 7.0,  "1980-1999": 13.0, "2000-2009": 13.0, "2010+": 20.0}
+  },
+  "roof_r_value": {
+    "Northeast": {"pre-1980": 19.0, "1980-1999": 30.0, "2000-2009": 38.0, "2010+": 49.0},
+    "Midwest":   {"pre-1980": 19.0, "1980-1999": 30.0, "2000-2009": 38.0, "2010+": 49.0},
+    "South":     {"pre-1980": 11.0, "1980-1999": 19.0, "2000-2009": 30.0, "2010+": 38.0},
+    "West":      {"pre-1980": 19.0, "1980-1999": 30.0, "2000-2009": 38.0, "2010+": 49.0}
+  },
+  "window_to_wall_ratio_by_building_type": {
+    "Single-Family Detached": 0.15,
+    "Single-Family Attached": 0.13,
+    "Multifamily":            0.20
+  },
+  "_notes": [
+    "Vintage bins follow RECS published categorization: pre-1980 (built before 1980), 1980-1999, 2000-2009, 2010+ (built 2010 or later).",
+    "Tier-to-R-value mapping is fuzzy: 'Standard'~R-5 to R-7 wall / R-11 to R-19 roof; 'Insulated'~R-11 to R-13 wall / R-19 to R-30 roof; 'Super Insulated'~R-20+ wall / R-38+ roof. The tier name drives urbanopt's construction-set lookup; r_value can override.",
+    "For multifamily, RECS reports lower R-values on average for shared walls (party walls treated as adiabatic in urbanopt residential workflow). Single-family detached values used here as the conservative default.",
+    "window_to_wall_ratio_by_building_type: residential WWR is keyed by building_type (not region/vintage) because RECS reports the variance across regions/vintages as smaller than the dispersion across home types. SFD WWR median ~15% per ResStock TRG distributions. SFA slightly lower due to shorter exterior walls per dwelling unit. Multifamily aggregate covers both mid-rise and high-rise. IECC 2021 caps residential WWR at 25% in most climates."
+  ]
+}

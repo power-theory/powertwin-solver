@@ -1,0 +1,103 @@
+{
+  "_source": {
+    "standard": "ASHRAE 90.1-2013",
+    "repo": "https://github.com/NREL/openstudio-standards",
+    "file": "lib/openstudio-standards/standards/ashrae_90_1/ashrae_90_1_2013/data/ashrae_90_1_2013.spc_typ.json",
+    "branch": "master",
+    "extracted": "2026-05-26",
+    "units": "people per 1000 ft^2",
+    "methodology": "For Office, the WholeBuilding aggregate (already area-weighted across spaces) is used. For Warehouse, an area-weighted average is computed from the DOE prototype space ratios (70% Bulk + 20% Fine + 10% Office). For other building_types, the primary representative space_type is used (peak-load space, not area-weighted average) because OpenStudio Standards does not publish a WholeBuilding aggregate for them. To compute true area-weighted whole-building values would require parsing the prototype space-type ratios from lib/openstudio-standards/prototypes/, which is left as future work."
+  },
+  "people_per_1000_ft2": {
+    "Office": {
+      "value": 5.0,
+      "source": "WholeBuilding - Md Office",
+      "method": "WholeBuilding aggregate (area-weighted)"
+    },
+    "Warehouse": {
+      "value": 0.3,
+      "source": "Bulk + Fine + Office prototype mix",
+      "method": "area-weighted across prototype DOE warehouse space ratios (70/20/10)"
+    },
+    "Retail": {
+      "value": 15.0,
+      "source": "Retail",
+      "method": "primary sales floor; back-of-house spaces typically <2 per 1000ft^2"
+    },
+    "StripMall": {
+      "value": 8.0,
+      "source": "Strip mall - type 0A",
+      "method": "representative tenant space"
+    },
+    "SuperMarket": {
+      "value": 8.0,
+      "source": "Sales",
+      "method": "primary sales floor"
+    },
+    "QuickServiceRestaurant": {
+      "value": 70.0,
+      "source": "Dining",
+      "method": "primary dining area"
+    },
+    "FullServiceRestaurant": {
+      "value": 70.0,
+      "source": "Dining",
+      "method": "primary dining area"
+    },
+    "Hospital": {
+      "value": 5.0,
+      "source": "PatRoom",
+      "method": "primary patient room; ER spaces are 20x higher (peak)"
+    },
+    "Outpatient": {
+      "value": 20.02,
+      "source": "Exam",
+      "method": "primary exam room"
+    },
+    "PrimarySchool": {
+      "value": 25.0,
+      "source": "Classroom",
+      "method": "primary classroom"
+    },
+    "SecondarySchool": {
+      "value": 35.0,
+      "source": "Classroom",
+      "method": "primary classroom"
+    },
+    "College": {
+      "value": 65.0,
+      "source": "Classroom",
+      "method": "primary classroom"
+    },
+    "SmallHotel": {
+      "value": 1.33,
+      "source": "GuestRoom",
+      "method": "primary guestroom"
+    },
+    "LargeHotel": {
+      "value": 3.57,
+      "source": "GuestRoom",
+      "method": "primary guestroom"
+    },
+    "MidriseApartment": {
+      "value": 2.63,
+      "source": "Apartment",
+      "method": "primary dwelling unit (commercial template); residential workflow uses HPXML bedrooms+1 formula instead"
+    },
+    "HighriseApartment": {
+      "value": 2.63,
+      "source": "Apartment",
+      "method": "primary dwelling unit (commercial template); residential workflow uses HPXML bedrooms+1 formula instead"
+    },
+    "Laboratory": {
+      "value": 5.0,
+      "source": "Open lab",
+      "method": "primary lab space"
+    },
+    "Courthouse": {
+      "value": 70.0,
+      "source": "Courtroom",
+      "method": "primary courtroom"
+    }
+  }
+}

@@ -52,6 +52,10 @@ RUN gem install urbanopt-cli -v 1.0.1 && \
     /usr/local/lib/ruby/gems/3.2.2/bin/uo --version && \
     echo "uo command verified successfully"
 
+# Patch HPXMLtoOpenStudio location.rb to tolerate leap-year sims
+COPY ./patches/patch_hpxml_leap_year.py /tmp/patch_hpxml_leap_year.py
+RUN python3 /tmp/patch_hpxml_leap_year.py && rm /tmp/patch_hpxml_leap_year.py
+
 # Pre-warm urbanopt's runtime gems for both commercial AND residential paths
 RUN rm -f /usr/local/bin/bundle /usr/local/bin/bundler && \
     gem install --no-document bundler -v 2.4.10 && \

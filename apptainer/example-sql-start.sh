@@ -44,6 +44,9 @@ SIMULATION_NAME="teton1"
 COLLECTION_ID="7"
 URBANOPT_SIMULATION_YEAR="2026"
 URBANOPT_REPORTING_FREQUENCY="Timestep"  # Timestep, Hourly, Daily, Monthly, Runperiod
+URBANOPT_RESAMPLE="H"                  # H, D, M, A. Empty disables the resample step in consolidate
+URBANOPT_POSTPROCESS_TRANSLATIONS="true" # subtract 1s from end-of-period ts so it buckets right
+URBANOPT_DYNAMIC_DEFAULTS="false"      # opt-in: resolve defaults from RECS 2020 / CBECS 2018 / OS-Standards. false = flat SIM_PARAM_DEFAULTS only
 
 # Storage layout:
 #   ${HPC_SHARED_STORAGE}/shared/        — infrastructure (SIF, gem home, logs, tmp)
@@ -400,6 +403,8 @@ handle_termination() {
             --bind "${LOG_DIR}:/solver/logs" \
             --env "POWERTWIN_LOG_DIR=/solver/logs" \
             --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
+            --env "URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE}" \
+            --env "URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS}" \
             --env "POWERTWIN_STEP=consolidate" \
             "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner consolidate-databases \"${SIMULATION_NAME}\"" \
             2>&1 | tee "${LOG_DIR}/emergency_consolidation_${SLURM_JOB_ID}.log"
@@ -446,6 +451,8 @@ handle_termination() {
             --env "POWERTWIN_LOG_DIR=/solver/logs" \
             --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
             --env "PGDATABASE=${PGDATABASE}" \
+            --env "URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE}" \
+            --env "URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS}" \
             --env "POWERTWIN_STEP=consolidate" \
             "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner get-simulation-summary \"${SIMULATION_NAME}\"" \
             2>/dev/null)
@@ -529,6 +536,10 @@ create_feature_files() {
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
         --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
         --env "URBANOPT_SIMULATION_YEAR=${URBANOPT_SIMULATION_YEAR}" \
+        --env "URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE}" \
+        --env "URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS}" \
+        --env "URBANOPT_REPORTING_FREQUENCY=${URBANOPT_REPORTING_FREQUENCY}" \
+        --env "URBANOPT_DYNAMIC_DEFAULTS=${URBANOPT_DYNAMIC_DEFAULTS}" \
         "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner create-feature-files \
         \"${SIMULATION_NAME}\" \
         \"${ASSET_GEOJSON_PATH}\" \
@@ -700,6 +711,8 @@ consolidate_databases() {
         --env "POWERTWIN_LOG_DIR=/solver/logs" \
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "PGDATABASE=powertwin" \
+        --env "URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE}" \
+        --env "URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS}" \
         --env "POWERTWIN_STEP=consolidate" \
         --workdir /solver \
         "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner consolidate-databases \"${SIMULATION_NAME}\""
@@ -761,6 +774,8 @@ generate_final_status() {
         --env "POWERTWIN_LOG_DIR=/solver/logs" \
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "PGDATABASE=${PGDATABASE}" \
+        --env "URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE}" \
+        --env "URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS}" \
         --env "POWERTWIN_STEP=consolidate" \
         "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner get-simulation-summary \"${SIMULATION_NAME}\"" \
         2>/dev/null)

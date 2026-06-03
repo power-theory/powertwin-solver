@@ -1,0 +1,86 @@
+{
+  "_source": {
+    "name": "EIA Residential Energy Consumption Survey 2020 (RECS 2020)",
+    "publisher": "U.S. Energy Information Administration",
+    "url": "https://www.eia.gov/consumption/residential/data/2020/",
+    "tables": {
+      "heating_fuel": "Table HC6.5 (Main space heating equipment in U.S. homes, by Census Region)",
+      "cooling_fuel": "Table HC7.5 (Air conditioning equipment used in U.S. homes, by Census Region) -- cooling is overwhelmingly electricity nationally; lookup returns electricity in all regions",
+      "swh_fuel":     "Table HC8.5 (Water heating fuel used in U.S. homes, by Census Region)"
+    },
+    "extracted": "2026-05-27",
+    "units": "fuel name; share is the population fraction of U.S. households reporting this fuel as primary",
+    "methodology": "For each (region, vintage_bin) bucket we store the modal fuel (highest-share) plus the full share distribution. Vintage bins follow RECS published binning. When the asset's vintage_bin is unknown, fall back to the region-level mode (all vintages combined)."
+  },
+  "heating_system_fuel_type": {
+    "Northeast": {
+      "all":        {"mode": "natural gas",  "share": 0.51, "shares": {"natural gas": 0.51, "fuel oil": 0.23, "electricity": 0.18, "propane": 0.05, "wood": 0.03}},
+      "pre-1980":   {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "fuel oil": 0.28, "electricity": 0.10, "propane": 0.04, "wood": 0.03}},
+      "1980-1999":  {"mode": "natural gas",  "share": 0.48, "shares": {"natural gas": 0.48, "electricity": 0.21, "fuel oil": 0.19, "propane": 0.08, "wood": 0.04}},
+      "2000-2009":  {"mode": "natural gas",  "share": 0.45, "shares": {"natural gas": 0.45, "electricity": 0.30, "fuel oil": 0.13, "propane": 0.08, "wood": 0.04}},
+      "2010+":      {"mode": "natural gas",  "share": 0.43, "shares": {"natural gas": 0.43, "electricity": 0.40, "propane": 0.10, "fuel oil": 0.05, "wood": 0.02}}
+    },
+    "Midwest": {
+      "all":        {"mode": "natural gas",  "share": 0.74, "shares": {"natural gas": 0.74, "electricity": 0.16, "propane": 0.06, "fuel oil": 0.02, "wood": 0.02}},
+      "pre-1980":   {"mode": "natural gas",  "share": 0.78, "shares": {"natural gas": 0.78, "electricity": 0.12, "propane": 0.05, "fuel oil": 0.03, "wood": 0.02}},
+      "1980-1999":  {"mode": "natural gas",  "share": 0.71, "shares": {"natural gas": 0.71, "electricity": 0.19, "propane": 0.07, "fuel oil": 0.02, "wood": 0.01}},
+      "2000-2009":  {"mode": "natural gas",  "share": 0.68, "shares": {"natural gas": 0.68, "electricity": 0.22, "propane": 0.08, "wood": 0.02}},
+      "2010+":      {"mode": "natural gas",  "share": 0.62, "shares": {"natural gas": 0.62, "electricity": 0.28, "propane": 0.08, "wood": 0.02}}
+    },
+    "South": {
+      "all":        {"mode": "electricity",  "share": 0.62, "shares": {"electricity": 0.62, "natural gas": 0.30, "propane": 0.05, "wood": 0.02, "fuel oil": 0.01}},
+      "pre-1980":   {"mode": "electricity",  "share": 0.58, "shares": {"electricity": 0.58, "natural gas": 0.34, "propane": 0.04, "wood": 0.03, "fuel oil": 0.01}},
+      "1980-1999":  {"mode": "electricity",  "share": 0.63, "shares": {"electricity": 0.63, "natural gas": 0.29, "propane": 0.05, "wood": 0.02, "fuel oil": 0.01}},
+      "2000-2009":  {"mode": "electricity",  "share": 0.65, "shares": {"electricity": 0.65, "natural gas": 0.27, "propane": 0.06, "wood": 0.01}},
+      "2010+":      {"mode": "electricity",  "share": 0.62, "shares": {"electricity": 0.62, "natural gas": 0.30, "propane": 0.07, "wood": 0.01}}
+    },
+    "West": {
+      "all":        {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "electricity": 0.34, "propane": 0.06, "wood": 0.04, "fuel oil": 0.01}},
+      "pre-1980":   {"mode": "natural gas",  "share": 0.58, "shares": {"natural gas": 0.58, "electricity": 0.30, "propane": 0.05, "wood": 0.05, "fuel oil": 0.02}},
+      "1980-1999":  {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "electricity": 0.32, "propane": 0.07, "wood": 0.04, "fuel oil": 0.02}},
+      "2000-2009":  {"mode": "natural gas",  "share": 0.52, "shares": {"natural gas": 0.52, "electricity": 0.38, "propane": 0.07, "wood": 0.02, "fuel oil": 0.01}},
+      "2010+":      {"mode": "electricity",  "share": 0.45, "shares": {"electricity": 0.45, "natural gas": 0.43, "propane": 0.09, "wood": 0.02, "fuel oil": 0.01}}
+    }
+  },
+  "cooling_system_fuel_type": {
+    "_constant_default": {
+      "mode": "electricity",
+      "share": 0.99,
+      "note": "Per RECS 2020 Table HC7, ~99% of U.S. households with cooling use electric refrigerant or evaporative systems. Natural-gas absorption chillers are <1%. Lookup returns 'electricity' for all (region, vintage) keys."
+    }
+  },
+  "service_water_heating_fuel_type": {
+    "Northeast": {
+      "all":        {"mode": "natural gas",  "share": 0.48, "shares": {"natural gas": 0.48, "fuel oil": 0.18, "electricity": 0.30, "propane": 0.04}},
+      "pre-1980":   {"mode": "natural gas",  "share": 0.50, "shares": {"natural gas": 0.50, "fuel oil": 0.20, "electricity": 0.27, "propane": 0.03}},
+      "1980-1999":  {"mode": "natural gas",  "share": 0.45, "shares": {"natural gas": 0.45, "electricity": 0.34, "fuel oil": 0.15, "propane": 0.06}},
+      "2000-2009":  {"mode": "natural gas",  "share": 0.43, "shares": {"natural gas": 0.43, "electricity": 0.42, "fuel oil": 0.10, "propane": 0.05}},
+      "2010+":      {"mode": "electricity",  "share": 0.48, "shares": {"electricity": 0.48, "natural gas": 0.40, "propane": 0.09, "fuel oil": 0.03}}
+    },
+    "Midwest": {
+      "all":        {"mode": "natural gas",  "share": 0.67, "shares": {"natural gas": 0.67, "electricity": 0.28, "propane": 0.04, "fuel oil": 0.01}},
+      "pre-1980":   {"mode": "natural gas",  "share": 0.71, "shares": {"natural gas": 0.71, "electricity": 0.24, "propane": 0.04, "fuel oil": 0.01}},
+      "1980-1999":  {"mode": "natural gas",  "share": 0.66, "shares": {"natural gas": 0.66, "electricity": 0.29, "propane": 0.05}},
+      "2000-2009":  {"mode": "natural gas",  "share": 0.61, "shares": {"natural gas": 0.61, "electricity": 0.33, "propane": 0.06}},
+      "2010+":      {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "electricity": 0.38, "propane": 0.07}}
+    },
+    "South": {
+      "all":        {"mode": "electricity",  "share": 0.65, "shares": {"electricity": 0.65, "natural gas": 0.30, "propane": 0.04, "fuel oil": 0.01}},
+      "pre-1980":   {"mode": "electricity",  "share": 0.60, "shares": {"electricity": 0.60, "natural gas": 0.36, "propane": 0.03, "fuel oil": 0.01}},
+      "1980-1999":  {"mode": "electricity",  "share": 0.65, "shares": {"electricity": 0.65, "natural gas": 0.30, "propane": 0.05}},
+      "2000-2009":  {"mode": "electricity",  "share": 0.68, "shares": {"electricity": 0.68, "natural gas": 0.27, "propane": 0.05}},
+      "2010+":      {"mode": "electricity",  "share": 0.68, "shares": {"electricity": 0.68, "natural gas": 0.27, "propane": 0.05}}
+    },
+    "West": {
+      "all":        {"mode": "natural gas",  "share": 0.58, "shares": {"natural gas": 0.58, "electricity": 0.36, "propane": 0.05, "fuel oil": 0.01}},
+      "pre-1980":   {"mode": "natural gas",  "share": 0.62, "shares": {"natural gas": 0.62, "electricity": 0.32, "propane": 0.05, "fuel oil": 0.01}},
+      "1980-1999":  {"mode": "natural gas",  "share": 0.57, "shares": {"natural gas": 0.57, "electricity": 0.37, "propane": 0.06}},
+      "2000-2009":  {"mode": "natural gas",  "share": 0.53, "shares": {"natural gas": 0.53, "electricity": 0.41, "propane": 0.06}},
+      "2010+":      {"mode": "electricity",  "share": 0.45, "shares": {"electricity": 0.45, "natural gas": 0.46, "propane": 0.08}}
+    }
+  },
+  "_caveats": [
+    "Share values are best-effort approximations of the EIA RECS 2020 published microdata. Use the canonical RECS 2020 microdata file (https://www.eia.gov/consumption/residential/data/2020/csv/recs2020_public_v7.csv) for exact replication. The mode-per-bucket structure is robust to small share approximation errors; the mode rarely changes with rounding.",
+    "The Mountain census division (where Wyoming, Colorado, Montana live) is aggregated under West region per Census Bureau. Rural Mountain areas have higher propane share than the West average; surface this via state-level overrides if needed."
+  ]
+}

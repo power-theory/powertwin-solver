@@ -286,6 +286,10 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
         if os.path.exists(UPLOAD_MAPPER):
             logger.info(f"BATCH {batch_index}: Found mapper file, copying to {MAPPER_FILE}")
             shutil.copy(UPLOAD_MAPPER, MAPPER_FILE)
+            src_ref = os.path.join(os.path.dirname(UPLOAD_MAPPER), 'reference_data')
+            dst_ref = os.path.join(MAPPERS_DIR, 'reference_data')
+            if os.path.isdir(src_ref) and not os.path.isdir(dst_ref):
+                shutil.copytree(src_ref, dst_ref)
         else:
             logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found at {UPLOAD_MAPPER}")
             
@@ -469,12 +473,13 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     
     logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed")
     
-    # Clean up - delete finished batch
+    # Clean up - delete finished batch (gated by SIMULATION_KEEP_RUN_DIR).
+    keep = os.environ.get('SIMULATION_KEEP_RUN_DIR', '').strip().lower() in ('1', 'true', 'yes', 'on')
     batch_dir = os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_num}')
-    if os.path.exists(batch_dir):
+    if os.path.exists(batch_dir) and not keep:
         logger.debug(f"BATCH {batch_num}: Cleaning up directory: {batch_dir}")
         shutil.rmtree(batch_dir)
-    else:
+    elif not os.path.exists(batch_dir):
         logger.warning(f"BATCH {batch_num}: Directory not found for cleanup (unneccesary for hpc mode): {batch_dir}")
     
     

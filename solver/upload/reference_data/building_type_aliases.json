@@ -1,0 +1,36 @@
+{
+  "_source": {
+    "name": "PowerTwin asset_subtype -> DOE Reference Building / OpenStudio Standards prototype crosswalk",
+    "primary_reference": "NREL ComStock 'Building Type Crosswalks' explainer (https://nrel.github.io/ComStock.github.io/docs/resources/explanations/building_type_crosswalks.html)",
+    "secondary_reference": "NREL openstudio-standards space type / occupant density tables (https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/standards/ashrae_90_1/ashrae_90_1_2013/data/ashrae_90_1_2013.spc_typ.json)",
+    "tertiary_reference": "PNNL-32815 Commercial Building Prototypes Based on CBECS (https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-32815.pdf)",
+    "notes": "PowerTwin asset_subtypes uses EIA CBECS Principal Building Activity (PBA) vocabulary. The dynamic-defaults lookup tables (openstudio_standards_people_per_area, cbecs2018_envelope window_to_wall_ratio_by_building_type) use DOE Reference Building / OpenStudio Standards prototype names. Without translation the resolver returns None for ~85% of commercial subtypes and falls through to the national flat default. Aliases below come from two sources: (1) NREL ComStock's published crosswalk between CBECS PBAPLUS and ComStock's 14 building prototypes -- the high-confidence subset; (2) OpenStudio Standards space type entries that exist outside the ComStock 14 (Laboratory, Courthouse, SuperMarket) and so are usable for occupant-density lookups but may not have matching WWR entries -- the broader-coverage subset. Categories with no canonical DOE/ASHRAE prototype are intentionally OMITTED so the resolver returns None and falls back to flat defaults. Omitted: Religious worship, Public assembly, Service, Nursing, Refrigerated warehouse, Enclosed mall, Vacant. Within Education and Lodging the PowerTwin label collapses CBECS sub-categories (Elementary/middle vs High school; Hotel vs Motel/inn) -- the alias picks the more common archetype as a single default and notes the alternative (Education: PrimarySchool default, SecondarySchool above ~120k ft^2; Lodging: SmallHotel default, LargeHotel above ~50k ft^2). Refine with area-based splits if/when occupants or WWR for the larger archetype materially diverges."
+  },
+  "powertwin_to_doe_ref": {
+    "Office":                    "Office",
+    "Mixed use":                 "Office",
+    "Education":                 "PrimarySchool",
+    "Lodging":                   "SmallHotel",
+    "Food service":              "FullServiceRestaurant",
+    "Food sales":                "SuperMarket",
+    "Outpatient health care":    "Outpatient",
+    "Inpatient health care":     "Hospital",
+    "Nonrefrigerated warehouse": "Warehouse",
+    "Public order and safety":   "Courthouse",
+    "Laboratory":                "Laboratory",
+    "Retail other than mall":    "Retail",
+    "Strip shopping mall":       "StripMall"
+  },
+  "_omitted_explicit": {
+    "_notes": "Documented for clarity -- these PowerTwin asset_subtypes are intentionally NOT mapped. The resolver returns None for them and the caller falls back to the national flat default. Listed here so future maintainers don't reintroduce speculative proxies.",
+    "Religious worship":      "no DOE Reference Building prototype; ComStock crosswalk has no entry",
+    "Public assembly":        "no canonical prototype; spans theaters, civic gathering, athletic facilities",
+    "Service":                "no canonical prototype; CBECS spans vehicle dealers, repair shops, salons",
+    "Nursing":                "Hospital is acute-care-focused, not a clean proxy",
+    "Refrigerated warehouse": "ComStock crosswalk only maps non-refrigerated; HVAC profile differs materially",
+    "Enclosed mall":          "ComStock crosswalk only maps strip shopping mall; enclosed has no entry",
+    "Vacant":                 "no occupied profile",
+    "Uncovered Parking":      "no building envelope, separate workflow",
+    "Covered Parking":        "no building envelope, separate workflow"
+  }
+}

@@ -125,6 +125,30 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
 
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
         shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
+        src_ref = os.path.join(os.path.dirname(MAPPER_FILE), 'reference_data')
+        dst_ref = os.path.join(MAPPER_DESTINATION, 'reference_data')
+        if os.path.isdir(src_ref) and not os.path.isdir(dst_ref):
+            shutil.copytree(src_ref, dst_ref)
+
+        # Overlay our customized base_workflow.osw (adds set_window_construction,
+        # set_service_water_heating_fuel, set_people_per_floor_area, the roof
+        # insulation step, etc.) on top of urbanopt-cli's stock template.
+        upload_dir = os.path.dirname(MAPPER_FILE)
+        custom_osw = os.path.join(upload_dir, 'base_workflow.osw')
+        if os.path.exists(custom_osw):
+            shutil.copy(custom_osw, os.path.join(MAPPER_DESTINATION, 'base_workflow.osw'))
+
+        # Stage our custom measures under <project>/measures/ so openstudio CLI
+        # can resolve them by measure_dir_name without explicit measure_paths.
+        src_measures = os.path.join(upload_dir, 'measures')
+        dst_measures = os.path.join(UO_SIMULATION_DIR, 'measures')
+        if os.path.isdir(src_measures):
+            os.makedirs(dst_measures, exist_ok=True)
+            for m in os.listdir(src_measures):
+                src = os.path.join(src_measures, m)
+                dst = os.path.join(dst_measures, m)
+                if os.path.isdir(src) and not os.path.isdir(dst):
+                    shutil.copytree(src, dst)
 
     # Initialize all assets with "Not Processed Yet" status using bulk update
     try:

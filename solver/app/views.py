@@ -10,7 +10,10 @@ import threading
 from flask import request, jsonify, render_template, send_file
 
 from modules.simulation import initialize_uo, create_featurefiles, stop_UOsimulation
-from modules.simulation.sim_params_spec import validate_metadata
+from modules.simulation.sim_params_spec import (
+    validate_metadata, build_asset_ctx, resolve_default,
+    is_dynamic_defaults_enabled,
+)
 from modules.diagnostics import read_simulation_status, simulation_recovery, create_table
 from modules.utils import (
     initialize_logger, send_error_to_mss,
@@ -75,7 +78,7 @@ def home():
 ############################################################################################################
 def start_simulation():
     logger.debug("Within start_simulation()")
-    
+
     # Inputs
     ASSET_GEOJSON = request.files.get('asset_geojson_file')
     METADATA_CSV = request.files.get('metadata_csv_file')
@@ -83,6 +86,16 @@ def start_simulation():
     num_cores = int(request.form.get('num_cores', 1))
     shared_storage = request.form.get('shared_storage')
     keep_dirs = request.form.get('keep_dirs', 'false').lower() == 'true'
+    # Optional per-request URBANOPT_DYNAMIC_DEFAULTS override.
+    # 'true'/'false' (case-insensitive); anything else (incl. missing) leaves
+    # the server-wide env untouched. Mirrors the request_reporting_frequency
+    # snapshot/restore pattern in _run_asset_update_simulation().
+    request_dynamic_defaults_raw = request.form.get('dynamic_defaults')
+    request_dynamic_defaults = None
+    if request_dynamic_defaults_raw is not None:
+        lowered = str(request_dynamic_defaults_raw).strip().lower()
+        if lowered in ('true', 'false'):
+            request_dynamic_defaults = lowered
     
     # Use centralized HPC detection
     is_hpc = is_hpc_environment()
@@ -129,6 +142,15 @@ def start_simulation():
     ASSET_GEOJSON.save(asset_geojson_path)
     METADATA_CSV.save(metadata_csv_path)
 
+    # Per-request URBANOPT_DYNAMIC_DEFAULTS override. Snapshot before mutating
+    # so the override doesn't leak to the next sim. SIMULATION_CONCURRENCY=1
+    # invariant (which the URBANOPT_REPORTING_FREQUENCY override already
+    # depends on) makes env mutation safe inside the request.
+    prev_dynamic_defaults = os.environ.get('URBANOPT_DYNAMIC_DEFAULTS')
+    if request_dynamic_defaults is not None:
+        os.environ['URBANOPT_DYNAMIC_DEFAULTS'] = request_dynamic_defaults
+        logger.info(f"URBANOPT_DYNAMIC_DEFAULTS override for {simulation_name}: {request_dynamic_defaults}")
+
     # Call the create_feature_files and initialize_uo to run the simulation and
     # delete the simulation directory (container)
     try:
@@ -136,11 +158,11 @@ def start_simulation():
         logger.debug("Calling create_feature_files from start_simulation()")
         create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, num_cores, simulation_name)
         logger.debug("Exited create_feature_files to start_simulation()")
-        
+
         logger.debug("Calling initialize_uo from start_simulation()")
         initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
         logger.debug("Exited initialize_uo to start_simulation()")
-        
+
         logger.debug("Deleting simulation directory, within the container")
         get_logs()
         shutil.rmtree(SIMULATION_DIR)
@@ -148,6 +170,12 @@ def start_simulation():
         logger.error(f"Exception: {str(e)}")
         send_error_to_mss('start_simulation', str(e))
         return jsonify({'error': str(e)}), 500
+    finally:
+        if request_dynamic_defaults is not None:
+            if prev_dynamic_defaults is None:
+                os.environ.pop('URBANOPT_DYNAMIC_DEFAULTS', None)
+            else:
+                os.environ['URBANOPT_DYNAMIC_DEFAULTS'] = prev_dynamic_defaults
     
     logger.debug("start_simulation() ran successfully")
     return jsonify({'confirmation': f'Simulation "{simulation_name}" ran successfully'})
@@ -214,8 +242,20 @@ def process_asset_update():
         except ValueError as ve:
             return jsonify({'error': str(ve)}), 400
 
+        # Optional per-request URBANOPT_DYNAMIC_DEFAULTS override on the async
+        # path. Mirrors the start_simulation parsing: 'true' / 'false'
+        # (case-insensitive); anything else (including missing) leaves the
+        # server-wide env untouched. The override is applied + restored
+        # inside _run_asset_update_simulation so it doesn't leak.
+        request_dynamic_defaults_raw = request_data.get('dynamic_defaults')
+        request_dynamic_defaults = None
+        if request_dynamic_defaults_raw is not None:
+            lowered = str(request_dynamic_defaults_raw).strip().lower()
+            if lowered in ('true', 'false'):
+                request_dynamic_defaults = lowered
+
         asset_id = str(metadata_json[0].get('asset_id', 'unknown'))
-        timestamp = started_at.strftime('%Y%m%d_%H%M%S')
+        timestamp = started_at.strftime('%Y%m%d_%H%M%S_%f')
         simulation_name = f"asset_{asset_id}_{timestamp}"
 
         # Validate programmable sim params (enum membership) before doing any
@@ -260,7 +300,7 @@ def process_asset_update():
             args=(simulation_name, SIMULATION_DIR, sim_local_dir,
                   asset_geojson_path, metadata_csv_path,
                   started_at, request_start_date_time, request_end_date_time,
-                  request_reporting_frequency),
+                  request_reporting_frequency, request_dynamic_defaults),
             daemon=True,
         )
         thread.start()
@@ -280,8 +320,9 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
                                  asset_geojson_path, metadata_csv_path,
                                  started_at, request_start_date_time=None,
                                  request_end_date_time=None,
-                                 request_reporting_frequency=None):
-    """Background worker. Runs without a Flask request context — do not reference `request`."""
+                                 request_reporting_frequency=None,
+                                 request_dynamic_defaults=None):
+    """Background worker. Runs without a Flask request context -- do not reference `request`."""
     # Per-request URBANOPT_REPORTING_FREQUENCY override. PowerTwin.rb (the urbanopt mapper)
     # reads ENV['URBANOPT_REPORTING_FREQUENCY'] when building the OSW. With
     # SIMULATION_CONCURRENCY=1 there's only ever one sim in flight, so mutating
@@ -290,6 +331,16 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
     if request_reporting_frequency:
         os.environ['URBANOPT_REPORTING_FREQUENCY'] = request_reporting_frequency
         logger.info(f"URBANOPT_REPORTING_FREQUENCY override for {simulation_name}: {request_reporting_frequency}")
+
+    # Per-request URBANOPT_DYNAMIC_DEFAULTS override on the async path.
+    # Snapshot-and-restore mirrors the reporting_frequency pattern above so
+    # the override is scoped to this single simulation. is_dynamic_defaults_enabled
+    # reads the env at call time, so the mutation takes effect for the
+    # synchronous feature-file generation that runs in this same thread.
+    prev_dynamic_defaults = os.environ.get('URBANOPT_DYNAMIC_DEFAULTS')
+    if request_dynamic_defaults is not None:
+        os.environ['URBANOPT_DYNAMIC_DEFAULTS'] = request_dynamic_defaults
+        logger.info(f"URBANOPT_DYNAMIC_DEFAULTS override for {simulation_name}: {request_dynamic_defaults}")
     try:
         num_cores = 1
         create_table()
@@ -355,7 +406,10 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
         # captures last_error and any structured failure context, and the
         # disk pressure under high-concurrency sweeps quickly becomes the
         # bigger problem.
-        if os.path.exists(simulation_dir):
+        # SIMULATION_KEEP_RUN_DIR (bool, default false) disables this cleanup
+        # so test verifiers can inspect in.osw / out.osw / in.idf after a sim.
+        keep = os.environ.get('SIMULATION_KEEP_RUN_DIR', '').strip().lower() in ('1', 'true', 'yes', 'on')
+        if os.path.exists(simulation_dir) and not keep:
             shutil.rmtree(simulation_dir)
 
         # Restore the prior URBANOPT_REPORTING_FREQUENCY so this override doesn't leak
@@ -365,6 +419,14 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
                 os.environ.pop('URBANOPT_REPORTING_FREQUENCY', None)
             else:
                 os.environ['URBANOPT_REPORTING_FREQUENCY'] = prev_reporting_freq
+
+        # Restore the prior URBANOPT_DYNAMIC_DEFAULTS so this override doesn't
+        # leak to the next async sim.
+        if request_dynamic_defaults is not None:
+            if prev_dynamic_defaults is None:
+                os.environ.pop('URBANOPT_DYNAMIC_DEFAULTS', None)
+            else:
+                os.environ['URBANOPT_DYNAMIC_DEFAULTS'] = prev_dynamic_defaults
 
 ############################################################################################################
 # Name: def convert_metadata_to_csv(metadata_json)
@@ -494,7 +556,7 @@ def autorun_simulation():
     num_cores = data.get('num_cores', 1)
 
     # Error checking
-    #TODO: Metadata csv should be optional since ideally it should only required for report cleaning
+    #TODO: Metadata csv could be merged into feature properties (no need for two seperate files)
     if not simulation_name or not asset_geojson_path or not metadata_csv_path or num_cores <= 0:
         logger.error("Error: Missing required fields in simulation.json")
         return jsonify({'error': 'Missing required fields in simulation.json'}), 400
@@ -626,6 +688,12 @@ def delete_simulation(simulation_name):
 
     SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
     LOCAL_DIR_SIM = os.path.join('powertwin-solver-pg', 'user_files', simulation_name)
+
+    # SIMULATION_KEEP_RUN_DIR (bool, default false) makes this endpoint a no-op
+    # so test verifiers can inspect artifacts after the listener marks the job done.
+    keep = os.environ.get('SIMULATION_KEEP_RUN_DIR', '').strip().lower() in ('1', 'true', 'yes', 'on')
+    if keep:
+        return jsonify({'message': 'cleanup skipped (SIMULATION_KEEP_RUN_DIR)', 'simulation_name': simulation_name}), 200
 
     removed = []
     try:
@@ -997,5 +1065,56 @@ def get_simulation_results(simulation_name):
     except Exception as e:
         logger.error(f"Failed to read results.json for {simulation_name}: {e}")
         send_error_to_mss('get_simulation_results', str(e))
+        return jsonify({'error': str(e)}), 500
+
+
+############################################################################################################
+# Name: def resolve_defaults_preview()
+# Description: Given an asset's metadata + building_type, return the map of
+# dynamic-default values that resolve_default() would produce. Single source
+# of truth for the resolver -- db-api proxies here instead of duplicating the
+# logic + the reference_data JSONs. Response includes dynamic_defaults_enabled
+# so callers can distinguish "feature off" from "no override available", plus
+# a per-field `levels` map tagging how each value was resolved (vintage_specific
+# / region_all / building_type_only / flat_default). The frontend uses this
+# to surface confidence indicators like "(based on age + region)" vs
+# "(estimated, region average)" vs "(national default)".
+############################################################################################################
+DYNAMIC_FIELDS = [
+    'number_of_occupants',
+    'heating_system_fuel_type',
+    'cooling_system_fuel_type',
+    'service_water_heating_fuel_type',
+    'wall_material', 'roof_material',
+    'wall_r_value', 'roof_r_value', 'window_to_wall_ratio',
+]
+
+
+def resolve_defaults_preview():
+    auth_err = _check_api_token()
+    if auth_err is not None:
+        return auth_err
+    try:
+        payload = request.get_json(silent=True) or {}
+        metadata = payload.get('metadata') or {}
+        building_type = payload.get('building_type')
+        ctx = build_asset_ctx(metadata, building_type=building_type)
+        resolved = {}
+        levels = {}
+        for f in DYNAMIC_FIELDS:
+            value, level = resolve_default(f, ctx)
+            if value is not None:
+                resolved[f] = value
+                levels[f] = level
+            else:
+                levels[f] = 'flat_default'
+        return jsonify({
+            'dynamic_defaults_enabled': is_dynamic_defaults_enabled(),
+            'context': ctx,
+            'resolved': resolved,
+            'levels': levels,
+        })
+    except Exception as e:
+        logger.error(f"resolve_defaults_preview error: {e}")
         return jsonify({'error': str(e)}), 500
 

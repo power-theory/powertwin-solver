@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>set_people_per_floor_area</name>
+  <uid>c3a0b00a-9c44-4a4f-8d1d-001a7c4f0003</uid>
+  <version_id>c3a0b00a-9c44-4a4f-8d1d-001a7c4f0003</version_id>
+  <version_modified>2026-05-27T00:00:00Z</version_modified>
+  <xml_checksum>00000001</xml_checksum>
+  <class_name>SetPeoplePerFloorArea</class_name>
+  <display_name>Set Total Occupants</display_name>
+  <description>Rescale every People object so the building total equals target_total.</description>
+  <modeler_description>Computes the model's current total people count (sum of space.numberOfPeople), then applies a uniform scalar to each People object's peoplePerFloorArea / numberofPeople / spaceFloorAreaperPerson so the new total matches target_total. Preserves the relative density distribution.</modeler_description>
+  <arguments>
+    <argument>
+      <name>target_total</name>
+      <display_name>Target total occupants</display_name>
+      <type>Integer</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>1</default_value>
+    </argument>
+  </arguments>
+  <outputs/>
+  <attributes>
+    <attribute><name>Measure Type</name><value>ModelMeasure</value><datatype>string</datatype></attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+  </files>
+</measure>

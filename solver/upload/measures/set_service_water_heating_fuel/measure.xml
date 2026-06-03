@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>set_service_water_heating_fuel</name>
+  <uid>c3a0b00a-9c44-4a4f-8d1d-001a7c4f0002</uid>
+  <version_id>c3a0b00a-9c44-4a4f-8d1d-001a7c4f0012</version_id>
+  <version_modified>2026-05-27T01:00:00Z</version_modified>
+  <xml_checksum>00000002</xml_checksum>
+  <class_name>SetServiceWaterHeatingFuel</class_name>
+  <display_name>Set Service Water Heating Fuel</display_name>
+  <description>Set fuel type and thermal efficiency on every WaterHeater:Mixed.</description>
+  <modeler_description>Pure applier: caller supplies E+ fuel name (Electricity / NaturalGas / FuelOilNo2 / Propane) and a matching thermal efficiency. Iterates WaterHeater:Mixed and applies both.</modeler_description>
+  <arguments>
+    <argument>
+      <name>fuel</name>
+      <display_name>E+ fuel name</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>NaturalGas</default_value>
+      <choices>
+        <choice><value>Electricity</value><display_name>Electricity</display_name></choice>
+        <choice><value>NaturalGas</value><display_name>NaturalGas</display_name></choice>
+        <choice><value>FuelOilNo2</value><display_name>FuelOilNo2</display_name></choice>
+        <choice><value>Propane</value><display_name>Propane</display_name></choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>thermal_efficiency</name>
+      <display_name>Thermal efficiency (0-1)</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.80</default_value>
+    </argument>
+  </arguments>
+  <outputs/>
+  <attributes>
+    <attribute><name>Measure Type</name><value>ModelMeasure</value><datatype>string</datatype></attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+  </files>
+</measure>

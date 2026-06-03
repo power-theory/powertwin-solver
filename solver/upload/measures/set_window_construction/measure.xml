@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>set_window_construction</name>
+  <uid>c3a0b00a-9c44-4a4f-8d1d-001a7c4f0001</uid>
+  <version_id>c3a0b00a-9c44-4a4f-8d1d-001a7c4f0011</version_id>
+  <version_modified>2026-05-27T01:00:00Z</version_modified>
+  <xml_checksum>00000002</xml_checksum>
+  <class_name>SetWindowConstruction</class_name>
+  <display_name>Set Window Construction</display_name>
+  <description>Build a SimpleGlazing from given U-factor + SHGC and assign to all exterior windows.</description>
+  <modeler_description>Pure applier: caller supplies U-factor (W/m2-K) and SHGC. Builds an OS:SimpleGlazing + OS:Construction and reassigns FixedWindow/OperableWindow subsurfaces.</modeler_description>
+  <arguments>
+    <argument>
+      <name>u_factor</name>
+      <display_name>Window U-factor (W/m2-K)</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>3.12</default_value>
+    </argument>
+    <argument>
+      <name>shgc</name>
+      <display_name>Window SHGC (0-1)</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.40</default_value>
+    </argument>
+  </arguments>
+  <outputs/>
+  <attributes>
+    <attribute><name>Measure Type</name><value>ModelMeasure</value><datatype>string</datatype></attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+  </files>
+</measure>

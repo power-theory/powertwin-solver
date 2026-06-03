@@ -13,7 +13,7 @@ import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
-from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING
+from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
@@ -169,10 +169,16 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     building_name = sanitize_filename(building_name_list[building_id])
     asset_metadata = building_metadata_list.get(building_id, {})
 
-    #TODO: Instead of a simple set mapping schema implement a more complex mapping schema that considers square footage and other factors
+    # Build the asset context once; every get_param call below uses it to
+    # resolve dynamic defaults from the national-stock lookup tables
+    # (reference_data/) before falling back to SIM_PARAM_DEFAULTS.
+    ctx = build_asset_ctx({**asset_metadata, 'area': floor_area}, building_type=building_type)
     occupancy_subtype = BUILDING_TYPE_TO_OCCUPANCY.get(building_type, "Unknown")
-    occ_override = get_param(asset_metadata, 'number_of_occupants')
-    number_of_occupants = int(occ_override) if occ_override != '' else OCCUPANTS_MAPPING.get(occupancy_subtype, 1)
+    occ_override = get_param(asset_metadata, 'number_of_occupants', ctx)
+    try:
+        number_of_occupants = int(occ_override)
+    except (TypeError, ValueError):
+        number_of_occupants = OCCUPANTS_MAPPING.get(occupancy_subtype, 1)
 
     # Create new properties (must be first)
     new_properties = {
@@ -182,9 +188,10 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     new_properties.update(properties)
 
     # Programmable sim params: read from asset_metadata via get_param, which
-    # fallback. See sim_params_spec.py / api/lib/simulationParamsSpec.js.
-    floor_height = get_param(asset_metadata, 'floor_height')
-    window_to_wall_ratio = get_param(asset_metadata, 'window_to_wall_ratio')
+    # checks dynamic (national-stock) defaults before the flat fallback. See
+    # sim_params_spec.py / api/lib/simulationParamsSpec.js.
+    floor_height = get_param(asset_metadata, 'floor_height', ctx)
+    window_to_wall_ratio = get_param(asset_metadata, 'window_to_wall_ratio', ctx)
 
     # Calculate the perimeter of the building footprint (assuming rectangular)
     footprint_area = int(floor_area / floor_count)
@@ -201,24 +208,27 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "type": "Building",
         "building_type": building_type,
         "number_of_stories": floor_count,
+        "number_of_occupants": number_of_occupants,
+        "floor_height": floor_height,
+        "window_to_wall_ratio": window_to_wall_ratio,
         "windows": [{
             "window_area": window_area,
-            "window_type": get_param(asset_metadata, 'window_type'),
+            "window_type": get_param(asset_metadata, 'window_type', ctx),
         }],
-        "heating_system_fuel_type":        get_param(asset_metadata, 'heating_system_fuel_type'),
-        "cooling_system_fuel_type":        get_param(asset_metadata, 'cooling_system_fuel_type'),
-        "service_water_heating_fuel_type": get_param(asset_metadata, 'service_water_heating_fuel_type'),
+        "heating_system_fuel_type":        get_param(asset_metadata, 'heating_system_fuel_type', ctx),
+        "cooling_system_fuel_type":        get_param(asset_metadata, 'cooling_system_fuel_type', ctx),
+        "service_water_heating_fuel_type": get_param(asset_metadata, 'service_water_heating_fuel_type', ctx),
         "constructions": {
             # Metadata stores just the insulation tier ("Standard",
             # "Insulated", "Super Insulated"); urbanopt's construction-set
             # lookup expects the surface-suffixed name, so append it here.
             "wall": {
-                "material": f"{get_param(asset_metadata, 'wall_material')} Wall",
-                "r_value":  get_param(asset_metadata, 'wall_r_value'),
+                "material": f"{get_param(asset_metadata, 'wall_material', ctx)} Wall",
+                "r_value":  get_param(asset_metadata, 'wall_r_value', ctx),
             },
             "roof": {
-                "material": f"{get_param(asset_metadata, 'roof_material')} Roof",
-                "r_value":  get_param(asset_metadata, 'roof_r_value'),
+                "material": f"{get_param(asset_metadata, 'roof_material', ctx)} Roof",
+                "r_value":  get_param(asset_metadata, 'roof_r_value', ctx),
             },
         },
     })

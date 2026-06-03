@@ -11,7 +11,7 @@ services:
     volumes:
       - ./powertwin_data:/solver/powertwin-solver-pg
       - ./postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
+    restart: always
     networks:
       default:
         aliases:
@@ -48,7 +48,7 @@ services:
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits,application_name
     ports:
       - "${PGBOUNCER_PORT}:6432"
-    restart: unless-stopped
+    restart: always
     networks:
       default:
         aliases:
@@ -94,6 +94,7 @@ services:
       - URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE:-}
       - URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS:-false}
       - URBANOPT_SIMULATION_YEAR=${URBANOPT_SIMULATION_YEAR:-2025}
+      - URBANOPT_DYNAMIC_DEFAULTS=${URBANOPT_DYNAMIC_DEFAULTS:-false}
     volumes:
       - ./powertwin_data:/solver/powertwin-solver-pg
     healthcheck:

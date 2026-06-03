@@ -15,6 +15,76 @@ require 'json'
 require 'rexml/document'
 require 'logger'
 
+# PowerTwin reference-data lookup. Resolves tier names + asset context into
+# concrete physical values (U/SHGC, R-value, fuel efficiency) so the custom
+# OS measures stay pure appliers. Reads the same JSONs the Python resolver
+# uses (solver/upload/reference_data/) for envelope R; window U/SHGC and SWH
+# efficiency tables are kept inline here since they don't have JSON equivalents.
+module PowerTwinRefs
+  REF_DIR = File.join(File.dirname(__FILE__), 'reference_data')
+  @@cache = {}
+  def self.load(name)
+    @@cache[name] ||= JSON.parse(File.read(File.join(REF_DIR, "#{name}.json")))
+  end
+
+  # ASHRAE 90.1-2013 Section 5.5 prescriptive nonres window U-factor (W/m2-K)
+  # and SHGC by climate zone. From Table 5.5-1 through 5.5-8.
+  # https://www.ashrae.org/technical-resources/bookstore/standard-90-1
+  CZ_WINDOW = {
+    '1' => { u: 6.81, shgc: 0.25 }, '2' => { u: 4.26, shgc: 0.25 },
+    '3' => { u: 3.69, shgc: 0.25 }, '4' => { u: 3.12, shgc: 0.40 },
+    '5' => { u: 3.12, shgc: 0.40 }, '6' => { u: 2.56, shgc: 0.40 },
+    '7' => { u: 2.27, shgc: 0.45 }, '8' => { u: 1.99, shgc: 0.45 },
+  }.freeze
+  # Window U-factor and SHGC multipliers vs the 90.1-2013 prescriptive baseline
+  # (which assumes double low-e). Single Pane U multiplier 2.0 reflects RESNET
+  # clear-single stock ~U-1.18 Btu/hr-ft2-F vs 90.1 CZ4 prescriptive ~U-0.55
+  # (= 3.12 W/m2-K). Triple Pane 0.55 reflects high-perf low-e triple U-0.30
+  # vs the same baseline. SHGC multipliers similar: single uncoated ~0.85,
+  # double low-e ~0.40 (baseline), triple low-e ~0.34.
+  # Sources: ASHRAE 90.1-2013 Tbl 5.5 + RESNET HERS Reference Home tables.
+  TIER_FACTOR = { 'Single Pane' => [2.0, 1.5], 'Double Pane' => [1.0, 1.0], 'Triple Pane' => [0.55, 0.85] }.freeze
+  # ASHRAE 90.1-2013 Table 7.8 minimum thermal efficiency for storage water
+  # heaters under 75 kBtu/h (gas/propane) and 12 kW (electric):
+  #   Gas/Propane storage:    Et = 0.80
+  #   Oil-fired storage:      Et = 0.78
+  #   Electric storage:       EF ~= 0.93 - 0.00132*V (~0.95 for typical 50 gal)
+  # https://www.ashrae.org/technical-resources/bookstore/standard-90-1
+  SWH_EFFICIENCY = { 'Electricity' => 0.95, 'NaturalGas' => 0.80, 'FuelOilNo2' => 0.78, 'Propane' => 0.80 }.freeze
+  RESIDENTIAL_BUILDING_TYPES = %w[Single-Family\ Detached Single-Family\ Attached Multifamily].freeze
+
+  # Trailing CZ digit. urbanopt emits "ASHRAE 169-2013-4A"; we want "4".
+  def self.cz_number(cz) = cz.to_s[/(\d)[A-Cc]?\s*\z/, 1]
+  def self.state_to_region(state) = state ? load('census_regions')['state_to_region'][state.to_s.upcase] : nil
+  def self.vintage_bin(year)
+    y = year.to_i
+    return nil if y <= 0
+    y < 1980 ? 'pre-1980' : y < 2000 ? '1980-1999' : y < 2010 ? '2000-2009' : '2010+'
+  end
+
+  def self.window_props(tier, climate_zone)
+    base = CZ_WINDOW[cz_number(climate_zone)] || CZ_WINDOW['4']
+    fu, fs = TIER_FACTOR[tier] || [1.0, 1.0]
+    [base[:u] * fu, [base[:shgc] * fs, 1.0].min]
+  end
+
+  def self.swh_efficiency(fuel) = SWH_EFFICIENCY[fuel] || 0.80
+  def self.present?(v) = !(v.nil? || (v.respond_to?(:empty?) && v.empty?))
+
+  def self.envelope_r(tier, surface, building_type, region, vintage)
+    is_res = RESIDENTIAL_BUILDING_TYPES.include?(building_type)
+    table = load(is_res ? 'recs2020_envelope' : 'cbecs2018_envelope')
+    base = (table["#{surface}_r_value"] || {}).dig(region || 'West', vintage || '1980-1999') || 13.0
+    case tier
+    when 'Standard'        then (base * 0.5).round(1)
+    when 'Insulated'       then base
+    when 'Super Insulated' then surface == 'wall' ? 20.0 : 49.0
+    else base
+    end
+  end
+end
+
+
 module URBANopt
   module Scenario
     class PowerTwinMapper < SimulationMapperBase
@@ -126,6 +196,10 @@ module URBANopt
           when 'Laboratory'
             return 'Laboratory'
           when 'Lodging'
+            # TODO add 'Dormitory' asset_subtype routed to MidriseApartment.
+            # No code-only national fix (DOE plates per story: SmallHotel
+            # 10.8k, LargeHotel 20.4k, MidriseApt 8.4k --
+            # openei.org/wiki/Commercial_Reference_Buildings).
             if number_of_stories
               if number_of_stories.to_i > 3
                 return 'LargeHotel'
@@ -230,11 +304,7 @@ module URBANopt
       end
 
       def residential_building_types
-        return [
-          'Single-Family Detached',
-          'Single-Family Attached',
-          'Multifamily'
-        ]
+        PowerTwinRefs::RESIDENTIAL_BUILDING_TYPES
       end
 
       def commercial_building_types
@@ -810,7 +880,10 @@ module URBANopt
                 end
               end
 
-              floor_height = 10
+              # Per-feature override; fall back to 9 ft (matches SIM_PARAM_DEFAULTS).
+              # Read from raw feature.json properties; Building#to_hash drops floor_height.
+              raw_props_fh = feature.feature_json[:properties] || {}
+              floor_height = PowerTwinRefs.present?(raw_props_fh[:floor_height]) ? raw_props_fh[:floor_height].to_f : 9
               # Map system type to openstudio system types
               # TODO: Map all system types
               if building_hash.key?(:system_type)
@@ -976,8 +1049,113 @@ module URBANopt
               rescue StandardError
               end
 
-              # TODO: surface_elevation has no current mapping
-              # TODO: tariff_filename has no current mapping
+              # Building#to_hash only emits a hardcoded subset of fields; read the
+              # raw feature.json properties (symbol-keyed) for everything else.
+              props = feature.feature_json[:properties] || {}
+
+              # Fuel overrides into create_typical_building_from_model htg_src/clg_src.
+              # urbanopt's measure.xml enumerates the acceptable values per arg:
+              #   htg_src: Electricity, NaturalGas, DistrictHeating, DistrictAmbient, Inferred
+              #   clg_src: Electricity, DistrictCooling, DistrictAmbient, Inferred
+              # Anything else (FuelOil, Propane, NaturalGas-for-cooling) gets silently
+              # dropped so the OSW stays valid.
+              fuel_map = { 'electricity' => 'Electricity', 'natural gas' => 'NaturalGas',
+                           'fuel oil' => 'FuelOil', 'propane' => 'Propane', 'wood' => 'NaturalGas' }
+              valid_src = { htg_src: %w[Electricity NaturalGas DistrictHeating DistrictAmbient Inferred],
+                            clg_src: %w[Electricity DistrictCooling DistrictAmbient Inferred] }
+              %i[heating_system_fuel_type cooling_system_fuel_type].each do |field|
+                next unless PowerTwinRefs.present?(props[field])
+                mapped = fuel_map[props[field].to_s.downcase]
+                arg = field == :heating_system_fuel_type ? :htg_src : :clg_src
+                next unless mapped && valid_src[arg].include?(mapped)
+                ['create_typical_building_from_model 1', 'create_typical_building_from_model 2'].each do |step|
+                  OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', arg.to_s, mapped, step)
+                end
+              end
+
+              # Asset context for the reference-data lookups below.
+              state   = (feature.weather_filename.to_s.split('_', -1)[1] rescue nil)
+              region  = PowerTwinRefs.state_to_region(state)
+              vintage = PowerTwinRefs.vintage_bin(year_built)
+
+              # Envelope: tier scales R up or down via *ThermalPropertiesMultiplier
+              # against the IECC code-minimum baseline (Insulated = 1.0x).
+              #   Standard = 0.4x:  pre-1980 housing stock has cavity R-5 to R-8;
+              #     ratio vs IECC 2009 R-13 wall baseline ~ 0.4. Source: NREL
+              #     ResStock TRG 2025 + NEEA RBSA 2012 envelope distributions.
+              #   Insulated = 1.0x: IECC 2009-2015 code minimum (R-13 wall, R-30 roof);
+              #     also ASHRAE 90.1-2013 prescriptive for commercial. Baseline.
+              #   Super Insulated = 2.0x: DOE Zero Energy Ready Home / Passive
+              #     House Institute US targets (~R-25 wall, R-60 roof).
+              #     https://www.energy.gov/eere/buildings/zero-energy-ready-home
+              # IncreaseInsulation runs in the else branch for explicit numeric
+              # r_value overrides (only-increase semantics; effective only above
+              # the prescriptive baseline).
+              tier_mult = { 'Standard' => 0.4, 'Insulated' => 1.0, 'Super Insulated' => 2.0 }
+              [[:wall, 'IncreaseInsulationRValueForExteriorWalls', 'ExteriorWallThermalPropertiesMultiplier'],
+               [:roof, 'IncreaseInsulationRValueForRoofs',         'RoofThermalPropertiesMultiplier']].each do |surface, inc_m, mult_m|
+                r_field = "#{surface}_r_value".to_sym
+                tier_field = "#{surface}_material".to_sym
+                constr = (props[:constructions] || {})[surface] || {}
+                tier = if PowerTwinRefs.present?(props[tier_field])
+                  props[tier_field]
+                elsif PowerTwinRefs.present?(constr[:material])
+                  constr[:material].to_s.sub(/ (Wall|Roof)\z/, '')
+                end
+                # Non-default tier (Standard/Super Insulated) wins via multiplier.
+                # Default tier (Insulated, mult=1.0) means user didn't pick a tier,
+                # so fall through to explicit r_value via IncreaseInsulation.
+                if tier && tier_mult.key?(tier) && tier_mult[tier] != 1.0
+                  OpenStudio::Extension.set_measure_argument(osw, mult_m, '__SKIP__', false)
+                  OpenStudio::Extension.set_measure_argument(osw, mult_m, 'r_value_mult', tier_mult[tier])
+                else
+                  r = PowerTwinRefs.present?(props[r_field]) ? props[r_field] :
+                      PowerTwinRefs.present?(constr[:r_value]) ? constr[:r_value] : nil
+                  if r
+                    OpenStudio::Extension.set_measure_argument(osw, inc_m, '__SKIP__', false)
+                    OpenStudio::Extension.set_measure_argument(osw, inc_m, 'r_value', r)
+                  end
+                end
+              end
+
+              # Window: tier + climate_zone -> (U-factor, SHGC).
+              window_tier = PowerTwinRefs.present?(props[:window_type]) ? props[:window_type] :
+                            ((props[:windows] || [{}]).first || {})[:window_type]
+              if PowerTwinRefs.present?(window_tier)
+                u, shgc = PowerTwinRefs.window_props(window_tier, climate_zone)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_window_construction', '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_window_construction', 'u_factor', u)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_window_construction', 'shgc', shgc)
+              end
+
+              # SWH fuel: prefer create_typical's swh_src (the toolchain lever).
+              # Custom measure only kicks in for fuels swh_src doesn't accept.
+              if PowerTwinRefs.present?(props[:service_water_heating_fuel_type])
+                ep_fuel = fuel_map[props[:service_water_heating_fuel_type].to_s.downcase]
+                case ep_fuel
+                when 'Electricity', 'NaturalGas', 'HeatPump'
+                  OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'swh_src', ep_fuel, 'create_typical_building_from_model 1')
+                when 'FuelOil', 'Propane'
+                  # WaterHeater:Mixed uses 'FuelOilNo2' (E+ naming); htg_src uses 'FuelOil'.
+                  e_fuel = ep_fuel == 'FuelOil' ? 'FuelOilNo2' : 'Propane'
+                  OpenStudio::Extension.set_measure_argument(osw, 'set_service_water_heating_fuel', '__SKIP__', false)
+                  OpenStudio::Extension.set_measure_argument(osw, 'set_service_water_heating_fuel', 'fuel', e_fuel)
+                  OpenStudio::Extension.set_measure_argument(osw, 'set_service_water_heating_fuel', 'thermal_efficiency', PowerTwinRefs.swh_efficiency(e_fuel))
+                end
+              end
+
+              # Occupants: pure pass-through; measure rescales to target_total.
+              if PowerTwinRefs.present?(props[:number_of_occupants])
+                OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', 'target_total', props[:number_of_occupants].to_i)
+              end
+
+              # WWR: set at geometry-creation time on create_bar; post-geometry mutation does not stick.
+              if PowerTwinRefs.present?(props[:window_to_wall_ratio])
+                OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'wwr', props[:window_to_wall_ratio].to_f)
+              end
+
+              # TODO: surface_elevation, tariff_filename: no mapping yet.
 
               # create a bar building, will have spaces tagged with individual space types given the
               # input building types

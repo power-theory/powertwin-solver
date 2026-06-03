@@ -44,9 +44,10 @@ with open(SENSOR_TYPES_CSV, 'r') as f:
 # than re-pin sensor_types.csv every time urbanopt changes, the matcher below
 # is unit-suffix-aware: it strips the suffix to find the column by prefix,
 # then scales values to the unit declared in sensor_types.csv. The unit-to-kBtu
-# scale lookup lives in solver/upload/unit_scale_factors.json so new unit
-# variants can be added without touching code.
-_UNIT_SCALE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'upload', 'unit_scale_factors.json')
+# scale lookup lives in solver/upload/reference_data/unit_scale_factors.json
+# alongside the other national-stock / authoritative reference tables so new
+# unit variants can be added without touching code.
+_UNIT_SCALE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'upload', 'reference_data', 'unit_scale_factors.json')
 with open(_UNIT_SCALE_PATH, 'r') as _f:
     _UNIT_TO_KBTU = json.load(_f)['factors']
 _UNIT_RE = re.compile(r'^(.*)\(([^)]*)\)\s*$')

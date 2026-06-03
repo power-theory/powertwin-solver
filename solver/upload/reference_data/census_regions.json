@@ -1,0 +1,38 @@
+{
+  "_source": {
+    "name": "U.S. Census Bureau Statistical Regions and Divisions",
+    "url": "https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf",
+    "notes": "Maps US state abbreviations (and DC) to one of the four Census Regions used by EIA's RECS and CBECS survey publications. RECS/CBECS report fuel mix and envelope characteristics by these four regions. state_name_to_abbr is uppercase-keyed so callers can normalize full state names (e.g. 'Arizona' -> 'AZ') before the region lookup."
+  },
+  "state_to_region": {
+    "AL": "South", "AK": "West", "AZ": "West", "AR": "South",
+    "CA": "West", "CO": "West", "CT": "Northeast", "DE": "South",
+    "DC": "South", "FL": "South", "GA": "South", "HI": "West",
+    "ID": "West", "IL": "Midwest", "IN": "Midwest", "IA": "Midwest",
+    "KS": "Midwest", "KY": "South", "LA": "South", "ME": "Northeast",
+    "MD": "South", "MA": "Northeast", "MI": "Midwest", "MN": "Midwest",
+    "MS": "South", "MO": "Midwest", "MT": "West", "NE": "Midwest",
+    "NV": "West", "NH": "Northeast", "NJ": "Northeast", "NM": "West",
+    "NY": "Northeast", "NC": "South", "ND": "Midwest", "OH": "Midwest",
+    "OK": "South", "OR": "West", "PA": "Northeast", "RI": "Northeast",
+    "SC": "South", "SD": "Midwest", "TN": "South", "TX": "South",
+    "UT": "West", "VT": "Northeast", "VA": "South", "WA": "West",
+    "WV": "South", "WI": "Midwest", "WY": "West"
+  },
+  "state_name_to_abbr": {
+    "ALABAMA": "AL", "ALASKA": "AK", "ARIZONA": "AZ", "ARKANSAS": "AR",
+    "CALIFORNIA": "CA", "COLORADO": "CO", "CONNECTICUT": "CT", "DELAWARE": "DE",
+    "DISTRICT OF COLUMBIA": "DC", "FLORIDA": "FL", "GEORGIA": "GA", "HAWAII": "HI",
+    "IDAHO": "ID", "ILLINOIS": "IL", "INDIANA": "IN", "IOWA": "IA",
+    "KANSAS": "KS", "KENTUCKY": "KY", "LOUISIANA": "LA", "MAINE": "ME",
+    "MARYLAND": "MD", "MASSACHUSETTS": "MA", "MICHIGAN": "MI", "MINNESOTA": "MN",
+    "MISSISSIPPI": "MS", "MISSOURI": "MO", "MONTANA": "MT", "NEBRASKA": "NE",
+    "NEVADA": "NV", "NEW HAMPSHIRE": "NH", "NEW JERSEY": "NJ", "NEW MEXICO": "NM",
+    "NEW YORK": "NY", "NORTH CAROLINA": "NC", "NORTH DAKOTA": "ND", "OHIO": "OH",
+    "OKLAHOMA": "OK", "OREGON": "OR", "PENNSYLVANIA": "PA", "RHODE ISLAND": "RI",
+    "SOUTH CAROLINA": "SC", "SOUTH DAKOTA": "SD", "TENNESSEE": "TN", "TEXAS": "TX",
+    "UTAH": "UT", "VERMONT": "VT", "VIRGINIA": "VA", "WASHINGTON": "WA",
+    "WEST VIRGINIA": "WV", "WISCONSIN": "WI", "WYOMING": "WY"
+  },
+  "regions": ["Northeast", "Midwest", "South", "West"]
+}

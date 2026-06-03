@@ -177,6 +177,48 @@
         "r_value": 10
       }
     },{
+      "measure_dir_name": "IncreaseInsulationRValueForRoofs",
+      "arguments": {
+        "__SKIP__": true,
+        "r_value": 30
+      }
+    },{
+      "measure_dir_name": "ExteriorWallThermalPropertiesMultiplier",
+      "arguments": {
+        "__SKIP__": true,
+        "r_value_mult": 1.0,
+        "solar_abs_mult": 1.0,
+        "thermal_mass_mult": 1.0
+      }
+    },{
+      "measure_dir_name": "RoofThermalPropertiesMultiplier",
+      "arguments": {
+        "__SKIP__": true,
+        "r_value_mult": 1.0,
+        "solar_abs_mult": 1.0,
+        "thermal_mass_mult": 1.0
+      }
+    },{
+      "measure_dir_name": "set_window_construction",
+      "arguments": {
+        "__SKIP__": true,
+        "u_factor": 3.12,
+        "shgc": 0.40
+      }
+    },{
+      "measure_dir_name": "set_service_water_heating_fuel",
+      "arguments": {
+        "__SKIP__": true,
+        "fuel": "NaturalGas",
+        "thermal_efficiency": 0.80
+      }
+    },{
+      "measure_dir_name": "set_people_per_floor_area",
+      "arguments": {
+        "__SKIP__": true,
+        "target_total": 1
+      }
+    },{
       "measure_dir_name": "ReduceElectricEquipmentLoadsByPercentage",
       "arguments": {
         "__SKIP__": true,
