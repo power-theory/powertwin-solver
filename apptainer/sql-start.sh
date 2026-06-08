@@ -45,6 +45,8 @@ UPLOAD_DIR="${HPC_SHARED_STORAGE}/upload/${SIMULATION_NAME}"
 ASSET_GEOJSON_PATH="${UPLOAD_DIR}/7_asset_geometries.geojson"
 METADATA_CSV_PATH="${UPLOAD_DIR}/7_metadata.csv"
 POWERTWIN_KEEP_DIRS=1
+URBANOPT_DYNAMIC_DEFAULTS="false"      # opt-in: resolve defaults from RECS 2020 / CBECS 2018 / OS-Standards. false = flat SIM_PARAM_DEFAULTS only
+URBANOPT_KEEP_RUN_DIR="false"          # opt-in: preserve in.osw / in.osm / eplusout.sql / intermediate run dirs for test verifiers + ad-hoc forensics. false = production cleanup
 WITH_NSYS_PROFILING=0
 
 # SIF files location
@@ -514,6 +516,7 @@ create_feature_files() {
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "POWERTWIN_STEP=setup" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
+        --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
         "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner create-feature-files \
         \"${SIMULATION_NAME}\" \
         \"${ASSET_GEOJSON_PATH}\" \
@@ -551,6 +554,7 @@ initialize_urbanopt() {
       --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
       --env "POWERTWIN_STEP=setup" \
       --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
+      --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
       --workdir /powertwin_data \
       "${SOLVER_SIF}" python -m app.direct_runner initialize-uo \
         "${SIMULATION_DIR}" \
@@ -652,6 +656,7 @@ process_batches() {
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "POWERTWIN_STEP=parallel" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
+        --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
         --workdir /solver \
         "${SOLVER_SIF}" python -m app.direct_runner run-parallel-batches \
         "${SIMULATION_DIR}" \

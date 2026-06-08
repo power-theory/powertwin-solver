@@ -406,9 +406,11 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
         # captures last_error and any structured failure context, and the
         # disk pressure under high-concurrency sweeps quickly becomes the
         # bigger problem.
-        # SIMULATION_KEEP_RUN_DIR (bool, default false) disables this cleanup
+        # URBANOPT_KEEP_RUN_DIR (bool, default false) disables this cleanup
         # so test verifiers can inspect in.osw / out.osw / in.idf after a sim.
-        keep = os.environ.get('SIMULATION_KEEP_RUN_DIR', '').strip().lower() in ('1', 'true', 'yes', 'on')
+        # Back-compat: legacy SIMULATION_KEEP_RUN_DIR still honored.
+        _bool = lambda n: os.environ.get(n, '').strip().lower() in ('1', 'true', 'yes', 'on')
+        keep = _bool('URBANOPT_KEEP_RUN_DIR') or _bool('SIMULATION_KEEP_RUN_DIR')
         if os.path.exists(simulation_dir) and not keep:
             shutil.rmtree(simulation_dir)
 
@@ -689,11 +691,13 @@ def delete_simulation(simulation_name):
     SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
     LOCAL_DIR_SIM = os.path.join('powertwin-solver-pg', 'user_files', simulation_name)
 
-    # SIMULATION_KEEP_RUN_DIR (bool, default false) makes this endpoint a no-op
+    # URBANOPT_KEEP_RUN_DIR (bool, default false) makes this endpoint a no-op
     # so test verifiers can inspect artifacts after the listener marks the job done.
-    keep = os.environ.get('SIMULATION_KEEP_RUN_DIR', '').strip().lower() in ('1', 'true', 'yes', 'on')
+    # Back-compat: legacy SIMULATION_KEEP_RUN_DIR still honored.
+    _bool = lambda n: os.environ.get(n, '').strip().lower() in ('1', 'true', 'yes', 'on')
+    keep = _bool('URBANOPT_KEEP_RUN_DIR') or _bool('SIMULATION_KEEP_RUN_DIR')
     if keep:
-        return jsonify({'message': 'cleanup skipped (SIMULATION_KEEP_RUN_DIR)', 'simulation_name': simulation_name}), 200
+        return jsonify({'message': 'cleanup skipped (URBANOPT_KEEP_RUN_DIR)', 'simulation_name': simulation_name}), 200
 
     removed = []
     try:

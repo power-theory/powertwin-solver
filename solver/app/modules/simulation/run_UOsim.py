@@ -355,9 +355,11 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     
     logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed")
     
-    # Clean up - delete finished batch (gated by SIMULATION_KEEP_RUN_DIR so
-    # test verifiers can inspect in.osw / out.osw / in.idf after a sim).
-    keep = os.environ.get('SIMULATION_KEEP_RUN_DIR', '').strip().lower() in ('1', 'true', 'yes', 'on')
+    # Clean up - delete finished batch (gated by URBANOPT_KEEP_RUN_DIR
+    # so test verifiers can inspect in.osw / out.osw / in.idf after a sim).
+    # Back-compat: legacy SIMULATION_KEEP_RUN_DIR still honored.
+    _bool = lambda n: os.environ.get(n, '').strip().lower() in ('1', 'true', 'yes', 'on')
+    keep = _bool('URBANOPT_KEEP_RUN_DIR') or _bool('SIMULATION_KEEP_RUN_DIR')
     batch_dir = os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_num}')
     if os.path.exists(batch_dir) and not keep:
         logger.debug(f"BATCH {batch_num}: Cleaning up directory: {batch_dir}")

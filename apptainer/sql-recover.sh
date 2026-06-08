@@ -40,6 +40,8 @@ CORRUPTED_SIMULATION_NAME="teton1"
 BATCH_ID=""  # Optional - leave empty to recover all batches, or specify a batch number
 HPC_SHARED_STORAGE="/project/cowy-nvhackathon/nicolasreategui" # Retain same as corrupted simulation for recovery to ensure access to all necessary files
 POWERTWIN_KEEP_DIRS=1
+URBANOPT_DYNAMIC_DEFAULTS="false"      # opt-in: resolve defaults from RECS 2020 / CBECS 2018 / OS-Standards. false = flat SIM_PARAM_DEFAULTS only
+URBANOPT_KEEP_RUN_DIR="false"          # opt-in: preserve in.osw / in.osm / eplusout.sql / intermediate run dirs for test verifiers + ad-hoc forensics. false = production cleanup
 
 # SIF files location
 SIF_DIR="${HPC_SHARED_STORAGE}/sif_containers"
@@ -543,6 +545,7 @@ recover_simulation() {
         --env "PGDATABASE=powertwin" \
         --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
+        --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
         --workdir /solver \
         "${SOLVER_SIF}" bash -c "${RECOVERY_CMD}" \
         2>&1 | tee "${LOG_DIR}/powertwin_recovery_${SLURM_JOB_ID}.log")
@@ -584,6 +587,7 @@ process_batches() {
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "POWERTWIN_STEP=parallel" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
+        --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
         --workdir /solver \
         "${SOLVER_SIF}" python -m app.direct_runner run-parallel-batches \
         "${RECOVERY_DIR}" \

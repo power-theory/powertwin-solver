@@ -47,6 +47,7 @@ URBANOPT_REPORTING_FREQUENCY="Timestep"  # Timestep, Hourly, Daily, Monthly, Run
 URBANOPT_RESAMPLE="H"                  # H, D, M, A. Empty disables the resample step in consolidate
 URBANOPT_POSTPROCESS_TRANSLATIONS="true" # subtract 1s from end-of-period ts so it buckets right
 URBANOPT_DYNAMIC_DEFAULTS="false"      # opt-in: resolve defaults from RECS 2020 / CBECS 2018 / OS-Standards. false = flat SIM_PARAM_DEFAULTS only
+URBANOPT_KEEP_RUN_DIR="false"          # opt-in: preserve in.osw / in.osm / eplusout.sql / intermediate run dirs for test verifiers + ad-hoc forensics. false = production cleanup
 
 # Storage layout:
 #   ${HPC_SHARED_STORAGE}/shared/        — infrastructure (SIF, gem home, logs, tmp)
@@ -534,6 +535,7 @@ create_feature_files() {
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "POWERTWIN_STEP=setup" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
+        --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
         --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
         --env "URBANOPT_SIMULATION_YEAR=${URBANOPT_SIMULATION_YEAR}" \
         --env "URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE}" \
@@ -577,6 +579,7 @@ initialize_urbanopt() {
       --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
       --env "POWERTWIN_STEP=setup" \
       --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
+      --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
       --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
       --workdir /powertwin_data \
       "${SOLVER_SIF}" python -m app.direct_runner initialize-uo \
@@ -683,6 +686,7 @@ process_batches() {
         --env "SQLITE_DB_PATH=${SQLITE_DB_PATH}" \
         --env "POWERTWIN_STEP=parallel" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
+        --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
         --env "URBANOPT_REPORTING_FREQUENCY=${URBANOPT_REPORTING_FREQUENCY}" \
         --workdir /solver \
         "${SOLVER_SIF}" python -m app.direct_runner run-parallel-batches \

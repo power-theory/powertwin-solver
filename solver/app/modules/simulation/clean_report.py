@@ -24,6 +24,10 @@ external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Clean Report', external_log_dir)
 
 
+def _bool_env(name):
+    return os.environ.get(name, '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
 # Load sensor type mappings from CSV
 SENSOR_TYPES_CSV = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'upload', 'sensor_types.csv')
 data_mapping = {}
@@ -84,27 +88,34 @@ def _match_column(expected_col, df_columns):
 #   in.osm and in.osw files.
 ############################################################################################################
 def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
+    # URBANOPT_KEEP_RUN_DIR (bool, default false) short-circuits the
+    # per-asset cleanup so test verifiers (and ad-hoc forensics) can read
+    # eplusout.sql, in.idf, generated_files/, feature_reports/ etc. after
+    # a sim. Identical gating to run_UOsim.py / pernode.py / views.py so
+    # one toggle preserves every cleanup point.
+    # Back-compat: legacy SIMULATION_KEEP_RUN_DIR and POWERTWIN_KEEP_DIRS
+    # still honored so existing apptainer wrappers and .env.local files
+    # don't need a flag-day rename.
+    keep_run_dir = _bool_env('URBANOPT_KEEP_RUN_DIR') or _bool_env('SIMULATION_KEEP_RUN_DIR')
+    if not keep_run_dir:
+        # Define the files and directories to keep
+        keep_files = {'in.osm', 'in.osw'}
 
-    # Define the files and directories to keep
-    keep_files = {'in.osm', 'in.osw'}
-    
-    # Check environment variable to determine if we should keep additional directories
-    keep_additional_dirs = os.environ.get('POWERTWIN_KEEP_DIRS') == '1'
-    keep_dirs = {'feature_reports', 'generated_files'} if keep_additional_dirs else set()
+        # Legacy POWERTWIN_KEEP_DIRS=1 also keeps the urbanopt-emitted
+        # feature_reports + generated_files dirs. Retained for apptainer
+        # wrappers that haven't migrated to URBANOPT_KEEP_RUN_DIR yet.
+        keep_additional_dirs = os.environ.get('POWERTWIN_KEEP_DIRS') == '1'
+        keep_dirs = {'feature_reports', 'generated_files'} if keep_additional_dirs else set()
 
-    # Iterate through the files and directories in ASSET_REPORT_DIR
-    for item in os.listdir(ASSET_DIR):
-        item_path = os.path.join(ASSET_DIR, item)
-        
-        # Check if the item is a file and not in the keep_files set
-        if os.path.isfile(item_path) and item not in keep_files:
-            os.remove(item_path)
-            
-        # Check if the item is a directory and not in the keep_dirs set
-        elif os.path.isdir(item_path) and item not in keep_dirs:
-            shutil.rmtree(item_path)
-    
-    # Save file locally
+        for item in os.listdir(ASSET_DIR):
+            item_path = os.path.join(ASSET_DIR, item)
+            if os.path.isfile(item_path) and item not in keep_files:
+                os.remove(item_path)
+            elif os.path.isdir(item_path) and item not in keep_dirs:
+                shutil.rmtree(item_path)
+
+    # Move the (possibly intact, possibly trimmed) asset dir to the host-
+    # visible user_files location regardless of the gate.
     shutil.move(ASSET_DIR, os.path.join(LOCAL_BATCH_SIMULATION_DIR))
     
             

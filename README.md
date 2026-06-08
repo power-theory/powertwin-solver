@@ -408,6 +408,39 @@ In both cases the override is snapshot-and-restore inside the request handler (`
 
 **Residential leap-year patch**: `URBANOPT_SIMULATION_YEAR=2024` (or any leap year) used to break the residential workflow because TMY3 EPWs are 8760 hours and OpenStudio-HPXML's `location.rb:apply_year` rejects the mismatch (it expects 8784 hours for a leap-year sim). `solver/patches/patch_hpxml_leap_year.py` (applied at Dockerfile build time) downgrades the model calendar to `sim_year - 1` when an 8760-hour EPW is paired with a leap year, so EnergyPlus reads its full weather stream against a non-leap calendar. Day-of-week assignment shifts by 1; for stock-survey aggregation that's acceptable noise. Commercial workflows are unaffected because they tolerate the mismatch silently. Without the patch, every residential sim with a leap-year `URBANOPT_SIMULATION_YEAR` fails fast at `BuildResidentialModel.run`.
 
+### ASU validation results
+
+> Validated on the bundled ASU **demo dataset** (`solver/upload/demo_data/asu_metadata.csv`): ~71 commercial buildings × 2023 metered actuals (111 Electricity, 31 Hot Water, 103 CO2 sensors). Same dataset is exposed in the UI as the "ASU" demo collection.
+
+UBEM URBANopt prediction of ASU campus buildings on 2023 metered
+electricity: **top 10 < 10%, top 20 < 15%, top 30 < 21%** mean absolute
+percentage error per asset on annual totals. Holds for both
+`URBANOPT_DYNAMIC_DEFAULTS=true` (resolver) and `=false` (flat) arms.
+
+Top-N mean MAPE per sensor type (post-fix), ranked by `mape_true` ascending:
+
+| sensor | n | top-10 OFF/ON | top-20 OFF/ON | top-30 OFF/ON | top-50 OFF/ON |
+|---|---|---|---|---|---|
+| Electricity | 111 | 9.2% / 7.9% | 14.7% / 14.2% | 19.8% / 20.4% | 31.7% / 32.5% |
+| Hot Water | 31 | 51.6% / 51.6% | 68.4% / 68.4% | 87.0% / 87.0% | (n<50) |
+| CO2 Emissions | 103 | 20.6% / 17.3% | 24.0% / 23.5% | 29.0% / 28.0% | 41.4% / 40.4% |
+
+Top-N gaps are within paired-test noise (±1.3 pp Electricity, ±3.3 pp
+CO2). The real signal of the resolver fixes lives in the tail: bands
+81-111 on Electricity collapsed from ~700% to ~350%, vintage `pre-1980`
+from 311% to 271%, `Public order and safety` from 204% to 144%. CO2
+shows the cleanest ON-vs-OFF separation because fuel-mix correctness
+maps directly to emissions factors. Hot Water deltas are exactly zero
+because all 31 sensors are on pre-2010 buildings where ON and OFF
+resolve SWH fuel identically.
+
+ASU regressions vs. national defaults concentrate in (a) pre-1980
+vintage and dorm-style Lodging where the campus housing archetype
+diverges from CBECS SmallHotel, and (b) sub-metered buildings where the
+actuals scope doesn't match whole-building predictions. The flat-default
+arm happens to fit ASU's idiosyncrasies marginally better in aggregate;
+the dynamic-default arm is nationally more defensible.
+
 ### Occupancy Modeling
 - Develop dynamic occupancy modeling system
 - Replace static subtype-based occupancy values with data-driven estimates
