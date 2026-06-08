@@ -7,7 +7,7 @@ id,name,occupancy_type,effective_id,is_active
 6,Multifamily (5 or more units),BigResidential,3,1
 7,Vacant,Vacant,7,1
 8,Office,Business,8,1
-9,Laboratory,Industrial,17,1
+9,Laboratory,Industrial,9,1
 10,Nonrefrigerated warehouse,Storage,10,1
 11,Food sales,FoodMercantile,11,1
 12,Public order and safety,Institutional,12,1

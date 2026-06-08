@@ -70,18 +70,6 @@ module PowerTwinRefs
 
   def self.swh_efficiency(fuel) = SWH_EFFICIENCY[fuel] || 0.80
   def self.present?(v) = !(v.nil? || (v.respond_to?(:empty?) && v.empty?))
-
-  def self.envelope_r(tier, surface, building_type, region, vintage)
-    is_res = RESIDENTIAL_BUILDING_TYPES.include?(building_type)
-    table = load(is_res ? 'recs2020_envelope' : 'cbecs2018_envelope')
-    base = (table["#{surface}_r_value"] || {}).dig(region || 'West', vintage || '1980-1999') || 13.0
-    case tier
-    when 'Standard'        then (base * 0.5).round(1)
-    when 'Insulated'       then base
-    when 'Super Insulated' then surface == 'wall' ? 20.0 : 49.0
-    else base
-    end
-  end
 end
 
 
@@ -1078,44 +1066,23 @@ module URBANopt
               region  = PowerTwinRefs.state_to_region(state)
               vintage = PowerTwinRefs.vintage_bin(year_built)
 
-              # Envelope: tier scales R up or down via *ThermalPropertiesMultiplier
-              # against the IECC code-minimum baseline (Insulated = 1.0x).
-              #   Standard = 0.4x:  pre-1980 housing stock has cavity R-5 to R-8;
-              #     ratio vs IECC 2009 R-13 wall baseline ~ 0.4. Source: NREL
-              #     ResStock TRG 2025 + NEEA RBSA 2012 envelope distributions.
-              #   Insulated = 1.0x: IECC 2009-2015 code minimum (R-13 wall, R-30 roof);
-              #     also ASHRAE 90.1-2013 prescriptive for commercial. Baseline.
-              #   Super Insulated = 2.0x: DOE Zero Energy Ready Home / Passive
-              #     House Institute US targets (~R-25 wall, R-60 roof).
-              #     https://www.energy.gov/eere/buildings/zero-energy-ready-home
-              # IncreaseInsulation runs in the else branch for explicit numeric
-              # r_value overrides (only-increase semantics; effective only above
-              # the prescriptive baseline).
-              tier_mult = { 'Standard' => 0.4, 'Insulated' => 1.0, 'Super Insulated' => 2.0 }
-              [[:wall, 'IncreaseInsulationRValueForExteriorWalls', 'ExteriorWallThermalPropertiesMultiplier'],
-               [:roof, 'IncreaseInsulationRValueForRoofs',         'RoofThermalPropertiesMultiplier']].each do |surface, inc_m, mult_m|
+              # Envelope: CBECS-direct explicit R-value via IncreaseInsulation with
+              # allow_reduction=true so the measure can drop walls/roofs below the
+              # template prescriptive baseline for pre-1980 stock as well as raise
+              # them for newer stock. The CBECS tier label (wall_material /
+              # roof_material) is no longer consumed -- it disagreed with the
+              # CBECS explicit R-value at the pre-1980 and 2010+ extremes because
+              # the tier multipliers came from residential ResStock/NEEA data.
+              [[:wall, 'IncreaseInsulationRValueForExteriorWalls'],
+               [:roof, 'IncreaseInsulationRValueForRoofs']].each do |surface, inc_m|
                 r_field = "#{surface}_r_value".to_sym
-                tier_field = "#{surface}_material".to_sym
                 constr = (props[:constructions] || {})[surface] || {}
-                tier = if PowerTwinRefs.present?(props[tier_field])
-                  props[tier_field]
-                elsif PowerTwinRefs.present?(constr[:material])
-                  constr[:material].to_s.sub(/ (Wall|Roof)\z/, '')
-                end
-                # Non-default tier (Standard/Super Insulated) wins via multiplier.
-                # Default tier (Insulated, mult=1.0) means user didn't pick a tier,
-                # so fall through to explicit r_value via IncreaseInsulation.
-                if tier && tier_mult.key?(tier) && tier_mult[tier] != 1.0
-                  OpenStudio::Extension.set_measure_argument(osw, mult_m, '__SKIP__', false)
-                  OpenStudio::Extension.set_measure_argument(osw, mult_m, 'r_value_mult', tier_mult[tier])
-                else
-                  r = PowerTwinRefs.present?(props[r_field]) ? props[r_field] :
-                      PowerTwinRefs.present?(constr[:r_value]) ? constr[:r_value] : nil
-                  if r
-                    OpenStudio::Extension.set_measure_argument(osw, inc_m, '__SKIP__', false)
-                    OpenStudio::Extension.set_measure_argument(osw, inc_m, 'r_value', r)
-                  end
-                end
+                r = PowerTwinRefs.present?(props[r_field]) ? props[r_field] :
+                    PowerTwinRefs.present?(constr[:r_value]) ? constr[:r_value] : nil
+                next unless r
+                OpenStudio::Extension.set_measure_argument(osw, inc_m, '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, inc_m, 'r_value', r)
+                OpenStudio::Extension.set_measure_argument(osw, inc_m, 'allow_reduction', true)
               end
 
               # Window: tier + climate_zone -> (U-factor, SHGC).

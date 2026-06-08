@@ -4,9 +4,9 @@
     "repo": "https://github.com/NREL/openstudio-standards",
     "file": "lib/openstudio-standards/standards/ashrae_90_1/ashrae_90_1_2013/data/ashrae_90_1_2013.spc_typ.json",
     "branch": "master",
-    "extracted": "2026-05-26",
+    "extracted": "2026-06-07",
     "units": "people per 1000 ft^2",
-    "methodology": "For Office, the WholeBuilding aggregate (already area-weighted across spaces) is used. For Warehouse, an area-weighted average is computed from the DOE prototype space ratios (70% Bulk + 20% Fine + 10% Office). For other building_types, the primary representative space_type is used (peak-load space, not area-weighted average) because OpenStudio Standards does not publish a WholeBuilding aggregate for them. To compute true area-weighted whole-building values would require parsing the prototype space-type ratios from lib/openstudio-standards/prototypes/, which is left as future work."
+    "methodology": "Two-tier extraction. Tier 1 (Office, Warehouse): the original 'WholeBuilding aggregate' or documented area-weighted-mix values are preserved. Tier 2 (all other building_types): area-weighted whole-building people-per-1000-ft^2 computed by walking each prototype OSM (ASHRAE*.osm), summing OS:Space floorArea per OS:SpaceType, multiplying by that space type's occupancy_per_area from ashrae_90_1_2013.spc_typ.json, and dividing total people by total floor area. Replaces the v1 peak-load-space-density approximation that caused gross over-prediction when applied to total building floor area (e.g. Courthouse used 70.0 per 1000ft^2 from Courtroom; corrected to 18.19 per 1000ft^2 building average)."
   },
   "people_per_1000_ft2": {
     "Office": {
@@ -22,82 +22,82 @@
     "Retail": {
       "value": 15.0,
       "source": "Retail",
-      "method": "primary sales floor; back-of-house spaces typically <2 per 1000ft^2"
+      "method": "primary sales floor; back-of-house spaces typically <2 per 1000ft^2 [NOT YET REGENERATED]"
     },
     "StripMall": {
       "value": 8.0,
       "source": "Strip mall - type 0A",
-      "method": "representative tenant space"
+      "method": "representative tenant space [NOT YET REGENERATED]"
     },
     "SuperMarket": {
-      "value": 8.0,
-      "source": "Sales",
-      "method": "primary sales floor"
+      "value": 8.56,
+      "source": "prototype SuperMarket.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=45002ft^2, total_people=385.1, unmatched_area=0.0%)"
     },
     "QuickServiceRestaurant": {
-      "value": 70.0,
-      "source": "Dining",
-      "method": "primary dining area"
+      "value": 18.75,
+      "source": "prototype QuickServiceRestaurant.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=5002ft^2, total_people=93.8, unmatched_area=50.0%)"
     },
     "FullServiceRestaurant": {
-      "value": 70.0,
-      "source": "Dining",
-      "method": "primary dining area"
+      "value": 26.14,
+      "source": "prototype FullServiceRestaurant.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=11004ft^2, total_people=287.6, unmatched_area=50.0%)"
     },
     "Hospital": {
-      "value": 5.0,
-      "source": "PatRoom",
-      "method": "primary patient room; ER spaces are 20x higher (peak)"
+      "value": 2.71,
+      "source": "prototype Hospital.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=214095ft^2, total_people=580.8, unmatched_area=0.0%)"
     },
     "Outpatient": {
-      "value": 20.02,
-      "source": "Exam",
-      "method": "primary exam room"
+      "value": 10.24,
+      "source": "prototype Outpatient.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=40946ft^2, total_people=419.3, unmatched_area=0.0%)"
     },
     "PrimarySchool": {
-      "value": 25.0,
-      "source": "Classroom",
-      "method": "primary classroom"
+      "value": 19.98,
+      "source": "prototype PrimarySchool.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=73959ft^2, total_people=1478.0, unmatched_area=0.0%)"
     },
     "SecondarySchool": {
-      "value": 35.0,
-      "source": "Classroom",
-      "method": "primary classroom"
+      "value": 28.9,
+      "source": "prototype SecondarySchool.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=210886ft^2, total_people=6095.1, unmatched_area=0.0%)"
     },
     "College": {
-      "value": 65.0,
-      "source": "Classroom",
-      "method": "primary classroom"
+      "value": 27.09,
+      "source": "prototype College.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=69056ft^2, total_people=1870.9, unmatched_area=15.9%)"
     },
     "SmallHotel": {
-      "value": 1.33,
-      "source": "GuestRoom",
-      "method": "primary guestroom"
+      "value": 6.0,
+      "source": "prototype SmallHotel.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=43202ft^2, total_people=259.3, unmatched_area=0.0%)"
     },
     "LargeHotel": {
-      "value": 3.57,
-      "source": "GuestRoom",
-      "method": "primary guestroom"
+      "value": 19.72,
+      "source": "prototype LargeHotel.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=62791ft^2, total_people=1238.5, unmatched_area=0.0%)"
     },
     "MidriseApartment": {
-      "value": 2.63,
-      "source": "Apartment",
-      "method": "primary dwelling unit (commercial template); residential workflow uses HPXML bedrooms+1 formula instead"
+      "value": 2.31,
+      "source": "prototype MidriseApartment.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=25305ft^2, total_people=58.5, unmatched_area=0.0%)"
     },
     "HighriseApartment": {
-      "value": 2.63,
-      "source": "Apartment",
-      "method": "primary dwelling unit (commercial template); residential workflow uses HPXML bedrooms+1 formula instead"
+      "value": 2.35,
+      "source": "prototype HighriseApartment.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=84351ft^2, total_people=198.4, unmatched_area=0.0%)"
     },
     "Laboratory": {
-      "value": 5.0,
-      "source": "Open lab",
-      "method": "primary lab space"
+      "value": 2.44,
+      "source": "prototype Laboratory.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=180000ft^2, total_people=438.7, unmatched_area=50.0%)"
     },
     "Courthouse": {
-      "value": 70.0,
-      "source": "Courtroom",
-      "method": "primary courtroom"
+      "value": 18.19,
+      "source": "prototype Courthouse.osm whole-building avg",
+      "method": "area-weighted across all OS:Spaces in prototype OSM (total_area=67517ft^2, total_people=1228.3, unmatched_area=0.0%)"
     }
   }
 }
