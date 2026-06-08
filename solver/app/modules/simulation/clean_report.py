@@ -25,7 +25,7 @@ logger = initialize_logger('Clean Report', external_log_dir)
 
 
 def _bool_env(name):
-    return os.environ.get(name, '').strip().lower() in ('1', 'true', 'yes', 'on')
+    return os.environ.get(name, '').strip().lower() == 'true'
 
 
 # Load sensor type mappings from CSV

@@ -409,7 +409,7 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
         # URBANOPT_KEEP_RUN_DIR (bool, default false) disables this cleanup
         # so test verifiers can inspect in.osw / out.osw / in.idf after a sim.
         # Back-compat: legacy SIMULATION_KEEP_RUN_DIR still honored.
-        _bool = lambda n: os.environ.get(n, '').strip().lower() in ('1', 'true', 'yes', 'on')
+        _bool = lambda n: os.environ.get(n, '').strip().lower() == 'true'
         keep = _bool('URBANOPT_KEEP_RUN_DIR') or _bool('SIMULATION_KEEP_RUN_DIR')
         if os.path.exists(simulation_dir) and not keep:
             shutil.rmtree(simulation_dir)
@@ -694,7 +694,7 @@ def delete_simulation(simulation_name):
     # URBANOPT_KEEP_RUN_DIR (bool, default false) makes this endpoint a no-op
     # so test verifiers can inspect artifacts after the listener marks the job done.
     # Back-compat: legacy SIMULATION_KEEP_RUN_DIR still honored.
-    _bool = lambda n: os.environ.get(n, '').strip().lower() in ('1', 'true', 'yes', 'on')
+    _bool = lambda n: os.environ.get(n, '').strip().lower() == 'true'
     keep = _bool('URBANOPT_KEEP_RUN_DIR') or _bool('SIMULATION_KEEP_RUN_DIR')
     if keep:
         return jsonify({'message': 'cleanup skipped (URBANOPT_KEEP_RUN_DIR)', 'simulation_name': simulation_name}), 200
