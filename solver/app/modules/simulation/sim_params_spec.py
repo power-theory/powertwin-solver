@@ -321,19 +321,28 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None) -> dict:
 FALLBACK_LEVELS = ('vintage_specific', 'region_all', 'building_type_only', 'flat_default')
 
 
-def _doe_ref_name(building_type: str | None) -> str | None:
+def _doe_ref_name(building_type: str | None, ctx: dict | None = None) -> str | None:
     """Translate a PowerTwin asset_subtype name (CBECS survey vocabulary) to
     the closest DOE Reference Building prototype name used by NREL
     openstudio-standards lookup tables. Returns the input unchanged when it
     already matches a DOE prototype, or None for inputs with no sensible
     proxy (Parking, Vacant) so the resolver degrades to flat defaults.
 
+    Lodging is story-aware: >3 stories maps to LargeHotel (matching Ruby's
+    lookup_building_type split). Pass ctx to enable this; without it the
+    static alias (SmallHotel) is returned.
+
     See solver/upload/reference_data/building_type_aliases.json for the map
     and the rationale per row."""
     if not building_type:
         return None
     aliases = _load_ref('building_type_aliases').get('powertwin_to_doe_ref', {})
-    return aliases.get(building_type, building_type)
+    name = aliases.get(building_type, building_type)
+    if building_type == 'Lodging' and ctx:
+        fc = ctx.get('floor_count')
+        if fc is not None and int(fc) > 3:
+            return 'LargeHotel'
+    return name
 
 
 SQFT_PER_BEDROOM = 800
@@ -363,7 +372,7 @@ def _resolve_occupants(ctx: dict) -> int | None:
             return None
     # commercial path
     table = _load_ref('openstudio_standards_people_per_area')['people_per_1000_ft2']
-    entry = table.get(_doe_ref_name(bt))
+    entry = table.get(_doe_ref_name(bt, ctx))
     if not entry or entry.get('value') is None:
         return None
     area = ctx.get('area')
@@ -424,7 +433,7 @@ def _resolve_envelope(field: str, ctx: dict):
     survey = _load_ref('recs2020_envelope' if is_residential else 'cbecs2018_envelope')
 
     if field == 'window_to_wall_ratio':
-        lookup_bt = bt if is_residential else _doe_ref_name(bt)
+        lookup_bt = bt if is_residential else _doe_ref_name(bt, ctx)
         val = survey.get('window_to_wall_ratio_by_building_type', {}).get(lookup_bt)
         return (val, 'building_type_only' if val is not None else None)
 

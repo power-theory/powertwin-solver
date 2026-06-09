@@ -6,7 +6,8 @@ node_modules
 tmp
 __pycache__
 solver/app/test/
-tests/
+tests/runs/
+tests/qa_matrix_fixtures/_arms/
 data/
 powertwin_data
 postgres_data

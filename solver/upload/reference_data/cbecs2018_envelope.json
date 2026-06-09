@@ -52,6 +52,7 @@
     "SmallHotel":             0.11,
     "LargeHotel":             0.27,
     "MidriseApartment":       0.20,
-    "HighriseApartment":      0.40
+    "HighriseApartment":      0.40,
+    "Laboratory":             0.12
   }
 }

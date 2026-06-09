@@ -240,12 +240,14 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time):
         conn.close()
     
 
-def update_status(status, asset_id=None, simulation_name=None):
+def update_status(status, asset_id=None, simulation_name=None, failure_reason=None):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        # FIXED: Always prioritize asset_id when available
-        if asset_id is not None:
+        if failure_reason and asset_id is not None:
+            cur.execute(f'UPDATE {DB_NAME} SET status = %s, failure_reason = %s WHERE asset_id = %s',
+                        (status, failure_reason, asset_id))
+        elif asset_id is not None:
             cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE asset_id = %s', (status, asset_id))
         elif simulation_name is not None:
             cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE simulation_name = %s', (status, simulation_name))

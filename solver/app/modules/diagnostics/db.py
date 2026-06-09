@@ -121,7 +121,7 @@ def update_status(status, asset_id=None, simulation_name=None, failure_reason=No
             logger.error("SQLite version requires both simulation_name and asset_id")
             return False
     else:
-        return postgres_ops.update_status(status, asset_id, simulation_name)
+        return postgres_ops.update_status(status, asset_id, simulation_name, failure_reason)
 
 
 def bulk_update_status(asset_ids, status, simulation_name):

@@ -5,7 +5,7 @@ id,name,columns,conversion_factor
 4,Water,,1
 5,Chilled Water,DistrictCooling:Facility(kBtu),0.083333
 6,CO2 Emissions,Historical_Hourly_Electricity_Emissions(MT)|Natural_Gas_Emissions(MT)|Propane_Emissions(MT)|FuelOilNo2_Emissions(MT),1
-7,Steam,DistrictHeatingSteam:Facility(kBtu),1.030928
+7,Steam,DistrictHeating:Facility(kBtu),1.030928
 8,Natural Gas,NaturalGas:Facility(kBtu),0.001
 9,Propane,Propane:Facility(kBtu),0.010935
 10,Fuel Oil,FuelOilNo2:Facility(kBtu),0.007210

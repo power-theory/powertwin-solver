@@ -26,12 +26,7 @@
     "Nursing":                   "Outpatient",
     "Mobile Home":               "MidriseApartment",
     "Refrigerated warehouse":    "Warehouse",
-    "Vacant":                    "Warehouse"
-  },
-  "_omitted_explicit": {
-    "_notes": "Two PowerTwin subtypes have no envelope and a separate workflow (Uncovered/Covered Parking), so they remain unmapped. Enclosed mall has no entry in Ruby's lookup_building_type and would error if encountered, so it is intentionally omitted here.",
-    "Enclosed mall":          "Ruby lookup raises for this subtype; no template available",
-    "Uncovered Parking":      "no building envelope, separate workflow",
-    "Covered Parking":        "no building envelope, separate workflow"
+    "Vacant":                    "Warehouse",
+    "Enclosed mall":             "StripMall"
   }
 }

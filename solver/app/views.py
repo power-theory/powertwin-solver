@@ -454,7 +454,8 @@ def convert_metadata_to_csv(metadata_json):
         sensor_id = str(row.get('sensor_id', ''))
         sensor_type_id = str(row.get('sensor_type_id', ''))
         asset_id = str(row.get('asset_id', ''))
-        asset_name = f'"{row.get("asset_name", "")}"'  # Quote for CSV
+        raw_name = str(row.get("asset_name", "")).replace('"', '""')
+        asset_name = f'"{raw_name}"'
         asset_subtype_id = str(row.get('asset_subtype_id', ''))
 
         # Handle JSON fields - escape quotes and wrap in quotes

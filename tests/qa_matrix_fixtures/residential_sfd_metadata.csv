@@ -1,0 +1,2 @@
+sensor_id,sensor_type_id,sensor_type_name,asset_id,asset_name,asset_subtype_id,asset_subtype_name,asset_metadata,asset_geometries_properties
+9900,1,Electricity,9900,QA Residential SFD,1,Single-Family Detached,"{""area"": 1800, ""city"": ""Phoenix"", ""state"": ""Arizona"", ""latitude"": 33.4539, ""longitude"": -112.0729, ""year_built"": 2005, ""floor_count"": 1, ""footprint_area"": 1800}","{""id"": 9900001, ""base"": 0, ""name"": ""QA Residential SFD"", ""height"": 3, ""asset_id"": 9900, ""floor_count"": 1}"

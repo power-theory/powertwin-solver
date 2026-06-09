@@ -1,0 +1,29 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-112.0730, 33.4540],
+            [-112.0728, 33.4540],
+            [-112.0728, 33.4538],
+            [-112.0730, 33.4538],
+            [-112.0730, 33.4540]
+          ]
+        ]
+      },
+      "properties": {
+        "id": 9900001,
+        "asset_id": 9900,
+        "name": "QA Residential SFD",
+        "floor_count": 1,
+        "height": 3,
+        "base": 0
+      },
+      "id": 9900
+    }
+  ]
+}

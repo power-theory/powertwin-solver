@@ -334,6 +334,10 @@ def get_location(asset_metadata):
                 min_distance = distance
                 nearest_station = station
         
+        if nearest_station and min_distance > 100:
+            logger.warning(f"Nearest weather station is {min_distance:.0f} km away "
+                           f"({nearest_station['title']}). Coordinates may be incorrect.")
+
         # Download weather files if needed
         if nearest_station:
             weather_title = nearest_station['title']

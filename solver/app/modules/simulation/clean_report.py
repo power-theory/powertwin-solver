@@ -77,7 +77,12 @@ def _match_column(expected_col, df_columns):
     for c in df_columns:
         c_prefix, c_unit = _split_unit(c)
         if c_prefix == expected_prefix and c_unit in _UNIT_TO_KBTU:
-            # Convert c's values to kBtu, then to expected unit.
+            # Empty unit suffix '()' means URBANopt omitted the unit (typically
+            # for columns that are all-zero). Treat as same-unit-as-expected
+            # rather than routing through the kBtu lookup, which would wrongly
+            # scale kWh-expected columns by 1/3.412.
+            if not c_unit:
+                return (c, 1.0)
             scale = _UNIT_TO_KBTU[c_unit] / expected_kbtu if expected_kbtu else 1.0
             return (c, scale)
     return (None, None)

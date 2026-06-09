@@ -202,13 +202,6 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     asset_id = str(properties.get('asset_id'))
     building_id = str(properties.get('id'))
 
-    floor_count = properties.get('floor_count')
-    if floor_count == str(floor_count):
-        floor_count = int(floor_count)
-
-    if floor_count is None:
-        floor_count = 1
-
     # Essential data missing in metadata
     if building_id not in building_area_list or building_id not in building_type_list or building_id not in building_name_list:
         return None
@@ -216,7 +209,19 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     floor_area = building_area_list[building_id]
     building_type = building_type_list[building_id]
     building_name = sanitize_filename(building_name_list[building_id])
+
+    UNSIMULATABLE_TYPES = {'Uncovered Parking', 'Covered Parking'}
+    if building_type in UNSIMULATABLE_TYPES:
+        logger.warning(f"Skipping {building_name} (building_id {building_id}): {building_type} has no building energy model")
+        return None
+
     asset_metadata = building_metadata_list.get(building_id, {})
+
+    floor_count = asset_metadata.get('floor_count') or properties.get('floor_count')
+    if floor_count == str(floor_count):
+        floor_count = int(floor_count)
+    if floor_count is None:
+        floor_count = 1
 
     # Build the asset context once; every get_param call below uses it to
     # resolve dynamic defaults from the national-stock lookup tables
@@ -393,9 +398,10 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         'NM': 'AZNMc', 'WY': 'RMPAc', 'GA': 'SRSOc', 'MO': 'SRMWc', 'DC': 'RFCEc',
         'SC': 'SRVCc', 'PA': 'RFCEc', 'CO': 'RMPAc', 'AZ': 'AZNMc', 'ME': 'NEWEc',
         'AL': 'SRSOc', 'MD': 'RFCEc', 'NH': 'NEWEc', 'MA': 'NEWEc', 'ND': 'MROWc',
-        'NV': 'NWPPc', 'CT': 'NEWEc', 'DE': 'RFCEc', 'RI': 'NEWEc'
+        'NV': 'NWPPc', 'CT': 'NEWEc', 'DE': 'RFCEc', 'RI': 'NEWEc',
+        'AK': 'AKGDc', 'HI': 'HIc'
     }
-    
+
     hourly_historical_mapping = {
         'FL': 'Florida', 'MS': 'Midwest', 'NE': 'Midwest', 'OR': 'Northwest', 'CA': 'California',
         'VA': 'Carolinas', 'AR': 'Midwest', 'TX': 'Texas', 'OH': 'Midwest', 'UT': 'Northwest',
@@ -406,9 +412,10 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         'NM': 'Southwest', 'WY': 'Rocky Mountains', 'GA': 'Southeast', 'MO': 'Midwest', 'DC': 'Mid-Atlantic',
         'SC': 'Carolinas', 'PA': 'Mid-Atlantic', 'CO': 'Rocky Mountains', 'AZ': 'Southwest', 'ME': 'New England',
         'AL': 'Southeast', 'MD': 'Mid-Atlantic', 'NH': 'New England', 'MA': 'New England', 'ND': 'Midwest',
-        'NV': 'Northwest', 'CT': 'New England', 'DE': 'Mid-Atlantic', 'RI': 'New England'
+        'NV': 'Northwest', 'CT': 'New England', 'DE': 'Mid-Atlantic', 'RI': 'New England',
+        'AK': 'Northwest', 'HI': 'Southwest'
     }
-    
+
     annual_historical_mapping = {
         'FL': 'FRCC', 'MS': 'SRMV', 'NE': 'MROW', 'OR': 'NWPP', 'CA': 'CAMX',
         'VA': 'SRVC', 'AR': 'SRMV', 'TX': 'ERCT', 'OH': 'RFCW', 'UT': 'NWPP',
@@ -419,7 +426,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         'NM': 'AZNM', 'WY': 'RMPA', 'GA': 'SRSO', 'MO': 'SRMW', 'DC': 'RFCE',
         'SC': 'SRVC', 'PA': 'RFCE', 'CO': 'RMPA', 'AZ': 'AZNM', 'ME': 'NEWE',
         'AL': 'SRSO', 'MD': 'RFCE', 'NH': 'NEWE', 'MA': 'NEWE', 'ND': 'MROW',
-        'NV': 'NWPP', 'CT': 'NEWE', 'DE': 'RFCE', 'RI': 'NEWE'
+        'NV': 'NWPP', 'CT': 'NEWE', 'DE': 'RFCE', 'RI': 'NEWE',
+        'AK': 'AKGD', 'HI': 'HIMS'
     }
     
     # Fallback state-level climate zones (used when FCC county-level lookup is unavailable)
