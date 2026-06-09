@@ -157,7 +157,7 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
         for row in reader:
             asset_geometries_properties = json.loads(row['asset_geometries_properties'])  
 
-            if asset_id not in str(asset_geometries_properties.get('id')):
+            if str(asset_id) != str(asset_geometries_properties.get('id')):
                 continue
             
             sensor_id =  row['sensor_id']

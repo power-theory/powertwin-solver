@@ -7,13 +7,14 @@
 
 import csv
 import json
+import math
 import os
 import shutil
 import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
-from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx
+from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
@@ -59,13 +60,16 @@ def read_metadata(metadata_csv):
     building_year_list = {}
     building_metadata_list = {}
     processed_building_ids = set()
+    skip_counts = {'missing_area': 0, 'missing_id': 0, 'duplicate_id': 0}
+    total_rows = 0
 
 
     with open(metadata_csv, 'r') as metadata_file:
         reader = csv.DictReader(metadata_file)
-        
+
         # Read each row in the CSV file to assign building data to its corresponding building ID
         for row in reader:
+            total_rows += 1
             asset_name = row['asset_name']
             asset_subtype_id = row.get('asset_subtype_id', '')
             asset_geometries_properties = json.loads(row['asset_geometries_properties'])
@@ -74,7 +78,16 @@ def read_metadata(metadata_csv):
             floor_area = asset_metadata.get('area')
             building_id = str(asset_geometries_properties.get('id')) # Most important id, considered the PK
 
-            if not floor_area or not building_id or building_id in processed_building_ids:
+            if not building_id:
+                skip_counts['missing_id'] += 1
+                continue
+            if not floor_area:
+                skip_counts['missing_area'] += 1
+                logger.warning(f"Skipping building {building_id}: missing floor area")
+                continue
+            if building_id in processed_building_ids:
+                skip_counts['duplicate_id'] += 1
+                logger.debug(f"Skipping building {building_id}: duplicate ID")
                 continue
 
             # Resolve subtype: parse ID, fall back to default if missing/invalid
@@ -115,28 +128,64 @@ def read_metadata(metadata_csv):
                 except (ValueError, TypeError):
                     logger.warning(f"Invalid year_built value for building {building_id}: {raw_year!r}")
 
+    accepted = len(building_area_list)
+    skipped = sum(skip_counts.values())
+    logger.info(f"Metadata: {accepted} buildings accepted from {total_rows} rows. "
+                f"Skipped {skipped} ({skip_counts['missing_area']} missing area, "
+                f"{skip_counts['missing_id']} missing ID, {skip_counts['duplicate_id']} duplicate ID)")
+
     return building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list
 
-############################################################################################################
-# Name: flatten_geometry()
-# Description: Flattens MultiPolygon geometries into single Polygons by merging all rings.
-#   Returns True if geometry was modified, False otherwise.
-############################################################################################################
+def _ring_area_unsigned(ring):
+    """Shoelace formula for the unsigned area of a coordinate ring."""
+    n = len(ring)
+    if n < 3:
+        return 0.0
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += ring[i][0] * ring[j][1]
+        area -= ring[j][0] * ring[i][1]
+    return abs(area) / 2.0
+
+
+def _ring_perimeter(ring):
+    """Euclidean perimeter of a coordinate ring (in coordinate units)."""
+    total = 0.0
+    for i in range(len(ring) - 1):
+        dx = ring[i + 1][0] - ring[i][0]
+        dy = ring[i + 1][1] - ring[i][1]
+        total += math.sqrt(dx * dx + dy * dy)
+    return total
+
+
 def flatten_geometry(geom):
+    """Flatten MultiPolygon to Polygon by selecting the largest polygon by area.
+
+    Previous implementation merged all rings from all polygons, which created
+    topologically invalid geometry (second polygon's outer ring became a hole).
+    """
     if not geom or 'type' not in geom or 'coordinates' not in geom:
         return False
-        
+
     gt = geom['type']
     coords = geom['coordinates']
-    
+
     if gt == 'MultiPolygon':
-        # merge every ring from every polygon into one Polygon
-        rings = [ring for poly in coords for ring in poly]
+        best_idx = 0
+        best_area = 0.0
+        for i, poly in enumerate(coords):
+            a = _ring_area_unsigned(poly[0]) if poly else 0.0
+            if a > best_area:
+                best_area = a
+                best_idx = i
+        if len(coords) > 1:
+            logger.debug(f"MultiPolygon with {len(coords)} parts — using largest (area={best_area:.1f})")
         geom['type'] = 'Polygon'
-        geom['coordinates'] = rings
-        #logger.debug("Converted MultiPolygon to Polygon")
+        geom['coordinates'] = coords[best_idx]
         return True
     return False
+
 
 ############################################################################################################
 # Name: process_feature()
@@ -193,10 +242,24 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     floor_height = get_param(asset_metadata, 'floor_height', ctx)
     window_to_wall_ratio = get_param(asset_metadata, 'window_to_wall_ratio', ctx)
 
-    # Calculate the perimeter of the building footprint (assuming rectangular)
     footprint_area = int(floor_area / floor_count)
+    # Use GeoJSON geometry to derive the shape factor for a more accurate
+    # perimeter estimate. The ratio of actual perimeter to the perimeter of a
+    # square with the same area captures aspect ratio and irregularity. For a
+    # square this ratio is 1.0; for a 10:1 rectangle it's ~1.74.
+    shape_factor = 1.0
+    geom = feature.get('geometry')
+    if geom and geom.get('type') == 'Polygon':
+        outer_ring = (geom.get('coordinates') or [None])[0]
+        if outer_ring and len(outer_ring) >= 4:
+            geo_area = _ring_area_unsigned(outer_ring)
+            geo_perim = _ring_perimeter(outer_ring)
+            if geo_area > 0:
+                square_perim = 4 * math.sqrt(geo_area)
+                shape_factor = geo_perim / square_perim
+
     side_length = footprint_area ** 0.5
-    perimeter = 4 * side_length
+    perimeter = 4 * side_length * shape_factor
     exterior_wall_area = perimeter * floor_count * floor_height
     window_area = int(window_to_wall_ratio * exterior_wall_area)
 
@@ -270,7 +333,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # default fallback) so a missing entry for a future residential subtype
     # surfaces as a visible review failure instead of silently defaulting to 1.
     if building_type in ('Single-Family Detached', 'Single-Family Attached', 'Multifamily'):
-        units_by_subtype = {
+        FALLBACK_UNITS_BY_SUBTYPE = {
             1: 1,  # Single-Family Detached
             2: 1,  # Single-Family Attached
             3: 4,  # Multifamily (generic, typical mid-size)
@@ -278,8 +341,12 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             5: 3,  # Multifamily (2 to 4 units), midpoint
             6: 8,  # Multifamily (5 or more units), representative
         }
-        units = units_by_subtype.get(asset_metadata.get('_subtype_id'), 1)
-        bedrooms_per_unit = max(1, round(floor_area / 800 / units))
+        meta_units = asset_metadata.get('number_of_units') or asset_metadata.get('units')
+        try:
+            units = max(1, int(meta_units))
+        except (TypeError, ValueError):
+            units = FALLBACK_UNITS_BY_SUBTYPE.get(asset_metadata.get('_subtype_id'), 1)
+        bedrooms_per_unit = max(1, round(floor_area / SQFT_PER_BEDROOM / units))
         new_properties.update({
             "number_of_stories_above_ground": floor_count,
             "foundation_type": "basement - conditioned",
@@ -539,6 +606,9 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
 
     # Process each feature in the GeoJSON data
     logger.info("Processing features...")
+    total_features = len(geojson_data['features'])
+    created = 0
+    skipped_features = 0
     for feature in geojson_data['features']:
         result = process_feature(feature, building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list)
         # If the result is not None, write the feature file
@@ -548,8 +618,12 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
             feature_file_path = os.path.join(FEATURE_FILES_DIR, f'{building_id}_{new_building_name}.json')
             with open(feature_file_path, 'w') as feature_file:
                 json.dump(final_json, feature_file, indent=4)
+            created += 1
+        else:
+            skipped_features += 1
 
-    logger.info("Feature files created successfully.")
+    logger.info(f"Feature files: {created} created from {total_features} GeoJSON features "
+                f"({skipped_features} skipped due to missing metadata or weather)")
     # Run the asset analysis to organize the assets to their batch
     asset_analysis(SIMULATION_DIR, num_cores, simulation_name)
 

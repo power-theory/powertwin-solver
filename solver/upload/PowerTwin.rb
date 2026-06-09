@@ -136,7 +136,8 @@ module URBANopt
             return 'Nrs'
           when 'Office'
             if footprint_area
-              if footprint_area.to_f > 100000
+              total_area = footprint_area.to_f * [number_of_stories.to_i, 1].max
+              if total_area > 100000
                 return 'OfL'
               else
                 return 'OfS'
@@ -210,12 +211,13 @@ module URBANopt
             return 'Outpatient'
           when 'Office'
             if footprint_area
-              if footprint_area.to_f < 20000
-                value = 'SmallOffice'
-              elsif footprint_area.to_f > 100000
-                value = 'LargeOffice'
+              total_area = footprint_area.to_f * [number_of_stories.to_i, 1].max
+              if total_area < 25000
+                return 'SmallOffice'
+              elsif total_area > 100000
+                return 'LargeOffice'
               else
-                value = 'MediumOffice'
+                return 'MediumOffice'
               end
             else
               raise 'Floor area required to map office building type'
@@ -450,7 +452,7 @@ module URBANopt
             'VT': 'New England',
             'NM': 'Southwest',
             'WY': 'Rocky Mountains',
-            'GA': 'SRSO',
+            'GA': 'Southeast',
             'MO': 'Midwest',
             'DC': 'Mid-Atlantic',
             'SC': 'Carolinas',

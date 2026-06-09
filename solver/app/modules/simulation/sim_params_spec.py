@@ -292,7 +292,7 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None) -> dict:
     """Distill the lookup-key context out of an asset's metadata dict. Centralized
     here so the resolvers all see the same shape: {building_type, region, vintage,
     state, area, bedrooms}. Missing keys are None; resolvers fall back accordingly."""
-    state = _normalize_state(metadata.get('state'))
+    state = _normalize_state(metadata.get('state') or metadata.get('State'))
     region = _load_ref('census_regions')['state_to_region'].get(state) if state else None
     return {
         'building_type': building_type,
@@ -336,10 +336,12 @@ def _doe_ref_name(building_type: str | None) -> str | None:
     return aliases.get(building_type, building_type)
 
 
+SQFT_PER_BEDROOM = 800
+
 def _resolve_occupants(ctx: dict) -> int | None:
     """Composite occupants resolver:
         residential: HPXML/Manual J convention -> bedrooms + 1
-                     (bedrooms inferred from area at ~600 ft^2/br when absent)
+                     (bedrooms inferred from area at ~800 ft^2/br when absent)
         commercial:  area_sqft * people_per_1000ft^2 / 1000
                      (people_per_1000ft^2 from OpenStudio Standards 90.1-2013,
                      keyed by DOE Reference Building prototype name)
@@ -352,7 +354,7 @@ def _resolve_occupants(ctx: dict) -> int | None:
         if bedrooms in (None, ''):
             area = ctx.get('area')
             if area:
-                bedrooms = max(1, round(float(area) / 600))
+                bedrooms = max(1, round(float(area) / SQFT_PER_BEDROOM))
             else:
                 bedrooms = 2  # HPXML modal SFD assumption
         try:
