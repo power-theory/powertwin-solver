@@ -1,13 +1,14 @@
 """End-to-end matrix verification for every programmable simulation
-parameter on a single building, across all three resolution paths
-(metadata override / dynamic resolver / flat fallback) and five
+parameter on a single building per type, across all three resolution
+paths (metadata override / dynamic resolver / flat fallback) and five
 verification layers (resolver-preview / feature.json / in.osw / in.osm
 / eplusout.sql).
 
 Goal: every dynamic-default param survives end-to-end and is not silently
-overwritten by any pipeline stage. Two small fixtures cover both the
-commercial and residential resolver paths. Six sims total (2 fixtures x
-3 arms), ~12-15 min wall-clock.
+overwritten by any pipeline stage. Fixtures cover all PowerTwin building
+subtypes across all 4 census regions and 4 vintage bins (one building per
+type). Each fixture generates a synthetic geojson + metadata CSV on the
+fly from a config table so no static files need to be maintained per type.
 
 Run from repo root:
   python3 tests/qa_dynamic_defaults_matrix.py \\
@@ -33,7 +34,8 @@ import subprocess
 import sys
 import time
 import zipfile
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, field as dataclass_field
 from typing import Any
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -144,11 +146,21 @@ MEASURE = {
 # carries climate_zone, fuel_for_swh_routing, etc.
 TIME_TO_DEC = lambda v: None if v in (None, "") else round(
     int(v.split(":")[0]) + int(v.split(":")[1]) / 60.0, 4)
-WIN_U_FACTOR_CZ2 = {  # ASHRAE 90.1-2013 base U at CZ2 = 4.26 W/m^2-K
-    "Single Pane": 4.26 * 2.0,
-    "Double Pane": 4.26 * 1.0,
-    "Triple Pane": 4.26 * 0.55,
+CZ_WINDOW_BASE = {
+    '1': 6.81, '2': 4.26, '3': 3.69, '4': 3.12,
+    '5': 3.12, '6': 2.56, '7': 2.27, '8': 1.99,
 }
+TIER_U_MULT = {"Single Pane": 2.0, "Double Pane": 1.0, "Triple Pane": 0.55}
+
+def _win_u_for_cz(tier, cz_str):
+    cz_digit = None
+    if cz_str:
+        import re
+        m = re.search(r'(\d)[A-Ca-c]?\s*$', str(cz_str))
+        cz_digit = m.group(1) if m else None
+    base = CZ_WINDOW_BASE.get(cz_digit or '4', 3.12)
+    mult = TIER_U_MULT.get(tier, 1.0)
+    return base * mult
 # PowerTwin.rb fuel routing per measure_arg validity (see lines ~1050-1062):
 #   htg_src valid: Electricity, NaturalGas, DistrictHeating, DistrictAmbient
 #   clg_src valid: Electricity, DistrictCooling, DistrictAmbient
@@ -169,20 +181,20 @@ def xform_swh(v):
     return f  # propane / fuel oil routed via set_service_water_heating_fuel
 
 L3_XFORM = {
-    "system_type":                    lambda v: v,
-    "heating_system_fuel_type":       xform_htg,
-    "cooling_system_fuel_type":       xform_clg,
-    "service_water_heating_fuel_type":xform_swh,
-    "window_type":                    lambda v: WIN_U_FACTOR_CZ2.get(v),  # Phoenix = CZ2
-    "wall_r_value":                   lambda v: float(v) if v not in (None, "") else None,
-    "roof_r_value":                   lambda v: float(v) if v not in (None, "") else None,
-    "window_to_wall_ratio":           lambda v: float(v) if v not in (None, "") else None,
-    "floor_height":                   lambda v: float(v) if v not in (None, "") else None,
-    "number_of_occupants":            lambda v: int(v) if v not in (None, "") else None,
-    "weekday_start_time":             TIME_TO_DEC,
-    "weekday_duration":               TIME_TO_DEC,
-    "weekend_start_time":             TIME_TO_DEC,
-    "weekend_duration":               TIME_TO_DEC,
+    "system_type":                    lambda v, cz=None: v,
+    "heating_system_fuel_type":       lambda v, cz=None: xform_htg(v),
+    "cooling_system_fuel_type":       lambda v, cz=None: xform_clg(v),
+    "service_water_heating_fuel_type":lambda v, cz=None: xform_swh(v),
+    "window_type":                    lambda v, cz=None: _win_u_for_cz(v, cz),
+    "wall_r_value":                   lambda v, cz=None: float(v) if v not in (None, "") else None,
+    "roof_r_value":                   lambda v, cz=None: float(v) if v not in (None, "") else None,
+    "window_to_wall_ratio":           lambda v, cz=None: float(v) if v not in (None, "") else None,
+    "floor_height":                   lambda v, cz=None: float(v) if v not in (None, "") else None,
+    "number_of_occupants":            lambda v, cz=None: int(v) if v not in (None, "") else None,
+    "weekday_start_time":             lambda v, cz=None: TIME_TO_DEC(v),
+    "weekday_duration":               lambda v, cz=None: TIME_TO_DEC(v),
+    "weekend_start_time":             lambda v, cz=None: TIME_TO_DEC(v),
+    "weekend_duration":               lambda v, cz=None: TIME_TO_DEC(v),
 }
 
 # Where to find each field in the per-asset feature.json. None = field is
@@ -357,36 +369,180 @@ class Fixture:
     asset_name: str
     subtype_name: str
     building_type: str        # what alias.json resolves the subtype to
+    subtype_id: int           # asset_subtypes.csv id
     state: str
     year_built: int
     area: float
     floor_count: int
-    geojson: pathlib.Path
-    metadata: pathlib.Path
+    lat: float
+    lon: float
+    city: str
+    geojson: pathlib.Path     = dataclass_field(default=None)
+    metadata: pathlib.Path    = dataclass_field(default=None)
 
 
-FIXTURES = (
-    Fixture(
-        name="commercial",
-        asset_id=5, geom_id=7697305,
-        asset_name="Beus Center for Law and Society",
-        subtype_name="Education", building_type="Education",
-        state="Arizona", year_built=2016,
-        area=286845.0, floor_count=6,
-        geojson=FIXTURE_DIR / "commercial_office.geojson",
-        metadata=FIXTURE_DIR / "commercial_office_metadata.csv",
-    ),
-    Fixture(
-        name="residential",
-        asset_id=9900, geom_id=9900001,
-        asset_name="QA Residential SFD",
-        subtype_name="Single-Family Detached", building_type="Single-Family Detached",
-        state="Arizona", year_built=2005,
-        area=1800.0, floor_count=1,
-        geojson=FIXTURE_DIR / "residential_sfd.geojson",
-        metadata=FIXTURE_DIR / "residential_sfd_metadata.csv",
-    ),
-)
+# Representative coordinates per census region (near weather stations that
+# the container can download).
+REGION_COORDS = {
+    "West":      {"state": "Arizona",      "city": "Phoenix",  "lat": 33.4539, "lon": -112.0729},
+    "South":     {"state": "Texas",        "city": "Houston",  "lat": 29.7604, "lon": -95.3698},
+    "Midwest":   {"state": "Illinois",     "city": "Chicago",  "lat": 41.8781, "lon": -87.6298},
+    "Northeast": {"state": "New York",     "city": "New York", "lat": 40.7128, "lon": -74.0060},
+}
+
+# Every simulatable PowerTwin building subtype with a representative config.
+# Spread across regions and vintage bins for maximum coverage.
+# effective_type is what generateFeatureFile resolves via asset_subtypes.csv
+# effective_id chain (e.g. "Multifamily (2 to 4 units)" -> effective_id 3 ->
+# "Multifamily"). When None, effective_type == subtype_name.
+# fmt: off
+BUILDING_CONFIGS = [
+    # --- Commercial types ---
+    # name                        subtype_name                    subtype_id  region       year   area       floors  effective_type
+    ("office_small",              "Office",                       8,          "West",      1975,  20000,     2,      None),
+    ("office_medium",             "Office",                       8,          "Midwest",   1995,  50000,     3,      None),
+    ("office_large",              "Office",                       8,          "South",     2008,  150000,    5,      None),
+    ("education",                 "Education",                    17,         "West",      2016,  50000,     3,      None),
+    ("lodging_small",             "Lodging",                      21,         "Northeast", 2015,  15000,     2,      None),
+    ("lodging_large",             "Lodging",                      21,         "South",     2005,  80000,     5,      None),
+    ("food_service",              "Food service",                 18,         "South",     1990,  5000,      1,      None),
+    ("food_sales",                "Food sales",                   11,         "Midwest",   2005,  3000,      1,      None),
+    ("outpatient",                "Outpatient health care",       13,         "West",      1985,  40000,     2,      None),
+    ("inpatient",                 "Inpatient health care",        19,         "Northeast", 2018,  200000,    4,      None),
+    ("warehouse",                 "Nonrefrigerated warehouse",    10,         "South",     1975,  50000,     1,      None),
+    ("public_order",              "Public order and safety",      12,         "Midwest",   2012,  30000,     2,      None),
+    ("laboratory",                "Laboratory",                   9,          "Northeast", 2020,  100000,    3,      None),
+    ("retail",                    "Retail other than mall",       24,         "Northeast", 1998,  15000,     1,      None),
+    ("strip_mall",                "Strip shopping mall",          22,         "South",     2005,  25000,     1,      None),
+    ("public_assembly",           "Public assembly",              16,         "Midwest",   1970,  40000,     2,      None),
+    ("religious",                 "Religious worship",            15,         "West",      1988,  20000,     1,      None),
+    ("service",                   "Service",                      25,         "Northeast", 2002,  10000,     1,      None),
+    ("nursing",                   "Nursing",                      20,         "South",     2014,  60000,     2,      None),
+    ("enclosed_mall",             "Enclosed mall",                23,         "Midwest",   2003,  100000,    2,      None),
+    ("mixed_use",                 "Mixed use",                    26,         "West",      2010,  80000,     4,      "Office"),
+    ("refrigerated_warehouse",    "Refrigerated warehouse",       14,         "Northeast", 1999,  30000,     1,      None),
+    ("vacant",                    "Vacant",                       7,          "Midwest",   1978,  10000,     1,      None),
+    # --- Residential types (effective_type from effective_id chain) ---
+    ("sfd",                       "Single-Family Detached",       1,          "West",      2005,  1800,      1,      None),
+    ("sfa",                       "Single-Family Attached",       2,          "South",     1995,  1400,      2,      None),
+    ("mf_small",                  "Multifamily (2 to 4 units)",   5,          "Northeast", 2000,  4000,      2,      "Multifamily"),
+    ("mf_large",                  "Multifamily (5 or more units)",6,          "Midwest",   2015,  50000,     4,      "Multifamily"),
+    ("mobile_home",               "Mobile Home",                  4,          "South",     1992,  1000,      1,      "Single-Family Detached"),
+]
+# fmt: on
+
+
+def _generate_geojson(fixture: Fixture, out_dir: pathlib.Path) -> pathlib.Path:
+    """Create a minimal rectangular GeoJSON for one building."""
+    h = fixture.floor_count * 3
+    side = math.sqrt(fixture.area / fixture.floor_count) * 0.00001
+    lon, lat = fixture.lon, fixture.lat
+    geojson = {
+        "type": "FeatureCollection",
+        "features": [{
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [lon - side/2, lat + side/2],
+                    [lon + side/2, lat + side/2],
+                    [lon + side/2, lat - side/2],
+                    [lon - side/2, lat - side/2],
+                    [lon - side/2, lat + side/2],
+                ]],
+            },
+            "properties": {
+                "id": fixture.geom_id,
+                "asset_id": fixture.asset_id,
+                "name": fixture.asset_name,
+                "floor_count": fixture.floor_count,
+                "height": h,
+                "base": 0,
+            },
+            "id": fixture.asset_id,
+        }],
+    }
+    p = out_dir / f"{fixture.name}.geojson"
+    p.write_text(json.dumps(geojson, indent=2))
+    return p
+
+
+def _generate_metadata(fixture: Fixture, out_dir: pathlib.Path) -> pathlib.Path:
+    """Create a single-row metadata CSV for one building."""
+    footprint = fixture.area / fixture.floor_count
+    meta = {
+        "area": fixture.area,
+        "city": fixture.city,
+        "state": fixture.state,
+        "latitude": fixture.lat,
+        "longitude": fixture.lon,
+        "year_built": fixture.year_built,
+        "floor_count": fixture.floor_count,
+        "footprint_area": footprint,
+    }
+    geom_props = {
+        "id": fixture.geom_id,
+        "base": 0,
+        "name": fixture.asset_name,
+        "height": fixture.floor_count * 3,
+        "asset_id": fixture.asset_id,
+        "floor_count": fixture.floor_count,
+    }
+    p = out_dir / f"{fixture.name}_metadata.csv"
+    with p.open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "sensor_id", "sensor_type_id", "sensor_type_name",
+            "asset_id", "asset_name", "asset_subtype_id",
+            "asset_subtype_name", "asset_metadata",
+            "asset_geometries_properties",
+        ])
+        w.writerow([
+            fixture.asset_id, 1, "Electricity",
+            fixture.asset_id, fixture.asset_name,
+            fixture.subtype_id, fixture.subtype_name,
+            json.dumps(meta), json.dumps(geom_props),
+        ])
+    return p
+
+
+def build_fixtures() -> tuple[Fixture, ...]:
+    """Generate Fixture objects from BUILDING_CONFIGS. Creates geojson and
+    metadata CSV files under FIXTURE_DIR/_generated/."""
+    gen_dir = FIXTURE_DIR / "_generated"
+    gen_dir.mkdir(parents=True, exist_ok=True)
+    fixtures = []
+    for i, (name, subtype, sid, region, year, area, floors, eff) in enumerate(BUILDING_CONFIGS):
+        rc = REGION_COORDS[region]
+        asset_id = 9800 + i
+        geom_id = asset_id * 1000 + 1
+        fx = Fixture(
+            name=name,
+            asset_id=asset_id,
+            geom_id=geom_id,
+            asset_name=f"QA {name.replace('_', ' ').title()}",
+            subtype_name=subtype,
+            building_type=eff or subtype,
+            subtype_id=sid,
+            state=rc["state"],
+            year_built=year,
+            area=float(area),
+            floor_count=floors,
+            lat=rc["lat"] + i * 0.001,
+            lon=rc["lon"] + i * 0.001,
+            city=rc["city"],
+        )
+        fx.geojson = _generate_geojson(fx, gen_dir)
+        fx.metadata = _generate_metadata(fx, gen_dir)
+        fixtures.append(fx)
+    return tuple(fixtures)
+
+
+FIXTURES = build_fixtures()
+
+RESIDENTIAL_TYPES = {
+    "Single-Family Detached", "Single-Family Attached", "Multifamily",
+}
 
 ARMS = ("override", "resolver", "flat")
 
@@ -642,9 +798,33 @@ def query_eplusout(sql_path: pathlib.Path) -> dict[str, Any]:
 # sim_params_spec.OCCUPANTS_MAPPING and the keys generateFeatureFile derives
 # from asset_subtypes.csv occupancy_type column.
 OCCUPANCY_MAPPING_FLAT = {
-    "Office": 100,                       # Business -> 100
-    "Education": 355,                    # Educational -> 355
-    "Single-Family Detached": 3,         # SmallResidential -> 3
+    "Office":                       100,  # Business
+    "Mixed use":                    100,  # Mixed -> Business-equivalent
+    "Public order and safety":      40,   # Institutional
+    "Service":                      100,  # Business
+    "Education":                    355,  # Educational
+    "Lodging":                      20,   # BigResidential
+    "Food service":                 50,   # FoodMercantile
+    "Food sales":                   50,   # FoodMercantile
+    "Outpatient health care":       60,   # Health Care
+    "Inpatient health care":        60,   # Health Care
+    "Nursing":                      60,   # Health Care
+    "Nonrefrigerated warehouse":    5,    # Storage
+    "Refrigerated warehouse":       5,    # Storage
+    "Laboratory":                   50,   # Industrial
+    "Retail other than mall":       150,  # Mercantile
+    "Strip shopping mall":          150,  # Mercantile
+    "Enclosed mall":                150,  # Mercantile
+    "Public assembly":              200,  # Assembly
+    "Religious worship":            200,  # Assembly
+    "Mobile Home":                  3,    # SmallResidential (effective_id=1)
+    "Vacant":                       1,    # Vacant
+    "Single-Family Detached":       3,    # SmallResidential
+    "Single-Family Attached":       3,    # SmallResidential
+    "Single-Family":                3,    # SmallResidential
+    "Multifamily (2 to 4 units)":   20,   # BigResidential
+    "Multifamily (5 or more units)":20,   # BigResidential
+    "Multifamily":                  20,   # BigResidential
 }
 
 
@@ -682,18 +862,15 @@ def expected_l2(field: str, raw: Any) -> Any:
     return raw
 
 
-def expected_l3(field: str, raw: Any) -> Any:
+def expected_l3(field: str, raw: Any, climate_zone: str | None = None) -> Any:
     """Value we expect at in.osw measure-arg layer. Applies the documented
     PowerTwin.rb transform per field (HH:MM -> decimal hours; lowercase
     fuel -> CamelCase enum; window tier -> U-factor multiplier; etc.)."""
-    # Empty / Inferred raw -> field is suppressed at feature.json emission
-    # so PowerTwin.rb doesn't see it; the measure arg stays at base_workflow
-    # default (which our compare treats as <None>).
     if raw in (None, "", "Inferred"):
         return None
     if field in L3_XFORM:
         try:
-            return L3_XFORM[field](raw)
+            return L3_XFORM[field](raw, climate_zone)
         except (ValueError, TypeError, AttributeError):
             return raw
     return raw
@@ -753,8 +930,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--skip-sims", action="store_true",
                    help="Skip running sims; re-score from existing slots")
     p.add_argument("--fixtures", nargs="+",
-                   choices=[f.name for f in FIXTURES],
-                   help="Subset of fixtures to run")
+                   help="Subset of fixture names to run")
     p.add_argument("--arms", nargs="+", choices=list(ARMS),
                    help="Subset of arms to run")
     args = p.parse_args(argv)
@@ -822,10 +998,19 @@ def main(argv: list[str] | None = None) -> int:
             # doesn't. find_feature_xml returns None for commercial.
             xml_path = find_feature_xml(sim_name, fx.geom_id)
 
+            cz = None
+            if osw_path:
+                try:
+                    osw_data = json.loads(osw_path.read_text())
+                    cbl = find_step(osw_data, "ChangeBuildingLocation")
+                    if cbl:
+                        cz = cbl.get("arguments", {}).get("climate_zone")
+                except Exception:
+                    pass
             for field in FIELDS:
                 raw_expected = expected_raw(fx, arm, field, resolver_preview)
                 exp_l2 = expected_l2(field, raw_expected)
-                exp_l3 = expected_l3(field, raw_expected)
+                exp_l3 = expected_l3(field, raw_expected, climate_zone=cz)
                 row = {
                     "fixture": fx.name,
                     "arm": arm,
@@ -873,7 +1058,7 @@ def main(argv: list[str] | None = None) -> int:
                     "cooling_system_fuel_type",
                     "service_water_heating_fuel_type",
                 }
-                if fx.name == "residential":
+                if fx.building_type in RESIDENTIAL_TYPES:
                     hpxml_v = read_hpxml_field(xml_path, field)
                     if HPXML_EXTRACT.get(field) is None:
                         row["L3_osw"] = "<N/A in HPXML>"

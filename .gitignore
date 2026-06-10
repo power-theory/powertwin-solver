@@ -8,6 +8,7 @@ __pycache__
 solver/app/test/
 tests/runs/
 tests/qa_matrix_fixtures/_arms/
+tests/qa_matrix_fixtures/_generated/
 data/
 powertwin_data
 postgres_data
