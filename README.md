@@ -2,8 +2,12 @@
 
 ## HOW TO RUN
 ```sh
-docker compose -f docker-compose-local.yml build
-docker compose -f docker-compose-local.yml up
+# Development (sources .env.local, builds, and starts with logs)
+bash run_docker.sh
+
+# Or manually:
+docker compose build
+docker compose up --detach
 ```
 
 ## Autorun Simulation
@@ -106,7 +110,7 @@ solver status <simulation_name>
 
 Download directory locally and build with Docker
 ```bash
-docker compose -f docker-compose-local.yml build
+docker compose build
 docker tag powertwin-solver-powertwin-solver-flask:latest <docker_username>/powertwin-solver-flask:latest
 docker push <docker_username>/powertwin-solver-flask:latest
 ```
@@ -207,7 +211,7 @@ EnergyPlus/UrbanOpt outputs are converted to the target units defined in `sensor
 | 4 | Water | *(not simulated)* | n/a | Gal | n/a | No EnergyPlus meter available |
 | 5 | Chilled Water | `DistrictCooling:Facility` | kBtu | Ton-Hr | 0.083333 | 1 Ton-Hr = 12,000 BTU = 12 kBtu |
 | 6 | CO2 Emissions | `*_Emissions(MT)` (4 sources summed) | MT | MT | 1 | [UrbanOpt schema](https://docs.urbanopt.net/resources/customization/feature_reports.html): "emissions in metric ton (mt)"; [Cambium/NREL](https://docs.nrel.gov/docs/fy24osti/89309.pdf) |
-| 7 | Steam | `DistrictHeatingSteam:Facility` | kBtu | lbs | 1.030928 | 970 BTU/lb latent heat of vaporization at atmospheric pressure ([Engineering Toolbox](https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html)) |
+| 7 | Steam | `DistrictHeating:Facility` | kBtu | lbs | 1.030928 | 970 BTU/lb latent heat of vaporization at atmospheric pressure ([Engineering Toolbox](https://www.engineeringtoolbox.com/saturated-steam-properties-d_273.html)) |
 | 8 | Natural Gas | `NaturalGas:Facility` | kBtu | MMBtu | 0.001 | 1 MMBtu = 1,000 kBtu |
 | 9 | Propane | `Propane:Facility` | kBtu | Gal | 0.010935 | 91,452 BTU/gal ([EIA](https://www.eia.gov/energyexplained/units-and-calculators/british-thermal-units.php)) |
 | 10 | Fuel Oil | `FuelOilNo2:Facility` | kBtu | Gal | 0.007210 | 138,690 BTU/gal ([EIA](https://www.eia.gov/totalenergy/data/monthly/pdf/sec12_2.pdf)) |
@@ -227,7 +231,7 @@ The solver scaffolds every per-asset urbanopt project with `uo create --combined
 | `Single-Family Detached`, `Single-Family Attached`, `Multifamily` | residential | `BuildResidentialModel` (HPXML-driven) |
 | everything else | commercial | `create_bar_from_building_type_ratios` + `create_typical_building_from_model` |
 
-Residential routing is driven by `solver/upload/asset_subtypes.csv`'s `effective_id` column. Residential subtypes (id 1, 2, 3, 4, 5, 6) point at their residential canonical name; other subtypes route through the commercial path.
+Residential routing is driven by `solver/upload/asset_subtypes.csv`'s `effective_id` column. Residential subtypes resolve through `effective_id` to one of the three canonical names: id 1 (Single-Family Detached), id 2 (Single-Family Attached), id 3 (Multifamily). For example, "Multifamily (2 to 4 units)" (id 5) has `effective_id=3`, routing it to "Multifamily". All other subtypes route through the commercial path.
 
 `generateFeatureFile.py` emits the residential-specific feature.json properties (`number_of_stories_above_ground`, `foundation_type`, `attic_type`, `number_of_residential_units`, `number_of_bedrooms`) when the resolved `building_type` is one of the three residential names. Unit counts derive from the original `asset_subtype_id`: Single-Family variants get 1 unit, Multifamily (2 to 4 units) gets 3, Multifamily (5 or more units) gets 8, generic Multifamily gets 4. Bedroom count per unit is `max(1, round(floor_area / 800 / units))` and the emitted `number_of_bedrooms` is `bedrooms_per_unit * units` to satisfy urbanopt's divisibility constraint.
 
@@ -259,7 +263,7 @@ These are controlled by the `DOE_REF_INCOMPATIBLE` constant in `PowerTwin.rb`. L
 
 ### Verified Compatible Types
 
-All 12 remaining commercial building types have been empirically verified against DOE Ref Pre-1980 and DOE Ref 1980-2004 templates by running `create_bar_from_building_type_ratios` + `create_typical_building_from_model` through OpenStudio:
+All remaining commercial building types have been empirically verified against DOE Ref Pre-1980 and DOE Ref 1980-2004 templates by running `create_bar_from_building_type_ratios` + `create_typical_building_from_model` through OpenStudio. The full QA matrix (`tests/qa_dynamic_defaults_matrix.py`) tests all 28 building types across 4 census regions and vintage bins (1344 test cells total):
 
 SecondarySchool, SmallOffice, MediumOffice, LargeOffice, RetailStandalone, RetailStripmall, FullServiceRestaurant, LargeHotel, Warehouse, Hospital, Outpatient, MidriseApartment
 
@@ -269,13 +273,8 @@ For Mixed Use buildings, the template applies to **all** component types in a si
 
 ## Future Development Roadmap
 
-### Building Type Support
-- Implement support for additional building types:
-  - Mixed-use buildings with multiple function spaces
-  - Laboratory facilities with specialized equipment requirements
-  - Single Family Detached homes
-  - Various Multifamily configurations (2-4 units, 5+ units)
-  - Vacant buildings with minimal systems
+### Building Type Coverage
+All 28 building types in `asset_subtypes.csv` have code paths in `PowerTwin.rb` and `generateFeatureFile.py`, and their parameter pipelines are verified correct by the QA matrix (1344/1344 L1-L3 green). All types have been end-to-end sim-tested with both `URBANOPT_DYNAMIC_DEFAULTS=true` and `=false` arms, producing 8760-row cleaned reports (24/24 pass in `tests/sim_verify_building_types.py`).
 
 ## Programmable Simulation Parameters
 

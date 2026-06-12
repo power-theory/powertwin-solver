@@ -352,9 +352,10 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         except (TypeError, ValueError):
             units = FALLBACK_UNITS_BY_SUBTYPE.get(asset_metadata.get('_subtype_id'), 1)
         bedrooms_per_unit = max(1, round(floor_area / SQFT_PER_BEDROOM / units))
+        foundation = "slab" if building_type == "Multifamily" else "basement - conditioned"
         new_properties.update({
             "number_of_stories_above_ground": floor_count,
-            "foundation_type": "basement - conditioned",
+            "foundation_type": foundation,
             "attic_type": "attic - unvented",
             "number_of_residential_units": units,
             "number_of_bedrooms": bedrooms_per_unit * units,
