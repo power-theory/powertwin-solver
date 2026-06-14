@@ -26,6 +26,11 @@ import re
 
 log = logging.getLogger('Generate Feature Files')
 
+# Bump when resolver logic or reference data changes.
+# Stamped into feature.json so results are traceable to the model that produced them.
+# push.sh syncs this to the README header automatically.
+RESOLVER_VERSION = '1.3'
+
 _REF_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'upload', 'reference_data'
 )
@@ -69,7 +74,7 @@ SIM_PARAM_DEFAULTS = {
     'heating_system_fuel_type': 'natural gas',          # RECS 2020 plurality
     'cooling_system_fuel_type': 'electricity',          # ~99% national
     'service_water_heating_fuel_type': 'natural gas',   # RECS 2020 plurality
-    'window_type': 'Double Pane',                       # 90% post-1990 stock
+    'window_type': 'Double Pane',                       # flat fallback; dynamic resolves by vintage
     'wall_material': 'Insulated',                       # post-1980 stock mode
     'roof_material': 'Insulated',                       # post-1980 stock mode
 
@@ -420,6 +425,23 @@ def _resolve_fuel(field: str, ctx: dict):
     return (record.get('mode'), level)
 
 
+def _resolve_window_type(ctx: dict):
+    """Modal window type from ComStock/ResStock national-stock distributions,
+    keyed by (region, vintage). Commercial and residential use separate tables
+    because residential cold-climate 2010+ stock is modal Triple Pane (IECC
+    2012+ CZ5-7 prescriptive U-factor) while commercial stays Double Pane."""
+    bt = ctx.get('building_type')
+    is_residential = bt in RESIDENTIAL_BUILDING_TYPES
+    table = _load_ref('window_type_by_vintage')
+    section = table.get('residential' if is_residential else 'commercial')
+    if not section:
+        return (None, None)
+    record, level = _lookup_region_vintage(section, ctx, fallback_vintage=None)
+    if record is None:
+        return (None, None)
+    return (record, level)
+
+
 def _resolve_envelope(field: str, ctx: dict):
     """Mode envelope value (material tier or R-value) keyed by region +
     vintage. WWR is building-type-keyed for both residential (RECS) and
@@ -467,6 +489,8 @@ def resolve_default(field: str, ctx: dict):
         if field in ('heating_system_fuel_type', 'cooling_system_fuel_type',
                      'service_water_heating_fuel_type'):
             return _resolve_fuel(field, ctx)
+        if field == 'window_type':
+            return _resolve_window_type(ctx)
         if field in ('wall_material', 'roof_material',
                      'wall_r_value', 'roof_r_value', 'window_to_wall_ratio'):
             return _resolve_envelope(field, ctx)

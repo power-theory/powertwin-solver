@@ -1,0 +1,34 @@
+{
+  "_source": {
+    "name": "NREL ComStock Reference Documentation V.1 + NREL ResStock Technical Reference Guide 2025 + Guidehouse/NFRC Commercial Fenestration Market Study 2021",
+    "publisher": "National Renewable Energy Laboratory / Guidehouse",
+    "urls": {
+      "comstock":   "https://docs.nrel.gov/docs/fy24osti/86554.pdf",
+      "resstock":   "https://oedi-data-lake.s3.amazonaws.com/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/resstock_amy2018_release_1/ResStockTechnicalReferenceGuide_2025_1.pdf",
+      "guidehouse": "https://www.osti.gov/servlets/purl/1886333"
+    },
+    "extracted": "2026-06-14",
+    "methodology": "Deterministic modal window type by (census_region, vintage_bin), derived from ComStock (commercial) and ResStock (residential) probabilistic distributions. ComStock samples 12 window configurations keyed by climate zone and energy-code vintage; ResStock samples 11 categories keyed by climate zone, vintage, building type, tenure, and income. Both enforce technology adoption timelines: low-E coatings unavailable before ~1980, triple-pane unavailable before ~2004. The modal (most probable) type per (region, vintage) cell is used here as the deterministic default. Cold-climate regions (Northeast, Midwest) get Triple Pane for 2010+ residential to reflect IECC 2012+ prescriptive U-factor requirements that effectively mandate triple-pane or high-perf low-E in CZ5-7."
+  },
+  "residential": {
+    "Northeast": {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Triple Pane"},
+    "Midwest":   {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Triple Pane"},
+    "South":     {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
+    "West":      {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"}
+  },
+  "commercial": {
+    "Northeast": {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
+    "Midwest":   {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
+    "South":     {"pre-1980": "Single Pane", "1980-1999": "Single Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
+    "West":      {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"}
+  },
+  "_notes": [
+    "Commercial pre-1980: Guidehouse/NFRC study reports ~49% single-pane for pre-1950 stock. ComStock assigns single-pane as modal for pre-1980 buildings across all regions.",
+    "Commercial South 1980-1999: Milder climate zones (CZ1-3) had weaker energy code adoption; CBECS 2018 and Guidehouse data show single-pane persisted as modal in the South through the 1990s.",
+    "Commercial 2010+: ASHRAE 90.1-2010+ and IECC 2012+ prescriptive U-factors effectively require double-pane low-E minimum nationwide. Triple-pane remains <1% of commercial stock per Guidehouse.",
+    "Residential pre-1980: ResStock assigns single-pane (clear, metal or non-metal frame) as dominant for all pre-1980 vintages across all climate zones.",
+    "Residential 2010+ cold climate: IECC 2012 prescriptive U-0.32 (CZ5), U-0.30 (CZ6-7) is achievable with high-perf double-pane low-E but triple-pane is the ResStock modal choice for new construction in CZ5+. Northeast and Midwest are predominantly CZ5-6.",
+    "Residential 2010+ mild climate: IECC 2012 prescriptive U-0.40 (CZ3) to U-0.35 (CZ4) is met by standard double-pane low-E. South and West are predominantly CZ2-4.",
+    "Vintage bins match the RECS/CBECS categorization used elsewhere in the resolver: pre-1980, 1980-1999, 2000-2009, 2010+."
+  ]
+}

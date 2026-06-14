@@ -14,7 +14,7 @@ import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
-from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM
+from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
@@ -321,6 +321,9 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     if wknd_start and wknd_dur and wknd_dur != '24:00':
         new_properties['weekend_start_time'] = wknd_start
         new_properties['weekend_duration']   = wknd_dur
+
+    new_properties["resolver_version"] = RESOLVER_VERSION
+    new_properties["dynamic_defaults"] = is_dynamic_defaults_enabled()
 
     if building_id in building_year_list:
         new_properties["year_built"] = building_year_list[building_id]

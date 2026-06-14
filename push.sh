@@ -16,6 +16,30 @@ echo "Branch: ${BRANCH}"
 echo "Commit: ${SHORT_SHA}"
 echo ""
 
+# 0. Pre-push resolver tests
+echo "--- Running resolver tests ---"
+if ! python3 tests/test_resolvers.py; then
+  echo ""
+  echo "RESOLVER TESTS FAILED -- push aborted."
+  exit 1
+fi
+
+# 0b. Sync README version from RESOLVER_VERSION
+VERSION=$(python3 -c "
+import importlib.util, os
+s = importlib.util.spec_from_file_location('sps', 'solver/app/modules/simulation/sim_params_spec.py')
+m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+print(m.RESOLVER_VERSION)
+")
+sed -i "s/^# PowerTwin Solver v.*/# PowerTwin Solver v${VERSION}/" README.md
+if ! git diff --quiet README.md; then
+  git add README.md
+  git commit -m "docs: bump README version to v${VERSION}"
+  SHORT_SHA=$(git rev-parse --short HEAD)
+  echo "  README updated to v${VERSION}"
+fi
+echo ""
+
 # 1. Push to GitLab
 echo "--- Pushing to GitLab (origin) ---"
 git push origin "${BRANCH}"
