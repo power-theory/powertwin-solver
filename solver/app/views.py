@@ -1090,6 +1090,7 @@ DYNAMIC_FIELDS = [
     'heating_system_fuel_type',
     'cooling_system_fuel_type',
     'service_water_heating_fuel_type',
+    'window_type',
     'wall_material', 'roof_material',
     'wall_r_value', 'roof_r_value', 'window_to_wall_ratio',
 ]
