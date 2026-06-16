@@ -442,6 +442,27 @@ def _resolve_window_type(ctx: dict):
     return (record, level)
 
 
+def _resolve_operating_schedule(field: str, ctx: dict):
+    """Per-building-type weekday/weekend operating window pulled from the
+    DOE Reference Building prototype occupancy schedules in
+    openstudio_standards_operating_schedules.json. Provenance is always
+    'building_type_only' (no region/vintage axis). An empty string in the
+    table (e.g. School weekends) preserves the URBANopt template default
+    by passing through to flat fallback at the caller."""
+    bt = ctx.get('building_type')
+    if not bt:
+        return (None, None)
+    table = _load_ref('openstudio_standards_operating_schedules').get(
+        'operating_hours_by_building_type', {})
+    entry = table.get(_doe_ref_name(bt, ctx))
+    if entry is None:
+        return (None, None)
+    val = entry.get(field)
+    if not val:
+        return (None, None)
+    return (val, 'building_type_only')
+
+
 def _resolve_envelope(field: str, ctx: dict):
     """Mode envelope value (material tier or R-value) keyed by region +
     vintage. WWR is building-type-keyed for both residential (RECS) and
@@ -494,6 +515,9 @@ def resolve_default(field: str, ctx: dict):
         if field in ('wall_material', 'roof_material',
                      'wall_r_value', 'roof_r_value', 'window_to_wall_ratio'):
             return _resolve_envelope(field, ctx)
+        if field in ('weekday_start_time', 'weekday_duration',
+                     'weekend_start_time', 'weekend_duration'):
+            return _resolve_operating_schedule(field, ctx)
     except (KeyError, IndexError, ValueError, TypeError, OSError) as exc:
         # OSError covers FileNotFoundError (missing reference JSON); ValueError
         # already covers JSONDecodeError. resolver must always degrade -- never

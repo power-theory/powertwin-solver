@@ -1,0 +1,132 @@
+{
+  "_source": {
+    "consumed_by": "powertwin-solver sim_params_spec.py _resolve_operating_schedule, exposed via POST /api/simulation/resolve-defaults as building_type_only provenance for the 4 time-typed sim params.",
+    "extracted": "2026-06-15",
+    "methodology": "Per-building-type weekday/weekend operating window derived from each prototype building level occupancy schedule (BLDG_OCC_SCH or equivalent). Window = longest contiguous run of hours where the occupancy fraction stays >= 50% of the day peak. Peak-relative threshold handles low-density prototypes (Laboratory peak 0.25) the same way as high-density (Office peak 0.95). Schedule rule-resolution follows EnergyPlus Schedule:Ruleset semantics: Wkdy rule beats Default for weekdays, Sun/Sat/Wknd rule beats Default for weekends, Default-only rows imply 24/7 schedules.",
+    "name": "DOE Reference Building operating hours from openstudio-standards 0.7.1 BLDG_OCC_SCH schedules",
+    "publisher": "National Renewable Energy Laboratory",
+    "units": "HH:MM 24-hour clock for start_time; HH:MM duration for duration. Empty string = no occupied window in the prototype (e.g. weekend for K-12 schools).",
+    "url": "https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/standards/ashrae_90_1/data/ashrae_90_1.schedules.json"
+  },
+  "operating_hours_by_building_type": {
+    "College": {
+      "source_schedule": "College BLDG_OCC_SCH",
+      "weekday_duration": "08:00",
+      "weekday_start_time": "08:00",
+      "weekend_duration": "",
+      "weekend_start_time": ""
+    },
+    "FullServiceRestaurant": {
+      "source_schedule": "RestaurantSitDown BLDG_OCC_SCH",
+      "weekday_duration": "05:00",
+      "weekday_start_time": "17:00",
+      "weekend_duration": "05:00",
+      "weekend_start_time": "18:00"
+    },
+    "HighriseApartment": {
+      "source_schedule": "ApartmentHighRise OCC_APT_SCH",
+      "weekday_duration": "08:00",
+      "weekday_start_time": "00:00",
+      "weekend_duration": "08:00",
+      "weekend_start_time": "00:00"
+    },
+    "Hospital": {
+      "source_schedule": "Hospital BLDG_OCC_SCH",
+      "weekday_duration": "10:00",
+      "weekday_start_time": "08:00",
+      "weekend_duration": "09:00",
+      "weekend_start_time": "08:00"
+    },
+    "Laboratory": {
+      "source_schedule": "College BLDG_Lab_OCC_SCH",
+      "weekday_duration": "14:00",
+      "weekday_start_time": "07:00",
+      "weekend_duration": "",
+      "weekend_start_time": ""
+    },
+    "LargeHotel": {
+      "source_schedule": "HotelLarge BLDG_OCC_SCH",
+      "weekday_duration": "08:00",
+      "weekday_start_time": "16:00",
+      "weekend_duration": "09:00",
+      "weekend_start_time": "00:00"
+    },
+    "MidriseApartment": {
+      "source_schedule": "MidriseApartment Apartment Occ",
+      "weekday_duration": "08:00",
+      "weekday_start_time": "00:00",
+      "weekend_duration": "08:00",
+      "weekend_start_time": "00:00"
+    },
+    "Office": {
+      "source_schedule": "OfficeMedium BLDG_OCC_SCH",
+      "weekday_duration": "09:00",
+      "weekday_start_time": "08:00",
+      "weekend_duration": "04:00",
+      "weekend_start_time": "08:00"
+    },
+    "Outpatient": {
+      "source_schedule": "OutPatientHealthCare BLDG_OCC_SCH",
+      "weekday_duration": "14:00",
+      "weekday_start_time": "06:00",
+      "weekend_duration": "13:00",
+      "weekend_start_time": "07:00"
+    },
+    "PrimarySchool": {
+      "source_schedule": "SchoolPrimary BLDG_OCC_SCH",
+      "weekday_duration": "08:00",
+      "weekday_start_time": "08:00",
+      "weekend_duration": "",
+      "weekend_start_time": ""
+    },
+    "QuickServiceRestaurant": {
+      "source_schedule": "RestaurantFastFood BLDG_OCC_SCH",
+      "weekday_duration": "05:00",
+      "weekday_start_time": "17:00",
+      "weekend_duration": "05:00",
+      "weekend_start_time": "18:00"
+    },
+    "Retail": {
+      "source_schedule": "RetailStandalone BLDG_OCC_SCH",
+      "weekday_duration": "10:00",
+      "weekday_start_time": "09:00",
+      "weekend_duration": "09:00",
+      "weekend_start_time": "09:00"
+    },
+    "SecondarySchool": {
+      "source_schedule": "SchoolSecondary BLDG_OCC_SCH",
+      "weekday_duration": "08:00",
+      "weekday_start_time": "08:00",
+      "weekend_duration": "",
+      "weekend_start_time": ""
+    },
+    "SmallHotel": {
+      "source_schedule": "SmallHotel Bldg Occ",
+      "weekday_duration": "08:00",
+      "weekday_start_time": "16:00",
+      "weekend_duration": "11:00",
+      "weekend_start_time": "00:00"
+    },
+    "StripMall": {
+      "source_schedule": "StripMall Bldg Occ",
+      "weekday_duration": "10:00",
+      "weekday_start_time": "09:00",
+      "weekend_duration": "08:00",
+      "weekend_start_time": "10:00"
+    },
+    "SuperMarket": {
+      "source_schedule": "SuperMarket Bldg Occ",
+      "weekday_duration": "10:00",
+      "weekday_start_time": "09:00",
+      "weekend_duration": "08:00",
+      "weekend_start_time": "10:00"
+    },
+    "Warehouse": {
+      "source_schedule": "Warehouse BLDG_OCC_SCH",
+      "weekday_duration": "09:00",
+      "weekday_start_time": "08:00",
+      "weekend_duration": "09:00",
+      "weekend_start_time": "08:00"
+    }
+  }
+}

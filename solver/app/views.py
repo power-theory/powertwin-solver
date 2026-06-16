@@ -1093,6 +1093,8 @@ DYNAMIC_FIELDS = [
     'window_type',
     'wall_material', 'roof_material',
     'wall_r_value', 'roof_r_value', 'window_to_wall_ratio',
+    'weekday_start_time', 'weekday_duration',
+    'weekend_start_time', 'weekend_duration',
 ]
 
 
