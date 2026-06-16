@@ -56,15 +56,15 @@ ALL_DYNAMIC_FIELDS = [
     "roof_r_value",
     "window_to_wall_ratio",
     "number_of_occupants",
+    "weekday_start_time",
+    "weekday_duration",
+    "weekend_start_time",
+    "weekend_duration",
 ]
 
 NON_DYNAMIC_FIELDS = [
     "system_type",
     "floor_height",
-    "weekday_start_time",
-    "weekday_duration",
-    "weekend_start_time",
-    "weekend_duration",
 ]
 
 passed = 0
