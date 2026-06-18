@@ -41,6 +41,7 @@
     "LargeOffice":            0.40,
     "SmallOffice":            0.21,
     "Warehouse":              0.0071,
+    "SuperMarket":            0.08,
     "Retail":                 0.07,
     "StripMall":              0.105,
     "QuickServiceRestaurant": 0.14,

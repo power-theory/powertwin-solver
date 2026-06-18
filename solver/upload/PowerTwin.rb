@@ -113,7 +113,7 @@ module URBANopt
           when 'Enclosed mall'
             return 'RtL'
           when 'Food sales'
-            return 'RSD'
+            return 'Gro'
           when 'Food service'
             return 'RSD'
           when 'Inpatient health care'
@@ -177,7 +177,7 @@ module URBANopt
           when 'Enclosed mall'
             return 'RetailStripmall'
           when 'Food sales'
-            return 'FullServiceRestaurant'
+            return 'SuperMarket'
           when 'Food service'
             return 'FullServiceRestaurant'
           when 'Inpatient health care'
@@ -682,6 +682,30 @@ module URBANopt
               else
                 @@logger.error("The user did not specify either the uo_buildstock_mapping_csv_path or the resstock_buildstock_csv_path. At least one of these is required for UO - ResStock connection.")
               end
+            end
+
+            # Dynamic-defaults parity: feed resolver envelope/WWR/window/occupants to the residential measure (gated so OFF keeps HPXML defaults).
+            res_props = feature.feature_json[:properties] || {}
+            if res_props[:dynamic_defaults]
+              if PowerTwinRefs.present?(res_props[:window_to_wall_ratio])
+                res_wwr = res_props[:window_to_wall_ratio].to_f
+                %i[window_front_wwr window_back_wwr window_left_wwr window_right_wwr].each { |k| args[k] = res_wwr }
+              end
+              args[:geometry_unit_num_occupants] = res_props[:number_of_occupants].to_i if PowerTwinRefs.present?(res_props[:number_of_occupants])
+              res_tier = PowerTwinRefs.present?(res_props[:window_type]) ? res_props[:window_type] :
+                         ((res_props[:windows] || [{}]).first || {})[:window_type]
+              if PowerTwinRefs.present?(res_tier)
+                u, shgc = PowerTwinRefs.window_props(res_tier, climate_zone)
+                # window_props U is SI (W/m2-K, for OpenStudio SimpleGlazing); HPXML window_ufactor is IP.
+                args[:window_ufactor] = (u / 5.678263).round(3)
+                args[:window_shgc] = shgc.round(3)
+              end
+              res_constr = res_props[:constructions] || {}
+              res_wall_r = (res_constr[:wall] || {})[:r_value]
+              res_roof_r = (res_constr[:roof] || {})[:r_value]
+              args[:wall_assembly_r] = res_wall_r.to_f if PowerTwinRefs.present?(res_wall_r)
+              # roof_r_value is ceiling insulation (recs2020); ceiling_assembly_r is the attic R.
+              args[:ceiling_assembly_r] = res_roof_r.to_f if PowerTwinRefs.present?(res_roof_r)
             end
 
             # Parse BuildResidentialHPXML measure xml so we can fill "args" in with default values where keys aren't already assigned

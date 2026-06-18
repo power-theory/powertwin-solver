@@ -4,7 +4,7 @@
     "primary_reference": "PowerTwin.rb:lookup_building_type (the single source of truth for which urbanopt template gets built per subtype)",
     "secondary_reference": "NREL openstudio-standards space type / occupant density tables (https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/standards/ashrae_90_1/ashrae_90_1_2013/data/ashrae_90_1_2013.spc_typ.json)",
     "tertiary_reference": "PNNL-32815 Commercial Building Prototypes Based on CBECS (https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-32815.pdf)",
-    "notes": "Aliases here MUST match PowerTwin.rb:lookup_building_type so the Python resolver's people-per-area / WWR lookups use the SAME archetype the urbanopt template will actually be built from. Previously the two diverged (e.g. Python alias Education->PrimarySchool while Ruby builds SecondarySchool) which forced Frankenstein models where, for Fulton Center, set_people_per_floor_area target_total was computed from Courthouse density (18.19/1000ft^2) but applied to a MediumOffice template (~5/1000ft^2 design), scaling People objects by 3.6x. Lodging-by-stories: Ruby splits SmallHotel (<=3 stories) vs LargeHotel (>3); Python alias uses SmallHotel as the single default. For most ASU dorms this leaves a residual archetype mismatch on multi-story Lodging that is tracked by the Dormitory TODO."
+    "notes": "Aliases here MUST match PowerTwin.rb:lookup_building_type so the Python resolver's people-per-area / WWR lookups use the SAME archetype the urbanopt template will actually be built from. Previously the two diverged (e.g. Python alias Education->PrimarySchool while Ruby builds SecondarySchool) which forced Frankenstein models where, for Fulton Center, set_people_per_floor_area target_total was computed from Courthouse density (18.19/1000ft^2) but applied to a MediumOffice template (~5/1000ft^2 design), scaling People objects by 3.6x. Lodging-by-stories: Ruby splits SmallHotel (<=3 stories) vs LargeHotel (>3); Python alias uses SmallHotel as the single default. For most ASU dorms this leaves a residual archetype mismatch on multi-story Lodging that is tracked by the Dormitory TODO. The Retail/StripMall keys here are the openstudio-standards people-per-area/WWR table keys for the SAME archetypes Ruby builds as RetailStandalone/RetailStripmall -- same DOE prototype, different naming convention, not a divergence."
   },
   "powertwin_to_doe_ref": {
     "Office":                    "Office",
@@ -12,7 +12,7 @@
     "Education":                 "SecondarySchool",
     "Lodging":                   "SmallHotel",
     "Food service":              "FullServiceRestaurant",
-    "Food sales":                "FullServiceRestaurant",
+    "Food sales":                "SuperMarket",
     "Outpatient health care":    "Outpatient",
     "Inpatient health care":     "Hospital",
     "Nonrefrigerated warehouse": "Warehouse",

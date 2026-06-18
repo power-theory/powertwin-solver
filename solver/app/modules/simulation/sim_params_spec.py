@@ -4,8 +4,10 @@ Mirror of powertwin-db/api/lib/simulationParamsSpec.js. Keep them in sync: if
 you change a default or add a new field, update both files.
 
 The ingest reads each programmable field from asset_metadata with these defaults
-as the fallback, so unmodified assets re-simulate identically to pre-spec
-behavior.
+as the fallback. With dynamic defaults OFF, commercial assets still apply the
+flat SIM_PARAM_DEFAULTS onto the DOE prototype (not the bare prototype);
+residential assets keep the HPXML template defaults (the Ruby residential
+override is gated on the dynamic_defaults flag).
 
 Default resolution precedence (set by `get_param` with an asset ctx):
     1. Explicit metadata value, if non-empty -> use it (validated/clamped).
@@ -29,7 +31,7 @@ log = logging.getLogger('Generate Feature Files')
 # Bump when resolver logic or reference data changes.
 # Stamped into feature.json so results are traceable to the model that produced them.
 # push.sh syncs this to the README header automatically.
-RESOLVER_VERSION = '1.3'
+RESOLVER_VERSION = '1.4'
 
 _REF_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'upload', 'reference_data'
@@ -293,10 +295,20 @@ def _normalize_state(raw: str | None) -> str | None:
     return refs.get('state_name_to_abbr', {}).get(value)
 
 
+def _coerce_int(val):
+    """int(val) or None when missing/non-numeric."""
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return None
+
+
 def build_asset_ctx(metadata: dict, building_type: str | None = None) -> dict:
     """Distill the lookup-key context out of an asset's metadata dict. Centralized
     here so the resolvers all see the same shape: {building_type, region, vintage,
-    state, area, bedrooms}. Missing keys are None; resolvers fall back accordingly."""
+    state, area, bedrooms, floor_count, units}. Missing keys are None; resolvers
+    fall back accordingly. floor_count drives the Lodging SmallHotel/LargeHotel
+    split in _doe_ref_name; units makes residential occupants per-dwelling-unit."""
     state = _normalize_state(metadata.get('state') or metadata.get('State'))
     region = _load_ref('census_regions')['state_to_region'].get(state) if state else None
     return {
@@ -306,6 +318,8 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None) -> dict:
         'vintage': _vintage_bin(metadata.get('year_built') or metadata.get('yearBuilt')),
         'area': metadata.get('area') or metadata.get('floor_area'),
         'bedrooms': metadata.get('bedrooms') or metadata.get('number_of_bedrooms'),
+        'floor_count': _coerce_int(metadata.get('floor_count')),
+        'units': _coerce_int(metadata.get('number_of_units') or metadata.get('units') or metadata.get('number_of_residential_units')),
     }
 
 
@@ -350,12 +364,27 @@ def _doe_ref_name(building_type: str | None, ctx: dict | None = None) -> str | N
     return name
 
 
+def _office_size_class(ctx: dict) -> str:
+    """Office WWR size-bands to match PowerTwin.rb lookup_building_type (total
+    floor area: <25k SmallOffice, >100k LargeOffice, else MediumOffice). Occupancy
+    and schedule still key on plain 'Office', so this refines the WWR lookup only."""
+    try:
+        area = float(ctx.get('area'))
+    except (TypeError, ValueError):
+        return 'Office'
+    if area < 25000:
+        return 'SmallOffice'
+    if area > 100000:
+        return 'LargeOffice'
+    return 'MediumOffice'
+
+
 SQFT_PER_BEDROOM = 800
 
 def _resolve_occupants(ctx: dict) -> int | None:
     """Composite occupants resolver:
-        residential: HPXML/Manual J convention -> bedrooms + 1
-                     (bedrooms inferred from area at ~800 ft^2/br when absent)
+        residential: HPXML/Manual J convention -> bedrooms + 1, PER dwelling unit
+                     (bedrooms inferred from per-unit area at ~800 ft^2/br when absent)
         commercial:  area_sqft * people_per_1000ft^2 / 1000
                      (people_per_1000ft^2 from OpenStudio Standards 90.1-2013,
                      keyed by DOE Reference Building prototype name)
@@ -368,7 +397,8 @@ def _resolve_occupants(ctx: dict) -> int | None:
         if bedrooms in (None, ''):
             area = ctx.get('area')
             if area:
-                bedrooms = max(1, round(float(area) / SQFT_PER_BEDROOM))
+                units = max(1, ctx.get('units') or 1)
+                bedrooms = max(1, round(float(area) / units / SQFT_PER_BEDROOM))
             else:
                 bedrooms = 2  # HPXML modal SFD assumption
         try:
@@ -476,7 +506,13 @@ def _resolve_envelope(field: str, ctx: dict):
     survey = _load_ref('recs2020_envelope' if is_residential else 'cbecs2018_envelope')
 
     if field == 'window_to_wall_ratio':
-        lookup_bt = bt if is_residential else _doe_ref_name(bt, ctx)
+        if is_residential:
+            lookup_bt = bt
+        else:
+            lookup_bt = _doe_ref_name(bt, ctx)
+            # Only literal Office is area-banded; Ruby pins the other Office-aliased types to MediumOffice.
+            if bt == 'Office':
+                lookup_bt = _office_size_class(ctx)
         val = survey.get('window_to_wall_ratio_by_building_type', {}).get(lookup_bt)
         return (val, 'building_type_only' if val is not None else None)
 

@@ -226,7 +226,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # Build the asset context once; every get_param call below uses it to
     # resolve dynamic defaults from the national-stock lookup tables
     # (reference_data/) before falling back to SIM_PARAM_DEFAULTS.
-    ctx = build_asset_ctx({**asset_metadata, 'area': floor_area}, building_type=building_type)
+    ctx = build_asset_ctx({**asset_metadata, 'area': floor_area, 'floor_count': floor_count}, building_type=building_type)
     occupancy_subtype = BUILDING_TYPE_TO_OCCUPANCY.get(building_type, "Unknown")
     occ_override = get_param(asset_metadata, 'number_of_occupants', ctx)
     try:
@@ -311,13 +311,13 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # Operating hours: only emit when both start and duration are set AND duration
     # isn't 24:00 (which collides with the implicit end-of-day Time(24:00:00) in
     # OpenStudio's ScheduleDay and trips a BOOST_ASSERT).
-    wkdy_start = get_param(asset_metadata, 'weekday_start_time')
-    wkdy_dur   = get_param(asset_metadata, 'weekday_duration')
+    wkdy_start = get_param(asset_metadata, 'weekday_start_time', ctx)
+    wkdy_dur   = get_param(asset_metadata, 'weekday_duration', ctx)
     if wkdy_start and wkdy_dur and wkdy_dur != '24:00':
         new_properties['weekday_start_time'] = wkdy_start
         new_properties['weekday_duration']   = wkdy_dur
-    wknd_start = get_param(asset_metadata, 'weekend_start_time')
-    wknd_dur   = get_param(asset_metadata, 'weekend_duration')
+    wknd_start = get_param(asset_metadata, 'weekend_start_time', ctx)
+    wknd_dur   = get_param(asset_metadata, 'weekend_duration', ctx)
     if wknd_start and wknd_dur and wknd_dur != '24:00':
         new_properties['weekend_start_time'] = wknd_start
         new_properties['weekend_duration']   = wknd_dur

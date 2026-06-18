@@ -22,12 +22,12 @@
     "Retail": {
       "value": 15.0,
       "source": "Retail",
-      "method": "primary sales floor; back-of-house spaces typically <2 per 1000ft^2 [NOT YET REGENERATED]"
+      "method": "area-weighted whole-building avg, verified 14.92 from ASHRAE9012013RetailStandalone.osm (rounded to 15.0)"
     },
     "StripMall": {
       "value": 8.0,
       "source": "Strip mall - type 0A",
-      "method": "representative tenant space [NOT YET REGENERATED]"
+      "method": "area-weighted whole-building avg, verified 8.0 from ASHRAERetailStripmall.osm"
     },
     "SuperMarket": {
       "value": 8.56,
