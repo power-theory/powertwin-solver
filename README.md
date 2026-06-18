@@ -1,4 +1,4 @@
-# PowerTwin Solver v1.3
+# PowerTwin Solver v1.4
 
 ## HOW TO RUN
 ```sh
