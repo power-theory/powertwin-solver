@@ -12,10 +12,6 @@ services:
       - ./powertwin_data:/solver/powertwin-solver-pg
       - ./postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
-    networks:
-      powertwin-network:
-        aliases:
-          - postgres-db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d powertwin"]
       interval: 10s
@@ -54,7 +50,7 @@ services:
       - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
       - API_SOLVER_TOKEN=${API_SOLVER_TOKEN}
       - CI_COMMIT_BRANCH=${CI_COMMIT_BRANCH:-}
-      - PGHOST=postgres-db
+      - PGHOST=powertwin-solver-pg
       - PGPORT=${PG_DB_PORT}
       - PGUSER=postgres
       - PGPASSWORD=${PG_DB_TOKEN_ADMIN}
@@ -67,18 +63,8 @@ services:
       - URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}
     tty: true
     restart: unless-stopped
-    networks:
-      - powertwin-network
 
 volumes:
   powertwin-solver-flask:
   postgres_data:
   powertwin_data:
-
-networks:
-  powertwin-network:
-    name: powertwin-network
-    driver: bridge
-    driver_opts:
-      com.docker.network.bridge.enable_dns: "true"
-      com.docker.network.bridge.enable_ip_masquerade: "true"
