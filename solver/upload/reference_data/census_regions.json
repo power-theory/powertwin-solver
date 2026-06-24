@@ -2,7 +2,7 @@
   "_source": {
     "name": "U.S. Census Bureau Statistical Regions and Divisions",
     "url": "https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf",
-    "notes": "Maps US state abbreviations (and DC) to one of the four Census Regions used by EIA's RECS and CBECS survey publications. RECS/CBECS report fuel mix and envelope characteristics by these four regions. state_name_to_abbr is uppercase-keyed so callers can normalize full state names (e.g. 'Arizona' -> 'AZ') before the region lookup."
+    "notes": "Maps US state abbreviations (and DC) to Census Regions (4) and Census Divisions (10, per RECS 2020 which splits Mountain into North/South). RECS/CBECS report fuel mix and envelope characteristics by these geographies. state_name_to_abbr is uppercase-keyed so callers can normalize full state names (e.g. 'Arizona' -> 'AZ') before the region lookup."
   },
   "state_to_region": {
     "AL": "South", "AK": "West", "AZ": "West", "AR": "South",
@@ -34,5 +34,32 @@
     "UTAH": "UT", "VERMONT": "VT", "VIRGINIA": "VA", "WASHINGTON": "WA",
     "WEST VIRGINIA": "WV", "WISCONSIN": "WI", "WYOMING": "WY"
   },
-  "regions": ["Northeast", "Midwest", "South", "West"]
+  "regions": ["Northeast", "Midwest", "South", "West"],
+  "state_to_division": {
+    "CT": "New England", "ME": "New England", "MA": "New England",
+    "NH": "New England", "RI": "New England", "VT": "New England",
+    "NJ": "Middle Atlantic", "NY": "Middle Atlantic", "PA": "Middle Atlantic",
+    "IL": "East North Central", "IN": "East North Central", "MI": "East North Central",
+    "OH": "East North Central", "WI": "East North Central",
+    "IA": "West North Central", "KS": "West North Central", "MN": "West North Central",
+    "MO": "West North Central", "NE": "West North Central", "ND": "West North Central",
+    "SD": "West North Central",
+    "DE": "South Atlantic", "DC": "South Atlantic", "FL": "South Atlantic",
+    "GA": "South Atlantic", "MD": "South Atlantic", "NC": "South Atlantic",
+    "SC": "South Atlantic", "VA": "South Atlantic", "WV": "South Atlantic",
+    "AL": "East South Central", "KY": "East South Central",
+    "MS": "East South Central", "TN": "East South Central",
+    "AR": "West South Central", "LA": "West South Central",
+    "OK": "West South Central", "TX": "West South Central",
+    "CO": "Mountain North", "ID": "Mountain North", "MT": "Mountain North",
+    "UT": "Mountain North", "WY": "Mountain North",
+    "AZ": "Mountain South", "NM": "Mountain South", "NV": "Mountain South",
+    "AK": "Pacific", "CA": "Pacific", "HI": "Pacific",
+    "OR": "Pacific", "WA": "Pacific"
+  },
+  "divisions": [
+    "New England", "Middle Atlantic", "East North Central", "West North Central",
+    "South Atlantic", "East South Central", "West South Central",
+    "Mountain North", "Mountain South", "Pacific"
+  ]
 }

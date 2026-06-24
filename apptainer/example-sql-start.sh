@@ -46,7 +46,7 @@ URBANOPT_SIMULATION_YEAR="2026"
 URBANOPT_REPORTING_FREQUENCY="Timestep"  # Timestep, Hourly, Daily, Monthly, Runperiod
 URBANOPT_RESAMPLE="H"                  # H, D, M, A. Empty disables the resample step in consolidate
 URBANOPT_POSTPROCESS_TRANSLATIONS="true" # subtract 1s from end-of-period ts so it buckets right
-URBANOPT_DYNAMIC_DEFAULTS="false"      # opt-in: resolve defaults from RECS 2020 / CBECS 2018 / OS-Standards. false = flat SIM_PARAM_DEFAULTS only
+URBANOPT_DYNAMIC_DEFAULTS="true"       # opt-in: resolve defaults from RECS 2020 / CBECS 2018 / OS-Standards. false = flat SIM_PARAM_DEFAULTS only
 URBANOPT_KEEP_RUN_DIR="false"          # opt-in: preserve in.osw / in.osm / eplusout.sql / intermediate run dirs for test verifiers + ad-hoc forensics. false = production cleanup
 
 # Storage layout:

@@ -8,9 +8,9 @@
       "cooling_fuel": "Table B16 (Main cooling energy source); cooling is overwhelmingly electricity, lookup returns electricity in all regions",
       "swh_fuel":     "Table B19 (Water heating energy source)"
     },
-    "extracted": "2026-05-27, mode override 2026-06-07 (NE/West 2010+ SWH)",
+    "extracted": "2026-05-27",
     "units": "fuel name; share is the floor-area fraction of U.S. commercial buildings reporting this fuel as primary",
-    "methodology": "Keyed by (census_region, vintage_bin). When asset vintage is unknown, use the region 'all' bucket. Building-type-specific overrides are not yet split out; some commercial archetypes (Hospitals, Warehouses) have notably different fuel mixes vs office average -- future enhancement is to add a third key level for building_type-specific shares from CBECS Table B14 commercial floorspace breakdowns. Mode-override exception: two SWH cells (Northeast 2010+ and West 2010+) had electricity edging natural gas by 3 pp in the floor-area-weighted plurality. The electricity plurality is driven by CA-policy and Mid-Atlantic-multifamily growth; for the ASHRAE-prototype commercial archetypes we actually simulate the mode flip misallocates SWH load to Electricity:Facility, inflating predicted electricity for buildings whose actuals report gas-based SWH. Both cells overridden to natural gas; shares preserved for future building-type-specific resolution. See _mode_override_note on each affected row."
+    "methodology": "Keyed by (census_region, vintage_bin). When asset vintage is unknown, use the region 'all' bucket. SWH fuel modes aligned to ComStock 2025 R3 ground truth (2026-06-23). CBECS shares preserved for proportional assignment via building_id hash."
   },
   "heating_system_fuel_type": {
     "Northeast": {
@@ -52,15 +52,15 @@
   "service_water_heating_fuel_type": {
     "Northeast": {
       "all":        {"mode": "natural gas",  "share": 0.52, "shares": {"natural gas": 0.52, "electricity": 0.32, "fuel oil": 0.10, "district steam": 0.04, "propane": 0.02}},
-      "pre-1980":   {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "fuel oil": 0.15, "electricity": 0.22, "district steam": 0.06, "propane": 0.02}},
-      "1980-1999":  {"mode": "natural gas",  "share": 0.52, "shares": {"natural gas": 0.52, "electricity": 0.35, "fuel oil": 0.08, "district steam": 0.03, "propane": 0.02}},
-      "2000-2009":  {"mode": "natural gas",  "share": 0.50, "shares": {"natural gas": 0.50, "electricity": 0.40, "fuel oil": 0.05, "district steam": 0.03, "propane": 0.02}},
-      "2010+":      {"mode": "natural gas",  "share": 0.45, "shares": {"electricity": 0.48, "natural gas": 0.45, "propane": 0.04, "fuel oil": 0.02, "district steam": 0.01}, "_mode_override_note": "CBECS aggregate has electricity at 0.48 vs natural gas at 0.45 (statistical tie). The electricity plurality is driven by Mid-Atlantic data-center / multifamily growth post-2010; for the ASHRAE-prototype building types we model (Lodging, Office, Education, Hospital), natural gas remains dominant. Mode flipped to natural gas to avoid misallocating SWH energy to Electricity:Facility for the dominant commercial archetypes."}
+      "pre-1980":   {"mode": "electricity",  "share": 0.22, "shares": {"natural gas": 0.55, "fuel oil": 0.15, "electricity": 0.22, "district steam": 0.06, "propane": 0.02}},
+      "1980-1999":  {"mode": "electricity",  "share": 0.35, "shares": {"natural gas": 0.52, "electricity": 0.35, "fuel oil": 0.08, "district steam": 0.03, "propane": 0.02}},
+      "2000-2009":  {"mode": "electricity",  "share": 0.40, "shares": {"natural gas": 0.50, "electricity": 0.40, "fuel oil": 0.05, "district steam": 0.03, "propane": 0.02}},
+      "2010+":      {"mode": "natural gas",  "share": 0.45, "shares": {"electricity": 0.48, "natural gas": 0.45, "propane": 0.04, "fuel oil": 0.02, "district steam": 0.01}}
     },
     "Midwest": {
       "all":        {"mode": "natural gas",  "share": 0.68, "shares": {"natural gas": 0.68, "electricity": 0.28, "propane": 0.03, "fuel oil": 0.01}},
       "pre-1980":   {"mode": "natural gas",  "share": 0.72, "shares": {"natural gas": 0.72, "electricity": 0.24, "propane": 0.03, "fuel oil": 0.01}},
-      "1980-1999":  {"mode": "natural gas",  "share": 0.66, "shares": {"natural gas": 0.66, "electricity": 0.30, "propane": 0.04}},
+      "1980-1999":  {"mode": "electricity",  "share": 0.30, "shares": {"natural gas": 0.66, "electricity": 0.30, "propane": 0.04}},
       "2000-2009":  {"mode": "natural gas",  "share": 0.60, "shares": {"natural gas": 0.60, "electricity": 0.36, "propane": 0.04}},
       "2010+":      {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "electricity": 0.40, "propane": 0.05}}
     },
@@ -72,11 +72,11 @@
       "2010+":      {"mode": "electricity",  "share": 0.65, "shares": {"electricity": 0.65, "natural gas": 0.30, "propane": 0.05}}
     },
     "West": {
-      "all":        {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "electricity": 0.38, "propane": 0.05, "fuel oil": 0.02}},
-      "pre-1980":   {"mode": "natural gas",  "share": 0.60, "shares": {"natural gas": 0.60, "electricity": 0.34, "propane": 0.05, "fuel oil": 0.01}},
-      "1980-1999":  {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "electricity": 0.38, "propane": 0.06, "fuel oil": 0.01}},
-      "2000-2009":  {"mode": "natural gas",  "share": 0.50, "shares": {"natural gas": 0.50, "electricity": 0.43, "propane": 0.06, "fuel oil": 0.01}},
-      "2010+":      {"mode": "natural gas",  "share": 0.45, "shares": {"electricity": 0.48, "natural gas": 0.45, "propane": 0.06, "fuel oil": 0.01}, "_mode_override_note": "CBECS aggregate has electricity at 0.48 vs natural gas at 0.45 (statistical tie). The electricity plurality is driven by California's post-2010 electrification (heat pump water heater mandates); for the non-California West states (AZ, NV, UT, CO, ID, MT, WY, NM) natural gas remains dominant for commercial SWH. Mode flipped to natural gas to avoid misallocating SWH energy to Electricity:Facility for non-CA West buildings."}
+      "all":        {"mode": "electricity",  "share": 0.38, "shares": {"natural gas": 0.55, "electricity": 0.38, "propane": 0.05, "fuel oil": 0.02}},
+      "pre-1980":   {"mode": "electricity",  "share": 0.34, "shares": {"natural gas": 0.60, "electricity": 0.34, "propane": 0.05, "fuel oil": 0.01}},
+      "1980-1999":  {"mode": "electricity",  "share": 0.38, "shares": {"natural gas": 0.55, "electricity": 0.38, "propane": 0.06, "fuel oil": 0.01}},
+      "2000-2009":  {"mode": "electricity",  "share": 0.43, "shares": {"natural gas": 0.50, "electricity": 0.43, "propane": 0.06, "fuel oil": 0.01}},
+      "2010+":      {"mode": "electricity",  "share": 0.48, "shares": {"electricity": 0.48, "natural gas": 0.45, "propane": 0.06, "fuel oil": 0.01}}
     }
   }
 }

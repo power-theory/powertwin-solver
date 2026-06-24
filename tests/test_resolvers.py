@@ -40,6 +40,8 @@ REGIONS = ["Northeast", "Midwest", "South", "West"]
 VINTAGES = ["pre-1980", "1980-1999", "2000-2009", "2010+"]
 VINTAGE_YEARS = {"pre-1980": 1960, "1980-1999": 1990, "2000-2009": 2005, "2010+": 2018}
 REGION_STATES = {"Northeast": "MA", "Midwest": "IL", "South": "TX", "West": "AZ"}
+STATE_DIVISIONS = {"MA": "New England", "IL": "East North Central",
+                   "TX": "West South Central", "AZ": "Mountain South"}
 
 RESIDENTIAL_TYPES = ["Single-Family Detached", "Single-Family Attached", "Multifamily"]
 COMMERCIAL_TYPES = ["Office", "Education", "Lodging", "Warehouse",
@@ -47,6 +49,8 @@ COMMERCIAL_TYPES = ["Office", "Education", "Lodging", "Warehouse",
 
 ALL_DYNAMIC_FIELDS = [
     "window_type",
+    "heating_system_type",
+    "water_heater_type",
     "heating_system_fuel_type",
     "cooling_system_fuel_type",
     "service_water_heating_fuel_type",
@@ -145,19 +149,20 @@ def test_fuel_types():
     cbecs = _load_ref("cbecs2018_commercial_fuel_mix")
 
     for field in ["heating_system_fuel_type", "service_water_heating_fuel_type"]:
-        # Residential: verify against RECS reference data
+        # Residential: resolver conditions fuel on system type (furnace/heat_pump/etc)
+        # then selects from the conditional distribution. Without building_id it falls
+        # back to mode of the system-type-conditional table, NOT the unconditional
+        # region mode. So we only check enum validity here; exact mode alignment with
+        # building_id is tested in test_share_weighted_distribution and test_nlr_fuel_alignment.
         for region in REGIONS:
+            state = REGION_STATES[region]
             for vintage in VINTAGES:
-                ctx = make_ctx(REGION_STATES[region], VINTAGE_YEARS[vintage], 2000,
+                ctx = make_ctx(state, VINTAGE_YEARS[vintage], 2000,
                                "Single-Family Detached")
                 val, level = resolve_default(field, ctx)
-                ref_section = recs.get(field, {})
-                ref_record = ref_section.get(region, {}).get(vintage, {})
-                exp = ref_record.get("mode") if ref_record else None
-                if exp is not None:
-                    check(f"res {field}/{region}/{vintage}", val, exp, section)
-                    check_in(f"res {field}/{region}/{vintage} enum",
-                             val, ENUM_VALUES[field], section)
+                check(f"res {field}/{region}/{vintage} not None", val is not None, True, section)
+                check_in(f"res {field}/{region}/{vintage} enum",
+                         val, ENUM_VALUES[field], section)
 
         # Commercial: verify against CBECS reference data
         for region in REGIONS:
@@ -180,6 +185,34 @@ def test_fuel_types():
             val, level = resolve_default("cooling_system_fuel_type", ctx)
             check(f"{bt}/{region} cooling=electricity", val, "electricity", section)
             check(f"{bt}/{region} cooling level", level, "building_type_only", section)
+
+
+# ============================================================
+# 2b. Heating system type -- share-weighted from RECS 2020
+# ============================================================
+def test_heating_system_type():
+    section = "heating_system_type"
+    ref = _load_ref("recs2020_heating_system_type")
+    valid = ENUM_VALUES["heating_system_type"]
+
+    for region in REGIONS:
+        state = REGION_STATES[region]
+        division = STATE_DIVISIONS[state]
+        for vintage in VINTAGES:
+            ctx = make_ctx(state, VINTAGE_YEARS[vintage], 2000,
+                           "Single-Family Detached")
+            val, level = resolve_default("heating_system_type", ctx)
+            div_record = ref.get("_division", {}).get(division, {}).get(vintage, {})
+            if div_record:
+                exp = div_record["mode"]
+                check(f"res hstype/{region}/{vintage}", val, exp, section)
+            check_in(f"res hstype/{region}/{vintage} enum", val, valid, section)
+
+    # Commercial should return None (not applicable)
+    for region in REGIONS:
+        ctx = make_ctx(REGION_STATES[region], 2000, 50000, "Office")
+        val, level = resolve_default("heating_system_type", ctx)
+        check(f"com hstype/{region} is None", val, None, section)
 
 
 # ============================================================
@@ -326,8 +359,8 @@ def test_precedence():
         else:
             check(f"{field} override wins", result, override_val, section)
 
-    # Resolver wins over flat default (pre-1980 Midwest -> Single Pane)
-    meta = {"state": "IL", "year_built": 1970, "area": 2000}
+    # Resolver wins over flat default (pre-1980 South -> Single Pane, differs from flat "Double Pane")
+    meta = {"state": "TX", "year_built": 1970, "area": 2000}
     ctx = build_asset_ctx(meta, building_type="Single-Family Detached")
     result = get_param(meta, "window_type", ctx=ctx)
     check("resolver beats flat (window_type)", result, "Single Pane", section)
@@ -521,20 +554,188 @@ def test_state_normalization():
 
 
 # ============================================================
+# 11. NLR-aligned envelope values (regression guard)
+# ============================================================
+def test_nlr_envelope_alignment():
+    section = "nlr_envelope"
+    recs = _load_ref("recs2020_envelope")
+    cbecs = _load_ref("cbecs2018_envelope")
+
+    # Residential pre-1980 wall R = 1.0 all regions
+    # (ResStock 2025 R1: 65-84% uninsulated; R-1 = still-air cavity floor)
+    for region in REGIONS:
+        val = recs["wall_r_value"][region]["pre-1980"]
+        check(f"res wall R pre-1980 {region}=1.0", val, 1.0, section)
+
+    # Residential 2010+ wall R by region (ResStock 2025 R1 medians)
+    expected_2010 = {"Northeast": 19.0, "Midwest": 15.0, "South": 11.0, "West": 19.0}
+    for region, exp in expected_2010.items():
+        val = recs["wall_r_value"][region]["2010+"]
+        check(f"res wall R 2010+ {region}={exp}", val, exp, section)
+
+    # Commercial pre-1980 wall R (ComStock 2025 R3 OSM assembly R-5.6 to R-6.0)
+    expected_com_pre1980 = {"Northeast": 6.0, "Midwest": 6.0, "South": 5.0, "West": 6.0}
+    for region, exp in expected_com_pre1980.items():
+        val = cbecs["wall_r_value"][region]["pre-1980"]
+        check(f"com wall R pre-1980 {region}={exp}", val, exp, section)
+
+    # Verify via resolver too (not just file)
+    for region, state in REGION_STATES.items():
+        ctx = make_ctx(state, 1960, 2000, "Single-Family Detached")
+        val, _ = resolve_default("wall_r_value", ctx)
+        check(f"resolver res wall R pre-1980 {region}=1.0", val, 1.0, section)
+
+    for region, state in REGION_STATES.items():
+        ctx = make_ctx(state, 2018, 50000, "Office")
+        val, _ = resolve_default("wall_r_value", ctx)
+        check(f"resolver com wall R pre-1980 {region}", val,
+              cbecs["wall_r_value"][region]["2010+"], section)
+
+
+# ============================================================
+# 12. NLR-aligned window type (regression guard)
+# ============================================================
+def test_nlr_window_alignment():
+    section = "nlr_window"
+    wt = _load_ref("window_type_by_vintage")
+
+    # South commercial 1980-1999 = Double Pane (ComStock 2025 R3: 54.5% double)
+    check("com South 1980-1999 = Double Pane",
+          wt["commercial"]["South"]["1980-1999"], "Double Pane", section)
+
+    # All commercial pre-1980 = Single Pane
+    for region in REGIONS:
+        check(f"com {region} pre-1980 = Single Pane",
+              wt["commercial"][region]["pre-1980"], "Single Pane", section)
+
+    # All commercial 2010+ = Double Pane
+    for region in REGIONS:
+        check(f"com {region} 2010+ = Double Pane",
+              wt["commercial"][region]["2010+"], "Double Pane", section)
+
+
+# ============================================================
+# 13. build_asset_ctx reads all fields from metadata
+# ============================================================
+def test_build_asset_ctx_metadata():
+    section = "ctx_metadata"
+
+    # building_id from metadata (no keyword)
+    ctx = build_asset_ctx({"state": "TX", "year_built": 2000, "building_id": "bldg42"})
+    check("building_id from metadata", ctx["building_id"], "bldg42", section)
+
+    # climate_zone from metadata (no keyword)
+    ctx = build_asset_ctx({"state": "TX", "climate_zone": "4A"})
+    check("climate_zone from metadata", ctx["climate_zone"], "4A", section)
+
+    # building_type from metadata (no keyword)
+    ctx = build_asset_ctx({"state": "TX", "building_type": "Office"})
+    check("building_type from metadata", ctx["building_type"], "Office", section)
+
+    # keyword overrides metadata
+    ctx = build_asset_ctx({"state": "TX", "building_id": "from_meta"},
+                          building_id="from_kwarg")
+    check("building_id kwarg wins", ctx["building_id"], "from_kwarg", section)
+
+    ctx = build_asset_ctx({"state": "TX", "building_type": "Office"},
+                          building_type="Warehouse")
+    check("building_type kwarg wins", ctx["building_type"], "Warehouse", section)
+
+    # division is populated
+    ctx = build_asset_ctx({"state": "TX"})
+    check("TX division", ctx["division"], "West South Central", section)
+    ctx = build_asset_ctx({"state": "MA"})
+    check("MA division", ctx["division"], "New England", section)
+
+
+# ============================================================
+# 14. Share-weighted fuel distribution with building_id
+# ============================================================
+def test_share_weighted_distribution():
+    section = "share_dist"
+    from collections import Counter
+
+    # South residential heating: with building_ids, should get a MIX
+    # (not 100% one fuel). ResStock says electricity is the mode.
+    ct = Counter()
+    N = 500
+    for i in range(N):
+        ctx = build_asset_ctx(
+            {"state": "TX", "year_built": 1990, "area": 2000},
+            building_type="Single-Family Detached", building_id=f"test{i:05d}",
+        )
+        val, _ = resolve_default("heating_system_fuel_type", ctx)
+        ct[val] += 1
+
+    # Must have at least 2 distinct fuels (not 100% mode)
+    check("South dist has multiple fuels", len(ct) >= 2, True, section)
+    # Electricity should be the plurality (ResStock: 63% for TX 1980-1999)
+    check("South dist mode=electricity", ct.most_common(1)[0][0], "electricity", section)
+    # Electricity share should be 40-70%
+    elec_pct = ct.get("electricity", 0) / N * 100
+    check_range("South electricity share", elec_pct, 40, 70, section)
+
+    # West 2010+ residential heating: mode should be natural gas
+    # (ResStock: 54% natural gas, was incorrectly electricity in RECS mode)
+    ct2 = Counter()
+    for i in range(N):
+        ctx = build_asset_ctx(
+            {"state": "CA", "year_built": 2018, "area": 2000},
+            building_type="Single-Family Detached", building_id=f"test{i:05d}",
+        )
+        val, _ = resolve_default("heating_system_fuel_type", ctx)
+        ct2[val] += 1
+
+    check("West 2010+ dist mode=natural gas", ct2.most_common(1)[0][0],
+          "natural gas", section)
+
+    # Without building_id, should still return a valid fuel (falls back to mode)
+    ctx = build_asset_ctx(
+        {"state": "TX", "year_built": 1990, "area": 2000},
+        building_type="Single-Family Detached",
+    )
+    val, _ = resolve_default("heating_system_fuel_type", ctx)
+    check_in("no bid still valid", val, ENUM_VALUES["heating_system_fuel_type"], section)
+
+
+# ============================================================
+# 15. NLR-aligned fuel modes (regression guard)
+# ============================================================
+def test_nlr_fuel_alignment():
+    section = "nlr_fuel"
+    recs = _load_ref("recs2020_residential_fuel_mix")
+
+    # West 2010+ residential mode = natural gas (flipped from electricity)
+    mode = recs["heating_system_fuel_type"]["West"]["2010+"]["mode"]
+    check("West 2010+ res fuel mode=natural gas", mode, "natural gas", section)
+
+    # South all vintages mode = electricity
+    for v in VINTAGES:
+        mode = recs["heating_system_fuel_type"]["South"][v]["mode"]
+        check(f"South {v} res fuel mode=electricity", mode, "electricity", section)
+
+
+# ============================================================
 # Run all tests
 # ============================================================
 def main():
     tests = [
-        ("Window type resolver",      test_window_type),
-        ("Fuel type resolvers",       test_fuel_types),
-        ("Envelope resolvers",        test_envelope),
-        ("Occupants resolver",        test_occupants),
-        ("Non-dynamic fields",        test_non_dynamic_fields),
-        ("Resolution precedence",     test_precedence),
-        ("Fallback behavior",         test_fallbacks),
-        ("Vintage boundaries",        test_vintage_boundaries),
-        ("Reference data integrity",  test_reference_data),
-        ("State normalization",       test_state_normalization),
+        ("Window type resolver",        test_window_type),
+        ("Fuel type resolvers",         test_fuel_types),
+        ("Heating system type",         test_heating_system_type),
+        ("Envelope resolvers",          test_envelope),
+        ("Occupants resolver",          test_occupants),
+        ("Non-dynamic fields",          test_non_dynamic_fields),
+        ("Resolution precedence",       test_precedence),
+        ("Fallback behavior",           test_fallbacks),
+        ("Vintage boundaries",          test_vintage_boundaries),
+        ("Reference data integrity",    test_reference_data),
+        ("State normalization",         test_state_normalization),
+        ("NLR envelope alignment",     test_nlr_envelope_alignment),
+        ("NLR window alignment",       test_nlr_window_alignment),
+        ("build_asset_ctx metadata",    test_build_asset_ctx_metadata),
+        ("Share-weighted distribution", test_share_weighted_distribution),
+        ("NLR fuel alignment",         test_nlr_fuel_alignment),
     ]
 
     for name, fn in tests:

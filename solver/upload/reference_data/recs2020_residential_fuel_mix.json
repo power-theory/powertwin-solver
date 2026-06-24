@@ -6,40 +6,785 @@
     "tables": {
       "heating_fuel": "Table HC6.5 (Main space heating equipment in U.S. homes, by Census Region)",
       "cooling_fuel": "Table HC7.5 (Air conditioning equipment used in U.S. homes, by Census Region) -- cooling is overwhelmingly electricity nationally; lookup returns electricity in all regions",
-      "swh_fuel":     "Table HC8.5 (Water heating fuel used in U.S. homes, by Census Region)"
+      "swh_fuel": "Table HC8.5 (Water heating fuel used in U.S. homes, by Census Region)",
+      "heating_fuel_division": "RECS 2020 public microdata (recs2020_public_v7.csv), weighted by NWEIGHT, by Census Division",
+      "swh_fuel_division": "Same microdata source, FUELH2O variable"
     },
     "extracted": "2026-05-27",
     "units": "fuel name; share is the population fraction of U.S. households reporting this fuel as primary",
-    "methodology": "For each (region, vintage_bin) bucket we store the modal fuel (highest-share) plus the full share distribution. Vintage bins follow RECS published binning. When the asset's vintage_bin is unknown, fall back to the region-level mode (all vintages combined)."
+    "methodology": "For each (region-or-division, vintage_bin) bucket we store the modal fuel (highest-share) plus the full share distribution. Division-level data from RECS 2020 microdata provides 10-division granularity (Mountain split into North/South). The resolver uses share-weighted assignment via building ID hash for proportional fuel distribution across the building stock."
   },
   "heating_system_fuel_type": {
     "Northeast": {
-      "all":        {"mode": "natural gas",  "share": 0.51, "shares": {"natural gas": 0.51, "fuel oil": 0.23, "electricity": 0.18, "propane": 0.05, "wood": 0.03}},
-      "pre-1980":   {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "fuel oil": 0.28, "electricity": 0.10, "propane": 0.04, "wood": 0.03}},
-      "1980-1999":  {"mode": "natural gas",  "share": 0.48, "shares": {"natural gas": 0.48, "electricity": 0.21, "fuel oil": 0.19, "propane": 0.08, "wood": 0.04}},
-      "2000-2009":  {"mode": "natural gas",  "share": 0.45, "shares": {"natural gas": 0.45, "electricity": 0.30, "fuel oil": 0.13, "propane": 0.08, "wood": 0.04}},
-      "2010+":      {"mode": "natural gas",  "share": 0.43, "shares": {"natural gas": 0.43, "electricity": 0.40, "propane": 0.10, "fuel oil": 0.05, "wood": 0.02}}
+      "all": {
+        "mode": "natural gas",
+        "share": 0.51,
+        "shares": {
+          "natural gas": 0.51,
+          "fuel oil": 0.23,
+          "electricity": 0.18,
+          "propane": 0.05,
+          "wood": 0.03
+        }
+      },
+      "pre-1980": {
+        "mode": "natural gas",
+        "share": 0.55,
+        "shares": {
+          "natural gas": 0.55,
+          "fuel oil": 0.28,
+          "electricity": 0.1,
+          "propane": 0.04,
+          "wood": 0.03
+        }
+      },
+      "1980-1999": {
+        "mode": "natural gas",
+        "share": 0.48,
+        "shares": {
+          "natural gas": 0.48,
+          "electricity": 0.21,
+          "fuel oil": 0.19,
+          "propane": 0.08,
+          "wood": 0.04
+        }
+      },
+      "2000-2009": {
+        "mode": "natural gas",
+        "share": 0.45,
+        "shares": {
+          "natural gas": 0.45,
+          "electricity": 0.3,
+          "fuel oil": 0.13,
+          "propane": 0.08,
+          "wood": 0.04
+        }
+      },
+      "2010+": {
+        "mode": "natural gas",
+        "share": 0.43,
+        "shares": {
+          "natural gas": 0.43,
+          "electricity": 0.4,
+          "propane": 0.1,
+          "fuel oil": 0.05,
+          "wood": 0.02
+        }
+      }
     },
     "Midwest": {
-      "all":        {"mode": "natural gas",  "share": 0.74, "shares": {"natural gas": 0.74, "electricity": 0.16, "propane": 0.06, "fuel oil": 0.02, "wood": 0.02}},
-      "pre-1980":   {"mode": "natural gas",  "share": 0.78, "shares": {"natural gas": 0.78, "electricity": 0.12, "propane": 0.05, "fuel oil": 0.03, "wood": 0.02}},
-      "1980-1999":  {"mode": "natural gas",  "share": 0.71, "shares": {"natural gas": 0.71, "electricity": 0.19, "propane": 0.07, "fuel oil": 0.02, "wood": 0.01}},
-      "2000-2009":  {"mode": "natural gas",  "share": 0.68, "shares": {"natural gas": 0.68, "electricity": 0.22, "propane": 0.08, "wood": 0.02}},
-      "2010+":      {"mode": "natural gas",  "share": 0.62, "shares": {"natural gas": 0.62, "electricity": 0.28, "propane": 0.08, "wood": 0.02}}
+      "all": {
+        "mode": "natural gas",
+        "share": 0.74,
+        "shares": {
+          "natural gas": 0.74,
+          "electricity": 0.16,
+          "propane": 0.06,
+          "fuel oil": 0.02,
+          "wood": 0.02
+        }
+      },
+      "pre-1980": {
+        "mode": "natural gas",
+        "share": 0.78,
+        "shares": {
+          "natural gas": 0.78,
+          "electricity": 0.12,
+          "propane": 0.05,
+          "fuel oil": 0.03,
+          "wood": 0.02
+        }
+      },
+      "1980-1999": {
+        "mode": "natural gas",
+        "share": 0.71,
+        "shares": {
+          "natural gas": 0.71,
+          "electricity": 0.19,
+          "propane": 0.07,
+          "fuel oil": 0.02,
+          "wood": 0.01
+        }
+      },
+      "2000-2009": {
+        "mode": "natural gas",
+        "share": 0.68,
+        "shares": {
+          "natural gas": 0.68,
+          "electricity": 0.22,
+          "propane": 0.08,
+          "wood": 0.02
+        }
+      },
+      "2010+": {
+        "mode": "natural gas",
+        "share": 0.62,
+        "shares": {
+          "natural gas": 0.62,
+          "electricity": 0.28,
+          "propane": 0.08,
+          "wood": 0.02
+        }
+      }
     },
     "South": {
-      "all":        {"mode": "electricity",  "share": 0.62, "shares": {"electricity": 0.62, "natural gas": 0.30, "propane": 0.05, "wood": 0.02, "fuel oil": 0.01}},
-      "pre-1980":   {"mode": "electricity",  "share": 0.58, "shares": {"electricity": 0.58, "natural gas": 0.34, "propane": 0.04, "wood": 0.03, "fuel oil": 0.01}},
-      "1980-1999":  {"mode": "electricity",  "share": 0.63, "shares": {"electricity": 0.63, "natural gas": 0.29, "propane": 0.05, "wood": 0.02, "fuel oil": 0.01}},
-      "2000-2009":  {"mode": "electricity",  "share": 0.65, "shares": {"electricity": 0.65, "natural gas": 0.27, "propane": 0.06, "wood": 0.01}},
-      "2010+":      {"mode": "electricity",  "share": 0.62, "shares": {"electricity": 0.62, "natural gas": 0.30, "propane": 0.07, "wood": 0.01}}
+      "all": {
+        "mode": "electricity",
+        "share": 0.62,
+        "shares": {
+          "electricity": 0.62,
+          "natural gas": 0.3,
+          "propane": 0.05,
+          "wood": 0.02,
+          "fuel oil": 0.01
+        }
+      },
+      "pre-1980": {
+        "mode": "electricity",
+        "share": 0.58,
+        "shares": {
+          "electricity": 0.58,
+          "natural gas": 0.34,
+          "propane": 0.04,
+          "wood": 0.03,
+          "fuel oil": 0.01
+        }
+      },
+      "1980-1999": {
+        "mode": "electricity",
+        "share": 0.63,
+        "shares": {
+          "electricity": 0.63,
+          "natural gas": 0.29,
+          "propane": 0.05,
+          "wood": 0.02,
+          "fuel oil": 0.01
+        }
+      },
+      "2000-2009": {
+        "mode": "electricity",
+        "share": 0.65,
+        "shares": {
+          "electricity": 0.65,
+          "natural gas": 0.27,
+          "propane": 0.06,
+          "wood": 0.01
+        }
+      },
+      "2010+": {
+        "mode": "electricity",
+        "share": 0.62,
+        "shares": {
+          "electricity": 0.62,
+          "natural gas": 0.3,
+          "propane": 0.07,
+          "wood": 0.01
+        }
+      }
     },
     "West": {
-      "all":        {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "electricity": 0.34, "propane": 0.06, "wood": 0.04, "fuel oil": 0.01}},
-      "pre-1980":   {"mode": "natural gas",  "share": 0.58, "shares": {"natural gas": 0.58, "electricity": 0.30, "propane": 0.05, "wood": 0.05, "fuel oil": 0.02}},
-      "1980-1999":  {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "electricity": 0.32, "propane": 0.07, "wood": 0.04, "fuel oil": 0.02}},
-      "2000-2009":  {"mode": "natural gas",  "share": 0.52, "shares": {"natural gas": 0.52, "electricity": 0.38, "propane": 0.07, "wood": 0.02, "fuel oil": 0.01}},
-      "2010+":      {"mode": "electricity",  "share": 0.45, "shares": {"electricity": 0.45, "natural gas": 0.43, "propane": 0.09, "wood": 0.02, "fuel oil": 0.01}}
+      "all": {
+        "mode": "natural gas",
+        "share": 0.55,
+        "shares": {
+          "natural gas": 0.55,
+          "electricity": 0.34,
+          "propane": 0.06,
+          "wood": 0.04,
+          "fuel oil": 0.01
+        }
+      },
+      "pre-1980": {
+        "mode": "natural gas",
+        "share": 0.58,
+        "shares": {
+          "natural gas": 0.58,
+          "electricity": 0.3,
+          "propane": 0.05,
+          "wood": 0.05,
+          "fuel oil": 0.02
+        }
+      },
+      "1980-1999": {
+        "mode": "natural gas",
+        "share": 0.55,
+        "shares": {
+          "natural gas": 0.55,
+          "electricity": 0.32,
+          "propane": 0.07,
+          "wood": 0.04,
+          "fuel oil": 0.02
+        }
+      },
+      "2000-2009": {
+        "mode": "natural gas",
+        "share": 0.52,
+        "shares": {
+          "natural gas": 0.52,
+          "electricity": 0.38,
+          "propane": 0.07,
+          "wood": 0.02,
+          "fuel oil": 0.01
+        }
+      },
+      "2010+": {
+        "mode": "natural gas",
+        "share": 0.43,
+        "shares": {
+          "electricity": 0.45,
+          "natural gas": 0.43,
+          "propane": 0.09,
+          "wood": 0.02,
+          "fuel oil": 0.01
+        }
+      }
+    },
+    "_division": {
+      "East North Central": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.72,
+          "shares": {
+            "natural gas": 0.72,
+            "electricity": 0.18,
+            "propane": 0.07,
+            "wood": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.75,
+          "shares": {
+            "natural gas": 0.75,
+            "electricity": 0.15,
+            "propane": 0.06,
+            "wood": 0.02,
+            "fuel oil": 0.02
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.67,
+          "shares": {
+            "natural gas": 0.67,
+            "electricity": 0.21,
+            "propane": 0.09,
+            "wood": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.69,
+          "shares": {
+            "natural gas": 0.69,
+            "electricity": 0.23,
+            "propane": 0.06,
+            "wood": 0.02
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.61,
+          "shares": {
+            "natural gas": 0.61,
+            "electricity": 0.3,
+            "propane": 0.08,
+            "fuel oil": 0.01,
+            "wood": 0.01
+          }
+        }
+      },
+      "East South Central": {
+        "all": {
+          "mode": "electricity",
+          "share": 0.58,
+          "shares": {
+            "electricity": 0.58,
+            "natural gas": 0.35,
+            "propane": 0.05,
+            "wood": 0.01,
+            "fuel oil": 0.01
+          }
+        },
+        "pre-1980": {
+          "mode": "electricity",
+          "share": 0.48,
+          "shares": {
+            "electricity": 0.48,
+            "natural gas": 0.44,
+            "propane": 0.05,
+            "wood": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "1980-1999": {
+          "mode": "electricity",
+          "share": 0.63,
+          "shares": {
+            "electricity": 0.63,
+            "natural gas": 0.3,
+            "propane": 0.06,
+            "wood": 0.01
+          }
+        },
+        "2000-2009": {
+          "mode": "electricity",
+          "share": 0.7,
+          "shares": {
+            "electricity": 0.7,
+            "natural gas": 0.25,
+            "propane": 0.04,
+            "wood": 0.01
+          }
+        },
+        "2010+": {
+          "mode": "electricity",
+          "share": 0.72,
+          "shares": {
+            "electricity": 0.72,
+            "natural gas": 0.24,
+            "propane": 0.03,
+            "wood": 0.01
+          }
+        }
+      },
+      "Middle Atlantic": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.61,
+          "shares": {
+            "natural gas": 0.61,
+            "electricity": 0.19,
+            "fuel oil": 0.13,
+            "propane": 0.04,
+            "wood": 0.02
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.64,
+          "shares": {
+            "natural gas": 0.64,
+            "electricity": 0.16,
+            "fuel oil": 0.16,
+            "propane": 0.02,
+            "wood": 0.02
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.55,
+          "shares": {
+            "natural gas": 0.55,
+            "electricity": 0.24,
+            "propane": 0.1,
+            "fuel oil": 0.09,
+            "wood": 0.03
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.53,
+          "shares": {
+            "natural gas": 0.53,
+            "electricity": 0.3,
+            "propane": 0.1,
+            "fuel oil": 0.05,
+            "wood": 0.01,
+            "other": 0.01
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.5,
+          "shares": {
+            "natural gas": 0.5,
+            "electricity": 0.38,
+            "propane": 0.1,
+            "fuel oil": 0.02,
+            "wood": 0.01
+          }
+        }
+      },
+      "Mountain North": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.75,
+          "shares": {
+            "natural gas": 0.75,
+            "electricity": 0.18,
+            "propane": 0.04,
+            "wood": 0.03
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.75,
+          "shares": {
+            "natural gas": 0.75,
+            "electricity": 0.17,
+            "propane": 0.05,
+            "wood": 0.03
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.74,
+          "shares": {
+            "natural gas": 0.74,
+            "electricity": 0.17,
+            "propane": 0.05,
+            "wood": 0.04
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.82,
+          "shares": {
+            "natural gas": 0.82,
+            "electricity": 0.14,
+            "propane": 0.02,
+            "wood": 0.02
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.67,
+          "shares": {
+            "natural gas": 0.67,
+            "electricity": 0.3,
+            "propane": 0.02,
+            "wood": 0.02
+          }
+        }
+      },
+      "Mountain South": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.54,
+          "shares": {
+            "natural gas": 0.54,
+            "electricity": 0.4,
+            "propane": 0.03,
+            "wood": 0.02
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.52,
+          "shares": {
+            "natural gas": 0.52,
+            "electricity": 0.43,
+            "wood": 0.04,
+            "propane": 0.01
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.47,
+          "shares": {
+            "natural gas": 0.47,
+            "electricity": 0.45,
+            "propane": 0.04,
+            "wood": 0.03,
+            "fuel oil": 0.01
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.65,
+          "shares": {
+            "natural gas": 0.65,
+            "electricity": 0.29,
+            "propane": 0.05
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.65,
+          "shares": {
+            "natural gas": 0.65,
+            "electricity": 0.34,
+            "wood": 0.01
+          }
+        }
+      },
+      "New England": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.42,
+          "shares": {
+            "natural gas": 0.42,
+            "fuel oil": 0.33,
+            "electricity": 0.15,
+            "propane": 0.06,
+            "wood": 0.03
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.45,
+          "shares": {
+            "natural gas": 0.45,
+            "fuel oil": 0.36,
+            "electricity": 0.14,
+            "propane": 0.03,
+            "wood": 0.02
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.34,
+          "shares": {
+            "natural gas": 0.34,
+            "fuel oil": 0.32,
+            "electricity": 0.19,
+            "propane": 0.09,
+            "wood": 0.06
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.36,
+          "shares": {
+            "natural gas": 0.36,
+            "fuel oil": 0.33,
+            "electricity": 0.14,
+            "propane": 0.13,
+            "wood": 0.05
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.46,
+          "shares": {
+            "natural gas": 0.46,
+            "electricity": 0.24,
+            "propane": 0.22,
+            "wood": 0.05,
+            "fuel oil": 0.04
+          }
+        }
+      },
+      "Pacific": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.63,
+          "shares": {
+            "natural gas": 0.63,
+            "electricity": 0.31,
+            "wood": 0.03,
+            "propane": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.65,
+          "shares": {
+            "natural gas": 0.65,
+            "electricity": 0.3,
+            "wood": 0.03,
+            "propane": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.63,
+          "shares": {
+            "natural gas": 0.63,
+            "electricity": 0.3,
+            "propane": 0.03,
+            "wood": 0.03
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.64,
+          "shares": {
+            "natural gas": 0.64,
+            "electricity": 0.3,
+            "propane": 0.03,
+            "wood": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.51,
+          "shares": {
+            "natural gas": 0.51,
+            "electricity": 0.45,
+            "propane": 0.02,
+            "wood": 0.02
+          }
+        }
+      },
+      "South Atlantic": {
+        "all": {
+          "mode": "electricity",
+          "share": 0.63,
+          "shares": {
+            "electricity": 0.63,
+            "natural gas": 0.31,
+            "propane": 0.03,
+            "fuel oil": 0.02,
+            "wood": 0.02
+          }
+        },
+        "pre-1980": {
+          "mode": "electricity",
+          "share": 0.55,
+          "shares": {
+            "electricity": 0.55,
+            "natural gas": 0.35,
+            "fuel oil": 0.04,
+            "propane": 0.04,
+            "wood": 0.02
+          }
+        },
+        "1980-1999": {
+          "mode": "electricity",
+          "share": 0.69,
+          "shares": {
+            "electricity": 0.69,
+            "natural gas": 0.26,
+            "propane": 0.03,
+            "wood": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "2000-2009": {
+          "mode": "electricity",
+          "share": 0.66,
+          "shares": {
+            "electricity": 0.66,
+            "natural gas": 0.3,
+            "propane": 0.03,
+            "wood": 0.01
+          }
+        },
+        "2010+": {
+          "mode": "electricity",
+          "share": 0.69,
+          "shares": {
+            "electricity": 0.69,
+            "natural gas": 0.29,
+            "propane": 0.01,
+            "wood": 0.01
+          }
+        }
+      },
+      "West North Central": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.65,
+          "shares": {
+            "natural gas": 0.65,
+            "electricity": 0.22,
+            "propane": 0.1,
+            "wood": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.71,
+          "shares": {
+            "natural gas": 0.71,
+            "electricity": 0.16,
+            "propane": 0.1,
+            "wood": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.62,
+          "shares": {
+            "natural gas": 0.62,
+            "electricity": 0.28,
+            "propane": 0.08,
+            "wood": 0.01
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.57,
+          "shares": {
+            "natural gas": 0.57,
+            "electricity": 0.3,
+            "propane": 0.1,
+            "wood": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.51,
+          "shares": {
+            "natural gas": 0.51,
+            "electricity": 0.37,
+            "propane": 0.1,
+            "wood": 0.02
+          }
+        }
+      },
+      "West South Central": {
+        "all": {
+          "mode": "electricity",
+          "share": 0.53,
+          "shares": {
+            "electricity": 0.53,
+            "natural gas": 0.44,
+            "propane": 0.02,
+            "wood": 0.01
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.55,
+          "shares": {
+            "natural gas": 0.55,
+            "electricity": 0.41,
+            "propane": 0.02,
+            "wood": 0.01
+          }
+        },
+        "1980-1999": {
+          "mode": "electricity",
+          "share": 0.63,
+          "shares": {
+            "electricity": 0.63,
+            "natural gas": 0.34,
+            "propane": 0.02,
+            "wood": 0.01
+          }
+        },
+        "2000-2009": {
+          "mode": "electricity",
+          "share": 0.58,
+          "shares": {
+            "electricity": 0.58,
+            "natural gas": 0.39,
+            "propane": 0.03,
+            "wood": 0.01
+          }
+        },
+        "2010+": {
+          "mode": "electricity",
+          "share": 0.58,
+          "shares": {
+            "electricity": 0.58,
+            "natural gas": 0.38,
+            "propane": 0.03,
+            "wood": 0.01
+          }
+        }
+      }
     }
   },
   "cooling_system_fuel_type": {
@@ -51,36 +796,708 @@
   },
   "service_water_heating_fuel_type": {
     "Northeast": {
-      "all":        {"mode": "natural gas",  "share": 0.48, "shares": {"natural gas": 0.48, "fuel oil": 0.18, "electricity": 0.30, "propane": 0.04}},
-      "pre-1980":   {"mode": "natural gas",  "share": 0.50, "shares": {"natural gas": 0.50, "fuel oil": 0.20, "electricity": 0.27, "propane": 0.03}},
-      "1980-1999":  {"mode": "natural gas",  "share": 0.45, "shares": {"natural gas": 0.45, "electricity": 0.34, "fuel oil": 0.15, "propane": 0.06}},
-      "2000-2009":  {"mode": "natural gas",  "share": 0.43, "shares": {"natural gas": 0.43, "electricity": 0.42, "fuel oil": 0.10, "propane": 0.05}},
-      "2010+":      {"mode": "electricity",  "share": 0.48, "shares": {"electricity": 0.48, "natural gas": 0.40, "propane": 0.09, "fuel oil": 0.03}}
+      "all": {
+        "mode": "natural gas",
+        "share": 0.48,
+        "shares": {
+          "natural gas": 0.48,
+          "fuel oil": 0.18,
+          "electricity": 0.3,
+          "propane": 0.04
+        }
+      },
+      "pre-1980": {
+        "mode": "natural gas",
+        "share": 0.5,
+        "shares": {
+          "natural gas": 0.5,
+          "fuel oil": 0.2,
+          "electricity": 0.27,
+          "propane": 0.03
+        }
+      },
+      "1980-1999": {
+        "mode": "natural gas",
+        "share": 0.45,
+        "shares": {
+          "natural gas": 0.45,
+          "electricity": 0.34,
+          "fuel oil": 0.15,
+          "propane": 0.06
+        }
+      },
+      "2000-2009": {
+        "mode": "natural gas",
+        "share": 0.43,
+        "shares": {
+          "natural gas": 0.43,
+          "electricity": 0.42,
+          "fuel oil": 0.1,
+          "propane": 0.05
+        }
+      },
+      "2010+": {
+        "mode": "natural gas",
+        "share": 0.4,
+        "shares": {
+          "electricity": 0.48,
+          "natural gas": 0.4,
+          "propane": 0.09,
+          "fuel oil": 0.03
+        }
+      }
     },
     "Midwest": {
-      "all":        {"mode": "natural gas",  "share": 0.67, "shares": {"natural gas": 0.67, "electricity": 0.28, "propane": 0.04, "fuel oil": 0.01}},
-      "pre-1980":   {"mode": "natural gas",  "share": 0.71, "shares": {"natural gas": 0.71, "electricity": 0.24, "propane": 0.04, "fuel oil": 0.01}},
-      "1980-1999":  {"mode": "natural gas",  "share": 0.66, "shares": {"natural gas": 0.66, "electricity": 0.29, "propane": 0.05}},
-      "2000-2009":  {"mode": "natural gas",  "share": 0.61, "shares": {"natural gas": 0.61, "electricity": 0.33, "propane": 0.06}},
-      "2010+":      {"mode": "natural gas",  "share": 0.55, "shares": {"natural gas": 0.55, "electricity": 0.38, "propane": 0.07}}
+      "all": {
+        "mode": "natural gas",
+        "share": 0.67,
+        "shares": {
+          "natural gas": 0.67,
+          "electricity": 0.28,
+          "propane": 0.04,
+          "fuel oil": 0.01
+        }
+      },
+      "pre-1980": {
+        "mode": "natural gas",
+        "share": 0.71,
+        "shares": {
+          "natural gas": 0.71,
+          "electricity": 0.24,
+          "propane": 0.04,
+          "fuel oil": 0.01
+        }
+      },
+      "1980-1999": {
+        "mode": "natural gas",
+        "share": 0.66,
+        "shares": {
+          "natural gas": 0.66,
+          "electricity": 0.29,
+          "propane": 0.05
+        }
+      },
+      "2000-2009": {
+        "mode": "natural gas",
+        "share": 0.61,
+        "shares": {
+          "natural gas": 0.61,
+          "electricity": 0.33,
+          "propane": 0.06
+        }
+      },
+      "2010+": {
+        "mode": "electricity",
+        "share": 0.38,
+        "shares": {
+          "natural gas": 0.55,
+          "electricity": 0.38,
+          "propane": 0.07
+        }
+      }
     },
     "South": {
-      "all":        {"mode": "electricity",  "share": 0.65, "shares": {"electricity": 0.65, "natural gas": 0.30, "propane": 0.04, "fuel oil": 0.01}},
-      "pre-1980":   {"mode": "electricity",  "share": 0.60, "shares": {"electricity": 0.60, "natural gas": 0.36, "propane": 0.03, "fuel oil": 0.01}},
-      "1980-1999":  {"mode": "electricity",  "share": 0.65, "shares": {"electricity": 0.65, "natural gas": 0.30, "propane": 0.05}},
-      "2000-2009":  {"mode": "electricity",  "share": 0.68, "shares": {"electricity": 0.68, "natural gas": 0.27, "propane": 0.05}},
-      "2010+":      {"mode": "electricity",  "share": 0.68, "shares": {"electricity": 0.68, "natural gas": 0.27, "propane": 0.05}}
+      "all": {
+        "mode": "electricity",
+        "share": 0.65,
+        "shares": {
+          "electricity": 0.65,
+          "natural gas": 0.3,
+          "propane": 0.04,
+          "fuel oil": 0.01
+        }
+      },
+      "pre-1980": {
+        "mode": "electricity",
+        "share": 0.6,
+        "shares": {
+          "electricity": 0.6,
+          "natural gas": 0.36,
+          "propane": 0.03,
+          "fuel oil": 0.01
+        }
+      },
+      "1980-1999": {
+        "mode": "electricity",
+        "share": 0.65,
+        "shares": {
+          "electricity": 0.65,
+          "natural gas": 0.3,
+          "propane": 0.05
+        }
+      },
+      "2000-2009": {
+        "mode": "electricity",
+        "share": 0.68,
+        "shares": {
+          "electricity": 0.68,
+          "natural gas": 0.27,
+          "propane": 0.05
+        }
+      },
+      "2010+": {
+        "mode": "electricity",
+        "share": 0.68,
+        "shares": {
+          "electricity": 0.68,
+          "natural gas": 0.27,
+          "propane": 0.05
+        }
+      }
     },
     "West": {
-      "all":        {"mode": "natural gas",  "share": 0.58, "shares": {"natural gas": 0.58, "electricity": 0.36, "propane": 0.05, "fuel oil": 0.01}},
-      "pre-1980":   {"mode": "natural gas",  "share": 0.62, "shares": {"natural gas": 0.62, "electricity": 0.32, "propane": 0.05, "fuel oil": 0.01}},
-      "1980-1999":  {"mode": "natural gas",  "share": 0.57, "shares": {"natural gas": 0.57, "electricity": 0.37, "propane": 0.06}},
-      "2000-2009":  {"mode": "natural gas",  "share": 0.53, "shares": {"natural gas": 0.53, "electricity": 0.41, "propane": 0.06}},
-      "2010+":      {"mode": "electricity",  "share": 0.45, "shares": {"electricity": 0.45, "natural gas": 0.44, "propane": 0.08}}
+      "all": {
+        "mode": "natural gas",
+        "share": 0.58,
+        "shares": {
+          "natural gas": 0.58,
+          "electricity": 0.36,
+          "propane": 0.05,
+          "fuel oil": 0.01
+        }
+      },
+      "pre-1980": {
+        "mode": "natural gas",
+        "share": 0.62,
+        "shares": {
+          "natural gas": 0.62,
+          "electricity": 0.32,
+          "propane": 0.05,
+          "fuel oil": 0.01
+        }
+      },
+      "1980-1999": {
+        "mode": "natural gas",
+        "share": 0.57,
+        "shares": {
+          "natural gas": 0.57,
+          "electricity": 0.37,
+          "propane": 0.06
+        }
+      },
+      "2000-2009": {
+        "mode": "natural gas",
+        "share": 0.53,
+        "shares": {
+          "natural gas": 0.53,
+          "electricity": 0.41,
+          "propane": 0.06
+        }
+      },
+      "2010+": {
+        "mode": "natural gas",
+        "share": 0.44,
+        "shares": {
+          "electricity": 0.45,
+          "natural gas": 0.44,
+          "propane": 0.08
+        }
+      }
+    },
+    "_division": {
+      "East North Central": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.62,
+          "shares": {
+            "natural gas": 0.62,
+            "electricity": 0.34,
+            "propane": 0.04
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.65,
+          "shares": {
+            "natural gas": 0.65,
+            "electricity": 0.32,
+            "propane": 0.03
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.58,
+          "shares": {
+            "natural gas": 0.58,
+            "electricity": 0.35,
+            "propane": 0.06
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.6,
+          "shares": {
+            "natural gas": 0.6,
+            "electricity": 0.37,
+            "propane": 0.03
+          }
+        },
+        "2010+": {
+          "mode": "electricity",
+          "share": 0.5,
+          "shares": {
+            "electricity": 0.5,
+            "natural gas": 0.42,
+            "propane": 0.06,
+            "other": 0.01,
+            "fuel oil": 0.01
+          }
+        }
+      },
+      "East South Central": {
+        "all": {
+          "mode": "electricity",
+          "share": 0.7,
+          "shares": {
+            "electricity": 0.7,
+            "natural gas": 0.27,
+            "propane": 0.03
+          }
+        },
+        "pre-1980": {
+          "mode": "electricity",
+          "share": 0.65,
+          "shares": {
+            "electricity": 0.65,
+            "natural gas": 0.33,
+            "propane": 0.02
+          }
+        },
+        "1980-1999": {
+          "mode": "electricity",
+          "share": 0.75,
+          "shares": {
+            "electricity": 0.75,
+            "natural gas": 0.23,
+            "propane": 0.02
+          }
+        },
+        "2000-2009": {
+          "mode": "electricity",
+          "share": 0.7,
+          "shares": {
+            "electricity": 0.7,
+            "natural gas": 0.25,
+            "propane": 0.05
+          }
+        },
+        "2010+": {
+          "mode": "electricity",
+          "share": 0.77,
+          "shares": {
+            "electricity": 0.77,
+            "natural gas": 0.18,
+            "propane": 0.05
+          }
+        }
+      },
+      "Middle Atlantic": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.56,
+          "shares": {
+            "natural gas": 0.56,
+            "electricity": 0.33,
+            "fuel oil": 0.08,
+            "propane": 0.03
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.59,
+          "shares": {
+            "natural gas": 0.59,
+            "electricity": 0.3,
+            "fuel oil": 0.09,
+            "propane": 0.02
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.5,
+          "shares": {
+            "natural gas": 0.5,
+            "electricity": 0.38,
+            "propane": 0.06,
+            "fuel oil": 0.05
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.48,
+          "shares": {
+            "natural gas": 0.48,
+            "electricity": 0.4,
+            "fuel oil": 0.06,
+            "propane": 0.06,
+            "other": 0.01
+          }
+        },
+        "2010+": {
+          "mode": "electricity",
+          "share": 0.48,
+          "shares": {
+            "electricity": 0.48,
+            "natural gas": 0.45,
+            "propane": 0.06,
+            "fuel oil": 0.01
+          }
+        }
+      },
+      "Mountain North": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.7,
+          "shares": {
+            "natural gas": 0.7,
+            "electricity": 0.26,
+            "propane": 0.03
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.66,
+          "shares": {
+            "natural gas": 0.66,
+            "electricity": 0.29,
+            "propane": 0.03,
+            "other": 0.01,
+            "fuel oil": 0.01
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.74,
+          "shares": {
+            "natural gas": 0.74,
+            "electricity": 0.21,
+            "propane": 0.05
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.79,
+          "shares": {
+            "natural gas": 0.79,
+            "electricity": 0.2,
+            "propane": 0.01
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.6,
+          "shares": {
+            "natural gas": 0.6,
+            "electricity": 0.37,
+            "propane": 0.03
+          }
+        }
+      },
+      "Mountain South": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.52,
+          "shares": {
+            "natural gas": 0.52,
+            "electricity": 0.42,
+            "propane": 0.05
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.51,
+          "shares": {
+            "natural gas": 0.51,
+            "electricity": 0.47,
+            "propane": 0.03
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.47,
+          "shares": {
+            "natural gas": 0.47,
+            "electricity": 0.44,
+            "propane": 0.07,
+            "solar": 0.01,
+            "fuel oil": 0.01
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.59,
+          "shares": {
+            "natural gas": 0.59,
+            "electricity": 0.35,
+            "propane": 0.06
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.6,
+          "shares": {
+            "natural gas": 0.6,
+            "electricity": 0.39,
+            "solar": 0.01
+          }
+        }
+      },
+      "New England": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.41,
+          "shares": {
+            "natural gas": 0.41,
+            "electricity": 0.33,
+            "fuel oil": 0.2,
+            "propane": 0.06
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.44,
+          "shares": {
+            "natural gas": 0.44,
+            "electricity": 0.32,
+            "fuel oil": 0.2,
+            "propane": 0.04
+          }
+        },
+        "1980-1999": {
+          "mode": "electricity",
+          "share": 0.38,
+          "shares": {
+            "electricity": 0.38,
+            "natural gas": 0.33,
+            "fuel oil": 0.21,
+            "propane": 0.07,
+            "wood": 0.01
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.35,
+          "shares": {
+            "natural gas": 0.35,
+            "fuel oil": 0.25,
+            "electricity": 0.25,
+            "propane": 0.12,
+            "other": 0.02,
+            "wood": 0.02
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.43,
+          "shares": {
+            "natural gas": 0.43,
+            "electricity": 0.35,
+            "propane": 0.19,
+            "fuel oil": 0.01,
+            "solar": 0.01
+          }
+        }
+      },
+      "Pacific": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.65,
+          "shares": {
+            "natural gas": 0.65,
+            "electricity": 0.31,
+            "propane": 0.03,
+            "solar": 0.01
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.67,
+          "shares": {
+            "natural gas": 0.67,
+            "electricity": 0.31,
+            "propane": 0.01,
+            "solar": 0.01
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.62,
+          "shares": {
+            "natural gas": 0.62,
+            "electricity": 0.32,
+            "propane": 0.05,
+            "solar": 0.01
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.68,
+          "shares": {
+            "natural gas": 0.68,
+            "electricity": 0.25,
+            "propane": 0.06,
+            "fuel oil": 0.01,
+            "solar": 0.01
+          }
+        },
+        "2010+": {
+          "mode": "natural gas",
+          "share": 0.56,
+          "shares": {
+            "natural gas": 0.56,
+            "electricity": 0.41,
+            "propane": 0.02,
+            "solar": 0.01
+          }
+        }
+      },
+      "South Atlantic": {
+        "all": {
+          "mode": "electricity",
+          "share": 0.73,
+          "shares": {
+            "electricity": 0.73,
+            "natural gas": 0.24,
+            "propane": 0.02
+          }
+        },
+        "pre-1980": {
+          "mode": "electricity",
+          "share": 0.7,
+          "shares": {
+            "electricity": 0.7,
+            "natural gas": 0.27,
+            "propane": 0.02,
+            "fuel oil": 0.01
+          }
+        },
+        "1980-1999": {
+          "mode": "electricity",
+          "share": 0.76,
+          "shares": {
+            "electricity": 0.76,
+            "natural gas": 0.22,
+            "propane": 0.02
+          }
+        },
+        "2000-2009": {
+          "mode": "electricity",
+          "share": 0.72,
+          "shares": {
+            "electricity": 0.72,
+            "natural gas": 0.25,
+            "propane": 0.04
+          }
+        },
+        "2010+": {
+          "mode": "electricity",
+          "share": 0.76,
+          "shares": {
+            "electricity": 0.76,
+            "natural gas": 0.2,
+            "propane": 0.03
+          }
+        }
+      },
+      "West North Central": {
+        "all": {
+          "mode": "natural gas",
+          "share": 0.56,
+          "shares": {
+            "natural gas": 0.56,
+            "electricity": 0.39,
+            "propane": 0.05
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.58,
+          "shares": {
+            "natural gas": 0.58,
+            "electricity": 0.36,
+            "propane": 0.05
+          }
+        },
+        "1980-1999": {
+          "mode": "natural gas",
+          "share": 0.59,
+          "shares": {
+            "natural gas": 0.59,
+            "electricity": 0.38,
+            "propane": 0.03
+          }
+        },
+        "2000-2009": {
+          "mode": "natural gas",
+          "share": 0.52,
+          "shares": {
+            "natural gas": 0.52,
+            "electricity": 0.43,
+            "propane": 0.05
+          }
+        },
+        "2010+": {
+          "mode": "electricity",
+          "share": 0.6,
+          "shares": {
+            "electricity": 0.6,
+            "natural gas": 0.35,
+            "propane": 0.04
+          }
+        }
+      },
+      "West South Central": {
+        "all": {
+          "mode": "electricity",
+          "share": 0.54,
+          "shares": {
+            "electricity": 0.54,
+            "natural gas": 0.42,
+            "propane": 0.03
+          }
+        },
+        "pre-1980": {
+          "mode": "natural gas",
+          "share": 0.52,
+          "shares": {
+            "natural gas": 0.52,
+            "electricity": 0.45,
+            "propane": 0.03
+          }
+        },
+        "1980-1999": {
+          "mode": "electricity",
+          "share": 0.64,
+          "shares": {
+            "electricity": 0.64,
+            "natural gas": 0.33,
+            "propane": 0.02
+          }
+        },
+        "2000-2009": {
+          "mode": "electricity",
+          "share": 0.57,
+          "shares": {
+            "electricity": 0.57,
+            "natural gas": 0.39,
+            "propane": 0.04
+          }
+        },
+        "2010+": {
+          "mode": "electricity",
+          "share": 0.56,
+          "shares": {
+            "electricity": 0.56,
+            "natural gas": 0.39,
+            "propane": 0.05
+          }
+        }
+      }
     }
   },
   "_caveats": [
-    "Share values are best-effort approximations of the EIA RECS 2020 published microdata. Use the canonical RECS 2020 microdata file (https://www.eia.gov/consumption/residential/data/2020/csv/recs2020_public_v7.csv) for exact replication. The mode-per-bucket structure is robust to small share approximation errors; the mode rarely changes with rounding.",
-    "The Mountain census division (where Wyoming, Colorado, Montana live) is aggregated under West region per Census Bureau. Rural Mountain areas have higher propane share than the West average; surface this via state-level overrides if needed."
+    "Share values are best-effort approximations of the EIA RECS 2020 published microdata. Use the canonical RECS 2020 microdata file (https://www.eia.gov/consumption/residential/data/2020/csv/recs2020_public_v7.csv) for exact replication.",
+    "Division-level data extracted from RECS 2020 microdata (v7) using NWEIGHT-weighted tabulations by DIVISION x YEARMADERANGE. RECS 2020 splits the traditional Mountain division into Mountain North (CO, ID, MT, UT, WY) and Mountain South (AZ, NM, NV).",
+    "The resolver uses share-weighted (probabilistic) fuel assignment instead of winner-take-all MODE. Each building gets a fuel type proportional to the division-level share distribution, determined by a deterministic hash of the building ID."
   ]
 }

@@ -226,7 +226,10 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # Build the asset context once; every get_param call below uses it to
     # resolve dynamic defaults from the national-stock lookup tables
     # (reference_data/) before falling back to SIM_PARAM_DEFAULTS.
-    ctx = build_asset_ctx({**asset_metadata, 'area': floor_area, 'floor_count': floor_count}, building_type=building_type)
+    climate_zone = building_climate_zone_list.get(building_id)
+    ctx = build_asset_ctx({**asset_metadata, 'area': floor_area, 'floor_count': floor_count},
+                          building_type=building_type, climate_zone=climate_zone,
+                          building_id=building_id)
     occupancy_subtype = BUILDING_TYPE_TO_OCCUPANCY.get(building_type, "Unknown")
     occ_override = get_param(asset_metadata, 'number_of_occupants', ctx)
     try:
@@ -283,9 +286,11 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             "window_area": window_area,
             "window_type": get_param(asset_metadata, 'window_type', ctx),
         }],
+        "heating_system_type":             get_param(asset_metadata, 'heating_system_type', ctx),
         "heating_system_fuel_type":        get_param(asset_metadata, 'heating_system_fuel_type', ctx),
         "cooling_system_fuel_type":        get_param(asset_metadata, 'cooling_system_fuel_type', ctx),
         "service_water_heating_fuel_type": get_param(asset_metadata, 'service_water_heating_fuel_type', ctx),
+        "water_heater_type":              get_param(asset_metadata, 'water_heater_type', ctx),
         "constructions": {
             # Metadata stores just the insulation tier ("Standard",
             # "Insulated", "Super Insulated"); urbanopt's construction-set

@@ -706,6 +706,45 @@ module URBANopt
               args[:wall_assembly_r] = res_wall_r.to_f if PowerTwinRefs.present?(res_wall_r)
               # roof_r_value is ceiling insulation (recs2020); ceiling_assembly_r is the attic R.
               args[:ceiling_assembly_r] = res_roof_r.to_f if PowerTwinRefs.present?(res_roof_r)
+              # Heating system type drives HPXML args. The type determines
+              # valid fuels -- system type and fuel must be correlated.
+              sys_type = res_props[:heating_system_type].to_s.downcase
+              case sys_type
+              when 'heat_pump'
+                args[:heat_pump_type] = 'air-to-air'
+                args[:heating_system_type] = 'none'
+                args[:cooling_system_type] = 'none'
+                args[:heat_pump_backup_type] = 'integrated'
+                args[:heat_pump_backup_fuel] = 'electricity'
+              when 'boiler'
+                args[:heating_system_type] = 'Boiler'
+                htg_fuel = res_props[:heating_system_fuel_type].to_s.downcase
+                htg_fuel = 'natural gas' if %w[electricity wood].include?(htg_fuel)
+                args[:heating_system_fuel] = htg_fuel
+              when 'electric_resistance'
+                args[:heating_system_type] = 'ElectricResistance'
+                args[:heating_system_fuel] = 'electricity'
+              when 'wood_stove'
+                args[:heating_system_type] = 'Stove'
+                args[:heating_system_fuel] = 'wood'
+              else
+                args[:heating_system_type] = 'Furnace'
+                if PowerTwinRefs.present?(res_props[:heating_system_fuel_type])
+                  args[:heating_system_fuel] = res_props[:heating_system_fuel_type].to_s.downcase
+                end
+              end
+              if sys_type != 'heat_pump' && res_props[:cooling_system_fuel_type].to_s.downcase == 'none'
+                args[:cooling_system_type] = 'none'
+              end
+              if PowerTwinRefs.present?(res_props[:service_water_heating_fuel_type])
+                args[:water_heater_fuel_type] = res_props[:service_water_heating_fuel_type].to_s
+              end
+              if PowerTwinRefs.present?(res_props[:water_heater_type])
+                wh_type = res_props[:water_heater_type].to_s.downcase
+                if %w[storage\ water\ heater instantaneous\ water\ heater heat\ pump\ water\ heater].include?(wh_type)
+                  args[:water_heater_type] = wh_type
+                end
+              end
             end
 
             # Parse BuildResidentialHPXML measure xml so we can fill "args" in with default values where keys aren't already assigned
@@ -1074,7 +1113,7 @@ module URBANopt
               # Anything else (FuelOil, Propane, NaturalGas-for-cooling) gets silently
               # dropped so the OSW stays valid.
               fuel_map = { 'electricity' => 'Electricity', 'natural gas' => 'NaturalGas',
-                           'fuel oil' => 'FuelOil', 'propane' => 'Propane', 'wood' => 'NaturalGas' }
+                           'fuel oil' => 'NaturalGas', 'propane' => 'NaturalGas', 'wood' => 'NaturalGas' }
               valid_src = { htg_src: %w[Electricity NaturalGas DistrictHeating DistrictAmbient Inferred],
                             clg_src: %w[Electricity DistrictCooling DistrictAmbient Inferred] }
               %i[heating_system_fuel_type cooling_system_fuel_type].each do |field|

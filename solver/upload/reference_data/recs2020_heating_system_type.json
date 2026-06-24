@@ -1,0 +1,1007 @@
+{
+  "_source": "RECS 2020 public microdata v7, EQUIPM variable (heating equipment type)",
+  "_variables": {
+    "EQUIPM": "4=Heat pump, 13=Mini-split heat pump, 3=Furnace, 2=Boiler, 5=Electric baseboard, 7=Wood/pellet stove, 8=Fireplace"
+  },
+  "_notes": "Shares exclude EQUIPM codes -2 (N/A), 10 (portable electric), 99 (other) and are renormalized. Used for share-weighted system type assignment via building ID hash.",
+  "_division": {
+    "East North Central": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.032,
+          "furnace": 0.88,
+          "boiler": 0.057,
+          "electric_resistance": 0.02,
+          "wood_stove": 0.011
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.021,
+          "furnace": 0.739,
+          "boiler": 0.121,
+          "electric_resistance": 0.094,
+          "wood_stove": 0.025
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.038,
+          "furnace": 0.76,
+          "boiler": 0.079,
+          "electric_resistance": 0.101,
+          "wood_stove": 0.022
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.043,
+          "furnace": 0.723,
+          "boiler": 0.042,
+          "electric_resistance": 0.146,
+          "wood_stove": 0.046
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.034,
+          "furnace": 0.911,
+          "boiler": 0.014,
+          "electric_resistance": 0.031,
+          "wood_stove": 0.01
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.059,
+          "furnace": 0.819,
+          "boiler": 0.012,
+          "electric_resistance": 0.081,
+          "wood_stove": 0.029
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.092,
+          "furnace": 0.813,
+          "electric_resistance": 0.084,
+          "wood_stove": 0.011
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.139,
+          "furnace": 0.752,
+          "boiler": 0.063,
+          "electric_resistance": 0.046
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.015,
+          "furnace": 0.76,
+          "boiler": 0.159,
+          "electric_resistance": 0.029,
+          "wood_stove": 0.037
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.036,
+          "furnace": 0.797,
+          "boiler": 0.078,
+          "electric_resistance": 0.064,
+          "wood_stove": 0.025
+        }
+      }
+    },
+    "East South Central": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.288,
+          "furnace": 0.655,
+          "electric_resistance": 0.019,
+          "wood_stove": 0.038
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.278,
+          "furnace": 0.617,
+          "electric_resistance": 0.033,
+          "wood_stove": 0.072
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.374,
+          "furnace": 0.555,
+          "boiler": 0.011,
+          "electric_resistance": 0.019,
+          "wood_stove": 0.041
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.394,
+          "furnace": 0.464,
+          "electric_resistance": 0.081,
+          "wood_stove": 0.061
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.347,
+          "furnace": 0.592,
+          "electric_resistance": 0.049,
+          "wood_stove": 0.012
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.451,
+          "furnace": 0.5,
+          "boiler": 0.006,
+          "electric_resistance": 0.019,
+          "wood_stove": 0.024
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.372,
+          "furnace": 0.53,
+          "boiler": 0.011,
+          "electric_resistance": 0.063,
+          "wood_stove": 0.024
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.297,
+          "furnace": 0.589,
+          "boiler": 0.023,
+          "electric_resistance": 0.074,
+          "wood_stove": 0.017
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.178,
+          "furnace": 0.676,
+          "boiler": 0.017,
+          "electric_resistance": 0.024,
+          "wood_stove": 0.105
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.345,
+          "furnace": 0.565,
+          "boiler": 0.007,
+          "electric_resistance": 0.04,
+          "wood_stove": 0.043
+        }
+      }
+    },
+    "Middle Atlantic": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.027,
+          "furnace": 0.565,
+          "boiler": 0.328,
+          "electric_resistance": 0.051,
+          "wood_stove": 0.029
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.07,
+          "furnace": 0.52,
+          "boiler": 0.266,
+          "electric_resistance": 0.107,
+          "wood_stove": 0.037
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.045,
+          "furnace": 0.494,
+          "boiler": 0.226,
+          "electric_resistance": 0.157,
+          "wood_stove": 0.078
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.095,
+          "furnace": 0.579,
+          "boiler": 0.181,
+          "electric_resistance": 0.09,
+          "wood_stove": 0.055
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.05,
+          "furnace": 0.598,
+          "boiler": 0.168,
+          "electric_resistance": 0.118,
+          "wood_stove": 0.066
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.083,
+          "furnace": 0.643,
+          "boiler": 0.104,
+          "electric_resistance": 0.137,
+          "wood_stove": 0.033
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.166,
+          "furnace": 0.568,
+          "boiler": 0.084,
+          "electric_resistance": 0.151,
+          "wood_stove": 0.031
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.106,
+          "furnace": 0.718,
+          "boiler": 0.028,
+          "electric_resistance": 0.131,
+          "wood_stove": 0.017
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.035,
+          "furnace": 0.451,
+          "boiler": 0.417,
+          "electric_resistance": 0.049,
+          "wood_stove": 0.048
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.054,
+          "furnace": 0.526,
+          "boiler": 0.285,
+          "electric_resistance": 0.088,
+          "wood_stove": 0.047
+        }
+      }
+    },
+    "Mountain North": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "furnace": 0.825,
+          "boiler": 0.123,
+          "electric_resistance": 0.01,
+          "wood_stove": 0.042
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.017,
+          "furnace": 0.712,
+          "boiler": 0.108,
+          "electric_resistance": 0.061,
+          "wood_stove": 0.102
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.011,
+          "furnace": 0.687,
+          "boiler": 0.074,
+          "electric_resistance": 0.174,
+          "wood_stove": 0.054
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.009,
+          "furnace": 0.782,
+          "boiler": 0.085,
+          "electric_resistance": 0.052,
+          "wood_stove": 0.072
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.012,
+          "furnace": 0.854,
+          "boiler": 0.045,
+          "electric_resistance": 0.057,
+          "wood_stove": 0.032
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.026,
+          "furnace": 0.913,
+          "boiler": 0.026,
+          "electric_resistance": 0.018,
+          "wood_stove": 0.017
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.051,
+          "furnace": 0.706,
+          "boiler": 0.052,
+          "electric_resistance": 0.126,
+          "wood_stove": 0.065
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.028,
+          "furnace": 0.836,
+          "boiler": 0.016,
+          "electric_resistance": 0.104,
+          "wood_stove": 0.016
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.026,
+          "furnace": 0.749,
+          "boiler": 0.104,
+          "electric_resistance": 0.038,
+          "wood_stove": 0.083
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.018,
+          "furnace": 0.794,
+          "boiler": 0.067,
+          "electric_resistance": 0.071,
+          "wood_stove": 0.05
+        }
+      }
+    },
+    "Mountain South": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.226,
+          "furnace": 0.585,
+          "boiler": 0.015,
+          "electric_resistance": 0.08,
+          "wood_stove": 0.094
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.169,
+          "furnace": 0.688,
+          "boiler": 0.019,
+          "electric_resistance": 0.042,
+          "wood_stove": 0.082
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.233,
+          "furnace": 0.664,
+          "boiler": 0.006,
+          "electric_resistance": 0.029,
+          "wood_stove": 0.068
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.305,
+          "furnace": 0.55,
+          "boiler": 0.018,
+          "electric_resistance": 0.06,
+          "wood_stove": 0.067
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.181,
+          "furnace": 0.696,
+          "boiler": 0.029,
+          "electric_resistance": 0.028,
+          "wood_stove": 0.066
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.12,
+          "furnace": 0.762,
+          "boiler": 0.043,
+          "electric_resistance": 0.036,
+          "wood_stove": 0.039
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.193,
+          "furnace": 0.754,
+          "wood_stove": 0.053
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.151,
+          "furnace": 0.796,
+          "boiler": 0.021,
+          "wood_stove": 0.032
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.223,
+          "furnace": 0.504,
+          "electric_resistance": 0.061,
+          "wood_stove": 0.212
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.198,
+          "furnace": 0.677,
+          "boiler": 0.022,
+          "electric_resistance": 0.037,
+          "wood_stove": 0.066
+        }
+      }
+    },
+    "New England": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.017,
+          "furnace": 0.615,
+          "boiler": 0.249,
+          "electric_resistance": 0.053,
+          "wood_stove": 0.066
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.022,
+          "furnace": 0.505,
+          "boiler": 0.297,
+          "electric_resistance": 0.11,
+          "wood_stove": 0.066
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.031,
+          "furnace": 0.523,
+          "boiler": 0.247,
+          "electric_resistance": 0.133,
+          "wood_stove": 0.066
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.034,
+          "furnace": 0.561,
+          "boiler": 0.167,
+          "electric_resistance": 0.134,
+          "wood_stove": 0.104
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.034,
+          "furnace": 0.565,
+          "boiler": 0.242,
+          "electric_resistance": 0.102,
+          "wood_stove": 0.057
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.046,
+          "furnace": 0.687,
+          "boiler": 0.201,
+          "electric_resistance": 0.026,
+          "wood_stove": 0.04
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.063,
+          "furnace": 0.718,
+          "boiler": 0.091,
+          "electric_resistance": 0.112,
+          "wood_stove": 0.016
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.089,
+          "furnace": 0.662,
+          "boiler": 0.061,
+          "electric_resistance": 0.095,
+          "wood_stove": 0.093
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.026,
+          "furnace": 0.5,
+          "boiler": 0.358,
+          "electric_resistance": 0.06,
+          "wood_stove": 0.056
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.031,
+          "furnace": 0.554,
+          "boiler": 0.265,
+          "electric_resistance": 0.086,
+          "wood_stove": 0.064
+        }
+      }
+    },
+    "Pacific": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.06,
+          "furnace": 0.71,
+          "boiler": 0.018,
+          "electric_resistance": 0.051,
+          "wood_stove": 0.161
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.051,
+          "furnace": 0.67,
+          "boiler": 0.007,
+          "electric_resistance": 0.111,
+          "wood_stove": 0.161
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.099,
+          "furnace": 0.647,
+          "boiler": 0.019,
+          "electric_resistance": 0.141,
+          "wood_stove": 0.094
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.073,
+          "furnace": 0.683,
+          "boiler": 0.031,
+          "electric_resistance": 0.112,
+          "wood_stove": 0.101
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.086,
+          "furnace": 0.72,
+          "boiler": 0.006,
+          "electric_resistance": 0.107,
+          "wood_stove": 0.081
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.096,
+          "furnace": 0.737,
+          "boiler": 0.023,
+          "electric_resistance": 0.105,
+          "wood_stove": 0.039
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.128,
+          "furnace": 0.655,
+          "boiler": 0.009,
+          "electric_resistance": 0.155,
+          "wood_stove": 0.053
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.099,
+          "furnace": 0.599,
+          "boiler": 0.017,
+          "electric_resistance": 0.269,
+          "wood_stove": 0.016
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.047,
+          "furnace": 0.7,
+          "boiler": 0.031,
+          "electric_resistance": 0.08,
+          "wood_stove": 0.142
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.077,
+          "furnace": 0.689,
+          "boiler": 0.019,
+          "electric_resistance": 0.11,
+          "wood_stove": 0.105
+        }
+      }
+    },
+    "South Atlantic": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.236,
+          "furnace": 0.643,
+          "boiler": 0.039,
+          "electric_resistance": 0.043,
+          "wood_stove": 0.039
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.309,
+          "furnace": 0.587,
+          "boiler": 0.032,
+          "electric_resistance": 0.053,
+          "wood_stove": 0.019
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.377,
+          "furnace": 0.505,
+          "boiler": 0.016,
+          "electric_resistance": 0.074,
+          "wood_stove": 0.028
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.387,
+          "furnace": 0.51,
+          "boiler": 0.016,
+          "electric_resistance": 0.058,
+          "wood_stove": 0.029
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.429,
+          "furnace": 0.518,
+          "boiler": 0.008,
+          "electric_resistance": 0.024,
+          "wood_stove": 0.021
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.372,
+          "furnace": 0.581,
+          "electric_resistance": 0.029,
+          "wood_stove": 0.018
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.348,
+          "furnace": 0.605,
+          "electric_resistance": 0.035,
+          "wood_stove": 0.012
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.453,
+          "furnace": 0.527,
+          "wood_stove": 0.02
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.188,
+          "furnace": 0.575,
+          "boiler": 0.122,
+          "electric_resistance": 0.048,
+          "wood_stove": 0.067
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.356,
+          "furnace": 0.551,
+          "boiler": 0.023,
+          "electric_resistance": 0.043,
+          "wood_stove": 0.027
+        }
+      }
+    },
+    "West North Central": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.024,
+          "furnace": 0.867,
+          "boiler": 0.062,
+          "electric_resistance": 0.032,
+          "wood_stove": 0.015
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.043,
+          "furnace": 0.766,
+          "boiler": 0.098,
+          "electric_resistance": 0.051,
+          "wood_stove": 0.042
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.055,
+          "furnace": 0.74,
+          "boiler": 0.075,
+          "electric_resistance": 0.087,
+          "wood_stove": 0.043
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.096,
+          "furnace": 0.716,
+          "boiler": 0.082,
+          "electric_resistance": 0.098,
+          "wood_stove": 0.008
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.062,
+          "furnace": 0.861,
+          "boiler": 0.015,
+          "electric_resistance": 0.037,
+          "wood_stove": 0.025
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.088,
+          "furnace": 0.832,
+          "boiler": 0.022,
+          "electric_resistance": 0.046,
+          "wood_stove": 0.012
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.107,
+          "furnace": 0.754,
+          "boiler": 0.041,
+          "electric_resistance": 0.041,
+          "wood_stove": 0.057
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.188,
+          "furnace": 0.674,
+          "boiler": 0.037,
+          "electric_resistance": 0.022,
+          "wood_stove": 0.079
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.019,
+          "furnace": 0.792,
+          "boiler": 0.1,
+          "electric_resistance": 0.028,
+          "wood_stove": 0.061
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.059,
+          "furnace": 0.789,
+          "boiler": 0.065,
+          "electric_resistance": 0.051,
+          "wood_stove": 0.036
+        }
+      }
+    },
+    "West South Central": {
+      "1950-1959": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.123,
+          "furnace": 0.716,
+          "electric_resistance": 0.025,
+          "wood_stove": 0.136
+        }
+      },
+      "1960-1969": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.14,
+          "furnace": 0.712,
+          "boiler": 0.028,
+          "electric_resistance": 0.05,
+          "wood_stove": 0.07
+        }
+      },
+      "1970-1979": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.2,
+          "furnace": 0.719,
+          "boiler": 0.007,
+          "electric_resistance": 0.061,
+          "wood_stove": 0.013
+        }
+      },
+      "1980-1989": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.256,
+          "furnace": 0.604,
+          "electric_resistance": 0.09,
+          "wood_stove": 0.05
+        }
+      },
+      "1990-1999": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.303,
+          "furnace": 0.599,
+          "boiler": 0.008,
+          "electric_resistance": 0.057,
+          "wood_stove": 0.033
+        }
+      },
+      "2000-2009": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.192,
+          "furnace": 0.734,
+          "electric_resistance": 0.059,
+          "wood_stove": 0.015
+        }
+      },
+      "2010-2019": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.223,
+          "furnace": 0.702,
+          "electric_resistance": 0.054,
+          "wood_stove": 0.021
+        }
+      },
+      "2020+": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.291,
+          "furnace": 0.641,
+          "electric_resistance": 0.058,
+          "wood_stove": 0.01
+        }
+      },
+      "pre-1950": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.131,
+          "furnace": 0.738,
+          "electric_resistance": 0.041,
+          "wood_stove": 0.09
+        }
+      },
+      "all": {
+        "mode": "furnace",
+        "shares": {
+          "heat_pump": 0.215,
+          "furnace": 0.684,
+          "electric_resistance": 0.059,
+          "wood_stove": 0.042
+        }
+      }
+    }
+  }
+}

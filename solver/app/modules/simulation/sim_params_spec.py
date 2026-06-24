@@ -20,6 +20,7 @@ ASHRAE 90.1-2013 occupant densities, HPXML/Manual J residential occupants
 formula). See solver/README.md "Default-value provenance" for the citations.
 """
 
+import hashlib
 import json
 import logging
 import math
@@ -31,7 +32,7 @@ log = logging.getLogger('Generate Feature Files')
 # Bump when resolver logic or reference data changes.
 # Stamped into feature.json so results are traceable to the model that produced them.
 # push.sh syncs this to the README header automatically.
-RESOLVER_VERSION = '1.4'
+RESOLVER_VERSION = '1.5'
 
 _REF_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'upload', 'reference_data'
@@ -73,9 +74,11 @@ SIM_PARAM_DEFAULTS = {
     # for the dynamic lookups that take precedence when the asset context
     # (state, year_built, building_type, area) is available.
     'system_type': 'Inferred',          # let urbanopt's template default fire
+    'heating_system_type': 'furnace',                   # RECS 2020 national mode (60.2%)
     'heating_system_fuel_type': 'natural gas',          # RECS 2020 plurality
     'cooling_system_fuel_type': 'electricity',          # ~99% national
     'service_water_heating_fuel_type': 'natural gas',   # RECS 2020 plurality
+    'water_heater_type': 'storage water heater',        # RECS 2020 national mode (73.2%)
     'window_type': 'Double Pane',                       # flat fallback; dynamic resolves by vintage
     'wall_material': 'Insulated',                       # post-1980 stock mode
     'roof_material': 'Insulated',                       # post-1980 stock mode
@@ -192,6 +195,8 @@ ENUM_VALUES = {
         'Residential - air-to-air heat pump', 'Residential - mini-split heat pump',
         'Residential - ground-to-air heat pump',
     },
+    'heating_system_type':             {'heat_pump', 'furnace', 'boiler', 'electric_resistance', 'wood_stove'},
+    'water_heater_type':               {'storage water heater', 'instantaneous water heater', 'heat pump water heater'},
     # urbanopt's heating_system_fuel_type enum (5 values). cooling_* and SWH_*
     # are NOT in urbanopt's schema so they bypass schema validation; we share
     # the same valid set for UI/spec consistency.
@@ -303,23 +308,32 @@ def _coerce_int(val):
         return None
 
 
-def build_asset_ctx(metadata: dict, building_type: str | None = None) -> dict:
+def build_asset_ctx(metadata: dict, building_type: str | None = None,
+                    climate_zone: str | None = None,
+                    building_id: str | None = None) -> dict:
     """Distill the lookup-key context out of an asset's metadata dict. Centralized
-    here so the resolvers all see the same shape: {building_type, region, vintage,
-    state, area, bedrooms, floor_count, units}. Missing keys are None; resolvers
-    fall back accordingly. floor_count drives the Lodging SmallHotel/LargeHotel
-    split in _doe_ref_name; units makes residential occupants per-dwelling-unit."""
+    here so the resolvers all see the same shape: {building_type, region, division,
+    vintage, state, area, bedrooms, floor_count, units, climate_zone, building_id}.
+    Missing keys are None; resolvers fall back accordingly."""
     state = _normalize_state(metadata.get('state') or metadata.get('State'))
-    region = _load_ref('census_regions')['state_to_region'].get(state) if state else None
+    refs = _load_ref('census_regions')
+    region = refs['state_to_region'].get(state) if state else None
+    division = refs.get('state_to_division', {}).get(state) if state else None
+    bt = building_type if building_type is not None else metadata.get('building_type')
+    cz = climate_zone if climate_zone is not None else metadata.get('climate_zone')
+    bid = building_id if building_id is not None else metadata.get('building_id')
     return {
-        'building_type': building_type,
+        'building_type': bt,
         'state': state,
         'region': region,
+        'division': division,
         'vintage': _vintage_bin(metadata.get('year_built') or metadata.get('yearBuilt')),
         'area': metadata.get('area') or metadata.get('floor_area'),
         'bedrooms': metadata.get('bedrooms') or metadata.get('number_of_bedrooms'),
         'floor_count': _coerce_int(metadata.get('floor_count')),
         'units': _coerce_int(metadata.get('number_of_units') or metadata.get('units') or metadata.get('number_of_residential_units')),
+        'climate_zone': cz,
+        'building_id': bid,
     }
 
 
@@ -337,12 +351,12 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None) -> dict:
 #   flat_default       - resolver returned None; caller will use
 #                        SIM_PARAM_DEFAULTS[field]. Emitted by the preview
 #                        endpoint, not by the internal resolvers.
-FALLBACK_LEVELS = ('vintage_specific', 'region_all', 'building_type_only', 'flat_default')
+FALLBACK_LEVELS = ('division_vintage', 'division_all', 'vintage_specific', 'region_all', 'building_type_only', 'flat_default')
 
 
 def _doe_ref_name(building_type: str | None, ctx: dict | None = None) -> str | None:
     """Translate a PowerTwin asset_subtype name (CBECS survey vocabulary) to
-    the closest DOE Reference Building prototype name used by NREL
+    the closest DOE Reference Building prototype name used by NLR
     openstudio-standards lookup tables. Returns the input unchanged when it
     already matches a DOE prototype, or None for inputs with no sensible
     proxy (Parking, Vacant) so the resolver degrades to flat defaults.
@@ -436,10 +450,63 @@ def _lookup_region_vintage(table: dict, ctx: dict, fallback_vintage: str = 'all'
     return (None, None)
 
 
+def _building_id_hash_fraction(ctx: dict, salt: str = '') -> float:
+    """Deterministic [0, 1) fraction from building_id for share-weighted
+    assignment. The salt parameter ensures independent hash lanes for
+    different fields (system type vs fuel vs SWH) so selections don't
+    have systematic correlation artifacts."""
+    bid = ctx.get('building_id') or ''
+    digest = hashlib.md5(f'{bid}:{salt}'.encode()).hexdigest()
+    return int(digest[:8], 16) / 0x100000000
+
+
+def _select_fuel_by_share(record: dict, ctx: dict, salt: str = '') -> str:
+    """Select fuel proportionally from the share distribution using a
+    deterministic hash of the building ID. Falls back to mode if no
+    building_id is available."""
+    shares = record.get('shares')
+    if not shares:
+        return record.get('mode')
+    bid = ctx.get('building_id')
+    if not bid:
+        return record.get('mode')
+    frac = _building_id_hash_fraction(ctx, salt)
+    cumulative = 0.0
+    for fuel, share in sorted(shares.items(), key=lambda x: -x[1]):
+        cumulative += share
+        if frac < cumulative:
+            return fuel
+    return record.get('mode')
+
+
+def _lookup_division_vintage(table: dict, ctx: dict, fallback_vintage: str = 'all'):
+    """Walk a (division -> vintage -> {mode, shares}) lookup under the
+    '_division' key. Returns (record, level) or (None, None)."""
+    division_table = table.get('_division')
+    if not division_table:
+        return (None, None)
+    division = ctx.get('division')
+    if not division:
+        return (None, None)
+    div_section = division_table.get(division)
+    if not div_section:
+        return (None, None)
+    vintage = ctx.get('vintage')
+    if vintage and vintage in div_section:
+        return (div_section[vintage], 'division_vintage')
+    fb = div_section.get(fallback_vintage)
+    if fb is not None:
+        return (fb, 'division_all')
+    return (None, None)
+
+
 def _resolve_fuel(field: str, ctx: dict):
-    """Mode fuel from RECS 2020 (residential) or CBECS 2018 (commercial)
-    keyed by region + vintage. Cooling returns the constant 'electricity'
-    tagged as 'building_type_only' (no region/vintage applied)."""
+    """Share-weighted fuel from RECS 2020 (residential) or CBECS 2018
+    (commercial) keyed by division + vintage, falling back to region.
+    Uses proportional assignment via building_id hash instead of
+    winner-take-all MODE. Cooling is gated on climate zone (suppressed
+    for CZ >= 7). Heating fuel is conditioned on heating system type
+    for residential buildings to avoid impossible combinations."""
     bt = ctx.get('building_type')
     is_residential = bt in RESIDENTIAL_BUILDING_TYPES
     survey = _load_ref('recs2020_residential_fuel_mix' if is_residential
@@ -448,11 +515,103 @@ def _resolve_fuel(field: str, ctx: dict):
     if not section:
         return (None, None)
     if '_constant_default' in section:
+        cz = ctx.get('climate_zone') or ''
+        cz_num = int(cz[0]) if cz and cz[0].isdigit() else 0
+        if field == 'cooling_system_fuel_type' and cz_num >= 7:
+            return ('none', 'building_type_only')
         return (section['_constant_default']['mode'], 'building_type_only')
-    record, level = _lookup_region_vintage(section, ctx)
+    # For residential heating/SWH fuel, condition on system type.
+    # Heating: avoids impossible combos (furnace+wood, boiler+electricity).
+    # SWH: matches RECS conditional P(FUELH2O | EQUIPM) so gas-heated homes
+    # get gas SWH at the observed rate, not the unconditioned marginal.
+    if field in ('heating_system_fuel_type', 'service_water_heating_fuel_type') and is_residential:
+        sys_type, _ = _resolve_heating_system_type(ctx)
+        if field == 'heating_system_fuel_type':
+            if sys_type == 'heat_pump' or sys_type == 'electric_resistance':
+                return ('electricity', 'building_type_only')
+            if sys_type == 'wood_stove':
+                return ('wood', 'building_type_only')
+        ref_name = ('recs2020_fuel_by_system_type' if field == 'heating_system_fuel_type'
+                     else 'recs2020_swh_fuel_by_system_type')
+        if sys_type in ('furnace', 'boiler', 'heat_pump', 'elec_resist', 'wood_stove'):
+            cond = _load_ref(ref_name)
+            cond_section = cond.get(sys_type, {}).get('_division', {})
+            division = ctx.get('division')
+            if division and division in cond_section:
+                div_data = cond_section[division]
+                vintage = ctx.get('vintage')
+                record = None
+                if vintage and vintage in div_data:
+                    record = div_data[vintage]
+                elif 'all' in div_data:
+                    record = div_data['all']
+                if record:
+                    return (_select_fuel_by_share(record, ctx, salt=field), 'division_vintage')
+    # Try division-level first, then region-level
+    record, level = _lookup_division_vintage(section, ctx)
+    if record is None:
+        record, level = _lookup_region_vintage(section, ctx)
     if record is None:
         return (None, None)
-    return (record.get('mode'), level)
+    return (_select_fuel_by_share(record, ctx, salt=field), level)
+
+
+def _resolve_heating_system_type(ctx: dict):
+    """Share-weighted heating system type (heat_pump, furnace, boiler,
+    electric_resistance, wood_stove) from RECS 2020 by division + vintage.
+    Only applies to residential; commercial uses system_type from the
+    urbanopt template."""
+    bt = ctx.get('building_type')
+    if bt not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    survey = _load_ref('recs2020_heating_system_type')
+    division_table = survey.get('_division')
+    if not division_table:
+        return (None, None)
+    division = ctx.get('division')
+    if not division or division not in division_table:
+        return (None, None)
+    div_section = division_table[division]
+    vintage = ctx.get('vintage')
+    record = None
+    level = None
+    if vintage and vintage in div_section:
+        record = div_section[vintage]
+        level = 'division_vintage'
+    elif 'all' in div_section:
+        record = div_section['all']
+        level = 'division_all'
+    if record is None:
+        return (None, None)
+    return (_select_fuel_by_share(record, ctx, salt='heating_system_type'), level)
+
+
+def _resolve_water_heater_type(ctx: dict):
+    """Share-weighted water heater type from RECS 2020 by division + vintage.
+    Residential only."""
+    bt = ctx.get('building_type')
+    if bt not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    survey = _load_ref('recs2020_water_heater_type')
+    division_table = survey.get('_division')
+    if not division_table:
+        return (None, None)
+    division = ctx.get('division')
+    if not division or division not in division_table:
+        return (None, None)
+    div_section = division_table[division]
+    vintage = ctx.get('vintage')
+    record = None
+    level = None
+    if vintage and vintage in div_section:
+        record = div_section[vintage]
+        level = 'division_vintage'
+    elif 'all' in div_section:
+        record = div_section['all']
+        level = 'division_all'
+    if record is None:
+        return (None, None)
+    return (_select_fuel_by_share(record, ctx, salt='water_heater_type'), level)
 
 
 def _resolve_window_type(ctx: dict):
@@ -543,6 +702,10 @@ def resolve_default(field: str, ctx: dict):
         if field == 'number_of_occupants':
             val = _resolve_occupants(ctx)
             return (val, 'building_type_only' if val is not None else None)
+        if field == 'heating_system_type':
+            return _resolve_heating_system_type(ctx)
+        if field == 'water_heater_type':
+            return _resolve_water_heater_type(ctx)
         if field in ('heating_system_fuel_type', 'cooling_system_fuel_type',
                      'service_water_heating_fuel_type'):
             return _resolve_fuel(field, ctx)
