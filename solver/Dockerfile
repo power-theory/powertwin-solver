@@ -73,6 +73,10 @@ COPY . .
 # Install the solver package
 RUN pip install -e ./app
 
+# Runtime runs as uid 1000 (k8s securityContext) and the app makedirs scratch dirs
+# (data/, logs/, powertwin-solver-pg/, ...) under its workdir, so make /solver writable.
+RUN chown -R 1000:1000 /solver
+
 RUN chmod +x /solver/entrypoint.sh
 ENTRYPOINT ["/solver/entrypoint.sh"]
 
