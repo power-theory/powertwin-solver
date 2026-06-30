@@ -50,7 +50,8 @@ test_resolvers:
   tags:
     - k8s
   before_script:
-    - apk add --no-cache aws-cli
+    # -u expat: docker:26.1.4 ships an expat too old for aws-cli's pyexpat (relocation crash)
+    - apk add --no-cache -u aws-cli expat
     - *ecr_login
   after_script:
     - docker image prune -f
