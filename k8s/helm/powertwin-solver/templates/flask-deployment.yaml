@@ -136,3 +136,14 @@ spec:
                 - ALL
           resources:
             {{- toYaml .Values.flask.resources | nindent 12 }}
+          volumeMounts:
+            # app writes sim scratch (data/) and logs under its root-owned workdir; make them writable
+            - name: scratch-data
+              mountPath: /solver/data
+            - name: scratch-logs
+              mountPath: /solver/logs
+      volumes:
+        - name: scratch-data
+          emptyDir: {}
+        - name: scratch-logs
+          emptyDir: {}
