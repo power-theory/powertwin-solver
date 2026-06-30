@@ -41,11 +41,11 @@ pg:
       - ReadWriteOnce
   resources:
     requests:
-      cpu: "0.025"
-      memory: 64Mi
-    limits:
       cpu: "0.1"
-      memory: 128Mi
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
   nodeSelector: {}
   tolerations: []
   affinity: {}
