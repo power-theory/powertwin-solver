@@ -115,6 +115,9 @@ build_mss:
           slackWebhookUrl: $slackWebhookUrl,
           mainPgPassword: $mainPgPassword
         }}' > /tmp/secrets.json
+    # URBANOPT runtime config is sourced from GitLab CI vars (single source of truth) so
+    # changing year/resample/etc needs no chart change and cannot get stranded again.
+    - export URBANOPT_SETS="--set-string flask.urbanopt.simulationYear=${URBANOPT_SIMULATION_YEAR} --set-string flask.urbanopt.reportingFrequency=${URBANOPT_REPORTING_FREQUENCY} --set-string flask.urbanopt.resample=${URBANOPT_RESAMPLE} --set-string flask.urbanopt.dynamicDefaults=${URBANOPT_DYNAMIC_DEFAULTS} --set-string flask.urbanopt.postprocessTranslations=${URBANOPT_POSTPROCESS_TRANSLATIONS}"
 
 deploy_dev:
   extends: .deploy_template
@@ -127,6 +130,7 @@ deploy_dev:
         --set global.imageRegistry=${ECR_REGISTRY}
         --set global.imageTag=${IMAGE_TAG}
         --set global.branch=${CI_COMMIT_BRANCH}
+        ${URBANOPT_SETS}
         --atomic
         --wait
         --timeout 10m
@@ -147,6 +151,7 @@ deploy_main:
         --set global.imageRegistry=${ECR_REGISTRY}
         --set global.imageTag=${IMAGE_TAG}
         --set global.branch=${CI_COMMIT_BRANCH}
+        ${URBANOPT_SETS}
         --atomic
         --wait
         --timeout 10m
