@@ -112,3 +112,10 @@ spec:
                 - ALL
           resources:
             {{- toYaml .Values.pgbouncer.resources | nindent 12 }}
+          volumeMounts:
+            # the entrypoint generates /etc/pgbouncer/pgbouncer.ini at start; make the dir writable
+            - name: pgbouncer-conf
+              mountPath: /etc/pgbouncer
+      volumes:
+        - name: pgbouncer-conf
+          emptyDir: {}
