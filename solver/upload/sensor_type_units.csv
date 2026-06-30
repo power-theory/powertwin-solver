@@ -1,4 +1,5 @@
 sensor_type_id,name,is_active
+0,MMBtu,1
 1,kWh,1
 2,kWh,1
 3,MMBtu,1

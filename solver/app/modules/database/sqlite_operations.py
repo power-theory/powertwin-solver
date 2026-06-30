@@ -452,9 +452,10 @@ def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bo
         conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
-        # Get total number of assets
+        # Count SIMULATABLE assets only -- a NULL weather_file (no-coords building, recorded Failed)
+        # can't run in EnergyPlus, so it's never distributed to a batch.
         cursor = conn.execute(f"""
-            SELECT COUNT(*) as count FROM {table_name} WHERE simulation_name = ?
+            SELECT COUNT(*) as count FROM {table_name} WHERE simulation_name = ? AND weather_file IS NOT NULL
         """, (simulation_name,))
         
         total_assets = cursor.fetchone()['count']
@@ -468,8 +469,8 @@ def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bo
         
         # Update assets with batch assignments
         cursor = conn.execute(f"""
-            SELECT asset_id FROM {table_name} 
-            WHERE simulation_name = ? 
+            SELECT asset_id FROM {table_name}
+            WHERE simulation_name = ? AND weather_file IS NOT NULL
             ORDER BY asset_id
         """, (simulation_name,))
         

@@ -1,33 +1,308 @@
 {
   "_source": {
-    "name": "NLR ComStock Reference Documentation V.1 + NLR ResStock Technical Reference Guide 2025 + Guidehouse/NFRC Commercial Fenestration Market Study 2021",
-    "publisher": "National Renewable Energy Laboratory / Guidehouse",
+    "name": "EIA RECS 2020 (residential, TYPEGLASS) + EIA CBECS 2018 (commercial, WINTYP)",
+    "publisher": "U.S. Energy Information Administration",
     "urls": {
-      "comstock":   "https://docs.nrel.gov/docs/fy24osti/86554.pdf",
-      "resstock":   "https://oedi-data-lake.s3.amazonaws.com/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/resstock_amy2018_release_1/ResStockTechnicalReferenceGuide_2025_1.pdf",
-      "guidehouse": "https://www.osti.gov/servlets/purl/1886333"
+      "recs": "https://www.eia.gov/consumption/residential/data/2020/",
+      "cbecs": "https://www.eia.gov/consumption/commercial/data/2018/"
     },
-    "extracted": "2026-06-14",
-    "methodology": "Deterministic modal window type by (census_region, vintage_bin), derived from ComStock (commercial) and ResStock (residential) probabilistic distributions. ComStock samples 12 window configurations keyed by climate zone and energy-code vintage; ResStock samples 11 categories keyed by climate zone, vintage, building type, tenure, and income. Both enforce technology adoption timelines: low-E coatings unavailable before ~1980, triple-pane unavailable before ~2004. The modal (most probable) type per (region, vintage) cell is used here as the deterministic default. Cold-climate regions (Northeast, Midwest) get Triple Pane for 2010+ residential to reflect IECC 2012+ prescriptive U-factor requirements that effectively mandate triple-pane or high-perf low-E in CZ5-7."
+    "extracted": "2026-06-28",
+    "methodology": "Per-(census_region, vintage_bin) glazing DISTRIBUTION transcribed directly from survey microdata, weighted by NWEIGHT (RECS) / FINALWT (CBECS). residential=RECS TYPEGLASS (1 Single/2 Double/3 Triple). commercial=CBECS WINTYP (1 Single-layer-> Single Pane, 2 Multi-layer-> Double Pane, 3 Combination-> 50/50 Single/Double, 4 No windows-> excluded). Cells carry {mode, share, shares}; the resolver mode-picks (deterministic default) or share-weights by building_id hash when stochastic sampling is on.",
+    "vintage_bins": {
+      "recs_YEARMADERANGE": "1-4=pre-1980, 5-6=1980-1999, 7=2000-2009, 8-9=2010+",
+      "cbecs_YRCONC": "2-5=pre-1980, 6-7=1980-1999, 8(2000-2012)=2000-2009, 9(2013-2018)=2010+"
+    }
   },
   "residential": {
-    "Northeast": {"pre-1980": "Double Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
-    "Midwest":   {"pre-1980": "Double Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
-    "South":     {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
-    "West":      {"pre-1980": "Double Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"}
+    "Northeast": {
+      "pre-1980": {
+        "mode": "Double Pane",
+        "share": 0.664,
+        "shares": {
+          "Double Pane": 0.664,
+          "Single Pane": 0.3237,
+          "Triple Pane": 0.0123
+        }
+      },
+      "1980-1999": {
+        "mode": "Double Pane",
+        "share": 0.7169,
+        "shares": {
+          "Double Pane": 0.7169,
+          "Single Pane": 0.2716,
+          "Triple Pane": 0.0115
+        }
+      },
+      "2000-2009": {
+        "mode": "Double Pane",
+        "share": 0.7758,
+        "shares": {
+          "Double Pane": 0.7758,
+          "Single Pane": 0.2113,
+          "Triple Pane": 0.0129
+        }
+      },
+      "2010+": {
+        "mode": "Double Pane",
+        "share": 0.7368,
+        "shares": {
+          "Double Pane": 0.7368,
+          "Single Pane": 0.2142,
+          "Triple Pane": 0.049
+        }
+      }
+    },
+    "Midwest": {
+      "pre-1980": {
+        "mode": "Double Pane",
+        "share": 0.6196,
+        "shares": {
+          "Double Pane": 0.6196,
+          "Single Pane": 0.364,
+          "Triple Pane": 0.0164
+        }
+      },
+      "1980-1999": {
+        "mode": "Double Pane",
+        "share": 0.7164,
+        "shares": {
+          "Double Pane": 0.7164,
+          "Single Pane": 0.2543,
+          "Triple Pane": 0.0293
+        }
+      },
+      "2000-2009": {
+        "mode": "Double Pane",
+        "share": 0.7832,
+        "shares": {
+          "Double Pane": 0.7832,
+          "Single Pane": 0.1893,
+          "Triple Pane": 0.0275
+        }
+      },
+      "2010+": {
+        "mode": "Double Pane",
+        "share": 0.8009,
+        "shares": {
+          "Double Pane": 0.8009,
+          "Single Pane": 0.1763,
+          "Triple Pane": 0.0228
+        }
+      }
+    },
+    "South": {
+      "pre-1980": {
+        "mode": "Single Pane",
+        "share": 0.4982,
+        "shares": {
+          "Single Pane": 0.4982,
+          "Double Pane": 0.4829,
+          "Triple Pane": 0.0189
+        }
+      },
+      "1980-1999": {
+        "mode": "Double Pane",
+        "share": 0.5719,
+        "shares": {
+          "Double Pane": 0.5719,
+          "Single Pane": 0.4117,
+          "Triple Pane": 0.0164
+        }
+      },
+      "2000-2009": {
+        "mode": "Double Pane",
+        "share": 0.6881,
+        "shares": {
+          "Double Pane": 0.6881,
+          "Single Pane": 0.3016,
+          "Triple Pane": 0.0103
+        }
+      },
+      "2010+": {
+        "mode": "Double Pane",
+        "share": 0.7617,
+        "shares": {
+          "Double Pane": 0.7617,
+          "Single Pane": 0.2257,
+          "Triple Pane": 0.0126
+        }
+      }
+    },
+    "West": {
+      "pre-1980": {
+        "mode": "Double Pane",
+        "share": 0.5708,
+        "shares": {
+          "Double Pane": 0.5708,
+          "Single Pane": 0.4172,
+          "Triple Pane": 0.012
+        }
+      },
+      "1980-1999": {
+        "mode": "Double Pane",
+        "share": 0.645,
+        "shares": {
+          "Double Pane": 0.645,
+          "Single Pane": 0.3346,
+          "Triple Pane": 0.0204
+        }
+      },
+      "2000-2009": {
+        "mode": "Double Pane",
+        "share": 0.7956,
+        "shares": {
+          "Double Pane": 0.7956,
+          "Single Pane": 0.1899,
+          "Triple Pane": 0.0145
+        }
+      },
+      "2010+": {
+        "mode": "Double Pane",
+        "share": 0.7835,
+        "shares": {
+          "Double Pane": 0.7835,
+          "Single Pane": 0.1849,
+          "Triple Pane": 0.0316
+        }
+      }
+    }
   },
   "commercial": {
-    "Northeast": {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
-    "Midwest":   {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
-    "South":     {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"},
-    "West":      {"pre-1980": "Single Pane", "1980-1999": "Double Pane", "2000-2009": "Double Pane", "2010+": "Double Pane"}
-  },
-  "_notes": [
-    "Commercial pre-1980: Guidehouse/NFRC study reports ~49% single-pane for pre-1950 stock. ComStock assigns single-pane as modal for pre-1980 buildings across all regions.",
-    "Commercial South 1980-1999: ComStock 2025 R3 shows 54.5% double-pane vs 45.5% single-pane for South 1980-1999 commercial stock. Double-pane used as modal to match ComStock ground truth.",
-    "Commercial 2010+: ASHRAE 90.1-2010+ and IECC 2012+ prescriptive U-factors effectively require double-pane low-E minimum nationwide. Triple-pane remains <1% of commercial stock per Guidehouse.",
-    "Residential pre-1980: ResStock 2025 R1 shows 56-63% double-pane for pre-1980 NE/MW/West (window retrofits in existing stock). South pre-1980 remains single-pane modal. Double-pane used for NE/MW/West to match ResStock ground truth.",
-    "Residential 2010+: ResStock 2025 R1 shows 95-97% double-pane across all regions including cold climates. Triple-pane is <5% even in CZ5-7. Double-pane used nationwide to match ResStock ground truth.",
-    "Vintage bins match the RECS/CBECS categorization used elsewhere in the resolver: pre-1980, 1980-1999, 2000-2009, 2010+."
-  ]
+    "Northeast": {
+      "pre-1980": {
+        "mode": "Double Pane",
+        "share": 0.5501,
+        "shares": {
+          "Double Pane": 0.5501,
+          "Single Pane": 0.4499
+        }
+      },
+      "1980-1999": {
+        "mode": "Double Pane",
+        "share": 0.7071,
+        "shares": {
+          "Double Pane": 0.7071,
+          "Single Pane": 0.2929
+        }
+      },
+      "2000-2009": {
+        "mode": "Double Pane",
+        "share": 0.7365,
+        "shares": {
+          "Double Pane": 0.7365,
+          "Single Pane": 0.2635
+        }
+      },
+      "2010+": {
+        "mode": "Double Pane",
+        "share": 0.6611,
+        "shares": {
+          "Double Pane": 0.6611,
+          "Single Pane": 0.3389
+        }
+      }
+    },
+    "Midwest": {
+      "pre-1980": {
+        "mode": "Double Pane",
+        "share": 0.5786,
+        "shares": {
+          "Double Pane": 0.5786,
+          "Single Pane": 0.4214
+        }
+      },
+      "1980-1999": {
+        "mode": "Double Pane",
+        "share": 0.7495,
+        "shares": {
+          "Double Pane": 0.7495,
+          "Single Pane": 0.2505
+        }
+      },
+      "2000-2009": {
+        "mode": "Double Pane",
+        "share": 0.8076,
+        "shares": {
+          "Double Pane": 0.8076,
+          "Single Pane": 0.1924
+        }
+      },
+      "2010+": {
+        "mode": "Double Pane",
+        "share": 0.7451,
+        "shares": {
+          "Double Pane": 0.7451,
+          "Single Pane": 0.2549
+        }
+      }
+    },
+    "South": {
+      "pre-1980": {
+        "mode": "Single Pane",
+        "share": 0.6175,
+        "shares": {
+          "Single Pane": 0.6175,
+          "Double Pane": 0.3825
+        }
+      },
+      "1980-1999": {
+        "mode": "Double Pane",
+        "share": 0.5612,
+        "shares": {
+          "Double Pane": 0.5612,
+          "Single Pane": 0.4388
+        }
+      },
+      "2000-2009": {
+        "mode": "Double Pane",
+        "share": 0.7289,
+        "shares": {
+          "Double Pane": 0.7289,
+          "Single Pane": 0.2711
+        }
+      },
+      "2010+": {
+        "mode": "Double Pane",
+        "share": 0.8235,
+        "shares": {
+          "Double Pane": 0.8235,
+          "Single Pane": 0.1765
+        }
+      }
+    },
+    "West": {
+      "pre-1980": {
+        "mode": "Single Pane",
+        "share": 0.585,
+        "shares": {
+          "Single Pane": 0.585,
+          "Double Pane": 0.415
+        }
+      },
+      "1980-1999": {
+        "mode": "Double Pane",
+        "share": 0.6117,
+        "shares": {
+          "Double Pane": 0.6117,
+          "Single Pane": 0.3883
+        }
+      },
+      "2000-2009": {
+        "mode": "Double Pane",
+        "share": 0.7941,
+        "shares": {
+          "Double Pane": 0.7941,
+          "Single Pane": 0.2059
+        }
+      },
+      "2010+": {
+        "mode": "Double Pane",
+        "share": 0.872,
+        "shares": {
+          "Double Pane": 0.872,
+          "Single Pane": 0.128
+        }
+      }
+    }
+  }
 }

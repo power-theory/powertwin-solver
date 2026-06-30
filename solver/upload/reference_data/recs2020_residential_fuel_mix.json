@@ -228,7 +228,7 @@
         }
       },
       "2010+": {
-        "mode": "natural gas",
+        "mode": "electricity",
         "share": 0.43,
         "shares": {
           "electricity": 0.45,
@@ -388,12 +388,11 @@
           "mode": "natural gas",
           "share": 0.53,
           "shares": {
-            "natural gas": 0.53,
-            "electricity": 0.3,
-            "propane": 0.1,
-            "fuel oil": 0.05,
-            "wood": 0.01,
-            "other": 0.01
+            "natural gas": 0.5354,
+            "electricity": 0.303,
+            "propane": 0.101,
+            "fuel oil": 0.0505,
+            "wood": 0.0101
           }
         },
         "2010+": {
@@ -837,7 +836,7 @@
         }
       },
       "2010+": {
-        "mode": "natural gas",
+        "mode": "electricity",
         "share": 0.4,
         "shares": {
           "electricity": 0.48,
@@ -887,7 +886,7 @@
         }
       },
       "2010+": {
-        "mode": "electricity",
+        "mode": "natural gas",
         "share": 0.38,
         "shares": {
           "natural gas": 0.55,
@@ -985,12 +984,12 @@
         }
       },
       "2010+": {
-        "mode": "natural gas",
+        "mode": "electricity",
         "share": 0.44,
         "shares": {
-          "electricity": 0.45,
-          "natural gas": 0.44,
-          "propane": 0.08
+          "electricity": 0.4639,
+          "natural gas": 0.4536,
+          "propane": 0.0825
         }
       }
     },
@@ -1036,11 +1035,10 @@
           "mode": "electricity",
           "share": 0.5,
           "shares": {
-            "electricity": 0.5,
-            "natural gas": 0.42,
-            "propane": 0.06,
-            "other": 0.01,
-            "fuel oil": 0.01
+            "electricity": 0.5051,
+            "natural gas": 0.4242,
+            "propane": 0.0606,
+            "fuel oil": 0.0101
           }
         }
       },
@@ -1129,8 +1127,7 @@
             "natural gas": 0.48,
             "electricity": 0.4,
             "fuel oil": 0.06,
-            "propane": 0.06,
-            "other": 0.01
+            "propane": 0.06
           }
         },
         "2010+": {
@@ -1158,11 +1155,10 @@
           "mode": "natural gas",
           "share": 0.66,
           "shares": {
-            "natural gas": 0.66,
-            "electricity": 0.29,
-            "propane": 0.03,
-            "other": 0.01,
-            "fuel oil": 0.01
+            "natural gas": 0.6667,
+            "electricity": 0.2929,
+            "propane": 0.0303,
+            "fuel oil": 0.0101
           }
         },
         "1980-1999": {
@@ -1216,11 +1212,10 @@
           "mode": "natural gas",
           "share": 0.47,
           "shares": {
-            "natural gas": 0.47,
-            "electricity": 0.44,
-            "propane": 0.07,
-            "solar": 0.01,
-            "fuel oil": 0.01
+            "natural gas": 0.4747,
+            "electricity": 0.4444,
+            "propane": 0.0707,
+            "fuel oil": 0.0101
           }
         },
         "2000-2009": {
@@ -1236,9 +1231,8 @@
           "mode": "natural gas",
           "share": 0.6,
           "shares": {
-            "natural gas": 0.6,
-            "electricity": 0.39,
-            "solar": 0.01
+            "natural gas": 0.6061,
+            "electricity": 0.3939
           }
         }
       },
@@ -1278,23 +1272,21 @@
           "mode": "natural gas",
           "share": 0.35,
           "shares": {
-            "natural gas": 0.35,
-            "fuel oil": 0.25,
-            "electricity": 0.25,
-            "propane": 0.12,
-            "other": 0.02,
-            "wood": 0.02
+            "natural gas": 0.3535,
+            "fuel oil": 0.2525,
+            "electricity": 0.2525,
+            "propane": 0.1212,
+            "wood": 0.0202
           }
         },
         "2010+": {
           "mode": "natural gas",
           "share": 0.43,
           "shares": {
-            "natural gas": 0.43,
-            "electricity": 0.35,
-            "propane": 0.19,
-            "fuel oil": 0.01,
-            "solar": 0.01
+            "natural gas": 0.4388,
+            "electricity": 0.3571,
+            "propane": 0.1939,
+            "fuel oil": 0.0102
           }
         }
       },
@@ -1303,30 +1295,27 @@
           "mode": "natural gas",
           "share": 0.65,
           "shares": {
-            "natural gas": 0.65,
-            "electricity": 0.31,
-            "propane": 0.03,
-            "solar": 0.01
+            "natural gas": 0.6566,
+            "electricity": 0.3131,
+            "propane": 0.0303
           }
         },
         "pre-1980": {
           "mode": "natural gas",
           "share": 0.67,
           "shares": {
-            "natural gas": 0.67,
-            "electricity": 0.31,
-            "propane": 0.01,
-            "solar": 0.01
+            "natural gas": 0.6768,
+            "electricity": 0.3131,
+            "propane": 0.0101
           }
         },
         "1980-1999": {
           "mode": "natural gas",
           "share": 0.62,
           "shares": {
-            "natural gas": 0.62,
-            "electricity": 0.32,
-            "propane": 0.05,
-            "solar": 0.01
+            "natural gas": 0.6263,
+            "electricity": 0.3232,
+            "propane": 0.0505
           }
         },
         "2000-2009": {
@@ -1336,18 +1325,16 @@
             "natural gas": 0.68,
             "electricity": 0.25,
             "propane": 0.06,
-            "fuel oil": 0.01,
-            "solar": 0.01
+            "fuel oil": 0.01
           }
         },
         "2010+": {
           "mode": "natural gas",
           "share": 0.56,
           "shares": {
-            "natural gas": 0.56,
-            "electricity": 0.41,
-            "propane": 0.02,
-            "solar": 0.01
+            "natural gas": 0.5657,
+            "electricity": 0.4141,
+            "propane": 0.0202
           }
         }
       },

@@ -18,7 +18,7 @@ import time
 
 API_BASE = "http://localhost:1338"
 SIM_OUTPUT_DIR = pathlib.Path("/home/genesis/dev/power-theory/powertwin-solver/powertwin_data/user_files")
-GEN_DIR = pathlib.Path("/home/genesis/dev/power-theory/powertwin-solver/tests/qa_matrix_fixtures/_generated")
+GEN_DIR = pathlib.Path("/home/genesis/dev/power-theory/powertwin-solver/tests/tools/qa_matrix_fixtures/_generated")
 
 REGION_COORDS = {
     "West":      {"state": "Arizona",  "city": "Phoenix", "lat": 33.4539, "lon": -112.0729},

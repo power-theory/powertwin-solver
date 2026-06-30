@@ -14,7 +14,7 @@ import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
-from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled
+from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
@@ -31,6 +31,35 @@ with open(ASSET_SUBTYPES_CSV, 'r') as f:
         }
 
 DEFAULT_SUBTYPE_ID = 4  # Single-Family
+
+# Dwelling-unit count per original subtype id (effective_id remapping resolved
+# upstream). Used as the per-unit denominator for BOTH the occupants resolver
+# (via ctx['units']) and the HPXML number_of_residential_units block, so the two
+# must agree -- a mismatch multiplies per-unit occupants by the wrong unit count.
+FALLBACK_UNITS_BY_SUBTYPE = {
+    1: 1,  # Single-Family Detached
+    2: 1,  # Single-Family Attached
+    3: 4,  # Multifamily (generic, typical mid-size)
+    4: 1,  # Single-Family
+    5: 3,  # Multifamily (2 to 4 units), midpoint
+    6: 8,  # Multifamily (5 or more units), representative
+}
+
+
+def _residential_unit_count(asset_metadata):
+    """Effective dwelling-unit count: explicit metadata first, else the
+    subtype representative fallback. Single source of truth so the occupants
+    resolver and the HPXML unit count never diverge."""
+    # Mirror build_asset_ctx's alias chain (sim_params_spec.py) so the occupants
+    # resolver (ctx['units']) and this unit count never diverge -- it accepts a
+    # third alias, number_of_residential_units.
+    meta_units = (asset_metadata.get('number_of_units')
+                  or asset_metadata.get('units')
+                  or asset_metadata.get('number_of_residential_units'))
+    try:
+        return max(1, int(meta_units))
+    except (TypeError, ValueError):
+        return FALLBACK_UNITS_BY_SUBTYPE.get(asset_metadata.get('_subtype_id'), 1)
 
 # Reverse lookup from building_type name to occupancy_type (using effective/self-referencing rows only)
 BUILDING_TYPE_TO_OCCUPANCY = {}
@@ -217,17 +246,35 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 
     asset_metadata = building_metadata_list.get(building_id, {})
 
+    # floor_count may arrive as int, float, or string (incl. malformed like
+    # 'abc' or '3.5'). Coerce defensively: a bad value must not crash feature
+    # generation, and a sub-1 value would later divide footprint_area by zero.
     floor_count = asset_metadata.get('floor_count') or properties.get('floor_count')
-    if floor_count == str(floor_count):
-        floor_count = int(floor_count)
-    if floor_count is None:
+    try:
+        floor_count = int(float(floor_count))
+    except (ValueError, TypeError):
         floor_count = 1
+    if floor_count < 1:
+        floor_count = 1
+
+    # Resolve the dwelling-unit count up front (residential only) so the
+    # occupants resolver's per-unit denominator matches the HPXML
+    # number_of_residential_units written below -- otherwise an MF building
+    # without explicit number_of_units gets whole-building occupants multiplied
+    # by the subtype fallback unit count (e.g. 11 occ/unit x 8 units = 88).
+    if building_type in ('Single-Family Detached', 'Single-Family Attached', 'Multifamily'):
+        residential_units = _residential_unit_count(asset_metadata)
+    else:
+        residential_units = None
 
     # Build the asset context once; every get_param call below uses it to
     # resolve dynamic defaults from the national-stock lookup tables
     # (reference_data/) before falling back to SIM_PARAM_DEFAULTS.
     climate_zone = building_climate_zone_list.get(building_id)
-    ctx = build_asset_ctx({**asset_metadata, 'area': floor_area, 'floor_count': floor_count},
+    ctx_metadata = {**asset_metadata, 'area': floor_area, 'floor_count': floor_count}
+    if residential_units is not None:
+        ctx_metadata['number_of_units'] = residential_units
+    ctx = build_asset_ctx(ctx_metadata,
                           building_type=building_type, climate_zone=climate_zone,
                           building_id=building_id)
     occupancy_subtype = BUILDING_TYPE_TO_OCCUPANCY.get(building_type, "Unknown")
@@ -244,13 +291,24 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     }
     new_properties.update(properties)
 
+    # Deliver the resolved occupant count to the feature JSON for EVERY building. PowerTwin.rb reads
+    # res_props[:number_of_occupants] (residential geometry_unit_num_occupants / commercial
+    # set_people_per_floor_area); previously it was written only in the vacant branch below, so
+    # non-vacant buildings fell back to the HPXML measure's bedroom-based default instead of the
+    # explicitly resolved count. Coincides with the resolver for SFD; MAY differ for a multifamily
+    # unit -- unverified (the leaf slice's only MF rep is vacant). This is a delivery-robustness fix,
+    # NOT a confirmed defect: the 800181 symptom that prompted it was vacancy (0 occupants is correct).
+    new_properties["number_of_occupants"] = number_of_occupants
+
     # Programmable sim params: read from asset_metadata via get_param, which
     # checks dynamic (national-stock) defaults before the flat fallback. See
     # sim_params_spec.py / api/lib/simulationParamsSpec.js.
     floor_height = get_param(asset_metadata, 'floor_height', ctx)
     window_to_wall_ratio = get_param(asset_metadata, 'window_to_wall_ratio', ctx)
 
-    footprint_area = int(floor_area / floor_count)
+    # Guard against floor_count > floor_area (absurd metadata) producing a
+    # zero footprint, which downstream geometry/area math can't use.
+    footprint_area = max(1, int(floor_area / floor_count))
     # Use GeoJSON geometry to derive the shape factor for a more accurate
     # perimeter estimate. The ratio of actual perimeter to the perimeter of a
     # square with the same area captures aspect ratio and irregularity. For a
@@ -329,6 +387,18 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 
     new_properties["resolver_version"] = RESOLVER_VERSION
     new_properties["dynamic_defaults"] = is_dynamic_defaults_enabled()
+    if ctx.get('region'):
+        new_properties["region"] = ctx['region']
+
+    vacant_override = asset_metadata.get('vacant')
+    if vacant_override is not None:
+        vacant = vacant_override is True
+    else:
+        vacant = is_vacant(ctx)
+    if vacant:
+        new_properties["vacant"] = True
+        number_of_occupants = 0
+        new_properties["number_of_occupants"] = 0
 
     if building_id in building_year_list:
         new_properties["year_built"] = building_year_list[building_id]
@@ -341,26 +411,35 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # number_of_bedrooms to be divisible by number_of_residential_units, so
     # round bedrooms-per-unit then multiply back.
     #
-    # Dwelling-unit count per original subtype id (effective_id remapping is
-    # already resolved upstream). Listed explicitly (rather than relying on a
-    # default fallback) so a missing entry for a future residential subtype
-    # surfaces as a visible review failure instead of silently defaulting to 1.
+    # Reuse the unit count resolved up front (residential_units) so the HPXML
+    # number_of_residential_units matches the occupants resolver's per-unit
+    # denominator exactly. See _residential_unit_count.
     if building_type in ('Single-Family Detached', 'Single-Family Attached', 'Multifamily'):
-        FALLBACK_UNITS_BY_SUBTYPE = {
-            1: 1,  # Single-Family Detached
-            2: 1,  # Single-Family Attached
-            3: 4,  # Multifamily (generic, typical mid-size)
-            4: 1,  # Single-Family
-            5: 3,  # Multifamily (2 to 4 units), midpoint
-            6: 8,  # Multifamily (5 or more units), representative
-        }
-        meta_units = asset_metadata.get('number_of_units') or asset_metadata.get('units')
+        units = residential_units
+        # Use supplied whole-building bedroom count when present (divided by units),
+        # mirroring _resolve_occupants -- only infer from area when absent, so the
+        # HPXML bedroom count and the resolver's occupant count never diverge.
+        supplied_bedrooms = asset_metadata.get('bedrooms') or asset_metadata.get('number_of_bedrooms')
         try:
-            units = max(1, int(meta_units))
+            bedrooms_per_unit = max(1, round(int(supplied_bedrooms) / units))
         except (TypeError, ValueError):
-            units = FALLBACK_UNITS_BY_SUBTYPE.get(asset_metadata.get('_subtype_id'), 1)
-        bedrooms_per_unit = max(1, round(floor_area / SQFT_PER_BEDROOM / units))
-        foundation = "slab" if building_type == "Multifamily" else "basement - conditioned"
+            bedrooms_per_unit = max(1, round(floor_area / SQFT_PER_BEDROOM / units))
+        if building_type == "Multifamily":
+            foundation = "slab"
+        else:
+            try:
+                foundation_ref = _load_ref('recs2020_envelope').get('foundation_type', {})
+            except Exception:
+                foundation_ref = {}
+            cz_num = None
+            try:
+                cz_num = int(str(ctx.get('climate_zone', '') or '')[:1])
+            except (ValueError, IndexError):
+                pass
+            region = ctx.get('region')
+            foundation = foundation_ref.get(region, 'slab')
+            if cz_num and cz_num <= 3:
+                foundation = 'slab'
         new_properties.update({
             "number_of_stories_above_ground": floor_count,
             "foundation_type": foundation,
@@ -385,9 +464,12 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     if building_id in building_weather_list:
         state, weather_file = building_weather_list[building_id]
         
-        # Check if weather data is valid
+        # Check if weather data is valid. A missing weather FILE means we cannot simulate;
+        # a missing state (after the metadata fallback in get_location) is pathological.
+        # The old message claimed "missing coordinates" even when coordinates were present.
         if state is None or weather_file is None:
-            logger.warning(f"Invalid weather data for building_id {building_id} (missing coordinates)")
+            logger.warning(f"Skipping building_id {building_id}: unresolved weather "
+                           f"(state={state!r}, weather_file={weather_file!r})")
             return None
             
         weather_filename = weather_file + '.epw'
@@ -606,6 +688,26 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
 #   metadata file. It processes each feature and creates a new feature structure with additional properties.
 #   It writes the new feature structure to individual feature files in the output directory.
 ############################################################################################################
+def _mark_unsimulatable_failed(weather_list, area_list, name_list, type_list, meta_list, simulation_name):
+    """A building whose weather/coordinates couldn't be resolved CANNOT be simulated -- EnergyPlus
+    needs a location. Such a building is excluded from the model (process_feature drops it), but it
+    must NOT silently vanish: record each as a FAILED asset (status + failure_reason) so the drop is
+    counted + attributable in failure_analysis, not dropped off the books. Returns the failed ids."""
+    from modules.diagnostics.db import insert_asset, update_status
+    failed = [bid for bid, (state, wfile) in weather_list.items() if not state or not wfile]
+    if not failed:
+        return failed
+    reason = "missing coordinates (no lat/lon): cannot resolve a weather station; excluded from EnergyPlus"
+    for bid in failed:
+        meta = meta_list.get(bid) or {}
+        insert_asset(bid, meta.get('state'), None, area_list.get(bid, 0),
+                     int(float(meta.get('floor_count') or 1)), 0,
+                     name_list.get(bid, str(bid)), type_list.get(bid, ''), simulation_name)
+        update_status("Failed", asset_id=bid, simulation_name=simulation_name, failure_reason=reason)
+    logger.warning(f"{len(failed)} asset(s) marked FAILED ({reason}); ids: {failed}")
+    return failed
+
+
 def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, num_cores, simulation_name):
     logger.info("Creating feature files...")
 
@@ -616,6 +718,12 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
 
     # Metadata requires the area, subtype and name of the building to be present from the metadata
     building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list = read_metadata(metadata_csv)
+
+    # Coordinates are REQUIRED -- EnergyPlus needs a location. Buildings whose weather couldn't be
+    # resolved (no lat/lon) can't be simulated; mark them FAILED so the exclusion is visible in the
+    # diagnostics rather than a silent drop. process_feature still excludes them from the model below.
+    _mark_unsimulatable_failed(building_weather_list, building_area_list, building_name_list,
+                               building_type_list, building_metadata_list, simulation_name)
 
     with open(asset_geojson, 'r') as file:
         geojson_data = json.load(file)

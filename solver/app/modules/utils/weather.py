@@ -351,7 +351,12 @@ def get_location(asset_metadata):
                     logger.warning(f"Failed to download weather files for {weather_title}")
             
             climate_zone = get_climate_zone(building_lat, building_lon)
-            return nearest_station['state'], nearest_station['title'], climate_zone
+            # Some stations (e.g. California Title-24 CZ files like CZ09RV2) carry a null
+            # state in the station DB. The weather file + climate zone are still valid, so
+            # fall back to the building's own metadata state instead of returning None --
+            # otherwise generateFeatureFile drops the building (a silent completeness loss).
+            station_state = nearest_station.get('state') or asset_metadata.get('state')
+            return station_state, nearest_station['title'], climate_zone
         else:
             return None, None, None
 

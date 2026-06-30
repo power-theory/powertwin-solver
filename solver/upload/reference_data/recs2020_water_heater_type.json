@@ -1,824 +1,830 @@
 {
-  "_source": "RECS 2020 public microdata v7, TYPERFR1 variable",
-  "_notes": "Water heater type distribution by division and vintage. TYPERFR1 codes 1-3 (small/medium/large storage) grouped as storage.",
+  "_source": {
+    "name": "NREL ResStock 2024.2 realized building-stock metadata (OEDI baseline.parquet, 549,715 homes)",
+    "url": "https://oedi-data-lake.s3.amazonaws.com/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2024/resstock_tmy3_release_2/metadata/baseline.parquet",
+    "variable": "type from in.water_heater_efficiency x in.census_division_recs x in.vintage, weighted by `weight`",
+    "extracted": "2026-06-30",
+    "regen": "tests/tools/build_water_heater_type.py"
+  },
+  "_notes": "Water heater TYPE from ResStock realized stock. Type from efficiency string: 'Tankless'->instantaneous, 'Heat Pump'->heat pump water heater, else storage. Keyed division x decade vintage; '2020+' carried forward from 2010-2019 (ResStock vintage tops at 2010s); 'all' = vintage-agnostic division fallback. REPLACES a prior file that wrongly cited RECS TYPERFR1 (the refrigerator-type variable; RECS has no water-heater-type variable) and overstated tankless/HPWH ~3-15x.",
   "_division": {
     "East North Central": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.961,
+          "instantaneous water heater": 0.037,
+          "heat pump water heater": 0.002
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.733,
-          "instantaneous water heater": 0.212,
-          "heat pump water heater": 0.055
+          "storage water heater": 0.967,
+          "instantaneous water heater": 0.032,
+          "heat pump water heater": 0.001
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.787,
-          "instantaneous water heater": 0.184,
-          "heat pump water heater": 0.029
+          "storage water heater": 0.965,
+          "instantaneous water heater": 0.033,
+          "heat pump water heater": 0.002
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.738,
-          "instantaneous water heater": 0.231,
-          "heat pump water heater": 0.031
+          "storage water heater": 0.962,
+          "instantaneous water heater": 0.036,
+          "heat pump water heater": 0.002
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.703,
-          "instantaneous water heater": 0.261,
-          "heat pump water heater": 0.036
+          "storage water heater": 0.963,
+          "instantaneous water heater": 0.036,
+          "heat pump water heater": 0.001
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.682,
-          "instantaneous water heater": 0.238,
-          "heat pump water heater": 0.08
+          "storage water heater": 0.96,
+          "instantaneous water heater": 0.038,
+          "heat pump water heater": 0.002
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.668,
-          "instantaneous water heater": 0.267,
-          "heat pump water heater": 0.065
+          "storage water heater": 0.961,
+          "instantaneous water heater": 0.037,
+          "heat pump water heater": 0.002
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.596,
-          "instantaneous water heater": 0.337,
-          "heat pump water heater": 0.067
+          "storage water heater": 0.966,
+          "instantaneous water heater": 0.032,
+          "heat pump water heater": 0.002
         }
       },
       "2020+": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.574,
-          "instantaneous water heater": 0.315,
-          "heat pump water heater": 0.111
-        }
-      },
-      "pre-1950": {
-        "mode": "storage water heater",
-        "shares": {
-          "storage water heater": 0.769,
-          "instantaneous water heater": 0.189,
-          "heat pump water heater": 0.042
+          "storage water heater": 0.966,
+          "instantaneous water heater": 0.032,
+          "heat pump water heater": 0.002
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.724,
-          "instantaneous water heater": 0.226,
-          "heat pump water heater": 0.05
+          "storage water heater": 0.962,
+          "instantaneous water heater": 0.036,
+          "heat pump water heater": 0.002
         }
       }
     },
     "East South Central": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.947,
+          "instantaneous water heater": 0.05,
+          "heat pump water heater": 0.003
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.834,
-          "instantaneous water heater": 0.136,
-          "heat pump water heater": 0.03
+          "storage water heater": 0.952,
+          "instantaneous water heater": 0.047,
+          "heat pump water heater": 0.001
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.838,
-          "instantaneous water heater": 0.142,
-          "heat pump water heater": 0.02
+          "storage water heater": 0.949,
+          "instantaneous water heater": 0.048,
+          "heat pump water heater": 0.003
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.825,
-          "instantaneous water heater": 0.153,
-          "heat pump water heater": 0.022
+          "storage water heater": 0.949,
+          "instantaneous water heater": 0.047,
+          "heat pump water heater": 0.004
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.812,
-          "instantaneous water heater": 0.156,
-          "heat pump water heater": 0.032
+          "storage water heater": 0.951,
+          "instantaneous water heater": 0.044,
+          "heat pump water heater": 0.005
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.786,
-          "instantaneous water heater": 0.15,
-          "heat pump water heater": 0.064
+          "storage water heater": 0.951,
+          "instantaneous water heater": 0.045,
+          "heat pump water heater": 0.004
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.698,
-          "instantaneous water heater": 0.241,
-          "heat pump water heater": 0.061
+          "storage water heater": 0.953,
+          "instantaneous water heater": 0.044,
+          "heat pump water heater": 0.003
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.692,
-          "instantaneous water heater": 0.262,
-          "heat pump water heater": 0.046
+          "storage water heater": 0.95,
+          "instantaneous water heater": 0.045,
+          "heat pump water heater": 0.005
         }
       },
       "2020+": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.674,
-          "instantaneous water heater": 0.229,
-          "heat pump water heater": 0.097
-        }
-      },
-      "pre-1950": {
-        "mode": "storage water heater",
-        "shares": {
-          "storage water heater": 0.79,
-          "instantaneous water heater": 0.141,
-          "heat pump water heater": 0.069
+          "storage water heater": 0.95,
+          "instantaneous water heater": 0.045,
+          "heat pump water heater": 0.005
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.782,
-          "instantaneous water heater": 0.172,
-          "heat pump water heater": 0.046
+          "storage water heater": 0.95,
+          "instantaneous water heater": 0.046,
+          "heat pump water heater": 0.004
         }
       }
     },
     "Middle Atlantic": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.954,
+          "instantaneous water heater": 0.045,
+          "heat pump water heater": 0.001
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.774,
-          "instantaneous water heater": 0.179,
-          "heat pump water heater": 0.047
+          "storage water heater": 0.951,
+          "instantaneous water heater": 0.047,
+          "heat pump water heater": 0.002
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.694,
-          "instantaneous water heater": 0.259,
-          "heat pump water heater": 0.047
+          "storage water heater": 0.954,
+          "instantaneous water heater": 0.045,
+          "heat pump water heater": 0.001
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.765,
-          "instantaneous water heater": 0.18,
-          "heat pump water heater": 0.055
+          "storage water heater": 0.948,
+          "instantaneous water heater": 0.05,
+          "heat pump water heater": 0.002
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.728,
-          "instantaneous water heater": 0.235,
-          "heat pump water heater": 0.037
+          "storage water heater": 0.945,
+          "instantaneous water heater": 0.052,
+          "heat pump water heater": 0.003
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.718,
-          "instantaneous water heater": 0.245,
-          "heat pump water heater": 0.037
+          "storage water heater": 0.948,
+          "instantaneous water heater": 0.051,
+          "heat pump water heater": 0.001
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.629,
-          "instantaneous water heater": 0.271,
-          "heat pump water heater": 0.1
+          "storage water heater": 0.946,
+          "instantaneous water heater": 0.052,
+          "heat pump water heater": 0.002
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.617,
-          "instantaneous water heater": 0.337,
-          "heat pump water heater": 0.046
+          "storage water heater": 0.952,
+          "instantaneous water heater": 0.044,
+          "heat pump water heater": 0.004
         }
       },
       "2020+": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.672,
-          "instantaneous water heater": 0.233,
-          "heat pump water heater": 0.095
-        }
-      },
-      "pre-1950": {
-        "mode": "storage water heater",
-        "shares": {
-          "storage water heater": 0.745,
-          "instantaneous water heater": 0.224,
-          "heat pump water heater": 0.031
+          "storage water heater": 0.952,
+          "instantaneous water heater": 0.044,
+          "heat pump water heater": 0.004
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.729,
-          "instantaneous water heater": 0.226,
-          "heat pump water heater": 0.045
+          "storage water heater": 0.95,
+          "instantaneous water heater": 0.048,
+          "heat pump water heater": 0.002
         }
       }
     },
     "Mountain North": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.935,
+          "instantaneous water heater": 0.062,
+          "heat pump water heater": 0.003
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.776,
-          "instantaneous water heater": 0.214,
-          "heat pump water heater": 0.01
+          "storage water heater": 0.945,
+          "instantaneous water heater": 0.054,
+          "heat pump water heater": 0.001
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.78,
-          "instantaneous water heater": 0.15,
-          "heat pump water heater": 0.07
+          "storage water heater": 0.944,
+          "instantaneous water heater": 0.054,
+          "heat pump water heater": 0.002
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.758,
-          "instantaneous water heater": 0.195,
-          "heat pump water heater": 0.047
+          "storage water heater": 0.948,
+          "instantaneous water heater": 0.051,
+          "heat pump water heater": 0.001
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.781,
-          "instantaneous water heater": 0.182,
-          "heat pump water heater": 0.037
+          "storage water heater": 0.939,
+          "instantaneous water heater": 0.059,
+          "heat pump water heater": 0.002
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.659,
-          "instantaneous water heater": 0.257,
-          "heat pump water heater": 0.084
+          "storage water heater": 0.952,
+          "instantaneous water heater": 0.047,
+          "heat pump water heater": 0.001
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.697,
-          "instantaneous water heater": 0.235,
-          "heat pump water heater": 0.068
+          "storage water heater": 0.94,
+          "instantaneous water heater": 0.058,
+          "heat pump water heater": 0.002
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.679,
-          "instantaneous water heater": 0.251,
-          "heat pump water heater": 0.07
+          "storage water heater": 0.944,
+          "instantaneous water heater": 0.055,
+          "heat pump water heater": 0.001
         }
       },
       "2020+": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.462,
-          "instantaneous water heater": 0.445,
-          "heat pump water heater": 0.093
-        }
-      },
-      "pre-1950": {
-        "mode": "storage water heater",
-        "shares": {
-          "storage water heater": 0.825,
-          "instantaneous water heater": 0.155,
-          "heat pump water heater": 0.02
+          "storage water heater": 0.944,
+          "instantaneous water heater": 0.055,
+          "heat pump water heater": 0.001
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.721,
-          "instantaneous water heater": 0.223,
-          "heat pump water heater": 0.056
+          "storage water heater": 0.943,
+          "instantaneous water heater": 0.055,
+          "heat pump water heater": 0.002
         }
       }
     },
     "Mountain South": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.916,
+          "instantaneous water heater": 0.08,
+          "heat pump water heater": 0.004
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.755,
-          "instantaneous water heater": 0.191,
-          "heat pump water heater": 0.054
+          "storage water heater": 0.921,
+          "instantaneous water heater": 0.077,
+          "heat pump water heater": 0.002
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.773,
-          "instantaneous water heater": 0.137,
-          "heat pump water heater": 0.09
+          "storage water heater": 0.93,
+          "instantaneous water heater": 0.069,
+          "heat pump water heater": 0.001
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.829,
-          "instantaneous water heater": 0.129,
-          "heat pump water heater": 0.042
+          "storage water heater": 0.918,
+          "instantaneous water heater": 0.078,
+          "heat pump water heater": 0.004
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.764,
-          "instantaneous water heater": 0.192,
-          "heat pump water heater": 0.044
+          "storage water heater": 0.924,
+          "instantaneous water heater": 0.074,
+          "heat pump water heater": 0.002
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.728,
-          "instantaneous water heater": 0.213,
-          "heat pump water heater": 0.059
+          "storage water heater": 0.926,
+          "instantaneous water heater": 0.072,
+          "heat pump water heater": 0.002
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.699,
-          "instantaneous water heater": 0.258,
-          "heat pump water heater": 0.043
+          "storage water heater": 0.931,
+          "instantaneous water heater": 0.066,
+          "heat pump water heater": 0.003
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.572,
-          "instantaneous water heater": 0.251,
-          "heat pump water heater": 0.177
+          "storage water heater": 0.932,
+          "instantaneous water heater": 0.068,
+          "heat pump water heater": 0.0
         }
       },
       "2020+": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.579,
-          "instantaneous water heater": 0.292,
-          "heat pump water heater": 0.129
-        }
-      },
-      "pre-1950": {
-        "mode": "storage water heater",
-        "shares": {
-          "storage water heater": 0.843,
-          "instantaneous water heater": 0.126,
-          "heat pump water heater": 0.031
+          "storage water heater": 0.932,
+          "instantaneous water heater": 0.068,
+          "heat pump water heater": 0.0
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.737,
-          "instantaneous water heater": 0.203,
-          "heat pump water heater": 0.06
+          "storage water heater": 0.926,
+          "instantaneous water heater": 0.072,
+          "heat pump water heater": 0.002
         }
       }
     },
     "New England": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.906,
+          "instantaneous water heater": 0.09,
+          "heat pump water heater": 0.004
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.732,
-          "instantaneous water heater": 0.238,
-          "heat pump water heater": 0.03
+          "storage water heater": 0.92,
+          "instantaneous water heater": 0.077,
+          "heat pump water heater": 0.003
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.726,
-          "instantaneous water heater": 0.236,
-          "heat pump water heater": 0.038
+          "storage water heater": 0.909,
+          "instantaneous water heater": 0.089,
+          "heat pump water heater": 0.002
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.744,
-          "instantaneous water heater": 0.215,
-          "heat pump water heater": 0.041
+          "storage water heater": 0.912,
+          "instantaneous water heater": 0.085,
+          "heat pump water heater": 0.003
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.672,
-          "instantaneous water heater": 0.277,
-          "heat pump water heater": 0.051
+          "storage water heater": 0.9,
+          "instantaneous water heater": 0.094,
+          "heat pump water heater": 0.006
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.579,
-          "instantaneous water heater": 0.378,
-          "heat pump water heater": 0.043
+          "storage water heater": 0.923,
+          "instantaneous water heater": 0.068,
+          "heat pump water heater": 0.009
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.63,
-          "instantaneous water heater": 0.286,
-          "heat pump water heater": 0.084
+          "storage water heater": 0.899,
+          "instantaneous water heater": 0.096,
+          "heat pump water heater": 0.005
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.62,
-          "instantaneous water heater": 0.237,
-          "heat pump water heater": 0.143
+          "storage water heater": 0.87,
+          "instantaneous water heater": 0.126,
+          "heat pump water heater": 0.004
         }
       },
       "2020+": {
-        "mode": "instantaneous water heater",
-        "shares": {
-          "storage water heater": 0.441,
-          "instantaneous water heater": 0.479,
-          "heat pump water heater": 0.08
-        }
-      },
-      "pre-1950": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.746,
-          "instantaneous water heater": 0.226,
-          "heat pump water heater": 0.028
+          "storage water heater": 0.87,
+          "instantaneous water heater": 0.126,
+          "heat pump water heater": 0.004
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.7,
-          "instantaneous water heater": 0.257,
-          "heat pump water heater": 0.043
+          "storage water heater": 0.908,
+          "instantaneous water heater": 0.088,
+          "heat pump water heater": 0.004
         }
       }
     },
     "Pacific": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.901,
+          "instantaneous water heater": 0.093,
+          "heat pump water heater": 0.006
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.709,
-          "instantaneous water heater": 0.232,
-          "heat pump water heater": 0.059
+          "storage water heater": 0.909,
+          "instantaneous water heater": 0.088,
+          "heat pump water heater": 0.003
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.697,
-          "instantaneous water heater": 0.25,
-          "heat pump water heater": 0.053
+          "storage water heater": 0.902,
+          "instantaneous water heater": 0.093,
+          "heat pump water heater": 0.005
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.751,
-          "instantaneous water heater": 0.216,
-          "heat pump water heater": 0.033
+          "storage water heater": 0.902,
+          "instantaneous water heater": 0.092,
+          "heat pump water heater": 0.006
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.739,
-          "instantaneous water heater": 0.211,
-          "heat pump water heater": 0.05
+          "storage water heater": 0.9,
+          "instantaneous water heater": 0.095,
+          "heat pump water heater": 0.005
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.721,
-          "instantaneous water heater": 0.2,
-          "heat pump water heater": 0.079
+          "storage water heater": 0.905,
+          "instantaneous water heater": 0.087,
+          "heat pump water heater": 0.008
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.677,
-          "instantaneous water heater": 0.23,
-          "heat pump water heater": 0.093
+          "storage water heater": 0.908,
+          "instantaneous water heater": 0.086,
+          "heat pump water heater": 0.006
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.677,
-          "instantaneous water heater": 0.27,
-          "heat pump water heater": 0.053
+          "storage water heater": 0.898,
+          "instantaneous water heater": 0.094,
+          "heat pump water heater": 0.008
         }
       },
       "2020+": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.489,
-          "instantaneous water heater": 0.418,
-          "heat pump water heater": 0.093
-        }
-      },
-      "pre-1950": {
-        "mode": "storage water heater",
-        "shares": {
-          "storage water heater": 0.723,
-          "instantaneous water heater": 0.235,
-          "heat pump water heater": 0.042
+          "storage water heater": 0.898,
+          "instantaneous water heater": 0.094,
+          "heat pump water heater": 0.008
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.712,
-          "instantaneous water heater": 0.231,
-          "heat pump water heater": 0.057
+          "storage water heater": 0.903,
+          "instantaneous water heater": 0.091,
+          "heat pump water heater": 0.006
         }
       }
     },
     "South Atlantic": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.934,
+          "instantaneous water heater": 0.062,
+          "heat pump water heater": 0.004
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.828,
-          "instantaneous water heater": 0.145,
-          "heat pump water heater": 0.027
+          "storage water heater": 0.934,
+          "instantaneous water heater": 0.063,
+          "heat pump water heater": 0.003
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.764,
-          "instantaneous water heater": 0.211,
-          "heat pump water heater": 0.025
+          "storage water heater": 0.936,
+          "instantaneous water heater": 0.061,
+          "heat pump water heater": 0.003
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.759,
-          "instantaneous water heater": 0.217,
-          "heat pump water heater": 0.024
+          "storage water heater": 0.935,
+          "instantaneous water heater": 0.06,
+          "heat pump water heater": 0.005
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.747,
-          "instantaneous water heater": 0.205,
-          "heat pump water heater": 0.048
+          "storage water heater": 0.94,
+          "instantaneous water heater": 0.056,
+          "heat pump water heater": 0.004
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.708,
-          "instantaneous water heater": 0.246,
-          "heat pump water heater": 0.046
+          "storage water heater": 0.937,
+          "instantaneous water heater": 0.059,
+          "heat pump water heater": 0.004
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.681,
-          "instantaneous water heater": 0.25,
-          "heat pump water heater": 0.069
+          "storage water heater": 0.937,
+          "instantaneous water heater": 0.06,
+          "heat pump water heater": 0.003
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.707,
-          "instantaneous water heater": 0.228,
-          "heat pump water heater": 0.065
+          "storage water heater": 0.935,
+          "instantaneous water heater": 0.061,
+          "heat pump water heater": 0.004
         }
       },
       "2020+": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.647,
-          "instantaneous water heater": 0.278,
-          "heat pump water heater": 0.075
-        }
-      },
-      "pre-1950": {
-        "mode": "storage water heater",
-        "shares": {
-          "storage water heater": 0.77,
-          "instantaneous water heater": 0.191,
-          "heat pump water heater": 0.039
+          "storage water heater": 0.935,
+          "instantaneous water heater": 0.061,
+          "heat pump water heater": 0.004
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.733,
-          "instantaneous water heater": 0.221,
-          "heat pump water heater": 0.046
+          "storage water heater": 0.936,
+          "instantaneous water heater": 0.06,
+          "heat pump water heater": 0.004
         }
       }
     },
     "West North Central": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.939,
+          "instantaneous water heater": 0.059,
+          "heat pump water heater": 0.002
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.77,
-          "instantaneous water heater": 0.194,
-          "heat pump water heater": 0.036
+          "storage water heater": 0.941,
+          "instantaneous water heater": 0.057,
+          "heat pump water heater": 0.002
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.801,
-          "instantaneous water heater": 0.164,
-          "heat pump water heater": 0.035
+          "storage water heater": 0.947,
+          "instantaneous water heater": 0.051,
+          "heat pump water heater": 0.002
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.725,
-          "instantaneous water heater": 0.241,
-          "heat pump water heater": 0.034
+          "storage water heater": 0.943,
+          "instantaneous water heater": 0.053,
+          "heat pump water heater": 0.004
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.796,
-          "instantaneous water heater": 0.172,
-          "heat pump water heater": 0.032
+          "storage water heater": 0.936,
+          "instantaneous water heater": 0.062,
+          "heat pump water heater": 0.002
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.651,
-          "instantaneous water heater": 0.278,
-          "heat pump water heater": 0.071
+          "storage water heater": 0.939,
+          "instantaneous water heater": 0.059,
+          "heat pump water heater": 0.002
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.636,
-          "instantaneous water heater": 0.267,
-          "heat pump water heater": 0.097
+          "storage water heater": 0.943,
+          "instantaneous water heater": 0.054,
+          "heat pump water heater": 0.003
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.703,
-          "instantaneous water heater": 0.221,
-          "heat pump water heater": 0.076
+          "storage water heater": 0.947,
+          "instantaneous water heater": 0.052,
+          "heat pump water heater": 0.001
         }
       },
       "2020+": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.55,
-          "instantaneous water heater": 0.344,
-          "heat pump water heater": 0.106
-        }
-      },
-      "pre-1950": {
-        "mode": "storage water heater",
-        "shares": {
-          "storage water heater": 0.79,
-          "instantaneous water heater": 0.18,
-          "heat pump water heater": 0.03
+          "storage water heater": 0.947,
+          "instantaneous water heater": 0.052,
+          "heat pump water heater": 0.001
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.732,
-          "instantaneous water heater": 0.218,
-          "heat pump water heater": 0.05
+          "storage water heater": 0.942,
+          "instantaneous water heater": 0.056,
+          "heat pump water heater": 0.002
         }
       }
     },
     "West South Central": {
+      "pre-1950": {
+        "mode": "storage water heater",
+        "shares": {
+          "storage water heater": 0.944,
+          "instantaneous water heater": 0.055,
+          "heat pump water heater": 0.001
+        }
+      },
       "1950-1959": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.831,
-          "instantaneous water heater": 0.122,
-          "heat pump water heater": 0.047
+          "storage water heater": 0.944,
+          "instantaneous water heater": 0.053,
+          "heat pump water heater": 0.003
         }
       },
       "1960-1969": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.779,
-          "instantaneous water heater": 0.174,
-          "heat pump water heater": 0.047
+          "storage water heater": 0.946,
+          "instantaneous water heater": 0.051,
+          "heat pump water heater": 0.003
         }
       },
       "1970-1979": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.765,
-          "instantaneous water heater": 0.192,
-          "heat pump water heater": 0.043
+          "storage water heater": 0.945,
+          "instantaneous water heater": 0.052,
+          "heat pump water heater": 0.003
         }
       },
       "1980-1989": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.788,
-          "instantaneous water heater": 0.173,
-          "heat pump water heater": 0.039
+          "storage water heater": 0.948,
+          "instantaneous water heater": 0.048,
+          "heat pump water heater": 0.004
         }
       },
       "1990-1999": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.724,
-          "instantaneous water heater": 0.185,
-          "heat pump water heater": 0.091
+          "storage water heater": 0.946,
+          "instantaneous water heater": 0.051,
+          "heat pump water heater": 0.003
         }
       },
       "2000-2009": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.738,
-          "instantaneous water heater": 0.186,
-          "heat pump water heater": 0.076
+          "storage water heater": 0.944,
+          "instantaneous water heater": 0.053,
+          "heat pump water heater": 0.003
         }
       },
       "2010-2019": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.626,
-          "instantaneous water heater": 0.274,
-          "heat pump water heater": 0.1
+          "storage water heater": 0.949,
+          "instantaneous water heater": 0.048,
+          "heat pump water heater": 0.003
         }
       },
       "2020+": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.708,
-          "instantaneous water heater": 0.229,
-          "heat pump water heater": 0.063
-        }
-      },
-      "pre-1950": {
-        "mode": "storage water heater",
-        "shares": {
-          "storage water heater": 0.855,
-          "instantaneous water heater": 0.13,
-          "heat pump water heater": 0.015
+          "storage water heater": 0.949,
+          "instantaneous water heater": 0.048,
+          "heat pump water heater": 0.003
         }
       },
       "all": {
         "mode": "storage water heater",
         "shares": {
-          "storage water heater": 0.755,
-          "instantaneous water heater": 0.185,
-          "heat pump water heater": 0.06
+          "storage water heater": 0.946,
+          "instantaneous water heater": 0.051,
+          "heat pump water heater": 0.003
         }
       }
     }

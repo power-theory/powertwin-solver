@@ -108,7 +108,13 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
 )
 
     state, weather_file = get_weather(asset_id)
-    
+
+    # A no-coords building has no resolved weather and can't be simulated. If it reaches here, raise
+    # so process_single_asset records it Failed (with this reason) via its except path rather than
+    # crashing on a None weather_file or marking it Finished.
+    if not weather_file:
+        raise RuntimeError("missing coordinates (no lat/lon): cannot resolve a weather station; excluded from EnergyPlus")
+
     # NOTE: Remove .epw extension if present (database stores full filename with .epw)
     if weather_file.endswith('.epw'):
         weather_file = weather_file[:-4]
@@ -158,12 +164,10 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
         
         if os.path.exists(UPLOAD_MAPPER):
             logger.info(f"BATCH {batch_index}: Found mapper file, copying to {MAPPER_FILE}")
-            shutil.copy(UPLOAD_MAPPER, MAPPER_FILE)
-            # PowerTwinRefs.load reads JSONs from <mapper_dir>/reference_data/.
-            src_ref = os.path.join(os.path.dirname(UPLOAD_MAPPER), 'reference_data')
-            dst_ref = os.path.join(MAPPERS_DIR, 'reference_data')
-            if os.path.isdir(src_ref) and not os.path.isdir(dst_ref):
-                shutil.copytree(src_ref, dst_ref)
+            # Deploy PowerTwin.rb + its required siblings (powertwin_refs.rb,
+            # reference_data) as one unit -- see mapper_setup.deploy_mapper.
+            from modules.simulation.mapper_setup import deploy_mapper
+            deploy_mapper(os.path.dirname(UPLOAD_MAPPER), MAPPERS_DIR)
         else:
             logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found at {UPLOAD_MAPPER}")
             

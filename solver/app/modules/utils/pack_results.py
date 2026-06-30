@@ -23,6 +23,15 @@ _RESAMPLE_TO_DATELEVEL = {
     'Y': 'year',
 }
 
+# Normalize operator-supplied period codes to the canonical set above. The
+# example config documents 'A' for annual, which pandas treats as year -- map
+# it to 'Y' so datelevel isn't mislabeled 'hour'.
+_RESAMPLE_CANON = {'A': 'Y', 'ANNUAL': 'Y', 'YEARLY': 'Y', 'HOURLY': 'H'}
+
+# pandas >= 3.0 dropped the uppercase 'H' period alias in favor of 'h'; map the
+# canonical code to a pandas-accepted period frequency for to_period().
+_PANDAS_PERIOD_FREQ = {'H': 'h', 'D': 'D', 'W': 'W', 'M': 'M', 'Y': 'Y'}
+
 
 def _detect_native_datelevel(ts_strings):
     """Cheap, pandas-free native-frequency detection. Median consecutive gap → label.
@@ -69,7 +78,7 @@ def _normalize_rows(rows, resample, start_date_time=None, end_date_time=None):
       5. If no resample: floor to native frequency. Native monthly snaps to
          the 1st regardless of the flag.
     """
-    apply_translations = os.environ.get('URBANOPT_POSTPROCESS_TRANSLATIONS') == 'true'
+    apply_translations = os.environ.get('URBANOPT_POSTPROCESS_TRANSLATIONS', '').strip().lower() in ('1', 'true', 'yes', 'on')
 
     df = pd.DataFrame(rows)
     df['ts'] = pd.to_datetime(df['ts'])
@@ -111,7 +120,8 @@ def _normalize_rows(rows, resample, start_date_time=None, end_date_time=None):
         return []
 
     if resample:
-        df = (df.groupby(df['ts'].dt.to_period(resample))['value']
+        period_freq = _PANDAS_PERIOD_FREQ.get(resample, resample)
+        df = (df.groupby(df['ts'].dt.to_period(period_freq))['value']
                 .sum()
                 .reset_index())
         if resample == 'M' and apply_translations:
@@ -181,6 +191,8 @@ def pack_simulation_results(local_dir, runtime_seconds=None, resample=None,
     detected_native = None
 
     resample = (resample or '').strip().upper() or None
+    if resample:
+        resample = _RESAMPLE_CANON.get(resample, resample)
 
     # Build building_id → asset_id mapping from the metadata CSV.
     # cleaned_reports directories are keyed by building_id (GeoJSON feature id),

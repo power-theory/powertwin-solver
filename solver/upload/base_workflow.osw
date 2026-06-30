@@ -213,6 +213,12 @@
         "thermal_efficiency": 0.80
       }
     },{
+      "measure_dir_name": "set_heating_fuel",
+      "arguments": {
+        "__SKIP__": true,
+        "fuel": "NaturalGas"
+      }
+    },{
       "measure_dir_name": "set_people_per_floor_area",
       "arguments": {
         "__SKIP__": true,
@@ -228,7 +234,7 @@
       "measure_dir_name": "ReduceLightingLoadsByPercentage",
       "arguments": {
         "__SKIP__": true,
-        "lighting_power_reduction_percent": 30
+        "lighting_power_reduction_percent": 35
       }
     },{
       "measure_dir_name": "add_central_ice_storage",

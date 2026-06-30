@@ -65,7 +65,10 @@ def create_table():
                 asset_name VARCHAR(255),
                 subtype VARCHAR(255),
                 status VARCHAR(255),
-                total_time NUMERIC
+                total_time NUMERIC,
+                failure_reason TEXT,
+                node_name VARCHAR(255),
+                process_id VARCHAR(255)
             )
         """)
         conn.commit()
@@ -173,17 +176,18 @@ def distribute_assets_to_batches(num_cores, simulation_name):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        # SQL query to assign batches AND store the order in order_rank column
+        # Assign batches + order_rank to SIMULATABLE assets only -- a NULL weather_file (e.g. a
+        # no-coords building, recorded Failed) can't run in EnergyPlus, so it's never distributed.
         cur.execute(f"""
         WITH ordered_assets AS (
-            SELECT 
+            SELECT
                 asset_id,
                 ROW_NUMBER() OVER (
                     PARTITION BY simulation_name
                     ORDER BY complexity::INTEGER DESC, number_of_stories::INTEGER DESC, floor_area::NUMERIC DESC
                 ) - 1 as row_num
             FROM {DB_NAME}
-            WHERE simulation_name = %s
+            WHERE simulation_name = %s AND weather_file IS NOT NULL
         )
         UPDATE {DB_NAME} AS t
         SET 
@@ -652,7 +656,10 @@ def ensure_columns_exist():
             'asset_name': 'VARCHAR(255)',
             'subtype': 'VARCHAR(255)',
             'status': 'VARCHAR(255)',
-            'total_time': 'NUMERIC'
+            'total_time': 'NUMERIC',
+            'failure_reason': 'TEXT',
+            'node_name': 'VARCHAR(255)',
+            'process_id': 'VARCHAR(255)'
         }
         
         # Add missing columns

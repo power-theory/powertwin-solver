@@ -1,0 +1,3787 @@
+{
+  "com|Education|AZ|2010": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 1445,
+      "weekday_start_time": "08:00"
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 814,
+        "fuel oil": 34,
+        "natural gas": 1011,
+        "propane": 121,
+        "wood": 20
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1752,
+        "Standard": 248
+      },
+      "roof_r_value": {
+        "6.0": 248,
+        "21.0": 1663,
+        "26.0": 89
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 983,
+        "fuel oil": 21,
+        "natural gas": 883,
+        "propane": 113
+      },
+      "wall_material": {
+        "Insulated": 1398,
+        "Standard": 507,
+        "Super Insulated": 95
+      },
+      "wall_r_value": {
+        "6.0": 15,
+        "7.0": 492,
+        "8.0": 1332,
+        "11.0": 19,
+        "12.0": 47,
+        "16.0": 70,
+        "17.0": 25
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 119,
+        "0.05": 686,
+        "0.2": 846,
+        "0.4": 265,
+        "0.65": 61,
+        "0.9": 23
+      },
+      "window_type": {
+        "Double Pane": 1735,
+        "Single Pane": 265
+      }
+    },
+    "vacant": 0
+  },
+  "com|Education|IL|1990": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 1445,
+      "weekday_start_time": "08:00"
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 441,
+        "fuel oil": 50,
+        "natural gas": 1421,
+        "propane": 88
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1639,
+        "Standard": 361
+      },
+      "roof_r_value": {
+        "14.0": 361,
+        "19.0": 1639
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 606,
+        "natural gas": 1313,
+        "propane": 81
+      },
+      "wall_material": {
+        "Insulated": 2000
+      },
+      "wall_r_value": {
+        "10.0": 554,
+        "12.0": 1446
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 136,
+        "0.05": 676,
+        "0.2": 823,
+        "0.4": 290,
+        "0.65": 51,
+        "0.9": 24
+      },
+      "window_type": {
+        "Double Pane": 1488,
+        "Single Pane": 512
+      }
+    },
+    "vacant": 0
+  },
+  "com|Lodging|AZ|2010": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 300,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 840,
+        "fuel oil": 49,
+        "natural gas": 991,
+        "propane": 105,
+        "wood": 15
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1718,
+        "Standard": 282
+      },
+      "roof_r_value": {
+        "6.0": 282,
+        "21.0": 1628,
+        "26.0": 90
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 972,
+        "fuel oil": 21,
+        "natural gas": 908,
+        "propane": 99
+      },
+      "wall_material": {
+        "Insulated": 1399,
+        "Standard": 505,
+        "Super Insulated": 96
+      },
+      "wall_r_value": {
+        "6.0": 3,
+        "7.0": 502,
+        "8.0": 1339,
+        "11.0": 17,
+        "12.0": 43,
+        "16.0": 58,
+        "17.0": 38
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 187,
+        "0.05": 539,
+        "0.2": 993,
+        "0.4": 223,
+        "0.65": 15,
+        "0.85": 22,
+        "0.9": 21
+      },
+      "window_type": {
+        "Double Pane": 1769,
+        "Single Pane": 231
+      }
+    },
+    "vacant": 0
+  },
+  "com|Lodging|IL|1990": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 300,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 444,
+        "fuel oil": 41,
+        "natural gas": 1459,
+        "propane": 56
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1649,
+        "Standard": 351
+      },
+      "roof_r_value": {
+        "14.0": 351,
+        "19.0": 1649
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 578,
+        "natural gas": 1340,
+        "propane": 82
+      },
+      "wall_material": {
+        "Insulated": 2000
+      },
+      "wall_r_value": {
+        "10.0": 568,
+        "12.0": 1432
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 139,
+        "0.05": 517,
+        "0.2": 1064,
+        "0.4": 225,
+        "0.65": 23,
+        "0.85": 16,
+        "0.9": 16
+      },
+      "window_type": {
+        "Double Pane": 1540,
+        "Single Pane": 460
+      }
+    },
+    "vacant": 0
+  },
+  "com|Office|AZ|2010": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 250,
+      "weekday_start_time": "08:00"
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 835,
+        "fuel oil": 42,
+        "natural gas": 991,
+        "propane": 115,
+        "wood": 17
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1700,
+        "Standard": 300
+      },
+      "roof_r_value": {
+        "6.0": 300,
+        "21.0": 1628,
+        "26.0": 72
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 956,
+        "fuel oil": 16,
+        "natural gas": 906,
+        "propane": 122
+      },
+      "wall_material": {
+        "Insulated": 1445,
+        "Standard": 469,
+        "Super Insulated": 86
+      },
+      "wall_r_value": {
+        "6.0": 12,
+        "7.0": 457,
+        "8.0": 1380,
+        "11.0": 23,
+        "12.0": 42,
+        "16.0": 56,
+        "17.0": 30
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 127,
+        "0.05": 480,
+        "0.2": 815,
+        "0.4": 374,
+        "0.65": 110,
+        "0.9": 94
+      },
+      "window_type": {
+        "Double Pane": 1741,
+        "Single Pane": 259
+      }
+    },
+    "vacant": 0
+  },
+  "com|Office|IL|1990": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 250,
+      "weekday_start_time": "08:00"
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 434,
+        "fuel oil": 43,
+        "natural gas": 1439,
+        "propane": 84
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1646,
+        "Standard": 354
+      },
+      "roof_r_value": {
+        "14.0": 354,
+        "19.0": 1646
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 580,
+        "natural gas": 1343,
+        "propane": 77
+      },
+      "wall_material": {
+        "Insulated": 2000
+      },
+      "wall_r_value": {
+        "10.0": 530,
+        "12.0": 1470
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 128,
+        "0.05": 506,
+        "0.2": 821,
+        "0.4": 350,
+        "0.65": 116,
+        "0.9": 79
+      },
+      "window_type": {
+        "Double Pane": 1497,
+        "Single Pane": 503
+      }
+    },
+    "vacant": 0
+  },
+  "com|Retail|AZ|2010": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 750,
+      "weekday_start_time": "09:00"
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 858,
+        "fuel oil": 34,
+        "natural gas": 985,
+        "propane": 102,
+        "wood": 21
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1706,
+        "Standard": 294
+      },
+      "roof_r_value": {
+        "6.0": 294,
+        "21.0": 1637,
+        "26.0": 69
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 967,
+        "fuel oil": 24,
+        "natural gas": 878,
+        "propane": 131
+      },
+      "wall_material": {
+        "Insulated": 1436,
+        "Standard": 476,
+        "Super Insulated": 88
+      },
+      "wall_r_value": {
+        "6.0": 11,
+        "7.0": 465,
+        "8.0": 1372,
+        "11.0": 21,
+        "12.0": 43,
+        "16.0": 62,
+        "17.0": 26
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 713,
+        "0.05": 649,
+        "0.2": 353,
+        "0.4": 212,
+        "0.65": 60,
+        "0.9": 13
+      },
+      "window_type": {
+        "Double Pane": 1727,
+        "Single Pane": 273
+      }
+    },
+    "vacant": 0
+  },
+  "com|Retail|IL|1990": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 750,
+      "weekday_start_time": "09:00"
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 409,
+        "fuel oil": 49,
+        "natural gas": 1469,
+        "propane": 73
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1639,
+        "Standard": 361
+      },
+      "roof_r_value": {
+        "14.0": 361,
+        "19.0": 1639
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 590,
+        "natural gas": 1329,
+        "propane": 81
+      },
+      "wall_material": {
+        "Insulated": 2000
+      },
+      "wall_r_value": {
+        "10.0": 510,
+        "12.0": 1490
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 718,
+        "0.05": 658,
+        "0.2": 354,
+        "0.4": 210,
+        "0.65": 50,
+        "0.9": 10
+      },
+      "window_type": {
+        "Double Pane": 1474,
+        "Single Pane": 526
+      }
+    },
+    "vacant": 0
+  },
+  "com|Warehouse|AZ|2010": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 15,
+      "weekday_start_time": "08:00"
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 836,
+        "fuel oil": 40,
+        "natural gas": 1034,
+        "propane": 73,
+        "wood": 17
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1713,
+        "Standard": 287
+      },
+      "roof_r_value": {
+        "6.0": 287,
+        "21.0": 1614,
+        "26.0": 99
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1027,
+        "fuel oil": 14,
+        "natural gas": 840,
+        "propane": 119
+      },
+      "wall_material": {
+        "Insulated": 1363,
+        "Standard": 509,
+        "Super Insulated": 128
+      },
+      "wall_r_value": {
+        "6.0": 4,
+        "7.0": 505,
+        "8.0": 1284,
+        "11.0": 30,
+        "12.0": 49,
+        "16.0": 85,
+        "17.0": 43
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 568,
+        "0.05": 878,
+        "0.2": 282,
+        "0.4": 229,
+        "0.65": 43
+      },
+      "window_type": {
+        "Double Pane": 1732,
+        "Single Pane": 268
+      }
+    },
+    "vacant": 0
+  },
+  "com|Warehouse|IL|1990": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 15,
+      "weekday_start_time": "08:00"
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 433,
+        "fuel oil": 42,
+        "natural gas": 1431,
+        "propane": 94
+      },
+      "heating_system_type": {
+        "null": 2000
+      },
+      "roof_material": {
+        "Insulated": 1628,
+        "Standard": 372
+      },
+      "roof_r_value": {
+        "14.0": 372,
+        "19.0": 1628
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 590,
+        "natural gas": 1342,
+        "propane": 68
+      },
+      "wall_material": {
+        "Insulated": 2000
+      },
+      "wall_r_value": {
+        "10.0": 539,
+        "12.0": 1461
+      },
+      "water_heater_type": {
+        "null": 2000
+      },
+      "window_to_wall_ratio": {
+        "0.0": 551,
+        "0.05": 914,
+        "0.2": 281,
+        "0.4": 230,
+        "0.65": 24
+      },
+      "window_type": {
+        "Double Pane": 1512,
+        "Single Pane": 488
+      }
+    },
+    "vacant": 0
+  },
+  "res|East North Central|1965|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 279,
+        "natural gas": 1692,
+        "propane": 29
+      },
+      "heating_system_type": {
+        "boiler": 240,
+        "electric_resistance": 229,
+        "furnace": 1481,
+        "heat_pump": 50
+      },
+      "roof_material": {
+        "Insulated": 888,
+        "Standard": 466,
+        "Super Insulated": 646
+      },
+      "roof_r_value": {
+        "1.0": 51,
+        "7.0": 136,
+        "13.0": 279,
+        "19.0": 454,
+        "30.0": 434,
+        "38.0": 444,
+        "49.0": 202
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 544,
+        "natural gas": 1436,
+        "propane": 20
+      },
+      "wall_material": {
+        "Insulated": 204,
+        "Standard": 1680,
+        "Super Insulated": 116
+      },
+      "wall_r_value": {
+        "1.0": 1337,
+        "7.0": 343,
+        "11.0": 204,
+        "15.0": 77,
+        "19.0": 39
+      },
+      "water_heater_type": {
+        "heat pump water heater": 7,
+        "instantaneous water heater": 75,
+        "storage water heater": 1918
+      },
+      "window_to_wall_ratio": {
+        "0.06": 189,
+        "0.09": 556,
+        "0.12": 529,
+        "0.15": 307,
+        "0.18": 330,
+        "0.3": 89
+      },
+      "window_type": {
+        "Double Pane": 1259,
+        "Single Pane": 715,
+        "Triple Pane": 26
+      }
+    },
+    "vacant": 165
+  },
+  "res|East North Central|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 307,
+        "fuel oil": 34,
+        "natural gas": 1494,
+        "propane": 127,
+        "wood": 38
+      },
+      "heating_system_type": {
+        "boiler": 240,
+        "electric_resistance": 265,
+        "furnace": 1415,
+        "heat_pump": 42,
+        "wood_stove": 38
+      },
+      "roof_material": {
+        "Insulated": 880,
+        "Standard": 455,
+        "Super Insulated": 665
+      },
+      "roof_r_value": {
+        "1.0": 47,
+        "7.0": 131,
+        "13.0": 277,
+        "19.0": 444,
+        "30.0": 436,
+        "38.0": 460,
+        "49.0": 205
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 591,
+        "fuel oil": 14,
+        "natural gas": 1321,
+        "propane": 73,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 168,
+        "Standard": 1731,
+        "Super Insulated": 101
+      },
+      "wall_r_value": {
+        "1.0": 1352,
+        "7.0": 379,
+        "11.0": 168,
+        "15.0": 67,
+        "19.0": 34
+      },
+      "water_heater_type": {
+        "heat pump water heater": 3,
+        "instantaneous water heater": 58,
+        "storage water heater": 1939
+      },
+      "window_to_wall_ratio": {
+        "0.06": 194,
+        "0.09": 564,
+        "0.12": 529,
+        "0.15": 349,
+        "0.18": 288,
+        "0.3": 76
+      },
+      "window_type": {
+        "Double Pane": 1210,
+        "Single Pane": 764,
+        "Triple Pane": 26
+      }
+    },
+    "vacant": 0
+  },
+  "res|East North Central|1990|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 322,
+        "fuel oil": 4,
+        "natural gas": 1636,
+        "propane": 37,
+        "wood": 1
+      },
+      "heating_system_type": {
+        "boiler": 26,
+        "electric_resistance": 153,
+        "furnace": 1651,
+        "heat_pump": 169,
+        "wood_stove": 1
+      },
+      "roof_material": {
+        "Insulated": 1043,
+        "Standard": 220,
+        "Super Insulated": 737
+      },
+      "roof_r_value": {
+        "1.0": 31,
+        "7.0": 53,
+        "13.0": 136,
+        "19.0": 304,
+        "30.0": 739,
+        "38.0": 510,
+        "49.0": 227
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 563,
+        "fuel oil": 1,
+        "natural gas": 1414,
+        "propane": 22
+      },
+      "wall_material": {
+        "Insulated": 986,
+        "Standard": 21,
+        "Super Insulated": 993
+      },
+      "wall_r_value": {
+        "1.0": 12,
+        "7.0": 9,
+        "11.0": 986,
+        "15.0": 438,
+        "19.0": 555
+      },
+      "water_heater_type": {
+        "heat pump water heater": 4,
+        "instantaneous water heater": 64,
+        "storage water heater": 1932
+      },
+      "window_to_wall_ratio": {
+        "0.06": 167,
+        "0.09": 573,
+        "0.12": 532,
+        "0.15": 319,
+        "0.18": 333,
+        "0.3": 76
+      },
+      "window_type": {
+        "Double Pane": 1428,
+        "Single Pane": 508,
+        "Triple Pane": 64
+      }
+    },
+    "vacant": 165
+  },
+  "res|East North Central|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 434,
+        "fuel oil": 25,
+        "natural gas": 1332,
+        "propane": 165,
+        "wood": 44
+      },
+      "heating_system_type": {
+        "boiler": 21,
+        "electric_resistance": 214,
+        "furnace": 1501,
+        "heat_pump": 220,
+        "wood_stove": 44
+      },
+      "roof_material": {
+        "Insulated": 1039,
+        "Standard": 233,
+        "Super Insulated": 728
+      },
+      "roof_r_value": {
+        "1.0": 25,
+        "7.0": 61,
+        "13.0": 147,
+        "19.0": 306,
+        "30.0": 733,
+        "38.0": 493,
+        "49.0": 235
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 743,
+        "fuel oil": 13,
+        "natural gas": 1150,
+        "propane": 93,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 980,
+        "Standard": 12,
+        "Super Insulated": 1008
+      },
+      "wall_r_value": {
+        "1.0": 12,
+        "11.0": 980,
+        "15.0": 411,
+        "19.0": 597
+      },
+      "water_heater_type": {
+        "heat pump water heater": 5,
+        "instantaneous water heater": 86,
+        "storage water heater": 1909
+      },
+      "window_to_wall_ratio": {
+        "0.06": 180,
+        "0.09": 562,
+        "0.12": 578,
+        "0.15": 304,
+        "0.18": 280,
+        "0.3": 96
+      },
+      "window_type": {
+        "Double Pane": 1420,
+        "Single Pane": 527,
+        "Triple Pane": 53
+      }
+    },
+    "vacant": 0
+  },
+  "res|East North Central|2015|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 327,
+        "fuel oil": 1,
+        "natural gas": 1646,
+        "propane": 26
+      },
+      "heating_system_type": {
+        "electric_resistance": 151,
+        "furnace": 1673,
+        "heat_pump": 176
+      },
+      "roof_material": {
+        "Insulated": 890,
+        "Standard": 183,
+        "Super Insulated": 927
+      },
+      "roof_r_value": {
+        "1.0": 40,
+        "7.0": 47,
+        "13.0": 96,
+        "19.0": 173,
+        "30.0": 717,
+        "38.0": 499,
+        "49.0": 428
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 595,
+        "natural gas": 1386,
+        "propane": 19
+      },
+      "wall_material": {
+        "Insulated": 625,
+        "Super Insulated": 1375
+      },
+      "wall_r_value": {
+        "11.0": 625,
+        "15.0": 385,
+        "19.0": 990
+      },
+      "water_heater_type": {
+        "heat pump water heater": 3,
+        "instantaneous water heater": 56,
+        "storage water heater": 1941
+      },
+      "window_to_wall_ratio": {
+        "0.06": 168,
+        "0.09": 579,
+        "0.12": 565,
+        "0.15": 333,
+        "0.18": 280,
+        "0.3": 75
+      },
+      "window_type": {
+        "Double Pane": 1621,
+        "Single Pane": 351,
+        "Triple Pane": 28
+      }
+    },
+    "vacant": 165
+  },
+  "res|East North Central|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 613,
+        "fuel oil": 20,
+        "natural gas": 1188,
+        "propane": 159,
+        "wood": 20
+      },
+      "heating_system_type": {
+        "electric_resistance": 291,
+        "furnace": 1367,
+        "heat_pump": 322,
+        "wood_stove": 20
+      },
+      "roof_material": {
+        "Insulated": 869,
+        "Standard": 200,
+        "Super Insulated": 931
+      },
+      "roof_r_value": {
+        "1.0": 34,
+        "7.0": 65,
+        "13.0": 101,
+        "19.0": 159,
+        "30.0": 710,
+        "38.0": 518,
+        "49.0": 413
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 826,
+        "fuel oil": 8,
+        "natural gas": 1078,
+        "propane": 88
+      },
+      "wall_material": {
+        "Insulated": 647,
+        "Super Insulated": 1353
+      },
+      "wall_r_value": {
+        "11.0": 647,
+        "15.0": 402,
+        "19.0": 951
+      },
+      "water_heater_type": {
+        "heat pump water heater": 2,
+        "instantaneous water heater": 61,
+        "storage water heater": 1937
+      },
+      "window_to_wall_ratio": {
+        "0.06": 179,
+        "0.09": 613,
+        "0.12": 522,
+        "0.15": 321,
+        "0.18": 291,
+        "0.3": 74
+      },
+      "window_type": {
+        "Double Pane": 1612,
+        "Single Pane": 355,
+        "Triple Pane": 33
+      }
+    },
+    "vacant": 0
+  },
+  "res|East South Central|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 930,
+        "fuel oil": 19,
+        "natural gas": 898,
+        "propane": 107,
+        "wood": 46
+      },
+      "heating_system_type": {
+        "electric_resistance": 89,
+        "furnace": 1024,
+        "heat_pump": 841,
+        "wood_stove": 46
+      },
+      "roof_material": {
+        "Insulated": 898,
+        "Standard": 746,
+        "Super Insulated": 356
+      },
+      "roof_r_value": {
+        "1.0": 122,
+        "7.0": 228,
+        "13.0": 396,
+        "19.0": 370,
+        "30.0": 528,
+        "38.0": 305,
+        "49.0": 51
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1066,
+        "fuel oil": 14,
+        "natural gas": 841,
+        "propane": 77,
+        "wood": 2
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1692,
+        "7.0": 308
+      },
+      "water_heater_type": {
+        "heat pump water heater": 6,
+        "instantaneous water heater": 99,
+        "storage water heater": 1895
+      },
+      "window_to_wall_ratio": {
+        "0.06": 194,
+        "0.09": 540,
+        "0.12": 594,
+        "0.15": 329,
+        "0.18": 283,
+        "0.3": 60
+      },
+      "window_type": {
+        "Double Pane": 941,
+        "Single Pane": 1024,
+        "Triple Pane": 35
+      }
+    },
+    "vacant": 0
+  },
+  "res|East South Central|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1249,
+        "natural gas": 592,
+        "propane": 135,
+        "wood": 24
+      },
+      "heating_system_type": {
+        "electric_resistance": 147,
+        "furnace": 727,
+        "heat_pump": 1102,
+        "wood_stove": 24
+      },
+      "roof_material": {
+        "Insulated": 1302,
+        "Standard": 342,
+        "Super Insulated": 356
+      },
+      "roof_r_value": {
+        "1.0": 28,
+        "7.0": 81,
+        "13.0": 233,
+        "19.0": 478,
+        "30.0": 824,
+        "38.0": 277,
+        "49.0": 79
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1263,
+        "fuel oil": 2,
+        "natural gas": 636,
+        "propane": 99
+      },
+      "wall_material": {
+        "Insulated": 1389,
+        "Standard": 38,
+        "Super Insulated": 573
+      },
+      "wall_r_value": {
+        "1.0": 32,
+        "7.0": 6,
+        "11.0": 1389,
+        "15.0": 338,
+        "19.0": 235
+      },
+      "water_heater_type": {
+        "heat pump water heater": 9,
+        "instantaneous water heater": 81,
+        "storage water heater": 1910
+      },
+      "window_to_wall_ratio": {
+        "0.06": 160,
+        "0.09": 590,
+        "0.12": 531,
+        "0.15": 317,
+        "0.18": 327,
+        "0.3": 75
+      },
+      "window_type": {
+        "Double Pane": 1140,
+        "Single Pane": 830,
+        "Triple Pane": 30
+      }
+    },
+    "vacant": 0
+  },
+  "res|East South Central|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1440,
+        "natural gas": 486,
+        "propane": 63,
+        "wood": 11
+      },
+      "heating_system_type": {
+        "boiler": 14,
+        "electric_resistance": 211,
+        "furnace": 535,
+        "heat_pump": 1229,
+        "wood_stove": 11
+      },
+      "roof_material": {
+        "Insulated": 1424,
+        "Standard": 121,
+        "Super Insulated": 455
+      },
+      "roof_r_value": {
+        "1.0": 18,
+        "7.0": 26,
+        "13.0": 77,
+        "19.0": 294,
+        "30.0": 1130,
+        "38.0": 402,
+        "49.0": 53
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1367,
+        "natural gas": 569,
+        "propane": 63,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 1323,
+        "Super Insulated": 677
+      },
+      "wall_r_value": {
+        "11.0": 1323,
+        "15.0": 334,
+        "19.0": 343
+      },
+      "water_heater_type": {
+        "heat pump water heater": 12,
+        "instantaneous water heater": 87,
+        "storage water heater": 1901
+      },
+      "window_to_wall_ratio": {
+        "0.06": 175,
+        "0.09": 591,
+        "0.12": 522,
+        "0.15": 336,
+        "0.18": 301,
+        "0.3": 75
+      },
+      "window_type": {
+        "Double Pane": 1521,
+        "Single Pane": 454,
+        "Triple Pane": 25
+      }
+    },
+    "vacant": 0
+  },
+  "res|Middle Atlantic|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 300,
+        "fuel oil": 315,
+        "natural gas": 1301,
+        "propane": 49,
+        "wood": 35
+      },
+      "heating_system_type": {
+        "boiler": 559,
+        "electric_resistance": 198,
+        "furnace": 1106,
+        "heat_pump": 102,
+        "wood_stove": 35
+      },
+      "roof_material": {
+        "Insulated": 921,
+        "Standard": 516,
+        "Super Insulated": 563
+      },
+      "roof_r_value": {
+        "1.0": 67,
+        "7.0": 177,
+        "13.0": 272,
+        "19.0": 507,
+        "30.0": 414,
+        "38.0": 445,
+        "49.0": 118
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 670,
+        "fuel oil": 127,
+        "natural gas": 1153,
+        "propane": 49,
+        "wood": 1
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1697,
+        "7.0": 303
+      },
+      "water_heater_type": {
+        "instantaneous water heater": 102,
+        "storage water heater": 1898
+      },
+      "window_to_wall_ratio": {
+        "0.06": 183,
+        "0.09": 542,
+        "0.12": 557,
+        "0.15": 351,
+        "0.18": 285,
+        "0.3": 82
+      },
+      "window_type": {
+        "Double Pane": 1281,
+        "Single Pane": 693,
+        "Triple Pane": 26
+      }
+    },
+    "vacant": 0
+  },
+  "res|Middle Atlantic|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 490,
+        "fuel oil": 139,
+        "natural gas": 1099,
+        "propane": 203,
+        "wood": 69
+      },
+      "heating_system_type": {
+        "boiler": 321,
+        "electric_resistance": 348,
+        "furnace": 1120,
+        "heat_pump": 142,
+        "wood_stove": 69
+      },
+      "roof_material": {
+        "Insulated": 1200,
+        "Standard": 261,
+        "Super Insulated": 539
+      },
+      "roof_r_value": {
+        "1.0": 29,
+        "7.0": 62,
+        "13.0": 170,
+        "19.0": 355,
+        "30.0": 845,
+        "38.0": 440,
+        "49.0": 99
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 818,
+        "fuel oil": 69,
+        "natural gas": 979,
+        "propane": 130,
+        "wood": 4
+      },
+      "wall_material": {
+        "Insulated": 1208,
+        "Standard": 14,
+        "Super Insulated": 778
+      },
+      "wall_r_value": {
+        "1.0": 13,
+        "7.0": 1,
+        "11.0": 1208,
+        "15.0": 70,
+        "19.0": 708
+      },
+      "water_heater_type": {
+        "heat pump water heater": 1,
+        "instantaneous water heater": 96,
+        "storage water heater": 1903
+      },
+      "window_to_wall_ratio": {
+        "0.06": 194,
+        "0.09": 583,
+        "0.12": 522,
+        "0.15": 329,
+        "0.18": 299,
+        "0.3": 73
+      },
+      "window_type": {
+        "Double Pane": 1409,
+        "Single Pane": 573,
+        "Triple Pane": 18
+      }
+    },
+    "vacant": 0
+  },
+  "res|Middle Atlantic|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 763,
+        "fuel oil": 29,
+        "natural gas": 993,
+        "propane": 194,
+        "wood": 21
+      },
+      "heating_system_type": {
+        "boiler": 142,
+        "electric_resistance": 369,
+        "furnace": 1074,
+        "heat_pump": 394,
+        "wood_stove": 21
+      },
+      "roof_material": {
+        "Insulated": 1104,
+        "Standard": 165,
+        "Super Insulated": 731
+      },
+      "roof_r_value": {
+        "1.0": 29,
+        "7.0": 51,
+        "13.0": 85,
+        "19.0": 171,
+        "30.0": 933,
+        "38.0": 531,
+        "49.0": 200
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 955,
+        "fuel oil": 16,
+        "natural gas": 920,
+        "propane": 108,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 623,
+        "Super Insulated": 1377
+      },
+      "wall_r_value": {
+        "11.0": 623,
+        "15.0": 73,
+        "19.0": 1304
+      },
+      "water_heater_type": {
+        "heat pump water heater": 4,
+        "instantaneous water heater": 85,
+        "storage water heater": 1911
+      },
+      "window_to_wall_ratio": {
+        "0.06": 167,
+        "0.09": 549,
+        "0.12": 604,
+        "0.15": 338,
+        "0.18": 267,
+        "0.3": 75
+      },
+      "window_type": {
+        "Double Pane": 1469,
+        "Single Pane": 435,
+        "Triple Pane": 96
+      }
+    },
+    "vacant": 0
+  },
+  "res|Mountain North|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 337,
+        "natural gas": 1502,
+        "propane": 101,
+        "wood": 60
+      },
+      "heating_system_type": {
+        "boiler": 205,
+        "electric_resistance": 266,
+        "furnace": 1398,
+        "heat_pump": 71,
+        "wood_stove": 60
+      },
+      "roof_material": {
+        "Insulated": 955,
+        "Standard": 603,
+        "Super Insulated": 442
+      },
+      "roof_r_value": {
+        "1.0": 121,
+        "7.0": 151,
+        "13.0": 331,
+        "19.0": 361,
+        "30.0": 594,
+        "38.0": 354,
+        "49.0": 88
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 608,
+        "fuel oil": 2,
+        "natural gas": 1317,
+        "propane": 70,
+        "wood": 3
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1700,
+        "7.0": 300
+      },
+      "water_heater_type": {
+        "heat pump water heater": 3,
+        "instantaneous water heater": 92,
+        "storage water heater": 1905
+      },
+      "window_to_wall_ratio": {
+        "0.06": 168,
+        "0.09": 572,
+        "0.12": 537,
+        "0.15": 333,
+        "0.18": 324,
+        "0.3": 66
+      },
+      "window_type": {
+        "Double Pane": 1148,
+        "Single Pane": 819,
+        "Triple Pane": 33
+      }
+    },
+    "vacant": 0
+  },
+  "res|Mountain North|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 339,
+        "natural gas": 1479,
+        "propane": 97,
+        "wood": 85
+      },
+      "heating_system_type": {
+        "boiler": 89,
+        "electric_resistance": 279,
+        "furnace": 1487,
+        "heat_pump": 60,
+        "wood_stove": 85
+      },
+      "roof_material": {
+        "Insulated": 1147,
+        "Standard": 369,
+        "Super Insulated": 484
+      },
+      "roof_r_value": {
+        "1.0": 35,
+        "7.0": 113,
+        "13.0": 221,
+        "19.0": 387,
+        "30.0": 760,
+        "38.0": 393,
+        "49.0": 91
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 664,
+        "fuel oil": 4,
+        "natural gas": 1249,
+        "propane": 78,
+        "wood": 5
+      },
+      "wall_material": {
+        "Insulated": 1515,
+        "Standard": 47,
+        "Super Insulated": 438
+      },
+      "wall_r_value": {
+        "1.0": 10,
+        "7.0": 37,
+        "11.0": 1515,
+        "15.0": 63,
+        "19.0": 375
+      },
+      "water_heater_type": {
+        "instantaneous water heater": 101,
+        "storage water heater": 1899
+      },
+      "window_to_wall_ratio": {
+        "0.06": 203,
+        "0.09": 584,
+        "0.12": 471,
+        "0.15": 343,
+        "0.18": 326,
+        "0.3": 73
+      },
+      "window_type": {
+        "Double Pane": 1288,
+        "Single Pane": 673,
+        "Triple Pane": 39
+      }
+    },
+    "vacant": 0
+  },
+  "res|Mountain North|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 597,
+        "natural gas": 1324,
+        "propane": 39,
+        "wood": 40
+      },
+      "heating_system_type": {
+        "boiler": 93,
+        "electric_resistance": 420,
+        "furnace": 1270,
+        "heat_pump": 177,
+        "wood_stove": 40
+      },
+      "roof_material": {
+        "Insulated": 967,
+        "Standard": 222,
+        "Super Insulated": 811
+      },
+      "roof_r_value": {
+        "1.0": 39,
+        "7.0": 63,
+        "13.0": 120,
+        "19.0": 210,
+        "30.0": 757,
+        "38.0": 630,
+        "49.0": 181
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 813,
+        "fuel oil": 1,
+        "natural gas": 1143,
+        "propane": 42,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 566,
+        "Super Insulated": 1434
+      },
+      "wall_r_value": {
+        "11.0": 566,
+        "15.0": 203,
+        "19.0": 1231
+      },
+      "water_heater_type": {
+        "heat pump water heater": 3,
+        "instantaneous water heater": 123,
+        "storage water heater": 1874
+      },
+      "window_to_wall_ratio": {
+        "0.06": 200,
+        "0.09": 567,
+        "0.12": 557,
+        "0.15": 304,
+        "0.18": 295,
+        "0.3": 77
+      },
+      "window_type": {
+        "Double Pane": 1559,
+        "Single Pane": 363,
+        "Triple Pane": 78
+      }
+    },
+    "vacant": 0
+  },
+  "res|Mountain South|1965|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1424,
+        "fuel oil": 2,
+        "natural gas": 551,
+        "propane": 20,
+        "wood": 3
+      },
+      "heating_system_type": {
+        "boiler": 15,
+        "electric_resistance": 268,
+        "furnace": 558,
+        "heat_pump": 1156,
+        "wood_stove": 3
+      },
+      "roof_material": {
+        "Insulated": 883,
+        "Standard": 659,
+        "Super Insulated": 458
+      },
+      "roof_r_value": {
+        "1.0": 105,
+        "7.0": 197,
+        "13.0": 357,
+        "19.0": 361,
+        "30.0": 522,
+        "38.0": 360,
+        "49.0": 98
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1340,
+        "fuel oil": 3,
+        "natural gas": 610,
+        "propane": 47
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1688,
+        "7.0": 312
+      },
+      "water_heater_type": {
+        "heat pump water heater": 1,
+        "instantaneous water heater": 129,
+        "storage water heater": 1870
+      },
+      "window_to_wall_ratio": {
+        "0.06": 138,
+        "0.09": 587,
+        "0.12": 571,
+        "0.15": 337,
+        "0.18": 288,
+        "0.3": 79
+      },
+      "window_type": {
+        "Double Pane": 1159,
+        "Single Pane": 821,
+        "Triple Pane": 20
+      }
+    },
+    "vacant": 106
+  },
+  "res|Mountain South|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 863,
+        "natural gas": 1048,
+        "propane": 18,
+        "wood": 71
+      },
+      "heating_system_type": {
+        "boiler": 28,
+        "electric_resistance": 159,
+        "furnace": 1038,
+        "heat_pump": 704,
+        "wood_stove": 71
+      },
+      "roof_material": {
+        "Insulated": 984,
+        "Standard": 599,
+        "Super Insulated": 417
+      },
+      "roof_r_value": {
+        "1.0": 104,
+        "7.0": 175,
+        "13.0": 320,
+        "19.0": 383,
+        "30.0": 601,
+        "38.0": 323,
+        "49.0": 94
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1016,
+        "fuel oil": 3,
+        "natural gas": 943,
+        "propane": 35,
+        "wood": 3
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1682,
+        "7.0": 318
+      },
+      "water_heater_type": {
+        "heat pump water heater": 2,
+        "instantaneous water heater": 132,
+        "storage water heater": 1866
+      },
+      "window_to_wall_ratio": {
+        "0.06": 184,
+        "0.09": 575,
+        "0.12": 530,
+        "0.15": 341,
+        "0.18": 290,
+        "0.3": 80
+      },
+      "window_type": {
+        "Double Pane": 1140,
+        "Single Pane": 830,
+        "Triple Pane": 30
+      }
+    },
+    "vacant": 0
+  },
+  "res|Mountain South|1990|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1395,
+        "fuel oil": 1,
+        "natural gas": 582,
+        "propane": 22
+      },
+      "heating_system_type": {
+        "boiler": 26,
+        "electric_resistance": 179,
+        "furnace": 579,
+        "heat_pump": 1216
+      },
+      "roof_material": {
+        "Insulated": 1126,
+        "Standard": 362,
+        "Super Insulated": 512
+      },
+      "roof_r_value": {
+        "1.0": 43,
+        "7.0": 109,
+        "13.0": 210,
+        "19.0": 410,
+        "30.0": 716,
+        "38.0": 411,
+        "49.0": 101
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1319,
+        "fuel oil": 1,
+        "natural gas": 639,
+        "propane": 41
+      },
+      "wall_material": {
+        "Insulated": 1496,
+        "Standard": 54,
+        "Super Insulated": 450
+      },
+      "wall_r_value": {
+        "1.0": 13,
+        "7.0": 41,
+        "11.0": 1496,
+        "15.0": 64,
+        "19.0": 386
+      },
+      "water_heater_type": {
+        "heat pump water heater": 2,
+        "instantaneous water heater": 142,
+        "storage water heater": 1856
+      },
+      "window_to_wall_ratio": {
+        "0.06": 174,
+        "0.09": 575,
+        "0.12": 539,
+        "0.15": 336,
+        "0.18": 296,
+        "0.3": 80
+      },
+      "window_type": {
+        "Double Pane": 1276,
+        "Single Pane": 684,
+        "Triple Pane": 40
+      }
+    },
+    "vacant": 106
+  },
+  "res|Mountain South|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 881,
+        "fuel oil": 23,
+        "natural gas": 965,
+        "propane": 71,
+        "wood": 60
+      },
+      "heating_system_type": {
+        "boiler": 38,
+        "electric_resistance": 120,
+        "furnace": 1021,
+        "heat_pump": 761,
+        "wood_stove": 60
+      },
+      "roof_material": {
+        "Insulated": 1149,
+        "Standard": 365,
+        "Super Insulated": 486
+      },
+      "roof_r_value": {
+        "1.0": 37,
+        "7.0": 110,
+        "13.0": 218,
+        "19.0": 417,
+        "30.0": 732,
+        "38.0": 396,
+        "49.0": 90
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1003,
+        "fuel oil": 14,
+        "natural gas": 917,
+        "propane": 60,
+        "wood": 6
+      },
+      "wall_material": {
+        "Insulated": 1539,
+        "Standard": 43,
+        "Super Insulated": 418
+      },
+      "wall_r_value": {
+        "1.0": 15,
+        "7.0": 28,
+        "11.0": 1539,
+        "15.0": 66,
+        "19.0": 352
+      },
+      "water_heater_type": {
+        "heat pump water heater": 2,
+        "instantaneous water heater": 149,
+        "storage water heater": 1849
+      },
+      "window_to_wall_ratio": {
+        "0.06": 185,
+        "0.09": 579,
+        "0.12": 532,
+        "0.15": 324,
+        "0.18": 293,
+        "0.3": 87
+      },
+      "window_type": {
+        "Double Pane": 1297,
+        "Single Pane": 650,
+        "Triple Pane": 53
+      }
+    },
+    "vacant": 0
+  },
+  "res|Mountain South|2015|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1431,
+        "fuel oil": 3,
+        "natural gas": 543,
+        "propane": 18,
+        "wood": 5
+      },
+      "heating_system_type": {
+        "furnace": 564,
+        "heat_pump": 1431,
+        "wood_stove": 5
+      },
+      "roof_material": {
+        "Insulated": 941,
+        "Standard": 214,
+        "Super Insulated": 845
+      },
+      "roof_r_value": {
+        "1.0": 40,
+        "7.0": 60,
+        "13.0": 114,
+        "19.0": 210,
+        "30.0": 731,
+        "38.0": 645,
+        "49.0": 200
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1331,
+        "fuel oil": 1,
+        "natural gas": 626,
+        "propane": 42
+      },
+      "wall_material": {
+        "Insulated": 597,
+        "Super Insulated": 1403
+      },
+      "wall_r_value": {
+        "11.0": 597,
+        "15.0": 183,
+        "19.0": 1220
+      },
+      "water_heater_type": {
+        "instantaneous water heater": 129,
+        "storage water heater": 1871
+      },
+      "window_to_wall_ratio": {
+        "0.06": 202,
+        "0.09": 526,
+        "0.12": 561,
+        "0.15": 342,
+        "0.18": 289,
+        "0.3": 80
+      },
+      "window_type": {
+        "Double Pane": 1573,
+        "Single Pane": 368,
+        "Triple Pane": 59
+      }
+    },
+    "vacant": 106
+  },
+  "res|Mountain South|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 676,
+        "natural gas": 1311,
+        "wood": 13
+      },
+      "heating_system_type": {
+        "furnace": 1311,
+        "heat_pump": 676,
+        "wood_stove": 13
+      },
+      "roof_material": {
+        "Insulated": 1016,
+        "Standard": 190,
+        "Super Insulated": 794
+      },
+      "roof_r_value": {
+        "1.0": 36,
+        "7.0": 42,
+        "13.0": 112,
+        "19.0": 237,
+        "30.0": 779,
+        "38.0": 606,
+        "49.0": 188
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 806,
+        "natural gas": 1178,
+        "propane": 15,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 526,
+        "Super Insulated": 1474
+      },
+      "wall_r_value": {
+        "11.0": 526,
+        "15.0": 192,
+        "19.0": 1282
+      },
+      "water_heater_type": {
+        "instantaneous water heater": 125,
+        "storage water heater": 1875
+      },
+      "window_to_wall_ratio": {
+        "0.06": 172,
+        "0.09": 583,
+        "0.12": 541,
+        "0.15": 335,
+        "0.18": 289,
+        "0.3": 80
+      },
+      "window_type": {
+        "Double Pane": 1557,
+        "Single Pane": 375,
+        "Triple Pane": 68
+      }
+    },
+    "vacant": 0
+  },
+  "res|New England|1965|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 592,
+        "fuel oil": 168,
+        "natural gas": 1186,
+        "propane": 51,
+        "wood": 3
+      },
+      "heating_system_type": {
+        "boiler": 519,
+        "electric_resistance": 501,
+        "furnace": 886,
+        "heat_pump": 91,
+        "wood_stove": 3
+      },
+      "roof_material": {
+        "Insulated": 934,
+        "Standard": 488,
+        "Super Insulated": 578
+      },
+      "roof_r_value": {
+        "1.0": 55,
+        "7.0": 158,
+        "13.0": 275,
+        "19.0": 465,
+        "30.0": 469,
+        "38.0": 438,
+        "49.0": 140
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 825,
+        "fuel oil": 68,
+        "natural gas": 1053,
+        "propane": 54
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1691,
+        "7.0": 309
+      },
+      "water_heater_type": {
+        "heat pump water heater": 7,
+        "instantaneous water heater": 172,
+        "storage water heater": 1821
+      },
+      "window_to_wall_ratio": {
+        "0.06": 171,
+        "0.09": 587,
+        "0.12": 521,
+        "0.15": 337,
+        "0.18": 307,
+        "0.3": 77
+      },
+      "window_type": {
+        "Double Pane": 1329,
+        "Single Pane": 636,
+        "Triple Pane": 35
+      }
+    },
+    "vacant": 145
+  },
+  "res|New England|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 300,
+        "fuel oil": 741,
+        "natural gas": 868,
+        "propane": 56,
+        "wood": 35
+      },
+      "heating_system_type": {
+        "boiler": 616,
+        "electric_resistance": 253,
+        "furnace": 1049,
+        "heat_pump": 47,
+        "wood_stove": 35
+      },
+      "roof_material": {
+        "Insulated": 874,
+        "Standard": 525,
+        "Super Insulated": 601
+      },
+      "roof_r_value": {
+        "1.0": 62,
+        "7.0": 171,
+        "13.0": 292,
+        "19.0": 456,
+        "30.0": 418,
+        "38.0": 483,
+        "49.0": 118
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 781,
+        "fuel oil": 351,
+        "natural gas": 808,
+        "propane": 59,
+        "wood": 1
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1659,
+        "7.0": 341
+      },
+      "water_heater_type": {
+        "heat pump water heater": 6,
+        "instantaneous water heater": 188,
+        "storage water heater": 1806
+      },
+      "window_to_wall_ratio": {
+        "0.06": 203,
+        "0.09": 495,
+        "0.12": 561,
+        "0.15": 344,
+        "0.18": 312,
+        "0.3": 85
+      },
+      "window_type": {
+        "Double Pane": 1276,
+        "Single Pane": 698,
+        "Triple Pane": 26
+      }
+    },
+    "vacant": 0
+  },
+  "res|New England|1990|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 584,
+        "fuel oil": 181,
+        "natural gas": 1163,
+        "propane": 71,
+        "wood": 1
+      },
+      "heating_system_type": {
+        "boiler": 422,
+        "electric_resistance": 440,
+        "furnace": 993,
+        "heat_pump": 144,
+        "wood_stove": 1
+      },
+      "roof_material": {
+        "Insulated": 1184,
+        "Standard": 255,
+        "Super Insulated": 561
+      },
+      "roof_r_value": {
+        "1.0": 31,
+        "7.0": 61,
+        "13.0": 163,
+        "19.0": 385,
+        "30.0": 799,
+        "38.0": 454,
+        "49.0": 107
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 816,
+        "fuel oil": 84,
+        "natural gas": 1045,
+        "propane": 55
+      },
+      "wall_material": {
+        "Insulated": 1204,
+        "Standard": 29,
+        "Super Insulated": 767
+      },
+      "wall_r_value": {
+        "1.0": 22,
+        "7.0": 7,
+        "11.0": 1204,
+        "15.0": 76,
+        "19.0": 691
+      },
+      "water_heater_type": {
+        "heat pump water heater": 20,
+        "instantaneous water heater": 164,
+        "storage water heater": 1816
+      },
+      "window_to_wall_ratio": {
+        "0.06": 201,
+        "0.09": 588,
+        "0.12": 520,
+        "0.15": 303,
+        "0.18": 316,
+        "0.3": 72
+      },
+      "window_type": {
+        "Double Pane": 1448,
+        "Single Pane": 530,
+        "Triple Pane": 22
+      }
+    },
+    "vacant": 145
+  },
+  "res|New England|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 378,
+        "fuel oil": 642,
+        "natural gas": 684,
+        "propane": 185,
+        "wood": 111
+      },
+      "heating_system_type": {
+        "boiler": 440,
+        "electric_resistance": 286,
+        "furnace": 1071,
+        "heat_pump": 92,
+        "wood_stove": 111
+      },
+      "roof_material": {
+        "Insulated": 1138,
+        "Standard": 280,
+        "Super Insulated": 582
+      },
+      "roof_r_value": {
+        "1.0": 25,
+        "7.0": 68,
+        "13.0": 187,
+        "19.0": 363,
+        "30.0": 775,
+        "38.0": 478,
+        "49.0": 104
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 872,
+        "fuel oil": 305,
+        "natural gas": 682,
+        "propane": 137,
+        "wood": 4
+      },
+      "wall_material": {
+        "Insulated": 1226,
+        "Standard": 17,
+        "Super Insulated": 757
+      },
+      "wall_r_value": {
+        "1.0": 12,
+        "7.0": 5,
+        "11.0": 1226,
+        "15.0": 58,
+        "19.0": 699
+      },
+      "water_heater_type": {
+        "heat pump water heater": 14,
+        "instantaneous water heater": 126,
+        "storage water heater": 1860
+      },
+      "window_to_wall_ratio": {
+        "0.06": 171,
+        "0.09": 595,
+        "0.12": 533,
+        "0.15": 322,
+        "0.18": 310,
+        "0.3": 69
+      },
+      "window_type": {
+        "Double Pane": 1452,
+        "Single Pane": 523,
+        "Triple Pane": 25
+      }
+    },
+    "vacant": 0
+  },
+  "res|New England|2015|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 580,
+        "fuel oil": 167,
+        "natural gas": 1200,
+        "propane": 50,
+        "wood": 3
+      },
+      "heating_system_type": {
+        "boiler": 161,
+        "electric_resistance": 383,
+        "furnace": 1256,
+        "heat_pump": 197,
+        "wood_stove": 3
+      },
+      "roof_material": {
+        "Insulated": 1124,
+        "Standard": 157,
+        "Super Insulated": 719
+      },
+      "roof_r_value": {
+        "1.0": 31,
+        "7.0": 34,
+        "13.0": 92,
+        "19.0": 200,
+        "30.0": 924,
+        "38.0": 558,
+        "49.0": 161
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 827,
+        "fuel oil": 70,
+        "natural gas": 1064,
+        "propane": 39
+      },
+      "wall_material": {
+        "Insulated": 695,
+        "Super Insulated": 1305
+      },
+      "wall_r_value": {
+        "11.0": 695,
+        "15.0": 77,
+        "19.0": 1228
+      },
+      "water_heater_type": {
+        "heat pump water heater": 7,
+        "instantaneous water heater": 233,
+        "storage water heater": 1760
+      },
+      "window_to_wall_ratio": {
+        "0.06": 183,
+        "0.09": 599,
+        "0.12": 526,
+        "0.15": 330,
+        "0.18": 291,
+        "0.3": 71
+      },
+      "window_type": {
+        "Double Pane": 1442,
+        "Single Pane": 443,
+        "Triple Pane": 115
+      }
+    },
+    "vacant": 145
+  },
+  "res|New England|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 507,
+        "fuel oil": 86,
+        "natural gas": 863,
+        "propane": 443,
+        "wood": 101
+      },
+      "heating_system_type": {
+        "boiler": 158,
+        "electric_resistance": 320,
+        "furnace": 1234,
+        "heat_pump": 187,
+        "wood_stove": 101
+      },
+      "roof_material": {
+        "Insulated": 1103,
+        "Standard": 142,
+        "Super Insulated": 755
+      },
+      "roof_r_value": {
+        "1.0": 16,
+        "7.0": 51,
+        "13.0": 75,
+        "19.0": 217,
+        "30.0": 886,
+        "38.0": 598,
+        "49.0": 157
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 923,
+        "fuel oil": 41,
+        "natural gas": 804,
+        "propane": 231,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 619,
+        "Super Insulated": 1381
+      },
+      "wall_r_value": {
+        "11.0": 619,
+        "15.0": 78,
+        "19.0": 1303
+      },
+      "water_heater_type": {
+        "heat pump water heater": 8,
+        "instantaneous water heater": 232,
+        "storage water heater": 1760
+      },
+      "window_to_wall_ratio": {
+        "0.06": 194,
+        "0.09": 578,
+        "0.12": 511,
+        "0.15": 326,
+        "0.18": 306,
+        "0.3": 85
+      },
+      "window_type": {
+        "Double Pane": 1506,
+        "Single Pane": 389,
+        "Triple Pane": 105
+      }
+    },
+    "vacant": 0
+  },
+  "res|Pacific|1965|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 560,
+        "fuel oil": 1,
+        "natural gas": 1402,
+        "propane": 31,
+        "wood": 6
+      },
+      "heating_system_type": {
+        "boiler": 17,
+        "electric_resistance": 412,
+        "furnace": 1417,
+        "heat_pump": 148,
+        "wood_stove": 6
+      },
+      "roof_material": {
+        "Insulated": 970,
+        "Standard": 610,
+        "Super Insulated": 420
+      },
+      "roof_r_value": {
+        "1.0": 106,
+        "7.0": 146,
+        "13.0": 358,
+        "19.0": 363,
+        "30.0": 607,
+        "38.0": 348,
+        "49.0": 72
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 755,
+        "fuel oil": 1,
+        "natural gas": 1213,
+        "propane": 31
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1664,
+        "7.0": 336
+      },
+      "water_heater_type": {
+        "heat pump water heater": 7,
+        "instantaneous water heater": 180,
+        "storage water heater": 1813
+      },
+      "window_to_wall_ratio": {
+        "0.06": 202,
+        "0.09": 527,
+        "0.12": 533,
+        "0.15": 345,
+        "0.18": 308,
+        "0.3": 85
+      },
+      "window_type": {
+        "Double Pane": 1148,
+        "Single Pane": 822,
+        "Triple Pane": 30
+      }
+    },
+    "vacant": 110
+  },
+  "res|Pacific|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 609,
+        "fuel oil": 18,
+        "natural gas": 1267,
+        "propane": 34,
+        "wood": 72
+      },
+      "heating_system_type": {
+        "boiler": 12,
+        "electric_resistance": 425,
+        "furnace": 1307,
+        "heat_pump": 184,
+        "wood_stove": 72
+      },
+      "roof_material": {
+        "Insulated": 891,
+        "Standard": 674,
+        "Super Insulated": 435
+      },
+      "roof_r_value": {
+        "1.0": 116,
+        "7.0": 181,
+        "13.0": 377,
+        "19.0": 354,
+        "30.0": 537,
+        "38.0": 329,
+        "49.0": 106
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 817,
+        "fuel oil": 13,
+        "natural gas": 1129,
+        "propane": 41
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1625,
+        "7.0": 375
+      },
+      "water_heater_type": {
+        "heat pump water heater": 14,
+        "instantaneous water heater": 209,
+        "storage water heater": 1777
+      },
+      "window_to_wall_ratio": {
+        "0.06": 184,
+        "0.09": 553,
+        "0.12": 559,
+        "0.15": 365,
+        "0.18": 272,
+        "0.3": 67
+      },
+      "window_type": {
+        "Double Pane": 1123,
+        "Single Pane": 855,
+        "Triple Pane": 22
+      }
+    },
+    "vacant": 0
+  },
+  "res|Pacific|1990|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 631,
+        "natural gas": 1339,
+        "propane": 27,
+        "wood": 3
+      },
+      "heating_system_type": {
+        "boiler": 14,
+        "electric_resistance": 370,
+        "furnace": 1352,
+        "heat_pump": 261,
+        "wood_stove": 3
+      },
+      "roof_material": {
+        "Insulated": 1163,
+        "Standard": 340,
+        "Super Insulated": 497
+      },
+      "roof_r_value": {
+        "1.0": 42,
+        "7.0": 93,
+        "13.0": 205,
+        "19.0": 401,
+        "30.0": 762,
+        "38.0": 426,
+        "49.0": 71
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 812,
+        "natural gas": 1161,
+        "propane": 26,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 1499,
+        "Standard": 55,
+        "Super Insulated": 446
+      },
+      "wall_r_value": {
+        "1.0": 16,
+        "7.0": 39,
+        "11.0": 1499,
+        "15.0": 55,
+        "19.0": 391
+      },
+      "water_heater_type": {
+        "heat pump water heater": 18,
+        "instantaneous water heater": 169,
+        "storage water heater": 1813
+      },
+      "window_to_wall_ratio": {
+        "0.06": 185,
+        "0.09": 575,
+        "0.12": 532,
+        "0.15": 339,
+        "0.18": 292,
+        "0.3": 77
+      },
+      "window_type": {
+        "Double Pane": 1300,
+        "Single Pane": 661,
+        "Triple Pane": 39
+      }
+    },
+    "vacant": 110
+  },
+  "res|Pacific|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 618,
+        "natural gas": 1271,
+        "propane": 49,
+        "wood": 62
+      },
+      "heating_system_type": {
+        "boiler": 12,
+        "electric_resistance": 342,
+        "furnace": 1308,
+        "heat_pump": 276,
+        "wood_stove": 62
+      },
+      "roof_material": {
+        "Insulated": 1157,
+        "Standard": 336,
+        "Super Insulated": 507
+      },
+      "roof_r_value": {
+        "1.0": 40,
+        "7.0": 92,
+        "13.0": 204,
+        "19.0": 437,
+        "30.0": 720,
+        "38.0": 419,
+        "49.0": 88
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 816,
+        "fuel oil": 4,
+        "natural gas": 1123,
+        "propane": 56,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 1504,
+        "Standard": 54,
+        "Super Insulated": 442
+      },
+      "wall_r_value": {
+        "1.0": 10,
+        "7.0": 44,
+        "11.0": 1504,
+        "15.0": 56,
+        "19.0": 386
+      },
+      "water_heater_type": {
+        "heat pump water heater": 17,
+        "instantaneous water heater": 163,
+        "storage water heater": 1820
+      },
+      "window_to_wall_ratio": {
+        "0.06": 202,
+        "0.09": 597,
+        "0.12": 516,
+        "0.15": 322,
+        "0.18": 286,
+        "0.3": 77
+      },
+      "window_type": {
+        "Double Pane": 1271,
+        "Single Pane": 681,
+        "Triple Pane": 48
+      }
+    },
+    "vacant": 0
+  },
+  "res|Pacific|2015|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 616,
+        "fuel oil": 4,
+        "natural gas": 1341,
+        "propane": 37,
+        "wood": 2
+      },
+      "heating_system_type": {
+        "boiler": 20,
+        "electric_resistance": 331,
+        "furnace": 1362,
+        "heat_pump": 285,
+        "wood_stove": 2
+      },
+      "roof_material": {
+        "Insulated": 971,
+        "Standard": 216,
+        "Super Insulated": 813
+      },
+      "roof_r_value": {
+        "1.0": 37,
+        "7.0": 50,
+        "13.0": 129,
+        "19.0": 251,
+        "30.0": 720,
+        "38.0": 646,
+        "49.0": 167
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 798,
+        "natural gas": 1169,
+        "propane": 33
+      },
+      "wall_material": {
+        "Insulated": 553,
+        "Super Insulated": 1447
+      },
+      "wall_r_value": {
+        "11.0": 553,
+        "15.0": 190,
+        "19.0": 1257
+      },
+      "water_heater_type": {
+        "heat pump water heater": 15,
+        "instantaneous water heater": 174,
+        "storage water heater": 1811
+      },
+      "window_to_wall_ratio": {
+        "0.06": 180,
+        "0.09": 542,
+        "0.12": 528,
+        "0.15": 346,
+        "0.18": 306,
+        "0.3": 98
+      },
+      "window_type": {
+        "Double Pane": 1535,
+        "Single Pane": 385,
+        "Triple Pane": 80
+      }
+    },
+    "vacant": 110
+  },
+  "res|Pacific|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 914,
+        "natural gas": 1010,
+        "propane": 34,
+        "wood": 42
+      },
+      "heating_system_type": {
+        "boiler": 14,
+        "electric_resistance": 510,
+        "furnace": 1030,
+        "heat_pump": 404,
+        "wood_stove": 42
+      },
+      "roof_material": {
+        "Insulated": 1016,
+        "Standard": 216,
+        "Super Insulated": 768
+      },
+      "roof_r_value": {
+        "1.0": 49,
+        "7.0": 57,
+        "13.0": 110,
+        "19.0": 243,
+        "30.0": 773,
+        "38.0": 574,
+        "49.0": 194
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 999,
+        "fuel oil": 1,
+        "natural gas": 953,
+        "propane": 44,
+        "wood": 3
+      },
+      "wall_material": {
+        "Insulated": 604,
+        "Super Insulated": 1396
+      },
+      "wall_r_value": {
+        "11.0": 604,
+        "15.0": 171,
+        "19.0": 1225
+      },
+      "water_heater_type": {
+        "heat pump water heater": 16,
+        "instantaneous water heater": 186,
+        "storage water heater": 1798
+      },
+      "window_to_wall_ratio": {
+        "0.06": 197,
+        "0.09": 567,
+        "0.12": 530,
+        "0.15": 328,
+        "0.18": 308,
+        "0.3": 70
+      },
+      "window_type": {
+        "Double Pane": 1583,
+        "Single Pane": 357,
+        "Triple Pane": 60
+      }
+    },
+    "vacant": 0
+  },
+  "res|South Atlantic|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1103,
+        "fuel oil": 92,
+        "natural gas": 689,
+        "propane": 68,
+        "wood": 48
+      },
+      "heating_system_type": {
+        "boiler": 43,
+        "electric_resistance": 153,
+        "furnace": 806,
+        "heat_pump": 950,
+        "wood_stove": 48
+      },
+      "roof_material": {
+        "Insulated": 913,
+        "Standard": 729,
+        "Super Insulated": 358
+      },
+      "roof_r_value": {
+        "1.0": 105,
+        "7.0": 211,
+        "13.0": 413,
+        "19.0": 378,
+        "30.0": 535,
+        "38.0": 284,
+        "49.0": 74
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1160,
+        "fuel oil": 51,
+        "natural gas": 719,
+        "propane": 70
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1686,
+        "7.0": 314
+      },
+      "water_heater_type": {
+        "heat pump water heater": 6,
+        "instantaneous water heater": 126,
+        "storage water heater": 1868
+      },
+      "window_to_wall_ratio": {
+        "0.06": 195,
+        "0.09": 566,
+        "0.12": 537,
+        "0.15": 320,
+        "0.18": 302,
+        "0.3": 80
+      },
+      "window_type": {
+        "Double Pane": 955,
+        "Single Pane": 1012,
+        "Triple Pane": 33
+      }
+    },
+    "vacant": 0
+  },
+  "res|South Atlantic|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1427,
+        "fuel oil": 13,
+        "natural gas": 465,
+        "propane": 62,
+        "wood": 33
+      },
+      "heating_system_type": {
+        "boiler": 7,
+        "electric_resistance": 82,
+        "furnace": 533,
+        "heat_pump": 1345,
+        "wood_stove": 33
+      },
+      "roof_material": {
+        "Insulated": 1343,
+        "Standard": 354,
+        "Super Insulated": 303
+      },
+      "roof_r_value": {
+        "1.0": 31,
+        "7.0": 90,
+        "13.0": 233,
+        "19.0": 495,
+        "30.0": 848,
+        "38.0": 251,
+        "49.0": 52
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1351,
+        "fuel oil": 11,
+        "natural gas": 559,
+        "propane": 78,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 1422,
+        "Standard": 48,
+        "Super Insulated": 530
+      },
+      "wall_r_value": {
+        "1.0": 40,
+        "7.0": 8,
+        "11.0": 1422,
+        "15.0": 282,
+        "19.0": 248
+      },
+      "water_heater_type": {
+        "heat pump water heater": 5,
+        "instantaneous water heater": 104,
+        "storage water heater": 1891
+      },
+      "window_to_wall_ratio": {
+        "0.06": 194,
+        "0.09": 544,
+        "0.12": 544,
+        "0.15": 327,
+        "0.18": 314,
+        "0.3": 77
+      },
+      "window_type": {
+        "Double Pane": 1151,
+        "Single Pane": 816,
+        "Triple Pane": 33
+      }
+    },
+    "vacant": 0
+  },
+  "res|South Atlantic|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1341,
+        "natural gas": 618,
+        "propane": 22,
+        "wood": 19
+      },
+      "heating_system_type": {
+        "electric_resistance": 111,
+        "furnace": 640,
+        "heat_pump": 1230,
+        "wood_stove": 19
+      },
+      "roof_material": {
+        "Insulated": 1443,
+        "Standard": 121,
+        "Super Insulated": 436
+      },
+      "roof_r_value": {
+        "1.0": 16,
+        "7.0": 35,
+        "13.0": 70,
+        "19.0": 275,
+        "30.0": 1168,
+        "38.0": 374,
+        "49.0": 62
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1292,
+        "fuel oil": 1,
+        "natural gas": 663,
+        "propane": 42,
+        "wood": 2
+      },
+      "wall_material": {
+        "Insulated": 1351,
+        "Super Insulated": 649
+      },
+      "wall_r_value": {
+        "11.0": 1351,
+        "15.0": 308,
+        "19.0": 341
+      },
+      "water_heater_type": {
+        "heat pump water heater": 9,
+        "instantaneous water heater": 122,
+        "storage water heater": 1869
+      },
+      "window_to_wall_ratio": {
+        "0.06": 186,
+        "0.09": 537,
+        "0.12": 588,
+        "0.15": 312,
+        "0.18": 288,
+        "0.3": 89
+      },
+      "window_type": {
+        "Double Pane": 1517,
+        "Single Pane": 461,
+        "Triple Pane": 22
+      }
+    },
+    "vacant": 0
+  },
+  "res|West North Central|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 314,
+        "fuel oil": 16,
+        "natural gas": 1459,
+        "propane": 175,
+        "wood": 36
+      },
+      "heating_system_type": {
+        "boiler": 173,
+        "electric_resistance": 178,
+        "furnace": 1477,
+        "heat_pump": 136,
+        "wood_stove": 36
+      },
+      "roof_material": {
+        "Insulated": 895,
+        "Standard": 462,
+        "Super Insulated": 643
+      },
+      "roof_r_value": {
+        "1.0": 56,
+        "7.0": 145,
+        "13.0": 261,
+        "19.0": 453,
+        "30.0": 442,
+        "38.0": 456,
+        "49.0": 187
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 649,
+        "fuel oil": 10,
+        "natural gas": 1252,
+        "propane": 88,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 220,
+        "Standard": 1694,
+        "Super Insulated": 86
+      },
+      "wall_r_value": {
+        "1.0": 1354,
+        "7.0": 340,
+        "11.0": 220,
+        "15.0": 57,
+        "19.0": 29
+      },
+      "water_heater_type": {
+        "heat pump water heater": 3,
+        "instantaneous water heater": 96,
+        "storage water heater": 1901
+      },
+      "window_to_wall_ratio": {
+        "0.06": 201,
+        "0.09": 551,
+        "0.12": 523,
+        "0.15": 328,
+        "0.18": 310,
+        "0.3": 87
+      },
+      "window_type": {
+        "Double Pane": 1254,
+        "Single Pane": 716,
+        "Triple Pane": 30
+      }
+    },
+    "vacant": 0
+  },
+  "res|West North Central|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 569,
+        "natural gas": 1272,
+        "propane": 145,
+        "wood": 14
+      },
+      "heating_system_type": {
+        "boiler": 31,
+        "electric_resistance": 208,
+        "furnace": 1386,
+        "heat_pump": 361,
+        "wood_stove": 14
+      },
+      "roof_material": {
+        "Insulated": 1045,
+        "Standard": 226,
+        "Super Insulated": 729
+      },
+      "roof_r_value": {
+        "1.0": 24,
+        "7.0": 77,
+        "13.0": 125,
+        "19.0": 290,
+        "30.0": 755,
+        "38.0": 469,
+        "49.0": 260
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 803,
+        "natural gas": 1122,
+        "propane": 75
+      },
+      "wall_material": {
+        "Insulated": 973,
+        "Standard": 25,
+        "Super Insulated": 1002
+      },
+      "wall_r_value": {
+        "1.0": 15,
+        "7.0": 10,
+        "11.0": 973,
+        "15.0": 455,
+        "19.0": 547
+      },
+      "water_heater_type": {
+        "heat pump water heater": 2,
+        "instantaneous water heater": 127,
+        "storage water heater": 1871
+      },
+      "window_to_wall_ratio": {
+        "0.06": 185,
+        "0.09": 550,
+        "0.12": 568,
+        "0.15": 337,
+        "0.18": 284,
+        "0.3": 76
+      },
+      "window_type": {
+        "Double Pane": 1393,
+        "Single Pane": 538,
+        "Triple Pane": 69
+      }
+    },
+    "vacant": 0
+  },
+  "res|West North Central|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 741,
+        "natural gas": 1043,
+        "propane": 180,
+        "wood": 36
+      },
+      "heating_system_type": {
+        "boiler": 64,
+        "electric_resistance": 221,
+        "furnace": 1159,
+        "heat_pump": 520,
+        "wood_stove": 36
+      },
+      "roof_material": {
+        "Insulated": 852,
+        "Standard": 201,
+        "Super Insulated": 947
+      },
+      "roof_r_value": {
+        "1.0": 37,
+        "7.0": 64,
+        "13.0": 100,
+        "19.0": 181,
+        "30.0": 671,
+        "38.0": 528,
+        "49.0": 419
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 928,
+        "natural gas": 980,
+        "propane": 91,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 622,
+        "Super Insulated": 1378
+      },
+      "wall_r_value": {
+        "11.0": 622,
+        "15.0": 422,
+        "19.0": 956
+      },
+      "water_heater_type": {
+        "heat pump water heater": 3,
+        "instantaneous water heater": 98,
+        "storage water heater": 1899
+      },
+      "window_to_wall_ratio": {
+        "0.06": 180,
+        "0.09": 583,
+        "0.12": 547,
+        "0.15": 322,
+        "0.18": 302,
+        "0.3": 66
+      },
+      "window_type": {
+        "Double Pane": 1575,
+        "Single Pane": 367,
+        "Triple Pane": 58
+      }
+    },
+    "vacant": 0
+  },
+  "res|West South Central|1965|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1148,
+        "fuel oil": 2,
+        "natural gas": 834,
+        "propane": 15,
+        "wood": 1
+      },
+      "heating_system_type": {
+        "boiler": 22,
+        "electric_resistance": 304,
+        "furnace": 829,
+        "heat_pump": 844,
+        "wood_stove": 1
+      },
+      "roof_material": {
+        "Insulated": 920,
+        "Standard": 701,
+        "Super Insulated": 379
+      },
+      "roof_r_value": {
+        "1.0": 109,
+        "7.0": 221,
+        "13.0": 371,
+        "19.0": 363,
+        "30.0": 557,
+        "38.0": 315,
+        "49.0": 64
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1142,
+        "fuel oil": 1,
+        "natural gas": 821,
+        "propane": 36
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1699,
+        "7.0": 301
+      },
+      "water_heater_type": {
+        "heat pump water heater": 5,
+        "instantaneous water heater": 126,
+        "storage water heater": 1869
+      },
+      "window_to_wall_ratio": {
+        "0.06": 169,
+        "0.09": 563,
+        "0.12": 563,
+        "0.15": 337,
+        "0.18": 290,
+        "0.3": 78
+      },
+      "window_type": {
+        "Double Pane": 949,
+        "Single Pane": 1004,
+        "Triple Pane": 47
+      }
+    },
+    "vacant": 158
+  },
+  "res|West South Central|1965|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 835,
+        "natural gas": 1094,
+        "propane": 51,
+        "wood": 20
+      },
+      "heating_system_type": {
+        "boiler": 24,
+        "electric_resistance": 211,
+        "furnace": 1121,
+        "heat_pump": 624,
+        "wood_stove": 20
+      },
+      "roof_material": {
+        "Insulated": 903,
+        "Standard": 694,
+        "Super Insulated": 403
+      },
+      "roof_r_value": {
+        "1.0": 137,
+        "7.0": 197,
+        "13.0": 360,
+        "19.0": 352,
+        "30.0": 551,
+        "38.0": 330,
+        "49.0": 73
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 952,
+        "natural gas": 1000,
+        "propane": 47,
+        "wood": 1
+      },
+      "wall_material": {
+        "Standard": 2000
+      },
+      "wall_r_value": {
+        "1.0": 1705,
+        "7.0": 295
+      },
+      "water_heater_type": {
+        "heat pump water heater": 5,
+        "instantaneous water heater": 114,
+        "storage water heater": 1881
+      },
+      "window_to_wall_ratio": {
+        "0.06": 189,
+        "0.09": 572,
+        "0.12": 532,
+        "0.15": 327,
+        "0.18": 298,
+        "0.3": 82
+      },
+      "window_type": {
+        "Double Pane": 977,
+        "Single Pane": 985,
+        "Triple Pane": 38
+      }
+    },
+    "vacant": 0
+  },
+  "res|West South Central|1990|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1135,
+        "fuel oil": 2,
+        "natural gas": 844,
+        "propane": 19
+      },
+      "heating_system_type": {
+        "boiler": 10,
+        "electric_resistance": 165,
+        "furnace": 855,
+        "heat_pump": 970
+      },
+      "roof_material": {
+        "Insulated": 1295,
+        "Standard": 363,
+        "Super Insulated": 342
+      },
+      "roof_r_value": {
+        "1.0": 35,
+        "7.0": 96,
+        "13.0": 232,
+        "19.0": 531,
+        "30.0": 764,
+        "38.0": 268,
+        "49.0": 74
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1135,
+        "natural gas": 838,
+        "propane": 27
+      },
+      "wall_material": {
+        "Insulated": 1403,
+        "Standard": 44,
+        "Super Insulated": 553
+      },
+      "wall_r_value": {
+        "1.0": 38,
+        "7.0": 6,
+        "11.0": 1403,
+        "15.0": 293,
+        "19.0": 260
+      },
+      "water_heater_type": {
+        "heat pump water heater": 5,
+        "instantaneous water heater": 105,
+        "storage water heater": 1890
+      },
+      "window_to_wall_ratio": {
+        "0.06": 170,
+        "0.09": 591,
+        "0.12": 539,
+        "0.15": 325,
+        "0.18": 289,
+        "0.3": 86
+      },
+      "window_type": {
+        "Double Pane": 1170,
+        "Single Pane": 798,
+        "Triple Pane": 32
+      }
+    },
+    "vacant": 158
+  },
+  "res|West South Central|1990|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1256,
+        "natural gas": 680,
+        "propane": 48,
+        "wood": 16
+      },
+      "heating_system_type": {
+        "boiler": 4,
+        "electric_resistance": 216,
+        "furnace": 724,
+        "heat_pump": 1040,
+        "wood_stove": 16
+      },
+      "roof_material": {
+        "Insulated": 1314,
+        "Standard": 397,
+        "Super Insulated": 289
+      },
+      "roof_r_value": {
+        "1.0": 33,
+        "7.0": 111,
+        "13.0": 253,
+        "19.0": 525,
+        "30.0": 789,
+        "38.0": 213,
+        "49.0": 76
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1235,
+        "fuel oil": 2,
+        "natural gas": 711,
+        "propane": 51,
+        "wood": 1
+      },
+      "wall_material": {
+        "Insulated": 1444,
+        "Standard": 37,
+        "Super Insulated": 519
+      },
+      "wall_r_value": {
+        "1.0": 33,
+        "7.0": 4,
+        "11.0": 1444,
+        "15.0": 287,
+        "19.0": 232
+      },
+      "water_heater_type": {
+        "heat pump water heater": 3,
+        "instantaneous water heater": 108,
+        "storage water heater": 1889
+      },
+      "window_to_wall_ratio": {
+        "0.06": 187,
+        "0.09": 578,
+        "0.12": 546,
+        "0.15": 317,
+        "0.18": 298,
+        "0.3": 74
+      },
+      "window_type": {
+        "Double Pane": 1125,
+        "Single Pane": 835,
+        "Triple Pane": 40
+      }
+    },
+    "vacant": 0
+  },
+  "res|West South Central|2015|county": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1140,
+        "natural gas": 838,
+        "propane": 22
+      },
+      "heating_system_type": {
+        "electric_resistance": 218,
+        "furnace": 860,
+        "heat_pump": 922
+      },
+      "roof_material": {
+        "Insulated": 1396,
+        "Standard": 138,
+        "Super Insulated": 466
+      },
+      "roof_r_value": {
+        "1.0": 21,
+        "7.0": 46,
+        "13.0": 71,
+        "19.0": 251,
+        "30.0": 1145,
+        "38.0": 406,
+        "49.0": 60
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1157,
+        "natural gas": 802,
+        "propane": 41
+      },
+      "wall_material": {
+        "Insulated": 1301,
+        "Super Insulated": 699
+      },
+      "wall_r_value": {
+        "11.0": 1301,
+        "15.0": 343,
+        "19.0": 356
+      },
+      "water_heater_type": {
+        "heat pump water heater": 4,
+        "instantaneous water heater": 94,
+        "storage water heater": 1902
+      },
+      "window_to_wall_ratio": {
+        "0.06": 193,
+        "0.09": 556,
+        "0.12": 525,
+        "0.15": 309,
+        "0.18": 332,
+        "0.3": 85
+      },
+      "window_type": {
+        "Double Pane": 1504,
+        "Single Pane": 471,
+        "Triple Pane": 25
+      }
+    },
+    "vacant": 158
+  },
+  "res|West South Central|2015|nocounty": {
+    "det": {
+      "cooling_system_fuel_type": "electricity",
+      "number_of_occupants": 3,
+      "weekday_start_time": null
+    },
+    "stoch": {
+      "heating_system_fuel_type": {
+        "electricity": 1165,
+        "natural gas": 758,
+        "propane": 60,
+        "wood": 17
+      },
+      "heating_system_type": {
+        "electric_resistance": 226,
+        "furnace": 818,
+        "heat_pump": 939,
+        "wood_stove": 17
+      },
+      "roof_material": {
+        "Insulated": 1406,
+        "Standard": 127,
+        "Super Insulated": 467
+      },
+      "roof_r_value": {
+        "1.0": 9,
+        "7.0": 38,
+        "13.0": 80,
+        "19.0": 261,
+        "30.0": 1145,
+        "38.0": 403,
+        "49.0": 64
+      },
+      "service_water_heating_fuel_type": {
+        "electricity": 1167,
+        "fuel oil": 1,
+        "natural gas": 783,
+        "propane": 47,
+        "wood": 2
+      },
+      "wall_material": {
+        "Insulated": 1266,
+        "Super Insulated": 734
+      },
+      "wall_r_value": {
+        "11.0": 1266,
+        "15.0": 361,
+        "19.0": 373
+      },
+      "water_heater_type": {
+        "heat pump water heater": 6,
+        "instantaneous water heater": 90,
+        "storage water heater": 1904
+      },
+      "window_to_wall_ratio": {
+        "0.06": 183,
+        "0.09": 596,
+        "0.12": 518,
+        "0.15": 331,
+        "0.18": 297,
+        "0.3": 75
+      },
+      "window_type": {
+        "Double Pane": 1509,
+        "Single Pane": 473,
+        "Triple Pane": 18
+      }
+    },
+    "vacant": 0
+  }
+}

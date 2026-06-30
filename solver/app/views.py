@@ -6,6 +6,7 @@ import csv
 import glob
 import hmac
 import threading
+import contextlib
 
 from flask import request, jsonify, render_template, send_file
 
@@ -63,6 +64,48 @@ def _resolve_reporting_frequency(user_value):
     return native
 LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 
+# Per-request URBANOPT env overrides (DYNAMIC_DEFAULTS / STOCHASTIC_SAMPLING /
+# REPORTING_FREQUENCY) are read by the Python resolver and the uo subprocess at
+# call time. The async endpoint returns 202 and runs the sim on a daemon thread,
+# so two sims can be in flight on one gunicorn worker and share this process's
+# os.environ -- without a guard, sim A's resolver observes sim B's flags, giving
+# non-deterministic resolved values across runs. This lock serializes the
+# env-sensitive window, enforcing the SIMULATION_CONCURRENCY=1 invariant the
+# overrides have always assumed but never enforced.
+_SIM_ENV_LOCK = threading.Lock()
+
+
+@contextlib.contextmanager
+def _sim_env_override(dynamic_defaults=None, stochastic=None, reporting_frequency=None,
+                      keep_dirs=None):
+    """Serialize and scope per-request env overrides under _SIM_ENV_LOCK. Each
+    var is snapshotted and restored on exit; a value of None means 'no override
+    for this var'. The lock is held for the whole sim body so the env stays
+    consistent for both the Python feature-file generation and the inherited-env
+    uo subprocess that follow. keep_dirs (bool) maps to POWERTWIN_KEEP_DIRS,
+    folded in here so it can't race the same way the URBANOPT flags did."""
+    keep_val = None if keep_dirs is None else ('1' if keep_dirs else '')
+    overrides = (
+        ('URBANOPT_DYNAMIC_DEFAULTS', dynamic_defaults),
+        ('URBANOPT_STOCHASTIC_SAMPLING', stochastic),
+        ('URBANOPT_REPORTING_FREQUENCY', reporting_frequency),
+        ('POWERTWIN_KEEP_DIRS', keep_val),
+    )
+    with _SIM_ENV_LOCK:
+        saved = {name: os.environ.get(name) for name, _ in overrides}
+        for name, val in overrides:
+            if val is not None:
+                os.environ[name] = val
+                logger.info(f"{name} override: {val}")
+        try:
+            yield
+        finally:
+            for name, prev in saved.items():
+                if prev is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = prev
+
 def home():
     return render_template('base.html')
 
@@ -96,15 +139,19 @@ def start_simulation():
         lowered = str(request_dynamic_defaults_raw).strip().lower()
         if lowered in ('true', 'false'):
             request_dynamic_defaults = lowered
-    
+    request_stochastic_raw = request.form.get('stochastic_sampling')
+    request_stochastic = None
+    if request_stochastic_raw is not None:
+        lowered = str(request_stochastic_raw).strip().lower()
+        if lowered in ('true', 'false'):
+            request_stochastic = lowered
+
     # Use centralized HPC detection
     is_hpc = is_hpc_environment()
 
-    # Set environment variable for keep directories flag
-    if keep_dirs:
-        os.environ['POWERTWIN_KEEP_DIRS'] = '1'
-    else:
-        os.environ.pop('POWERTWIN_KEEP_DIRS', None)
+    # POWERTWIN_KEEP_DIRS is applied via _sim_env_override below (serialized
+    # under _SIM_ENV_LOCK), not mutated on the global env here, so it can't
+    # leak into a concurrent async sim on the same worker.
 
     # Reference the volume directory where the local files will be stored
     # TODO: Set as global variable for consistency across all LOCAL_DIR references 
@@ -142,41 +189,31 @@ def start_simulation():
     ASSET_GEOJSON.save(asset_geojson_path)
     METADATA_CSV.save(metadata_csv_path)
 
-    # Per-request URBANOPT_DYNAMIC_DEFAULTS override. Snapshot before mutating
-    # so the override doesn't leak to the next sim. SIMULATION_CONCURRENCY=1
-    # invariant (which the URBANOPT_REPORTING_FREQUENCY override already
-    # depends on) makes env mutation safe inside the request.
-    prev_dynamic_defaults = os.environ.get('URBANOPT_DYNAMIC_DEFAULTS')
-    if request_dynamic_defaults is not None:
-        os.environ['URBANOPT_DYNAMIC_DEFAULTS'] = request_dynamic_defaults
-        logger.info(f"URBANOPT_DYNAMIC_DEFAULTS override for {simulation_name}: {request_dynamic_defaults}")
+    # Per-request URBANOPT env overrides. _sim_env_override serializes the
+    # window under _SIM_ENV_LOCK and restores on exit, so an async sim's daemon
+    # thread on the same worker can't observe this request's flags mid-run.
+    with _sim_env_override(request_dynamic_defaults, request_stochastic,
+                           keep_dirs=keep_dirs):
+        # Call the create_feature_files and initialize_uo to run the simulation
+        # and delete the simulation directory (container)
+        try:
+            create_table()
+            logger.debug("Calling create_feature_files from start_simulation()")
+            create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, num_cores, simulation_name)
+            logger.debug("Exited create_feature_files to start_simulation()")
 
-    # Call the create_feature_files and initialize_uo to run the simulation and
-    # delete the simulation directory (container)
-    try:
-        create_table()
-        logger.debug("Calling create_feature_files from start_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson_path, metadata_csv_path, num_cores, simulation_name)
-        logger.debug("Exited create_feature_files to start_simulation()")
+            logger.debug("Calling initialize_uo from start_simulation()")
+            initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
+            logger.debug("Exited initialize_uo to start_simulation()")
 
-        logger.debug("Calling initialize_uo from start_simulation()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
-        logger.debug("Exited initialize_uo to start_simulation()")
+            logger.debug("Deleting simulation directory, within the container")
+            get_logs()
+            shutil.rmtree(SIMULATION_DIR)
+        except Exception as e:
+            logger.error(f"Exception: {str(e)}")
+            send_error_to_mss('start_simulation', str(e))
+            return jsonify({'error': str(e)}), 500
 
-        logger.debug("Deleting simulation directory, within the container")
-        get_logs()
-        shutil.rmtree(SIMULATION_DIR)
-    except Exception as e:
-        logger.error(f"Exception: {str(e)}")
-        send_error_to_mss('start_simulation', str(e))
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if request_dynamic_defaults is not None:
-            if prev_dynamic_defaults is None:
-                os.environ.pop('URBANOPT_DYNAMIC_DEFAULTS', None)
-            else:
-                os.environ['URBANOPT_DYNAMIC_DEFAULTS'] = prev_dynamic_defaults
-    
     logger.debug("start_simulation() ran successfully")
     return jsonify({'confirmation': f'Simulation "{simulation_name}" ran successfully'})
 
@@ -253,6 +290,12 @@ def process_asset_update():
             lowered = str(request_dynamic_defaults_raw).strip().lower()
             if lowered in ('true', 'false'):
                 request_dynamic_defaults = lowered
+        request_stochastic_raw = request_data.get('stochastic_sampling')
+        request_stochastic = None
+        if request_stochastic_raw is not None:
+            lowered = str(request_stochastic_raw).strip().lower()
+            if lowered in ('true', 'false'):
+                request_stochastic = lowered
 
         asset_id = str(metadata_json[0].get('asset_id', 'unknown'))
         timestamp = started_at.strftime('%Y%m%d_%H%M%S_%f')
@@ -300,7 +343,8 @@ def process_asset_update():
             args=(simulation_name, SIMULATION_DIR, sim_local_dir,
                   asset_geojson_path, metadata_csv_path,
                   started_at, request_start_date_time, request_end_date_time,
-                  request_reporting_frequency, request_dynamic_defaults),
+                  request_reporting_frequency, request_dynamic_defaults,
+                  request_stochastic),
             daemon=True,
         )
         thread.start()
@@ -321,114 +365,88 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
                                  started_at, request_start_date_time=None,
                                  request_end_date_time=None,
                                  request_reporting_frequency=None,
-                                 request_dynamic_defaults=None):
+                                 request_dynamic_defaults=None,
+                                 request_stochastic=None):
     """Background worker. Runs without a Flask request context -- do not reference `request`."""
-    # Per-request URBANOPT_REPORTING_FREQUENCY override. PowerTwin.rb (the urbanopt mapper)
-    # reads ENV['URBANOPT_REPORTING_FREQUENCY'] when building the OSW. With
-    # SIMULATION_CONCURRENCY=1 there's only ever one sim in flight, so mutating
-    # os.environ around the urbanopt subprocess is safe. Always restore.
-    prev_reporting_freq = os.environ.get('URBANOPT_REPORTING_FREQUENCY')
-    if request_reporting_frequency:
-        os.environ['URBANOPT_REPORTING_FREQUENCY'] = request_reporting_frequency
-        logger.info(f"URBANOPT_REPORTING_FREQUENCY override for {simulation_name}: {request_reporting_frequency}")
+    # Per-request URBANOPT env overrides (reporting_frequency / dynamic_defaults
+    # / stochastic_sampling). The resolver and the uo subprocess read these at
+    # call time; _sim_env_override serializes the window under _SIM_ENV_LOCK and
+    # restores on exit, so a concurrent async sim on the same worker can't
+    # observe this sim's flags (and vice versa).
+    with _sim_env_override(request_dynamic_defaults, request_stochastic,
+                           request_reporting_frequency):
+        try:
+            num_cores = 1
+            create_table()
+            write_status(sim_local_dir, 'feature_files_starting', simulation_name=simulation_name)
+            create_featurefiles(simulation_dir, sim_local_dir, asset_geojson_path,
+                                metadata_csv_path, num_cores, simulation_name)
+            write_status(sim_local_dir, 'urbanopt_running', simulation_name=simulation_name)
+            initialize_uo(simulation_dir, sim_local_dir, simulation_name)
+            write_status(sim_local_dir, 'cleaning_reports', simulation_name=simulation_name)
 
-    # Per-request URBANOPT_DYNAMIC_DEFAULTS override on the async path.
-    # Snapshot-and-restore mirrors the reporting_frequency pattern above so
-    # the override is scoped to this single simulation. is_dynamic_defaults_enabled
-    # reads the env at call time, so the mutation takes effect for the
-    # synchronous feature-file generation that runs in this same thread.
-    prev_dynamic_defaults = os.environ.get('URBANOPT_DYNAMIC_DEFAULTS')
-    if request_dynamic_defaults is not None:
-        os.environ['URBANOPT_DYNAMIC_DEFAULTS'] = request_dynamic_defaults
-        logger.info(f"URBANOPT_DYNAMIC_DEFAULTS override for {simulation_name}: {request_dynamic_defaults}")
-    try:
-        num_cores = 1
-        create_table()
-        write_status(sim_local_dir, 'feature_files_starting', simulation_name=simulation_name)
-        create_featurefiles(simulation_dir, sim_local_dir, asset_geojson_path,
-                            metadata_csv_path, num_cores, simulation_name)
-        write_status(sim_local_dir, 'urbanopt_running', simulation_name=simulation_name)
-        initialize_uo(simulation_dir, sim_local_dir, simulation_name)
-        write_status(sim_local_dir, 'cleaning_reports', simulation_name=simulation_name)
+            # prepare_record swallows per-asset failures (EnergyPlus fatal, uo process
+            # crash, etc.), so an empty cleaned_reports/ is the only signal that the
+            # sim didn't actually produce output. Raise so the except below writes
+            # status='failed' instead of shipping a zero-row 'completed'.
+            if not glob.glob(os.path.join(sim_local_dir, 'cleaned_reports', '*', 'cleaned_predicted_*.csv')):
+                raise RuntimeError(
+                    f"Simulation {simulation_name} produced no cleaned_reports output — "
+                    "EnergyPlus/urbanopt failed (see earlier Flask logs)"
+                )
 
-        # prepare_record swallows per-asset failures (EnergyPlus fatal, uo process
-        # crash, etc.), so an empty cleaned_reports/ is the only signal that the
-        # sim didn't actually produce output. Raise so the except below writes
-        # status='failed' instead of shipping a zero-row 'completed'.
-        if not glob.glob(os.path.join(sim_local_dir, 'cleaned_reports', '*', 'cleaned_predicted_*.csv')):
-            raise RuntimeError(
-                f"Simulation {simulation_name} produced no cleaned_reports output — "
-                "EnergyPlus/urbanopt failed (see earlier Flask logs)"
+            runtime_seconds = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds()
+            # URBANOPT_RESAMPLE: 'H' | 'D' | 'W' | 'M' | 'Y' | '' (native passthrough).
+            # Same convention as the HPC consolidate-state.sh RESAMPLE arg.
+            resample = os.environ.get('URBANOPT_RESAMPLE', '').strip() or None
+            results_payload = pack_simulation_results(
+                sim_local_dir,
+                runtime_seconds=runtime_seconds,
+                resample=resample,
+                start_date_time=request_start_date_time,
+                end_date_time=request_end_date_time,
             )
-
-        runtime_seconds = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds()
-        # URBANOPT_RESAMPLE: 'H' | 'D' | 'W' | 'M' | 'Y' | '' (native passthrough).
-        # Same convention as the HPC consolidate-state.sh RESAMPLE arg.
-        resample = os.environ.get('URBANOPT_RESAMPLE', '').strip() or None
-        results_payload = pack_simulation_results(
-            sim_local_dir,
-            runtime_seconds=runtime_seconds,
-            resample=resample,
-            start_date_time=request_start_date_time,
-            end_date_time=request_end_date_time,
-        )
-        response = {
-            'success': True,
-            'simulation_name': simulation_name,
-            'results': results_payload['results'],
-            'runtime_seconds': runtime_seconds,
-            'datelevel': results_payload['datelevel'],
-            'resample': results_payload.get('resample'),
-        }
-        atomic_write_json(os.path.join(sim_local_dir, 'results.json'), response)
-        write_status(sim_local_dir, 'completed',
-                     simulation_name=simulation_name,
-                     completed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                     runtime_seconds=runtime_seconds,
-                     datelevel=results_payload['datelevel'])
-        logger.info(f"Async simulation completed: {simulation_name}")
-    except Exception as e:
-        logger.error(f"Async simulation failed for {simulation_name}: {str(e)}")
-        try:
-            write_status(sim_local_dir, 'failed',
-                         simulation_name=simulation_name, error=str(e))
-        except Exception:
-            pass
-        try:
-            send_error_to_mss('process_asset_update_async', str(e))
-        except Exception:
-            pass
-    finally:
-        # Always remove the per-sim working dir, success or failure. urbanopt
-        # writes hundreds of MB of intermediate state per run (IDF, eplusout,
-        # measure outputs, weather caches). Leaving these on disk after a
-        # failed sim used to be for debugging, but the API listener already
-        # captures last_error and any structured failure context, and the
-        # disk pressure under high-concurrency sweeps quickly becomes the
-        # bigger problem.
-        # URBANOPT_KEEP_RUN_DIR (bool, default false) disables this cleanup
-        # so test verifiers can inspect in.osw / out.osw / in.idf after a sim.
-        # Back-compat: legacy SIMULATION_KEEP_RUN_DIR still honored.
-        _bool = lambda n: os.environ.get(n, '').strip().lower() == 'true'
-        keep = _bool('URBANOPT_KEEP_RUN_DIR') or _bool('SIMULATION_KEEP_RUN_DIR')
-        if os.path.exists(simulation_dir) and not keep:
-            shutil.rmtree(simulation_dir)
-
-        # Restore the prior URBANOPT_REPORTING_FREQUENCY so this override doesn't leak
-        # to the next sim that doesn't supply one.
-        if request_reporting_frequency:
-            if prev_reporting_freq is None:
-                os.environ.pop('URBANOPT_REPORTING_FREQUENCY', None)
-            else:
-                os.environ['URBANOPT_REPORTING_FREQUENCY'] = prev_reporting_freq
-
-        # Restore the prior URBANOPT_DYNAMIC_DEFAULTS so this override doesn't
-        # leak to the next async sim.
-        if request_dynamic_defaults is not None:
-            if prev_dynamic_defaults is None:
-                os.environ.pop('URBANOPT_DYNAMIC_DEFAULTS', None)
-            else:
-                os.environ['URBANOPT_DYNAMIC_DEFAULTS'] = prev_dynamic_defaults
+            response = {
+                'success': True,
+                'simulation_name': simulation_name,
+                'results': results_payload['results'],
+                'runtime_seconds': runtime_seconds,
+                'datelevel': results_payload['datelevel'],
+                'resample': results_payload.get('resample'),
+            }
+            atomic_write_json(os.path.join(sim_local_dir, 'results.json'), response)
+            write_status(sim_local_dir, 'completed',
+                         simulation_name=simulation_name,
+                         completed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                         runtime_seconds=runtime_seconds,
+                         datelevel=results_payload['datelevel'])
+            logger.info(f"Async simulation completed: {simulation_name}")
+        except Exception as e:
+            logger.error(f"Async simulation failed for {simulation_name}: {str(e)}")
+            try:
+                write_status(sim_local_dir, 'failed',
+                             simulation_name=simulation_name, error=str(e))
+            except Exception:
+                pass
+            try:
+                send_error_to_mss('process_asset_update_async', str(e))
+            except Exception:
+                pass
+        finally:
+            # Always remove the per-sim working dir, success or failure. urbanopt
+            # writes hundreds of MB of intermediate state per run (IDF, eplusout,
+            # measure outputs, weather caches). Leaving these on disk after a
+            # failed sim used to be for debugging, but the API listener already
+            # captures last_error and any structured failure context, and the
+            # disk pressure under high-concurrency sweeps quickly becomes the
+            # bigger problem.
+            # URBANOPT_KEEP_RUN_DIR (bool, default false) disables this cleanup
+            # so test verifiers can inspect in.osw / out.osw / in.idf after a sim.
+            # Back-compat: legacy SIMULATION_KEEP_RUN_DIR still honored.
+            _bool = lambda n: os.environ.get(n, '').strip().lower() == 'true'
+            keep = _bool('URBANOPT_KEEP_RUN_DIR') or _bool('SIMULATION_KEEP_RUN_DIR')
+            if os.path.exists(simulation_dir) and not keep:
+                shutil.rmtree(simulation_dir)
 
 ############################################################################################################
 # Name: def convert_metadata_to_csv(metadata_json)
@@ -598,13 +616,18 @@ def autorun_simulation():
         
         logger.debug(f"HPC Environment: {is_hpc}, Shared Storage: {shared_storage}")
         
-        logger.debug("Calling create_feature_files from autorun_simulation()")
-        create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, num_cores, simulation_name)
-        logger.debug("Exited create_feature_files")
-                
-        logger.debug("Calling initialize_uo from autorun_simulation()")
-        initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
-        logger.debug("Exited initialize_uo")
+        # autorun sets no per-request override, but the resolver + uo subprocess
+        # still read the global URBANOPT_* env at call time. Hold _SIM_ENV_LOCK
+        # (no mutations) so this run can't observe a concurrent sim's mid-flight
+        # override on the same worker.
+        with _sim_env_override():
+            logger.debug("Calling create_feature_files from autorun_simulation()")
+            create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, num_cores, simulation_name)
+            logger.debug("Exited create_feature_files")
+
+            logger.debug("Calling initialize_uo from autorun_simulation()")
+            initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
+            logger.debug("Exited initialize_uo")
         
         logger.debug("Deleting simulation directory, within the container")
         get_logs()
@@ -735,8 +758,13 @@ def get_asset_config(simulation_name, asset_id):
         return jsonify({'error': 'Asset ID and Simulation Name are required'}), 400
            
     try:
-        # Search to see if user_files directory exists, so that we can search for the feature file
-        SIMULATION_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
+        # Search to see if user_files directory exists, so that we can search for the feature file.
+        # Confine to LOCAL_DIR: reject path traversal in simulation_name (e.g. ../../).
+        SIMULATION_DIR = os.path.realpath(os.path.join(LOCAL_DIR, simulation_name))
+        local_root = os.path.realpath(LOCAL_DIR)
+        if SIMULATION_DIR != local_root and not SIMULATION_DIR.startswith(local_root + os.sep):
+            logger.error("Invalid simulation_name (path traversal attempt)")
+            return jsonify({'error': 'Invalid simulation_name'}), 400
         if not os.path.exists(SIMULATION_DIR):
             logger.error("Simulation directory does not exist")
             return jsonify({'error': 'Simulation directory does not exist'}), 404
@@ -863,12 +891,8 @@ def recovery():
     batch_id = request.form.get('recover_batch_id', default=None, type=int)
     num_cores = int(request.form.get('recover_num_cores', 1))
     keep_dirs = request.form.get('keep_dirs', 'false').lower() == 'true'
-
-    # Set environment variable for keep directories flag
-    if keep_dirs:
-        os.environ['POWERTWIN_KEEP_DIRS'] = '1'
-    else:
-        os.environ.pop('POWERTWIN_KEEP_DIRS', None)
+    # POWERTWIN_KEEP_DIRS is applied via _sim_env_override around the recovery
+    # run below (serialized + restored), not leaked onto the global env here.
 
     if not corrupted_simulation_name:
         logger.error("Error: Simulation name is required.")
@@ -913,7 +937,8 @@ def recovery():
     try:
         
         logger.debug("Calling simulation_recovery from recovery()")
-        simulation_recovery(RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, CORRUPTED_SIMULATION_DIR, corrupted_simulation_name, recover_simulation_name, num_cores, batch_id)
+        with _sim_env_override(keep_dirs=keep_dirs):
+            simulation_recovery(RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, CORRUPTED_SIMULATION_DIR, corrupted_simulation_name, recover_simulation_name, num_cores, batch_id)
         
         logger.debug("Exited simulation_recovery to recovery(), deleting recovery directory within the container")
         get_logs()
@@ -1090,6 +1115,8 @@ DYNAMIC_FIELDS = [
     'heating_system_fuel_type',
     'cooling_system_fuel_type',
     'service_water_heating_fuel_type',
+    'heating_system_type',
+    'water_heater_type',
     'window_type',
     'wall_material', 'roof_material',
     'wall_r_value', 'roof_r_value', 'window_to_wall_ratio',

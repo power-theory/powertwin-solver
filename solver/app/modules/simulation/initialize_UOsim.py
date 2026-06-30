@@ -30,7 +30,7 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
     
     # Use centralized HPC detection
     is_hpc = is_hpc_environment()
-    from modules.diagnostics import get_asset_total, get_batch_total, update_status, get_bulk_assets, bulk_update_status
+    from modules.diagnostics import get_asset_total, get_batch_total, update_status, get_bulk_assets, bulk_update_status, get_failed_assets
     
 
     
@@ -124,11 +124,11 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
             logger.debug(f"Removed existing mapper file: {os.path.basename(rb_file)}")
 
         logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
-        shutil.copy(MAPPER_FILE, MAPPER_DESTINATION)
-        src_ref = os.path.join(os.path.dirname(MAPPER_FILE), 'reference_data')
-        dst_ref = os.path.join(MAPPER_DESTINATION, 'reference_data')
-        if os.path.isdir(src_ref) and not os.path.isdir(dst_ref):
-            shutil.copytree(src_ref, dst_ref)
+        # Deploy PowerTwin.rb + its required siblings (powertwin_refs.rb,
+        # reference_data) as one unit -- the .rb cleanup above removes the refs
+        # file, so it must be re-copied here. See mapper_setup.deploy_mapper.
+        from modules.simulation.mapper_setup import deploy_mapper
+        deploy_mapper(os.path.dirname(MAPPER_FILE), MAPPER_DESTINATION)
 
         # Overlay our customized base_workflow.osw (adds set_window_construction,
         # set_service_water_heating_fuel, set_people_per_floor_area, the roof
@@ -140,15 +140,8 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
 
         # Stage our custom measures under <project>/measures/ so openstudio CLI
         # can resolve them by measure_dir_name without explicit measure_paths.
-        src_measures = os.path.join(upload_dir, 'measures')
-        dst_measures = os.path.join(UO_SIMULATION_DIR, 'measures')
-        if os.path.isdir(src_measures):
-            os.makedirs(dst_measures, exist_ok=True)
-            for m in os.listdir(src_measures):
-                src = os.path.join(src_measures, m)
-                dst = os.path.join(dst_measures, m)
-                if os.path.isdir(src) and not os.path.isdir(dst):
-                    shutil.copytree(src, dst)
+        from modules.simulation.mapper_setup import deploy_measures
+        deploy_measures(upload_dir, UO_SIMULATION_DIR)
 
     # Initialize all assets with "Not Processed Yet" status using bulk update
     try:
@@ -161,7 +154,12 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
             else:
                 # PostgreSQL/Docker environment returns list of integers directly
                 asset_ids = assets_data
-                
+
+            # Don't reset assets already recorded Failed (e.g. no-coords buildings excluded from the
+            # run): Failed is terminal -- resetting to 'Not Processed Yet' would lose it.
+            failed_ids = set(get_failed_assets(simulation_name) or [])
+            asset_ids = [a for a in asset_ids if a not in failed_ids]
+
             logger.info(f"Setting initial status 'Not Processed Yet' for {len(asset_ids)} assets in {simulation_name}")
             bulk_update_status(asset_ids, "Not Processed Yet", simulation_name)
         else:

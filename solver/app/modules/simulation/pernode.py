@@ -285,11 +285,9 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
         
         if os.path.exists(UPLOAD_MAPPER):
             logger.info(f"BATCH {batch_index}: Found mapper file, copying to {MAPPER_FILE}")
-            shutil.copy(UPLOAD_MAPPER, MAPPER_FILE)
-            src_ref = os.path.join(os.path.dirname(UPLOAD_MAPPER), 'reference_data')
-            dst_ref = os.path.join(MAPPERS_DIR, 'reference_data')
-            if os.path.isdir(src_ref) and not os.path.isdir(dst_ref):
-                shutil.copytree(src_ref, dst_ref)
+            # Deploy PowerTwin.rb + its required siblings as one unit.
+            from modules.simulation.mapper_setup import deploy_mapper
+            deploy_mapper(os.path.dirname(UPLOAD_MAPPER), MAPPERS_DIR)
         else:
             logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found at {UPLOAD_MAPPER}")
             

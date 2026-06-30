@@ -1,0 +1,512 @@
+{
+  "window_props": {
+    "Single Pane|ASHRAE 169-2013-1A": [
+      13.62,
+      0.375
+    ],
+    "Single Pane|ASHRAE 169-2013-2A": [
+      8.52,
+      0.375
+    ],
+    "Single Pane|ASHRAE 169-2013-3B": [
+      7.38,
+      0.375
+    ],
+    "Single Pane|ASHRAE 169-2013-4A": [
+      6.24,
+      0.6000000000000001
+    ],
+    "Single Pane|ASHRAE 169-2013-5A": [
+      6.24,
+      0.6000000000000001
+    ],
+    "Single Pane|ASHRAE 169-2013-6A": [
+      5.12,
+      0.6000000000000001
+    ],
+    "Single Pane|ASHRAE 169-2013-7": [
+      4.54,
+      0.675
+    ],
+    "Single Pane|ASHRAE 169-2013-8": [
+      3.98,
+      0.675
+    ],
+    "Single Pane|bogus": [
+      6.24,
+      0.6000000000000001
+    ],
+    "Double Pane|ASHRAE 169-2013-1A": [
+      6.81,
+      0.25
+    ],
+    "Double Pane|ASHRAE 169-2013-2A": [
+      4.26,
+      0.25
+    ],
+    "Double Pane|ASHRAE 169-2013-3B": [
+      3.69,
+      0.25
+    ],
+    "Double Pane|ASHRAE 169-2013-4A": [
+      3.12,
+      0.4
+    ],
+    "Double Pane|ASHRAE 169-2013-5A": [
+      3.12,
+      0.4
+    ],
+    "Double Pane|ASHRAE 169-2013-6A": [
+      2.56,
+      0.4
+    ],
+    "Double Pane|ASHRAE 169-2013-7": [
+      2.27,
+      0.45
+    ],
+    "Double Pane|ASHRAE 169-2013-8": [
+      1.99,
+      0.45
+    ],
+    "Double Pane|bogus": [
+      3.12,
+      0.4
+    ],
+    "Triple Pane|ASHRAE 169-2013-1A": [
+      3.7455000000000003,
+      0.2125
+    ],
+    "Triple Pane|ASHRAE 169-2013-2A": [
+      2.343,
+      0.2125
+    ],
+    "Triple Pane|ASHRAE 169-2013-3B": [
+      2.0295,
+      0.2125
+    ],
+    "Triple Pane|ASHRAE 169-2013-4A": [
+      1.7160000000000002,
+      0.34
+    ],
+    "Triple Pane|ASHRAE 169-2013-5A": [
+      1.7160000000000002,
+      0.34
+    ],
+    "Triple Pane|ASHRAE 169-2013-6A": [
+      1.4080000000000001,
+      0.34
+    ],
+    "Triple Pane|ASHRAE 169-2013-7": [
+      1.2485000000000002,
+      0.3825
+    ],
+    "Triple Pane|ASHRAE 169-2013-8": [
+      1.0945,
+      0.3825
+    ],
+    "Triple Pane|bogus": [
+      1.7160000000000002,
+      0.34
+    ],
+    "Unknown Tier|ASHRAE 169-2013-1A": [
+      6.81,
+      0.25
+    ],
+    "Unknown Tier|ASHRAE 169-2013-2A": [
+      4.26,
+      0.25
+    ],
+    "Unknown Tier|ASHRAE 169-2013-3B": [
+      3.69,
+      0.25
+    ],
+    "Unknown Tier|ASHRAE 169-2013-4A": [
+      3.12,
+      0.4
+    ],
+    "Unknown Tier|ASHRAE 169-2013-5A": [
+      3.12,
+      0.4
+    ],
+    "Unknown Tier|ASHRAE 169-2013-6A": [
+      2.56,
+      0.4
+    ],
+    "Unknown Tier|ASHRAE 169-2013-7": [
+      2.27,
+      0.45
+    ],
+    "Unknown Tier|ASHRAE 169-2013-8": [
+      1.99,
+      0.45
+    ],
+    "Unknown Tier|bogus": [
+      3.12,
+      0.4
+    ]
+  },
+  "window_props_residential": {
+    "Single Pane|ASHRAE 169-2013-1A": [
+      5.91,
+      0.63
+    ],
+    "Single Pane|ASHRAE 169-2013-2A": [
+      5.91,
+      0.63
+    ],
+    "Single Pane|ASHRAE 169-2013-3B": [
+      5.91,
+      0.63
+    ],
+    "Single Pane|ASHRAE 169-2013-4A": [
+      5.91,
+      0.63
+    ],
+    "Single Pane|ASHRAE 169-2013-5A": [
+      5.91,
+      0.63
+    ],
+    "Single Pane|ASHRAE 169-2013-6A": [
+      5.91,
+      0.63
+    ],
+    "Single Pane|ASHRAE 169-2013-7": [
+      5.91,
+      0.63
+    ],
+    "Single Pane|ASHRAE 169-2013-8": [
+      5.91,
+      0.63
+    ],
+    "Single Pane|bogus": [
+      5.91,
+      0.63
+    ],
+    "Double Pane|ASHRAE 169-2013-1A": [
+      2.839,
+      0.25
+    ],
+    "Double Pane|ASHRAE 169-2013-2A": [
+      2.271,
+      0.25
+    ],
+    "Double Pane|ASHRAE 169-2013-3B": [
+      1.987,
+      0.25
+    ],
+    "Double Pane|ASHRAE 169-2013-4A": [
+      1.987,
+      0.4
+    ],
+    "Double Pane|ASHRAE 169-2013-5A": [
+      1.817,
+      0.4
+    ],
+    "Double Pane|ASHRAE 169-2013-6A": [
+      1.817,
+      0.4
+    ],
+    "Double Pane|ASHRAE 169-2013-7": [
+      1.817,
+      0.4
+    ],
+    "Double Pane|ASHRAE 169-2013-8": [
+      1.817,
+      0.4
+    ],
+    "Double Pane|bogus": [
+      1.987,
+      0.4
+    ],
+    "Triple Pane|ASHRAE 169-2013-1A": [
+      1.14,
+      0.4
+    ],
+    "Triple Pane|ASHRAE 169-2013-2A": [
+      1.14,
+      0.4
+    ],
+    "Triple Pane|ASHRAE 169-2013-3B": [
+      1.14,
+      0.4
+    ],
+    "Triple Pane|ASHRAE 169-2013-4A": [
+      1.14,
+      0.4
+    ],
+    "Triple Pane|ASHRAE 169-2013-5A": [
+      1.14,
+      0.4
+    ],
+    "Triple Pane|ASHRAE 169-2013-6A": [
+      1.14,
+      0.4
+    ],
+    "Triple Pane|ASHRAE 169-2013-7": [
+      1.14,
+      0.4
+    ],
+    "Triple Pane|ASHRAE 169-2013-8": [
+      1.14,
+      0.4
+    ],
+    "Triple Pane|bogus": [
+      1.14,
+      0.4
+    ],
+    "Unknown Tier|ASHRAE 169-2013-1A": [
+      2.839,
+      0.25
+    ],
+    "Unknown Tier|ASHRAE 169-2013-2A": [
+      2.271,
+      0.25
+    ],
+    "Unknown Tier|ASHRAE 169-2013-3B": [
+      1.987,
+      0.25
+    ],
+    "Unknown Tier|ASHRAE 169-2013-4A": [
+      1.987,
+      0.4
+    ],
+    "Unknown Tier|ASHRAE 169-2013-5A": [
+      1.817,
+      0.4
+    ],
+    "Unknown Tier|ASHRAE 169-2013-6A": [
+      1.817,
+      0.4
+    ],
+    "Unknown Tier|ASHRAE 169-2013-7": [
+      1.817,
+      0.4
+    ],
+    "Unknown Tier|ASHRAE 169-2013-8": [
+      1.817,
+      0.4
+    ],
+    "Unknown Tier|bogus": [
+      1.987,
+      0.4
+    ]
+  },
+  "swh_efficiency": {
+    "Electricity": 0.95,
+    "NaturalGas": 0.8,
+    "FuelOilNo2": 0.78,
+    "Propane": 0.8,
+    "Coal": 0.8
+  },
+  "vintage_bin": {
+    "0": null,
+    "1950": "pre-1980",
+    "1979": "pre-1980",
+    "1980": "1980-1999",
+    "1999": "1980-1999",
+    "2000": "2000-2009",
+    "2009": "2000-2009",
+    "2010": "2010+",
+    "2025": "2010+"
+  },
+  "cz_number": {
+    "ASHRAE 169-2013-1A": "1",
+    "ASHRAE 169-2013-2A": "2",
+    "ASHRAE 169-2013-3B": "3",
+    "ASHRAE 169-2013-4A": "4",
+    "ASHRAE 169-2013-5A": "5",
+    "ASHRAE 169-2013-6A": "6",
+    "ASHRAE 169-2013-7": "7",
+    "ASHRAE 169-2013-8": "8",
+    "bogus": null
+  },
+  "state_to_region": {
+    "AZ": "West",
+    "MA": "Northeast",
+    "IL": "Midwest",
+    "TX": "South",
+    "CA": "West",
+    "WY": "West",
+    "ZZ": null
+  },
+  "furnace_afue": {
+    "1980": 0.78,
+    "1991": 0.78,
+    "1992": 0.8,
+    "2006": 0.8,
+    "2011": 0.8,
+    "2012": 0.8,
+    "2014": 0.8,
+    "2015": 0.8,
+    "2020": 0.8,
+    "2021": 0.8,
+    "2022": 0.8,
+    "2023": 0.8,
+    "2025": 0.8
+  },
+  "boiler_afue": {
+    "1980": 0.8,
+    "1991": 0.8,
+    "1992": 0.8,
+    "2006": 0.8,
+    "2011": 0.8,
+    "2012": 0.82,
+    "2014": 0.82,
+    "2015": 0.82,
+    "2020": 0.82,
+    "2021": 0.84,
+    "2022": 0.84,
+    "2023": 0.84,
+    "2025": 0.84
+  },
+  "hp_hspf": {
+    "1980": 6.8,
+    "1991": 6.8,
+    "1992": 6.8,
+    "2006": 7.7,
+    "2011": 7.7,
+    "2012": 7.7,
+    "2014": 7.7,
+    "2015": 8.2,
+    "2020": 8.2,
+    "2021": 8.2,
+    "2022": 8.2,
+    "2023": 8.8,
+    "2025": 8.8
+  },
+  "ac_seer": {
+    "1980|true": 10,
+    "1980|false": 10,
+    "1991|true": 10,
+    "1991|false": 10,
+    "1992|true": 10,
+    "1992|false": 10,
+    "2006|true": 13,
+    "2006|false": 13,
+    "2011|true": 13,
+    "2011|false": 13,
+    "2012|true": 13,
+    "2012|false": 13,
+    "2014|true": 13,
+    "2014|false": 13,
+    "2015|true": 14,
+    "2015|false": 13,
+    "2020|true": 14,
+    "2020|false": 13,
+    "2021|true": 14,
+    "2021|false": 13,
+    "2022|true": 14,
+    "2022|false": 13,
+    "2023|true": 15,
+    "2023|false": 14,
+    "2025|true": 15,
+    "2025|false": 14
+  },
+  "hp_seer": {
+    "1980|true": 10,
+    "1980|false": 10,
+    "1991|true": 10,
+    "1991|false": 10,
+    "1992|true": 10,
+    "1992|false": 10,
+    "2006|true": 13,
+    "2006|false": 13,
+    "2011|true": 13,
+    "2011|false": 13,
+    "2012|true": 13,
+    "2012|false": 13,
+    "2014|true": 13,
+    "2014|false": 13,
+    "2015|true": 14,
+    "2015|false": 14,
+    "2020|true": 14,
+    "2020|false": 14,
+    "2021|true": 14,
+    "2021|false": 14,
+    "2022|true": 14,
+    "2022|false": 14,
+    "2023|true": 15,
+    "2023|false": 14,
+    "2025|true": 15,
+    "2025|false": 14
+  },
+  "wall_assembly_r": {
+    "0": 2.5,
+    "1": 3.25,
+    "3.5": 5.13,
+    "11": 10.75,
+    "13": 12.25,
+    "19": 16.75,
+    "30": 25.0,
+    "38": 31.0
+  },
+  "ceiling_assembly_r": {
+    "0": 1.0,
+    "1": 2.0,
+    "3.5": 4.5,
+    "11": 12.0,
+    "13": 14.0,
+    "19": 20.0,
+    "30": 31.0,
+    "38": 39.0
+  },
+  "garage_rate": {
+    "Northeast": 0.58,
+    "Midwest": 0.73,
+    "South": 0.62,
+    "West": 0.69,
+    "Unknown": 0.63
+  },
+  "garage_attached": {
+    "Northeast|noid|nostoch": true,
+    "Northeast|noid|stoch": true,
+    "Northeast|feat001|stoch": false,
+    "Northeast|feat001|nostoch": true,
+    "Northeast|feat002|stoch": true,
+    "Northeast|feat002|nostoch": true,
+    "Northeast|feat999|stoch": true,
+    "Northeast|feat999|nostoch": true,
+    "Northeast|building-42|stoch": false,
+    "Northeast|building-42|nostoch": true,
+    "Midwest|noid|nostoch": true,
+    "Midwest|noid|stoch": true,
+    "Midwest|feat001|stoch": true,
+    "Midwest|feat001|nostoch": true,
+    "Midwest|feat002|stoch": true,
+    "Midwest|feat002|nostoch": true,
+    "Midwest|feat999|stoch": true,
+    "Midwest|feat999|nostoch": true,
+    "Midwest|building-42|stoch": true,
+    "Midwest|building-42|nostoch": true,
+    "South|noid|nostoch": true,
+    "South|noid|stoch": true,
+    "South|feat001|stoch": true,
+    "South|feat001|nostoch": true,
+    "South|feat002|stoch": true,
+    "South|feat002|nostoch": true,
+    "South|feat999|stoch": true,
+    "South|feat999|nostoch": true,
+    "South|building-42|stoch": false,
+    "South|building-42|nostoch": true,
+    "West|noid|nostoch": true,
+    "West|noid|stoch": true,
+    "West|feat001|stoch": true,
+    "West|feat001|nostoch": true,
+    "West|feat002|stoch": true,
+    "West|feat002|nostoch": true,
+    "West|feat999|stoch": true,
+    "West|feat999|nostoch": true,
+    "West|building-42|stoch": true,
+    "West|building-42|nostoch": true,
+    "Unknown|noid|nostoch": true,
+    "Unknown|noid|stoch": true,
+    "Unknown|feat001|stoch": true,
+    "Unknown|feat001|nostoch": true,
+    "Unknown|feat002|stoch": true,
+    "Unknown|feat002|nostoch": true,
+    "Unknown|feat999|stoch": true,
+    "Unknown|feat999|nostoch": true,
+    "Unknown|building-42|stoch": false,
+    "Unknown|building-42|nostoch": true
+  }
+}

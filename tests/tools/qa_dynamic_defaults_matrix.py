@@ -39,7 +39,7 @@ from dataclasses import dataclass, field as dataclass_field
 from typing import Any
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-FIXTURE_DIR = REPO / "tests" / "qa_matrix_fixtures"
+FIXTURE_DIR = REPO / "tests" / "tools" / "qa_matrix_fixtures"
 SIM_OUTPUT_DIR = REPO / "powertwin_data" / "user_files"
 INSPECTOR_HOST = REPO / "tests" / "qa_dynamic_defaults_matrix_inspect.rb"
 INSPECTOR_CONTAINER = "/tmp/qa_matrix_inspect.rb"

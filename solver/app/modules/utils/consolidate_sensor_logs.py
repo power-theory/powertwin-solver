@@ -8,11 +8,17 @@ from multiprocessing import Pool, cpu_count
 from pathlib import Path
 import pandas as pd
 
+# Keep in sync with pack_results.py: normalize operator-supplied period codes
+# ('A'/'ANNUAL' -> 'Y') and map to a pandas>=3.0-accepted to_period frequency
+# ('H' -> 'h'). Without this, resample='H' or 'A' crashes under pandas 3.0.
+_RESAMPLE_CANON = {'A': 'Y', 'ANNUAL': 'Y', 'YEARLY': 'Y', 'HOURLY': 'H'}
+_PANDAS_PERIOD_FREQ = {'H': 'h', 'D': 'D', 'W': 'W', 'M': 'M', 'Y': 'Y'}
+
 
 def process_worker(args):
     """Process a slice of sensor directories and write to a temp file."""
     worker_id, sensor_dirs, collection_id, resample, types, temp_dir = args
-    apply_translations = os.environ.get('URBANOPT_POSTPROCESS_TRANSLATIONS') == 'true'
+    apply_translations = os.environ.get('URBANOPT_POSTPROCESS_TRANSLATIONS', '').strip().lower() in ('1', 'true', 'yes', 'on')
 
     temp_path = os.path.join(temp_dir, f'worker_{worker_id}.csv')
     header_written = False
@@ -59,7 +65,8 @@ def process_worker(args):
                     df['ts'] = df['ts'].dt.floor(native_freq)
 
                 if resample:
-                    df = (df.groupby(df['ts'].dt.to_period(resample))['value']
+                    period_freq = _PANDAS_PERIOD_FREQ.get(resample, resample)
+                    df = (df.groupby(df['ts'].dt.to_period(period_freq))['value']
                           .sum()
                           .reset_index())
                     if resample == 'M' and apply_translations:
@@ -106,7 +113,9 @@ def main():
     workers = args.workers if args.workers > 0 else cpu_count()
     print(f'Using {workers} workers')
 
-    resample = args.resample.strip() if args.resample else ''
+    resample = args.resample.strip().upper() if args.resample else ''
+    if resample:
+        resample = _RESAMPLE_CANON.get(resample, resample)
     if resample:
         print(f'Resampling: {resample}')
     else:

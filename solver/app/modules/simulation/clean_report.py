@@ -229,21 +229,28 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
             logger.debug(f"Skipping {data_header} as no columns are defined")
             continue
 
-        # Resolve each expected column via _match_column, which tolerates
-        # unit-suffix drift (e.g. CSV says (kBtu), df has (kWh)).
+        # Resolve each candidate column via _match_column (tolerates unit-suffix drift,
+        # e.g. CSV says (kBtu), df has (kWh)). A sensor's `columns` are either columns to
+        # SUM (e.g. WaterSystems across fuels) or version-ALTERNATIVE names (e.g.
+        # DistrictHeating vs DistrictHeatingWater/DistrictHeatingSteam after the
+        # OpenStudio 3.9 rename). Capture whatever is PRESENT and skip only when NONE is:
+        # requiring ALL would silently drop a sensor whenever one alternative name is
+        # absent -- the bug that left district heating (Steam) uncaptured on every run.
         resolved = [(_match_column(c, df.columns), c) for c in unclean_columns]
-        missing = [exp for ((actual, _), exp) in resolved if actual is None]
-        if missing:
-            logger.debug(f"Skipping {data_header} due to missing columns: {missing}")
+        present = [(actual, scale) for ((actual, scale), _) in resolved if actual is not None]
+        if not present:
+            logger.warning(f"capture gap: sensor '{data_header}' -- none of its report columns present: {unclean_columns}")
             continue
 
-        # Skip if sensor_id is not available for this data_id
+        # CAPTURE GAP: the building's metadata didn't declare this sensor, so report
+        # energy for it would be dropped -- surface it loudly (a gas building whose
+        # metadata omits the gas sensor would otherwise lose that fuel silently).
         if data_id not in sensor_id_list:
-            logger.debug(f"Skipping {data_header} as no sensor ID found for data_id {data_id}")
+            logger.warning(f"capture gap: sensor '{data_header}' (data_id {data_id}) is in the report but not declared in this building's metadata -- energy not captured")
             continue
 
-        actual_columns = [actual for ((actual, _), _) in resolved]
-        unit_scales = [scale for ((_, scale), _) in resolved]
+        actual_columns = [actual for (actual, _) in present]
+        unit_scales = [scale for (_, scale) in present]
 
         # Filter the relevant columns and make a copy of the DataFrame
         try:

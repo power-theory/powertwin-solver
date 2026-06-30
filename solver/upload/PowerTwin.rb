@@ -12,65 +12,11 @@ require 'openstudio/load_flexibility_measures'
 require 'openstudio/geb'
 
 require 'json'
+require 'digest'
 require 'rexml/document'
 require 'logger'
 
-# PowerTwin reference-data lookup. Resolves tier names + asset context into
-# concrete physical values (U/SHGC, R-value, fuel efficiency) so the custom
-# OS measures stay pure appliers. Reads the same JSONs the Python resolver
-# uses (solver/upload/reference_data/) for envelope R; window U/SHGC and SWH
-# efficiency tables are kept inline here since they don't have JSON equivalents.
-module PowerTwinRefs
-  REF_DIR = File.join(File.dirname(__FILE__), 'reference_data')
-  @@cache = {}
-  def self.load(name)
-    @@cache[name] ||= JSON.parse(File.read(File.join(REF_DIR, "#{name}.json")))
-  end
-
-  # ASHRAE 90.1-2013 Section 5.5 prescriptive nonres window U-factor (W/m2-K)
-  # and SHGC by climate zone. From Table 5.5-1 through 5.5-8.
-  # https://www.ashrae.org/technical-resources/bookstore/standard-90-1
-  CZ_WINDOW = {
-    '1' => { u: 6.81, shgc: 0.25 }, '2' => { u: 4.26, shgc: 0.25 },
-    '3' => { u: 3.69, shgc: 0.25 }, '4' => { u: 3.12, shgc: 0.40 },
-    '5' => { u: 3.12, shgc: 0.40 }, '6' => { u: 2.56, shgc: 0.40 },
-    '7' => { u: 2.27, shgc: 0.45 }, '8' => { u: 1.99, shgc: 0.45 },
-  }.freeze
-  # Window U-factor and SHGC multipliers vs the 90.1-2013 prescriptive baseline
-  # (which assumes double low-e). Single Pane U multiplier 2.0 reflects RESNET
-  # clear-single stock ~U-1.18 Btu/hr-ft2-F vs 90.1 CZ4 prescriptive ~U-0.55
-  # (= 3.12 W/m2-K). Triple Pane 0.55 reflects high-perf low-e triple U-0.30
-  # vs the same baseline. SHGC multipliers similar: single uncoated ~0.85,
-  # double low-e ~0.40 (baseline), triple low-e ~0.34.
-  # Sources: ASHRAE 90.1-2013 Tbl 5.5 + RESNET HERS Reference Home tables.
-  TIER_FACTOR = { 'Single Pane' => [2.0, 1.5], 'Double Pane' => [1.0, 1.0], 'Triple Pane' => [0.55, 0.85] }.freeze
-  # ASHRAE 90.1-2013 Table 7.8 minimum thermal efficiency for storage water
-  # heaters under 75 kBtu/h (gas/propane) and 12 kW (electric):
-  #   Gas/Propane storage:    Et = 0.80
-  #   Oil-fired storage:      Et = 0.78
-  #   Electric storage:       EF ~= 0.93 - 0.00132*V (~0.95 for typical 50 gal)
-  # https://www.ashrae.org/technical-resources/bookstore/standard-90-1
-  SWH_EFFICIENCY = { 'Electricity' => 0.95, 'NaturalGas' => 0.80, 'FuelOilNo2' => 0.78, 'Propane' => 0.80 }.freeze
-  RESIDENTIAL_BUILDING_TYPES = %w[Single-Family\ Detached Single-Family\ Attached Multifamily].freeze
-
-  # Trailing CZ digit. urbanopt emits "ASHRAE 169-2013-4A"; we want "4".
-  def self.cz_number(cz) = cz.to_s[/(\d)[A-Cc]?\s*\z/, 1]
-  def self.state_to_region(state) = state ? load('census_regions')['state_to_region'][state.to_s.upcase] : nil
-  def self.vintage_bin(year)
-    y = year.to_i
-    return nil if y <= 0
-    y < 1980 ? 'pre-1980' : y < 2000 ? '1980-1999' : y < 2010 ? '2000-2009' : '2010+'
-  end
-
-  def self.window_props(tier, climate_zone)
-    base = CZ_WINDOW[cz_number(climate_zone)] || CZ_WINDOW['4']
-    fu, fs = TIER_FACTOR[tier] || [1.0, 1.0]
-    [base[:u] * fu, [base[:shgc] * fs, 1.0].min]
-  end
-
-  def self.swh_efficiency(fuel) = SWH_EFFICIENCY[fuel] || 0.80
-  def self.present?(v) = !(v.nil? || (v.respond_to?(:empty?) && v.empty?))
-end
+require_relative 'powertwin_refs'
 
 
 module URBANopt
@@ -695,7 +641,9 @@ module URBANopt
               res_tier = PowerTwinRefs.present?(res_props[:window_type]) ? res_props[:window_type] :
                          ((res_props[:windows] || [{}]).first || {})[:window_type]
               if PowerTwinRefs.present?(res_tier)
-                u, shgc = PowerTwinRefs.window_props(res_tier, climate_zone)
+                # Residential windows use IECC residential / physical glazing
+                # values, not the commercial ASHRAE 90.1 table (commercial path).
+                u, shgc = PowerTwinRefs.window_props_residential(res_tier, climate_zone)
                 # window_props U is SI (W/m2-K, for OpenStudio SimpleGlazing); HPXML window_ufactor is IP.
                 args[:window_ufactor] = (u / 5.678263).round(3)
                 args[:window_shgc] = shgc.round(3)
@@ -703,9 +651,22 @@ module URBANopt
               res_constr = res_props[:constructions] || {}
               res_wall_r = (res_constr[:wall] || {})[:r_value]
               res_roof_r = (res_constr[:roof] || {})[:r_value]
-              args[:wall_assembly_r] = res_wall_r.to_f if PowerTwinRefs.present?(res_wall_r)
-              # roof_r_value is ceiling insulation (recs2020); ceiling_assembly_r is the attic R.
-              args[:ceiling_assembly_r] = res_roof_r.to_f if PowerTwinRefs.present?(res_roof_r)
+              # recs2020 wall_r_value is CAVITY-only R; HPXML wall_assembly_r is
+              # the whole-wall assembly R (framing + sheathing + finishes + air
+              # films). Convert with a wood-frame parallel-path approximation
+              # (~0.75 framing derate on cavity + ~2.5 series), so an uninsulated
+              # pre-1980 cavity (R-1) yields ~R-3.3 assembly (U~0.30) instead of
+              # the absurd R-1 assembly (U-1.0). Commercial consumes cavity R
+              # correctly via IncreaseInsulationRValueForExteriorWalls (additive).
+              if PowerTwinRefs.present?(res_wall_r)
+                args[:wall_assembly_r] = PowerTwinRefs.wall_assembly_r(res_wall_r)
+              end
+              # roof_r_value is ceiling/attic insulation (recs2020). Attic framing
+              # bridging is negligible (insulation covers joists), so the assembly
+              # is the insulation plus a small finish+film series (~1.0).
+              if PowerTwinRefs.present?(res_roof_r)
+                args[:ceiling_assembly_r] = PowerTwinRefs.ceiling_assembly_r(res_roof_r)
+              end
               # Heating system type drives HPXML args. The type determines
               # valid fuels -- system type and fuel must be correlated.
               sys_type = res_props[:heating_system_type].to_s.downcase
@@ -732,9 +693,33 @@ module URBANopt
                 if PowerTwinRefs.present?(res_props[:heating_system_fuel_type])
                   args[:heating_system_fuel] = res_props[:heating_system_fuel_type].to_s.downcase
                 end
+                # An electric (resistance) furnace is ~100% efficient at point of
+                # use, not the 78-80% AFUE of a combustion furnace. RECS lumps
+                # electric forced-air with furnaces, so this fuel is reachable.
+                if args[:heating_system_fuel].to_s.downcase == 'electricity'
+                  args[:heating_system_heating_efficiency] = 1.0
+                end
               end
               if sys_type != 'heat_pump' && res_props[:cooling_system_fuel_type].to_s.downcase == 'none'
                 args[:cooling_system_type] = 'none'
+              end
+              # RECS 2020 median cooling setpoint is 72F; HPXML default is 78F (ANSI 301 rating).
+              # BuildResidentialHPXML setpoint args are STRING-typed (they accept
+              # comma-separated hourly schedules), so pass strings, not Integers.
+              args[:hvac_control_cooling_weekday_setpoint] = '72'
+              args[:hvac_control_cooling_weekend_setpoint] = '72'
+              # RECS 2020: 58-73% of SFD homes have attached garages (region-dependent).
+              # With building_id: hash-based probabilistic assignment.
+              # Without building_id (single-building sim): majority rule (prevalence > 0.5 = add garage).
+              if building_type == 'Single-Family Detached'
+                garage_rate = PowerTwinRefs.garage_rate(res_props[:region])
+                stochastic = %w[1 true yes on].include?(ENV.fetch('URBANOPT_STOCHASTIC_SAMPLING', 'false').strip.downcase)
+                add_garage = PowerTwinRefs.garage_attached?(garage_rate, feature_id, stochastic)
+                if add_garage
+                  args[:geometry_garage_width] = 24
+                  args[:geometry_garage_depth] = 20
+                  args[:geometry_garage_protrusion] = 1
+                end
               end
               if PowerTwinRefs.present?(res_props[:service_water_heating_fuel_type])
                 args[:water_heater_fuel_type] = res_props[:service_water_heating_fuel_type].to_s
@@ -745,6 +730,48 @@ module URBANopt
                   args[:water_heater_type] = wh_type
                 end
               end
+
+              # Residential system turnover: HVAC ~20yr EUL, SWH ~15yr.
+              # Override HPXML efficiency defaults for older buildings whose
+              # systems have been replaced since construction.
+              res_year = res_props[:year_built].to_i rescue 0
+              sim_year = (ENV['URBANOPT_SIMULATION_YEAR'] || '2025').to_i
+              if res_year > 0 && (sim_year - res_year) > 20
+                eff_hvac_year = [res_year + 20, sim_year - 20].max
+                sys = args[:heating_system_type].to_s
+                if sys == 'Furnace'
+                  # Combustion AFUE turnover only applies to fuel-fired furnaces;
+                  # an electric furnace stays ~1.0 (set in the type block above).
+                  unless args[:heating_system_fuel].to_s.downcase == 'electricity'
+                    args[:heating_system_heating_efficiency] = PowerTwinRefs.furnace_afue(eff_hvac_year)
+                  end
+                elsif sys == 'Boiler'
+                  args[:heating_system_heating_efficiency] = PowerTwinRefs.boiler_afue(eff_hvac_year)
+                end
+                southern = res_props[:region].to_s == 'South'
+                if args[:cooling_system_type].to_s != 'none'
+                  args[:cooling_system_cooling_efficiency] = PowerTwinRefs.ac_seer(eff_hvac_year, southern)
+                  args[:cooling_system_cooling_efficiency_type] = 'SEER'
+                end
+                if args[:heat_pump_type].to_s == 'air-to-air'
+                  seer = PowerTwinRefs.hp_seer(eff_hvac_year, southern)
+                  hspf = PowerTwinRefs.hp_hspf(eff_hvac_year)
+                  args[:heat_pump_cooling_efficiency] = seer
+                  args[:heat_pump_cooling_efficiency_type] = 'SEER'
+                  args[:heat_pump_heating_efficiency] = hspf
+                  args[:heat_pump_heating_efficiency_type] = 'HSPF'
+                end
+              end
+            end
+
+            # Vacant buildings: no occupants, pipe-freeze heating, no cooling.
+            if res_props[:vacant]
+              args[:geometry_unit_num_occupants] = 0
+              # String-typed setpoint args (see cooling setpoint note above).
+              args[:hvac_control_heating_weekday_setpoint] = '55'
+              args[:hvac_control_heating_weekend_setpoint] = '55'
+              args[:hvac_control_cooling_weekday_setpoint] = '99'
+              args[:hvac_control_cooling_weekend_setpoint] = '99'
             end
 
             # Parse BuildResidentialHPXML measure xml so we can fill "args" in with default values where keys aren't already assigned
@@ -885,7 +912,22 @@ module URBANopt
 
               footprint_area = building_hash[:footprint_area]
 
+              # CBECS-derived conditioned fraction by building type (gross -> conditioned area).
+              conditioned_fraction = {
+                'SecondarySchool' => 0.92, 'PrimarySchool' => 0.93,
+                'SmallOffice' => 0.95, 'MediumOffice' => 0.92, 'LargeOffice' => 0.88,
+                'SmallHotel' => 0.90, 'LargeHotel' => 0.88,
+                'RetailStandalone' => 0.93, 'RetailStripmall' => 0.93,
+                'Warehouse' => 0.70, 'QuickServiceRestaurant' => 0.95,
+                'FullServiceRestaurant' => 0.93, 'Hospital' => 0.85,
+                'Outpatient' => 0.90, 'SuperMarket' => 0.92,
+                'MidriseApartment' => 0.90, 'HighriseApartment' => 0.88
+              }
+
               mapped_building_type_1 = lookup_building_type(building_type_1, template, footprint_area, number_of_stories)
+
+              frac = conditioned_fraction.fetch(mapped_building_type_1, 0.92)
+              footprint_area = footprint_area.to_f * frac
 
               # process Mixed Use (for create_bar measure)
               if building_type_1 == 'Mixed use'
@@ -1097,7 +1139,22 @@ module URBANopt
                 if new_template
                   OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'template', new_template)
                   OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'template', new_template, 'create_typical_building_from_model 1')
-                  OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'template', new_template, 'create_typical_building_from_model 2')
+
+                  # System turnover: HVAC has ~20yr EUL. A 1970 building likely
+                  # has 2010-era HVAC. Use a newer template for step 2 (HVAC)
+                  # while keeping the envelope template on step 1.
+                  hvac_eul = 20
+                  sim_year = (ENV['URBANOPT_SIMULATION_YEAR'] || '2025').to_i
+                  if !year_built.nil? && (sim_year - year_built.to_i) > hvac_eul
+                    effective_hvac_year = [year_built.to_i + hvac_eul, sim_year - hvac_eul].max
+                    # Re-derive template for the effective system vintage.
+                    # Clamp to the newest cycle we have data for.
+                    effective_hvac_year = [effective_hvac_year, sim_year].min
+                    hvac_template = lookup_template_by_year_built(template, effective_hvac_year, template_building_type)
+                    OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'template', hvac_template, 'create_typical_building_from_model 2')
+                  else
+                    OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'template', new_template, 'create_typical_building_from_model 2')
+                  end
                 end
               rescue StandardError
               end
@@ -1110,10 +1167,12 @@ module URBANopt
               # urbanopt's measure.xml enumerates the acceptable values per arg:
               #   htg_src: Electricity, NaturalGas, DistrictHeating, DistrictAmbient, Inferred
               #   clg_src: Electricity, DistrictCooling, DistrictAmbient, Inferred
-              # Anything else (FuelOil, Propane, NaturalGas-for-cooling) gets silently
-              # dropped so the OSW stays valid.
+              # Propane/FuelOil aren't valid htg_src values, so we build the model
+              # with NaturalGas and then swap the fuel via set_heating_fuel measure.
               fuel_map = { 'electricity' => 'Electricity', 'natural gas' => 'NaturalGas',
-                           'fuel oil' => 'NaturalGas', 'propane' => 'NaturalGas', 'wood' => 'NaturalGas' }
+                           'fuel oil' => 'NaturalGas', 'propane' => 'NaturalGas', 'wood' => 'NaturalGas',
+                           'district steam' => 'DistrictHeating' }
+              htg_fuel_override = { 'propane' => 'Propane', 'fuel oil' => 'FuelOilNo2' }
               valid_src = { htg_src: %w[Electricity NaturalGas DistrictHeating DistrictAmbient Inferred],
                             clg_src: %w[Electricity DistrictCooling DistrictAmbient Inferred] }
               %i[heating_system_fuel_type cooling_system_fuel_type].each do |field|
@@ -1124,6 +1183,13 @@ module URBANopt
                 ['create_typical_building_from_model 1', 'create_typical_building_from_model 2'].each do |step|
                   OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', arg.to_s, mapped, step)
                 end
+              end
+
+              # Post-hoc fuel swap for propane/fuel oil via custom measure.
+              raw_htg = props[:heating_system_fuel_type].to_s.downcase
+              if htg_fuel_override.key?(raw_htg)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_heating_fuel', '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_heating_fuel', 'fuel', htg_fuel_override[raw_htg])
               end
 
               # Asset context for the reference-data lookups below.
@@ -1162,11 +1228,16 @@ module URBANopt
 
               # SWH fuel: prefer create_typical's swh_src (the toolchain lever).
               # Custom measure only kicks in for fuels swh_src doesn't accept.
+              swh_fuel_map = { 'electricity' => 'Electricity', 'natural gas' => 'NaturalGas',
+                               'fuel oil' => 'FuelOil', 'propane' => 'Propane', 'wood' => 'NaturalGas',
+                               'district steam' => 'NaturalGas' }
               if PowerTwinRefs.present?(props[:service_water_heating_fuel_type])
-                ep_fuel = fuel_map[props[:service_water_heating_fuel_type].to_s.downcase]
+                ep_fuel = swh_fuel_map[props[:service_water_heating_fuel_type].to_s.downcase]
                 case ep_fuel
                 when 'Electricity', 'NaturalGas', 'HeatPump'
-                  OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'swh_src', ep_fuel, 'create_typical_building_from_model 1')
+                  ['create_typical_building_from_model 1', 'create_typical_building_from_model 2'].each do |step|
+                    OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'swh_src', ep_fuel, step)
+                  end
                 when 'FuelOil', 'Propane'
                   # WaterHeater:Mixed uses 'FuelOilNo2' (E+ naming); htg_src uses 'FuelOil'.
                   e_fuel = ep_fuel == 'FuelOil' ? 'FuelOilNo2' : 'Propane'
@@ -1176,8 +1247,17 @@ module URBANopt
                 end
               end
 
-              # Occupants: pure pass-through; measure rescales to target_total.
-              if PowerTwinRefs.present?(props[:number_of_occupants])
+              # LPD reduction: real buildings install 50-70% of ASHRAE 90.1 lighting allowance (DOE/NEEA surveys).
+              OpenStudio::Extension.set_measure_argument(osw, 'ReduceLightingLoadsByPercentage', '__SKIP__', false)
+
+              # Vacant commercial: suppress occupant-driven loads.
+              if props[:vacant]
+                OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', 'target_total', 0)
+                OpenStudio::Extension.set_measure_argument(osw, 'ReduceElectricEquipmentLoadsByPercentage', '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, 'ReduceElectricEquipmentLoadsByPercentage', 'elecequip_power_reduction_percent', 80)
+                OpenStudio::Extension.set_measure_argument(osw, 'ReduceLightingLoadsByPercentage', 'lighting_power_reduction_percent', 90)
+              elsif PowerTwinRefs.present?(props[:number_of_occupants])
                 OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', '__SKIP__', false)
                 OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', 'target_total', props[:number_of_occupants].to_i)
               end

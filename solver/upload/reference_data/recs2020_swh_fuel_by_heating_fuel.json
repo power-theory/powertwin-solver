@@ -1,0 +1,56 @@
+{
+  "_source": {
+    "name": "EIA RECS 2020 public microdata v7, P(FUELH2O | FUELHEAT), NWEIGHT-weighted",
+    "url": "https://www.eia.gov/consumption/residential/data/2020/",
+    "extracted": "2026-06-29",
+    "regen": "tests/tools/build_swh_fuel_by_heating_fuel.py",
+    "methodology": "Water-heater fuel conditioned on the building's HEATING fuel (not system type). The resolver resolves heating fuel first, then share-weights the SWH fuel from this table by the building_id hash; a heat-pump water heater is forced electric upstream. National (heating-fuel signal dominates region)."
+  },
+  "natural gas": {
+    "mode": "natural gas",
+    "share": 0.8364,
+    "shares": {
+      "natural gas": 0.8364,
+      "electricity": 0.1636
+    }
+  },
+  "propane": {
+    "mode": "electricity",
+    "share": 0.5358,
+    "shares": {
+      "electricity": 0.5358,
+      "propane": 0.4573,
+      "natural gas": 0.0069
+    }
+  },
+  "fuel oil": {
+    "mode": "fuel oil",
+    "share": 0.4619,
+    "shares": {
+      "fuel oil": 0.4619,
+      "electricity": 0.4346,
+      "natural gas": 0.0689,
+      "propane": 0.0346
+    }
+  },
+  "electricity": {
+    "mode": "electricity",
+    "share": 0.8651,
+    "shares": {
+      "electricity": 0.8651,
+      "natural gas": 0.1107,
+      "propane": 0.0242
+    }
+  },
+  "wood": {
+    "mode": "electricity",
+    "share": 0.7033,
+    "shares": {
+      "electricity": 0.7033,
+      "propane": 0.1697,
+      "natural gas": 0.0563,
+      "fuel oil": 0.0354,
+      "wood": 0.0353
+    }
+  }
+}

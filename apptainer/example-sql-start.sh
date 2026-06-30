@@ -47,6 +47,7 @@ URBANOPT_REPORTING_FREQUENCY="Timestep"  # Timestep, Hourly, Daily, Monthly, Run
 URBANOPT_RESAMPLE="H"                  # H, D, M, A. Empty disables the resample step in consolidate
 URBANOPT_POSTPROCESS_TRANSLATIONS="true" # subtract 1s from end-of-period ts so it buckets right
 URBANOPT_DYNAMIC_DEFAULTS="true"       # opt-in: resolve defaults from RECS 2020 / CBECS 2018 / OS-Standards. false = flat SIM_PARAM_DEFAULTS only
+URBANOPT_STOCHASTIC_SAMPLING="false"   # opt-in: hash-based probabilistic assignment for fuel type, vacancy, and garage. requires dynamic_defaults=true
 URBANOPT_KEEP_RUN_DIR="false"          # opt-in: preserve in.osw / in.osm / eplusout.sql / intermediate run dirs for test verifiers + ad-hoc forensics. false = production cleanup
 
 # Storage layout:
@@ -542,6 +543,7 @@ create_feature_files() {
         --env "URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS}" \
         --env "URBANOPT_REPORTING_FREQUENCY=${URBANOPT_REPORTING_FREQUENCY}" \
         --env "URBANOPT_DYNAMIC_DEFAULTS=${URBANOPT_DYNAMIC_DEFAULTS}" \
+        --env "URBANOPT_STOCHASTIC_SAMPLING=${URBANOPT_STOCHASTIC_SAMPLING}" \
         "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner create-feature-files \
         \"${SIMULATION_NAME}\" \
         \"${ASSET_GEOJSON_PATH}\" \
@@ -680,6 +682,7 @@ process_batches() {
         --env "BUNDLE_PATH=${SHARED_GEM_HOME}" \
         --env "SIMULATION_NAME=${SIMULATION_NAME}" \
         --env "SLURM_JOB_ID=${SLURM_JOB_ID}" \
+        --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
         --env "PYTHONPATH=/solver" \
         --env "PYTHONDONTWRITEBYTECODE=1" \
         --env "POWERTWIN_LOG_DIR=/solver/logs" \
@@ -688,6 +691,9 @@ process_batches() {
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
         --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
         --env "URBANOPT_REPORTING_FREQUENCY=${URBANOPT_REPORTING_FREQUENCY}" \
+        --env "URBANOPT_DYNAMIC_DEFAULTS=${URBANOPT_DYNAMIC_DEFAULTS}" \
+        --env "URBANOPT_STOCHASTIC_SAMPLING=${URBANOPT_STOCHASTIC_SAMPLING}" \
+        --env "URBANOPT_SIMULATION_YEAR=${URBANOPT_SIMULATION_YEAR}" \
         --workdir /solver \
         "${SOLVER_SIF}" python -m app.direct_runner run-parallel-batches \
         "${SIMULATION_DIR}" \
