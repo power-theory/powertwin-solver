@@ -1,0 +1,108 @@
+{{- $component := "mss" }}
+{{- $name := include "solver.componentName" (dict "ctx" . "component" $component) }}
+{{- $flaskName := include "solver.componentName" (dict "ctx" . "component" "flask") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: {{ .Values.mss.replicas }}
+  selector:
+    matchLabels:
+      {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "solver.labels" . | nindent 8 }}
+        {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.mss.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mss.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mss.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: mss
+          image: {{ include "solver.image" (dict "ctx" . "image" .Values.mss.image) }}
+          imagePullPolicy: {{ .Values.mss.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.mss.port }}
+              protocol: TCP
+          env:
+            - name: DEV_MODE
+              value: {{ .Values.mss.devMode | quote }}
+            - name: MSS_FLASK_BASE_URL
+              value: {{ printf "http://%s" $flaskName | quote }}
+            - name: FLASK_PORT
+              value: {{ .Values.flask.port | quote }}
+            - name: MSS_SLACK_CHANNEL
+              value: {{ .Values.mss.slackChannel | quote }}
+            - name: PG_DB_TOKEN_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "solver.secretName" . }}
+                  key: PG_DB_TOKEN_ADMIN
+            - name: API_SOLVER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "solver.secretName" . }}
+                  key: API_SOLVER_TOKEN
+            - name: MSS_SLACK_VERIFICATION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "solver.secretName" . }}
+                  key: MSS_SLACK_VERIFICATION_TOKEN
+            - name: MSS_SLACK_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "solver.secretName" . }}
+                  key: MSS_SLACK_SIGNING_SECRET
+            - name: MSS_SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "solver.secretName" . }}
+                  key: MSS_SLACK_WEBHOOK_URL
+            {{- range $key, $value := .Values.mss.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.mss.resources | nindent 12 }}

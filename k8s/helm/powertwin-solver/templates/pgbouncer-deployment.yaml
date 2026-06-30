@@ -1,0 +1,114 @@
+{{- $component := "pgbouncer" }}
+{{- $name := include "solver.componentName" (dict "ctx" . "component" $component) }}
+{{- $pgName := include "solver.componentName" (dict "ctx" . "component" "pg") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  replicas: {{ .Values.pgbouncer.replicas }}
+  selector:
+    matchLabels:
+      {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "solver.labels" . | nindent 8 }}
+        {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.pgbouncer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pgbouncer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pgbouncer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pgbouncer.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: pgbouncer
+          image: {{ include "solver.image" (dict "ctx" . "image" .Values.pgbouncer.image) }}
+          imagePullPolicy: {{ .Values.pgbouncer.imagePullPolicy }}
+          ports:
+            - name: pgbouncer
+              containerPort: {{ .Values.pgbouncer.port }}
+              protocol: TCP
+          env:
+            - name: DATABASES_HOST
+              value: {{ $pgName | quote }}
+            - name: DATABASES_PORT
+              value: {{ .Values.pg.port | quote }}
+            - name: DATABASES_USER
+              value: {{ .Values.pg.username | quote }}
+            - name: DATABASES_DBNAME
+              value: {{ .Values.pg.database | quote }}
+            - name: DATABASES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "solver.secretName" . }}
+                  key: PG_DB_TOKEN_ADMIN
+            - name: LISTEN_ADDR
+              value: "0.0.0.0"
+            - name: LISTEN_PORT
+              value: {{ .Values.pgbouncer.port | quote }}
+            - name: AUTH_TYPE
+              value: {{ .Values.pgbouncer.authType | quote }}
+            - name: POOL_MODE
+              value: {{ .Values.pgbouncer.poolMode | quote }}
+            - name: MAX_CLIENT_CONN
+              value: {{ .Values.pgbouncer.maxClientConn | quote }}
+            - name: DEFAULT_POOL_SIZE
+              value: {{ .Values.pgbouncer.defaultPoolSize | quote }}
+            - name: MAX_DB_CONNECTIONS
+              value: {{ .Values.pgbouncer.maxDbConnections | quote }}
+            - name: ADMIN_USERS
+              value: {{ .Values.pg.username | quote }}
+            - name: STATS_USERS
+              value: {{ .Values.pg.username | quote }}
+            - name: LOG_CONNECTIONS
+              value: "1"
+            - name: LOG_DISCONNECTIONS
+              value: "1"
+            - name: LOG_POOLER_ERRORS
+              value: "1"
+            - name: IGNORE_STARTUP_PARAMETERS
+              value: {{ .Values.pgbouncer.ignoreStartupParameters | quote }}
+          readinessProbe:
+            tcpSocket:
+              port: pgbouncer
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: pgbouncer
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.pgbouncer.resources | nindent 12 }}

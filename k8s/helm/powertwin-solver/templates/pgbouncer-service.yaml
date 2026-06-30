@@ -1,0 +1,33 @@
+{{- $component := "pgbouncer" }}
+{{- $name := include "solver.componentName" (dict "ctx" . "component" $component) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: pgbouncer
+      port: {{ .Values.pgbouncer.port }}
+      targetPort: pgbouncer
+      protocol: TCP
+  selector:
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+{{- if .Values.pgbouncer.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pgbouncer.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+{{- end }}

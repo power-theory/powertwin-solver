@@ -1,492 +1,189 @@
+# PowerTwin Solver - GitLab CI/CD Pipeline
+# dev branch -> test + build + deploy to dev (staging)
+# main branch -> test + build + deploy to main + demo -> mirror
+#
+# Required CI/CD variables:
+#   AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (AWS_ACCOUNT_ID is derived)
+#   GITHUB_PUSH_TOKEN (PAT with repo scope for GitHub mirror)
+#   PG_DB_TOKEN_ADMIN, API_SOLVER_TOKEN, PG_DB_PASSWORD (main app PG password, for KEDA)
+#   MSS_SLACK_VERIFICATION_TOKEN, MSS_SLACK_SIGNING_SECRET, MSS_SLACK_WEBHOOK_URL
+
 stages:
-  # Development stages
-  - deploy_dev_db
-  - deploy_dev_pgbouncer
-  - deploy_dev_flask
-  - deploy_dev_mss
-
-  # Preview stages
-  - deploy_prev_db
-  - deploy_prev_pgbouncer
-  - deploy_prev_flask
-  - deploy_prev_mss
-
-  # Production stages
-  - deploy_main_db
-  - deploy_main_pgbouncer
-  - deploy_main_flask
-  - deploy_main_mss
-
-  # Demo stages
-  # - deploy_demo_db
-  # - deploy_demo_pgbouncer
-  # - deploy_demo_flask
-  # - deploy_demo_mss
-
-  # Public stages
-  - deploy_public_db
-  - deploy_public_pgbouncer
-  - deploy_public_flask
-  - deploy_public_mss
+  - test
+  - build
+  - deploy
+  - mirror
 
 variables:
-  # .env.local — Mode
-  DEV_MODE: $DEV_MODE
+  AWS_REGION: ${AWS_REGION}
+  DOMAIN_NAME: ${DOMAIN_NAME}
+  IMAGE_TAG: ${CI_COMMIT_BRANCH}-${CI_COMMIT_SHORT_SHA}
+  HELM_CHART: k8s/helm/${CI_PROJECT_NAME}
+  HELM_RELEASE: ${CI_PROJECT_NAME}
+  K8S_NAMESPACE: powertwin-${CI_COMMIT_BRANCH}
 
-  # .env.local — Postgres
-  PG_DB_TOKEN_ADMIN: $PG_DB_TOKEN_ADMIN
-  API_SOLVER_TOKEN: $API_SOLVER_TOKEN
-  PG_DB_PORT: $PG_DB_PORT
-  PGBOUNCER_PORT: $PGBOUNCER_PORT
+# Test
 
-  # .env.local — Flask
-  FLASK_PORT: $FLASK_PORT
-
-  # .env.local — Simulation
-  URBANOPT_SIMULATION_YEAR: $URBANOPT_SIMULATION_YEAR
-  URBANOPT_REPORTING_FREQUENCY: $URBANOPT_REPORTING_FREQUENCY
-  URBANOPT_RESAMPLE: $URBANOPT_RESAMPLE
-  URBANOPT_POSTPROCESS_TRANSLATIONS: $URBANOPT_POSTPROCESS_TRANSLATIONS
-  URBANOPT_DYNAMIC_DEFAULTS: $URBANOPT_DYNAMIC_DEFAULTS
-
-  # .env.local — MSS
-  MSS_PORT: $MSS_PORT
-  MSS_SLACK_VERIFICATION_TOKEN: $MSS_SLACK_VERIFICATION_TOKEN
-  MSS_SLACK_SIGNING_SECRET: $MSS_SLACK_SIGNING_SECRET
-  MSS_SLACK_WEBHOOK_URL: $MSS_SLACK_WEBHOOK_URL
-  MSS_SLACK_CHANNEL: $MSS_SLACK_CHANNEL
-
-  # .env.local — Other
-  POWERTWIN_LOG_DIR: $POWERTWIN_LOG_DIR
-
-  # Disable Logic
-  PG_DB_DISABLE_DEPLOY: $PG_DB_DISABLE_DEPLOY
-
-  # Container Name Elements
-  NAME_PREFIX: ${CI_COMMIT_BRANCH}-
-  NAME_SUFFIX_DB: pg
-  NAME_SUFFIX_PGBOUNCER: pgbouncer
-  NAME_SUFFIX_FLASK: flask
-  NAME_SUFFIX_MSS: mss
-
-  # Registry
-  REGISTRY: 100.72.180.45:5000
-
-  # Project Name
-  PROJECT_NAME: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}
-
-  # Environment Names
-  ENVIRONMENT_NAME_DB: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_DB}
-  ENVIRONMENT_NAME_PGBOUNCER: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_PGBOUNCER}
-  ENVIRONMENT_NAME_FLASK: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_FLASK}
-  ENVIRONMENT_NAME_MSS: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_MSS}
-
-  # Environment URLs
-  ENVIRONMENT_URL_DB: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_DB}.${DOMAIN_NAME}:${BALANCER_PORT}
-  ENVIRONMENT_URL_PGBOUNCER: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_PGBOUNCER}.${DOMAIN_NAME}:${BALANCER_PORT}
-  ENVIRONMENT_URL_FLASK: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_FLASK}.${DOMAIN_NAME}:${BALANCER_PORT}
-  ENVIRONMENT_URL_MSS: https://${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}-${NAME_SUFFIX_MSS}.${DOMAIN_NAME}:${BALANCER_PORT}
-
-  # Local FLASK base URL
-  FLASK_MSS_BASE_URL: http://$ENVIRONMENT_NAME_MSS
-  MSS_FLASK_BASE_URL: http://$ENVIRONMENT_NAME_FLASK
-
-.deploy_db_template: &deploy_db_template
+test_resolvers:
+  stage: test
+  image: python:3.10-slim
+  tags:
+    - k8s
   script:
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-pg
-    - echo "Building Docker image for DB in $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm --no-cache powertwin-solver-pg
-    - echo "Deploying DB Docker container to $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-pg
-    - echo "DB Deployed @ ${ENVIRONMENT_URL_DB}"
+    - pip install -r solver/requirements.txt --quiet
+    - python tests/test_resolvers.py
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(dev|main)$/
+
+# Build
+
+.ecr_login: &ecr_login
+  - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+  - export ECR_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+  - aws ecr get-login-password --region ${AWS_REGION}
+      | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+.build_template:
+  stage: build
+  needs: [test_resolvers]
+  image: docker:26.1.4
+  tags:
+    - k8s
+  before_script:
+    - apk add --no-cache aws-cli
+    - *ecr_login
   after_script:
     - docker image prune -f
-    - docker builder prune -af
-    - echo "DB deployment to $CI_COMMIT_BRANCH complete"
-  when: on_success
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(dev|main)$/
 
-.deploy_pgbouncer_template: &deploy_pgbouncer_template
+build_flask:
+  extends: .build_template
   script:
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-pgbouncer
-    - echo "Pulling PgBouncer image from registry..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-pgbouncer || docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm powertwin-solver-pgbouncer
-    - echo "Deploying PgBouncer Docker container to $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-pgbouncer
-    - echo "PgBouncer Deployed @ ${ENVIRONMENT_URL_PGBOUNCER}"
-  after_script:
-    - docker image prune -f
-    - docker builder prune -af
-    - echo "PgBouncer deployment to $CI_COMMIT_BRANCH complete"
-  when: on_success
+    - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask:${IMAGE_TAG}
+        -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask:${CI_COMMIT_BRANCH}
+        -f ./solver/Dockerfile ./solver
+    - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask --all-tags
 
-.deploy_flask_template: &deploy_flask_template
+build_pgbouncer:
+  extends: .build_template
   script:
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-flask
-    - echo "Pulling Flask image from registry..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-flask || docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm powertwin-solver-flask
-    - echo "Deploying FLASK Docker container to $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-flask
-    - echo "FLASK Deployed @ ${ENVIRONMENT_URL_FLASK}"
-  after_script:
-    - docker image prune -f
-    - docker builder prune -af
-    - echo "FLASK deployment to $CI_COMMIT_BRANCH complete"
-  when: on_success
+    - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-pgbouncer:${IMAGE_TAG}
+        -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-pgbouncer:${CI_COMMIT_BRANCH}
+        ./pgbouncer
+    - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-pgbouncer --all-tags
 
-.deploy_mss_template: &deploy_mss_template
+build_mss:
+  extends: .build_template
   script:
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-mss
-    - echo "Pulling MSS image from registry..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-mss || docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm powertwin-solver-mss
-    - echo "Deploying Microservices Docker container to $CI_COMMIT_BRANCH environment..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d --no-deps powertwin-solver-mss
-    - echo "Microservices Deployed @ ${ENVIRONMENT_URL_MSS}"
-  after_script:
-    - docker image prune -f
-    - docker builder prune -af
-    - echo "Microservices deployment to $CI_COMMIT_BRANCH complete"
-  when: on_success
+    - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-mss:${IMAGE_TAG}
+        -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-mss:${CI_COMMIT_BRANCH}
+        ./mss
+    - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-mss --all-tags
 
-# Development Environment
-deploy_dev_db:
-  stage: deploy_dev_db
+# Deploy
+
+.deploy_template:
+  stage: deploy
+  image: alpine/helm:3.21.2
   tags:
-    - dev
-  variables:
-    FLASK_PORT: 5463
-    PG_DB_PORT: 5353
-    PGBOUNCER_PORT: 5363
-    MSS_PORT: 5813
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_db_template
-  environment:
-    name: $ENVIRONMENT_NAME_DB
-    url: $ENVIRONMENT_URL_DB
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "dev" && $PG_DB_DISABLE_DEPLOY != "true"'
+    - k8s
+  before_script:
+    - apk add --no-cache aws-cli kubectl jq
+    - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+    - export ECR_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - export CLUSTER_NAME=${CLUSTER_NAME:-powertwin}
+    - aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${AWS_REGION}
+    - |
+      jq -n \
+        --arg pgAdminToken "${PG_DB_TOKEN_ADMIN}" \
+        --arg apiSolverToken "${API_SOLVER_TOKEN}" \
+        --arg slackVerificationToken "${MSS_SLACK_VERIFICATION_TOKEN:-}" \
+        --arg slackSigningSecret "${MSS_SLACK_SIGNING_SECRET:-}" \
+        --arg slackWebhookUrl "${MSS_SLACK_WEBHOOK_URL:-}" \
+        --arg mainPgPassword "${PG_DB_PASSWORD:-}" \
+        '{secrets: {
+          pgAdminToken: $pgAdminToken,
+          apiSolverToken: $apiSolverToken,
+          slackVerificationToken: $slackVerificationToken,
+          slackSigningSecret: $slackSigningSecret,
+          slackWebhookUrl: $slackWebhookUrl,
+          mainPgPassword: $mainPgPassword
+        }}' > /tmp/secrets.json
 
-deploy_dev_pgbouncer:
-  stage: deploy_dev_pgbouncer
-  tags:
-    - dev
-  variables:
-    FLASK_PORT: 5463
-    PG_DB_PORT: 5353
-    PGBOUNCER_PORT: 5363
-    MSS_PORT: 5813
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_pgbouncer_template
+deploy_dev:
+  extends: .deploy_template
+  script:
+    - helm upgrade --install ${HELM_RELEASE} ${HELM_CHART}
+        --namespace ${K8S_NAMESPACE}
+        --create-namespace
+        -f ${HELM_CHART}/values-${CI_COMMIT_BRANCH}.yaml
+        -f /tmp/secrets.json
+        --set global.imageRegistry=${ECR_REGISTRY}
+        --set global.imageTag=${IMAGE_TAG}
+        --set global.branch=${CI_COMMIT_BRANCH}
+        --atomic
+        --wait
+        --timeout 10m
   environment:
-    name: $ENVIRONMENT_NAME_PGBOUNCER
-    url: $ENVIRONMENT_URL_PGBOUNCER
+    name: ${K8S_NAMESPACE}
+    url: https://dev-solver.${DOMAIN_NAME}
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: $CI_COMMIT_BRANCH == "dev"
 
-deploy_dev_flask:
-  stage: deploy_dev_flask
-  tags:
-    - dev
-  variables:
-    FLASK_PORT: 5463
-    PG_DB_PORT: 5353
-    PGBOUNCER_PORT: 5363
-    MSS_PORT: 5813
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_flask_template
+deploy_main:
+  extends: .deploy_template
+  script:
+    - helm upgrade --install ${HELM_RELEASE} ${HELM_CHART}
+        --namespace ${K8S_NAMESPACE}
+        --create-namespace
+        -f ${HELM_CHART}/values-${CI_COMMIT_BRANCH}.yaml
+        -f /tmp/secrets.json
+        --set global.imageRegistry=${ECR_REGISTRY}
+        --set global.imageTag=${IMAGE_TAG}
+        --set global.branch=${CI_COMMIT_BRANCH}
+        --atomic
+        --wait
+        --timeout 10m
   environment:
-    name: $ENVIRONMENT_NAME_FLASK
-    url: $ENVIRONMENT_URL_FLASK
+    name: ${K8S_NAMESPACE}
+    url: https://solver.${DOMAIN_NAME}
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: $CI_COMMIT_BRANCH == "main"
 
-deploy_dev_mss:
-  stage: deploy_dev_mss
-  tags:
-    - dev
-  variables:
-    FLASK_PORT: 5463
-    PG_DB_PORT: 5353
-    PGBOUNCER_PORT: 5363
-    MSS_PORT: 5813
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_mss_template
-  environment:
-    name: $ENVIRONMENT_NAME_MSS
-    url: $ENVIRONMENT_URL_MSS
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "dev" && $MSS_DISABLE_DEPLOY != "true"'
-
-# Preview Environment
-deploy_prev_db:
-  stage: deploy_prev_db
-  tags:
-    - prev
-  variables:
-    FLASK_PORT: 5464
-    PG_DB_PORT: 5354
-    PGBOUNCER_PORT: 5364
-    MSS_PORT: 5814
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_db_template
-  environment:
-    name: $ENVIRONMENT_NAME_DB
-    url: $ENVIRONMENT_URL_DB
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "prev" && $PG_DB_DISABLE_DEPLOY != "true"'
-
-deploy_prev_pgbouncer:
-  stage: deploy_prev_pgbouncer
-  tags:
-    - prev
-  variables:
-    FLASK_PORT: 5464
-    PG_DB_PORT: 5354
-    PGBOUNCER_PORT: 5364
-    MSS_PORT: 5814
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_pgbouncer_template
-  environment:
-    name: $ENVIRONMENT_NAME_PGBOUNCER
-    url: $ENVIRONMENT_URL_PGBOUNCER
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "prev"'
-
-deploy_prev_flask:
-  stage: deploy_prev_flask
-  tags:
-    - prev
-  variables:
-    FLASK_PORT: 5464
-    PG_DB_PORT: 5354
-    PGBOUNCER_PORT: 5364
-    MSS_PORT: 5814
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_flask_template
-  environment:
-    name: $ENVIRONMENT_NAME_FLASK
-    url: $ENVIRONMENT_URL_FLASK
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "prev"'
-
-deploy_prev_mss:
-  stage: deploy_prev_mss
-  tags:
-    - prev
-  variables:
-    FLASK_PORT: 5464
-    PG_DB_PORT: 5354
-    PGBOUNCER_PORT: 5364
-    MSS_PORT: 5814
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_mss_template
-  environment:
-    name: $ENVIRONMENT_NAME_MSS
-    url: $ENVIRONMENT_URL_MSS
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "prev" && $MSS_DISABLE_DEPLOY != "true"'
-
-# Production Environment
-deploy_main_db:
-  stage: deploy_main_db
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5465
-    PG_DB_PORT: 5355
-    PGBOUNCER_PORT: 5365
-    MSS_PORT: 5815
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_db_template
-  environment:
-    name: $ENVIRONMENT_NAME_DB
-    url: $ENVIRONMENT_URL_DB
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $PG_DB_DISABLE_DEPLOY != "true"'
-
-deploy_main_pgbouncer:
-  stage: deploy_main_pgbouncer
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5465
-    PG_DB_PORT: 5355
-    PGBOUNCER_PORT: 5365
-    MSS_PORT: 5815
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_pgbouncer_template
-  environment:
-    name: $ENVIRONMENT_NAME_PGBOUNCER
-    url: $ENVIRONMENT_URL_PGBOUNCER
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-
-deploy_main_flask:
-  stage: deploy_main_flask
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5465
-    PG_DB_PORT: 5355
-    PGBOUNCER_PORT: 5365
-    MSS_PORT: 5815
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_flask_template
-  environment:
-    name: $ENVIRONMENT_NAME_FLASK
-    url: $ENVIRONMENT_URL_FLASK
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-
-deploy_main_mss:
-  stage: deploy_main_mss
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5465
-    PG_DB_PORT: 5355
-    PGBOUNCER_PORT: 5365
-    MSS_PORT: 5815
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_mss_template
-  environment:
-    name: $ENVIRONMENT_NAME_MSS
-    url: $ENVIRONMENT_URL_MSS
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $MSS_DISABLE_DEPLOY != "true"'
-
-# Demo Environment
-#   stage: deploy_demo_db
-#   tags:
-#     - solver
-#   variables:
-#     FLASK_PORT: 5466
-#     PG_DB_PORT: 5356
-#     PGBOUNCER_PORT: 5366
-#     MSS_PORT: 5816
-#     PG_DB_COLLECTION_ID: 1
-#   <<: *deploy_db_template
+# DISABLED (2026-06): Demo no longer runs a solver backend. Demo is a
+# frontend-only copy of main pointing at main's solver (solver.powertwin.io).
+# To restore the separate demo solver, uncomment this job.
+# deploy_demo:
+#   extends: .deploy_template
+#   script:
+#     - helm upgrade --install ${HELM_RELEASE} ${HELM_CHART}
+#         --namespace powertwin-demo
+#         --create-namespace
+#         -f ${HELM_CHART}/values-demo.yaml
+#         -f /tmp/secrets.json
+#         --set global.imageRegistry=${ECR_REGISTRY}
+#         --set global.imageTag=${IMAGE_TAG}
+#         --set global.branch=demo
+#         --wait
 #   environment:
-#     name: $ENVIRONMENT_NAME_DB
-#     url: $ENVIRONMENT_URL_DB
+#     name: powertwin-demo
+#     url: https://demo-solver.${DOMAIN_NAME}
 #   rules:
-#     - if: '$CI_COMMIT_BRANCH == "demo" && $PG_DB_DISABLE_DEPLOY != "true"'
-#
-# deploy_demo_pgbouncer:
-#   stage: deploy_demo_pgbouncer
-#   tags:
-#     - solver
-#   variables:
-#     FLASK_PORT: 5466
-#     PG_DB_PORT: 5356
-#     PGBOUNCER_PORT: 5366
-#     MSS_PORT: 5816
-#     PG_DB_COLLECTION_ID: 1
-#   <<: *deploy_pgbouncer_template
-#   environment:
-#     name: $ENVIRONMENT_NAME_PGBOUNCER
-#     url: $ENVIRONMENT_URL_PGBOUNCER
+#     - if: $CI_COMMIT_BRANCH == "main"
+
+# GitHub Mirror
+
+# DISABLED (2026-06): GitHub mirror paused during migration. Uncomment to restore.
+# github_mirror:
+#   stage: mirror
+#   image: alpine/git:latest
+#   script:
+#     - git remote add github https://oauth2:${GITHUB_PUSH_TOKEN}@github.com/missionloyd/${CI_PROJECT_NAME}.git || true
+#     - git remote set-url github https://oauth2:${GITHUB_PUSH_TOKEN}@github.com/missionloyd/${CI_PROJECT_NAME}.git
+#     - git push github ${CI_COMMIT_BRANCH} --force
+#     - git push github --tags --force
 #   rules:
-#     - if: '$CI_COMMIT_BRANCH == "demo"'
-#
-# deploy_demo_flask:
-#   stage: deploy_demo_flask
-#   tags:
-#     - solver
-#   variables:
-#     FLASK_PORT: 5466
-#     PG_DB_PORT: 5356
-#     PGBOUNCER_PORT: 5366
-#     MSS_PORT: 5816
-#     PG_DB_COLLECTION_ID: 1
-#   <<: *deploy_flask_template
-#   environment:
-#     name: $ENVIRONMENT_NAME_FLASK
-#     url: $ENVIRONMENT_URL_FLASK
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "demo"'
-#
-# deploy_demo_mss:
-#   stage: deploy_demo_mss
-#   tags:
-#     - solver
-#   variables:
-#     FLASK_PORT: 5466
-#     PG_DB_PORT: 5356
-#     PGBOUNCER_PORT: 5366
-#     MSS_PORT: 5816
-#     PG_DB_COLLECTION_ID: 1
-#   <<: *deploy_mss_template
-#   environment:
-#     name: $ENVIRONMENT_NAME_MSS
-#     url: $ENVIRONMENT_URL_MSS
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "demo" && $MSS_DISABLE_DEPLOY != "true"'
-
-# Public Environment
-deploy_public_db:
-  stage: deploy_public_db
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5467
-    PG_DB_PORT: 5357
-    PGBOUNCER_PORT: 5367
-    MSS_PORT: 5817
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_db_template
-  environment:
-    name: $ENVIRONMENT_NAME_DB
-    url: $ENVIRONMENT_URL_DB
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "public" && $PG_DB_DISABLE_DEPLOY != "true"'
-
-deploy_public_pgbouncer:
-  stage: deploy_public_pgbouncer
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5467
-    PG_DB_PORT: 5357
-    PGBOUNCER_PORT: 5367
-    MSS_PORT: 5817
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_pgbouncer_template
-  environment:
-    name: $ENVIRONMENT_NAME_PGBOUNCER
-    url: $ENVIRONMENT_URL_PGBOUNCER
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "public"'
-
-deploy_public_flask:
-  stage: deploy_public_flask
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5467
-    PG_DB_PORT: 5357
-    PGBOUNCER_PORT: 5367
-    MSS_PORT: 5817
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_flask_template
-  environment:
-    name: $ENVIRONMENT_NAME_FLASK
-    url: $ENVIRONMENT_URL_FLASK
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "public"'
-
-deploy_public_mss:
-  stage: deploy_public_mss
-  tags:
-    - solver
-  variables:
-    FLASK_PORT: 5467
-    PG_DB_PORT: 5357
-    PGBOUNCER_PORT: 5367
-    MSS_PORT: 5817
-    PG_DB_COLLECTION_ID: 1
-  <<: *deploy_mss_template
-  environment:
-    name: $ENVIRONMENT_NAME_MSS
-    url: $ENVIRONMENT_URL_MSS
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "public" && $MSS_DISABLE_DEPLOY != "true"'
+#     - if: $CI_COMMIT_BRANCH =~ /^(dev|main)$/
+#       when: on_success
+#       allow_failure: true

@@ -1,0 +1,110 @@
+{{- $component := "pg" }}
+{{- $name := include "solver.componentName" (dict "ctx" . "component" $component) }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  serviceName: {{ $name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "solver.labels" . | nindent 8 }}
+        {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 8 }}
+    spec:
+      {{- with .Values.pg.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pg.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pg.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: postgres
+          image: {{ include "solver.image" (dict "ctx" . "image" .Values.pg.image) }}
+          imagePullPolicy: {{ .Values.pg.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.pg.port }}
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.pg.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.pg.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "solver.secretName" . }}
+                  key: PG_DB_TOKEN_ADMIN
+            - name: POSTGRES_INITDB_ARGS
+              value: {{ .Values.pg.initdbArgs | quote }}
+            # PGDATA points at a subdir so the PVC mount root can stay lost+found-free.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -U {{ .Values.pg.username }} -d {{ .Values.pg.database }} -h 127.0.0.1
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -U {{ .Values.pg.username }} -d {{ .Values.pg.database }} -h 127.0.0.1
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.pg.resources | nindent 12 }}
+      {{- if not .Values.pg.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.pg.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "solver.labels" . | nindent 10 }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.pg.persistence.accessModes | nindent 10 }}
+        storageClassName: {{ .Values.pg.persistence.storageClassName | default .Values.global.storageClass | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.pg.persistence.size | quote }}
+  {{- end }}

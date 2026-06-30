@@ -1,0 +1,60 @@
+# dev environment to namespace powertwin-dev
+global:
+  branch: dev
+  imageTag: dev
+
+networkPolicy:
+  ingressControllerNamespace: ingress-nginx
+
+ingress:
+  className: nginx
+  tls:
+    clusterIssuer: letsencrypt-dns01
+  flask:
+    host: dev-solver.powertwin.io
+  mss:
+    host: dev-solver-mss.powertwin.io
+
+secrets:
+  pgAdminToken: ""
+  apiSolverToken: ""
+  slackVerificationToken: ""
+  slackSigningSecret: ""
+  slackWebhookUrl: ""
+
+pg:
+  persistence:
+    size: 20Gi
+
+pgbouncer:
+  image:
+    tag: ""
+  replicas: 1
+  pdb:
+    enabled: false
+
+flask:
+  image:
+    tag: ""
+  replicas: 1
+  hpa:
+    enabled: false
+  resources:
+    requests:
+      cpu: "0.5"
+      memory: 1Gi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  nodeSelector:
+    workload: solver
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: solver
+      effect: NoSchedule
+
+mss:
+  image:
+    tag: ""
+  replicas: 1

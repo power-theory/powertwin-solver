@@ -1,2 +1,3 @@
 # Ignore the test directory
-app/test/
+app/test/.env
+.env.*

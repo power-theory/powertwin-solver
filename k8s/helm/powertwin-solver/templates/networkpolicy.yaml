@@ -1,0 +1,154 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $name := include "solver.name" . -}}
+{{- $ingressNs := .Values.networkPolicy.ingressControllerNamespace -}}
+# Default-deny: every solver pod starts with no allowed ingress. The policies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "solver.fullname" . }}-default-deny-ingress
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes:
+    - Ingress
+---
+# solver-pg: only the solver's own DB clients (pgbouncer, flask, mss) may reach
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "solver.fullname" . }}-allow-pg
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "solver.selectorLabels" (dict "ctx" . "component" "pg") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: ["{{ $name }}"]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: ["pgbouncer", "flask", "mss"]
+        {{- if .Values.networkPolicy.allowKedaScaler }}
+        # KEDA (keda namespace) only if its scaler query is pointed at solver-pg.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keda
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.pg.port }}
+---
+# pgbouncer: only flask and mss may reach 6432.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "solver.fullname" . }}-allow-pgbouncer
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "solver.selectorLabels" (dict "ctx" . "component" "pgbouncer") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: ["{{ $name }}"]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: ["flask", "mss"]
+      ports:
+        - protocol: TCP
+          port: {{ .Values.pgbouncer.port }}
+---
+# flask: same-namespace callers always; ingress controller only when externally exposed.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "solver.fullname" . }}-allow-flask
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "solver.selectorLabels" (dict "ctx" . "component" "flask") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- if .Values.ingress.flask.enabled }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $ingressNs }}
+        {{- end }}
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.flask.port }}
+---
+# mss: same-namespace callers always; ingress controller (Slack) only when exposed.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "solver.fullname" . }}-allow-mss
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "solver.selectorLabels" (dict "ctx" . "component" "mss") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- if .Values.ingress.mss.enabled }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $ingressNs }}
+        {{- end }}
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.mss.port }}
+{{- if .Values.networkPolicy.allowMonitoringScrape }}
+---
+# Allow the monitoring namespace (Prometheus) to scrape app pods. Datastores
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "solver.fullname" . }}-allow-monitoring
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: ["{{ $name }}"]
+      - key: app.kubernetes.io/component
+        operator: NotIn
+        values: ["pg", "pgbouncer"]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+{{- end }}
+{{- end }}

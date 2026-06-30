@@ -1,0 +1,219 @@
+# Default values for powertwin-solver.
+
+global:
+  branch: dev
+  domain: powertwin.io
+  imageRegistry: ""
+  imageTag: latest
+  storageClass: gp3
+
+# ---------------------------------------------------------------------------
+secrets:
+  # PostgreSQL superuser password (compose: PG_DB_TOKEN_ADMIN).
+  pgAdminToken: ""
+  # Shared bearer token between flask and mss (compose: API_SOLVER_TOKEN).
+  apiSolverToken: ""
+  # Slack integration for the mss component.
+  slackVerificationToken: ""
+  slackSigningSecret: ""
+  slackWebhookUrl: ""
+  # Main app PG password (KEDA scaler).
+  mainPgPassword: ""
+
+# ---------------------------------------------------------------------------
+pg:
+  image:
+    repository: postgres
+    tag: "17"
+    external: true       # public image; do not prepend the ECR registry
+  imagePullPolicy: IfNotPresent
+  database: powertwin
+  username: postgres
+  port: 5432
+  # Mirrors compose POSTGRES_INITDB_ARGS.
+  initdbArgs: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+  persistence:
+    enabled: true
+    size: 10Gi
+    # storageClassName defaults to global.storageClass when empty.
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+  resources:
+    requests:
+      cpu: "0.025"
+      memory: 64Mi
+    limits:
+      cpu: "0.1"
+      memory: 128Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+pgbouncer:
+  image:
+    repository: powertwin-solver-pgbouncer
+    tag: ""
+  imagePullPolicy: IfNotPresent
+  replicas: 2
+  port: 6432
+  # Pool tuning (compose defaults).
+  poolMode: transaction
+  maxClientConn: "1000"
+  defaultPoolSize: "25"
+  maxDbConnections: "100"
+  authType: scram-sha-256
+  ignoreStartupParameters: "extra_float_digits,application_name"
+  resources:
+    requests:
+      cpu: "0.01"
+      memory: 16Mi
+    limits:
+      cpu: "0.05"
+      memory: 64Mi
+  pdb:
+    enabled: true
+    minAvailable: 1
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: pgbouncer
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+flask:
+  image:
+    repository: powertwin-solver-flask
+    tag: ""
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 8080
+  # gunicorn worker count (compose: gunicorn -w 2).
+  gunicornWorkers: 2
+  devMode: "false"
+
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+  # Schedule onto the tainted compute node pool (c6i.xlarge).
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: solver
+      effect: NoSchedule
+  # Set to e.g. { workload: solver } once compute nodes are labelled.
+  nodeSelector: {}
+  affinity: {}
+
+  # Simulations can run up to 4 hours; let in-flight jobs finish on drain/rollout.
+  terminationGracePeriodSeconds: 14400
+
+  hpa:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+    # CPU-based to start; swap for KEDA (queue depth) when ready.
+    targetCPUUtilization: 80
+    behavior:
+      scaleDown:
+        # Never scale a solver pod away while a 4-hour job might be running.
+        stabilizationWindowSeconds: 14400
+        policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 600
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+          - type: Pods
+            value: 2
+            periodSeconds: 60
+
+  # KEDA queue-based autoscaling (preferred over the CPU hpa above).
+  keda:
+    enabled: false # set true per-env (e.g. values-main) once the queue query is set
+    minReplicaCount: 0 # scale to zero when no jobs are queued
+    cooldownPeriod: 14400 # 4h - never interrupt an in-flight simulation
+    # Count Queued AND Processing so a 0-scale pod is summoned and HELD for the whole job
+    # (the listener flips Queued to Processing in ms; counting only Queued never wakes flask).
+    query: "SELECT count(*) FROM simulation_jobs WHERE simulation_job_status_type_id IN (1, 2)"
+    # Direct -pg-rw, not the pooler.
+    pg:
+      host: powertwin-db-pg-rw.powertwin-main.svc.cluster.local
+      port: "5432"
+      # Must match the db chart's PG_DB / PG_DB_USER (the main database + role).
+      dbName: powertwin-db
+      userName: admin
+      sslmode: require
+
+  # UrbanOpt simulation configuration (compose defaults shown).
+  urbanopt:
+    reportingFrequency: "Timestep"
+    resample: ""
+    postprocessTranslations: "false"
+    simulationYear: "2025"
+    dynamicDefaults: "false"
+    keepRunDir: "false"
+
+  # Extra non-sensitive runtime env.
+  env: {}
+
+# ---------------------------------------------------------------------------
+mss:
+  image:
+    repository: powertwin-solver-mss
+    tag: ""
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 8080
+  devMode: "false"
+  slackChannel: ""
+  resources:
+    requests:
+      cpu: "0.01"
+      memory: 64Mi
+    limits:
+      cpu: "0.05"
+      memory: 128Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  env: {}
+
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  tls:
+    enabled: true
+    clusterIssuer: letsencrypt-prod
+  flask:
+    enabled: true
+    host: ""
+    service: powertwin-solver-flask
+  mss:
+    enabled: true
+    host: ""
+    service: powertwin-solver-mss
+
+# Default-deny ingress; locks solver-pg/pgbouncer to labeled clients.
+networkPolicy:
+  enabled: true
+  # Namespace of the ingress controller fronting flask/mss (nginx).
+  ingressControllerNamespace: ingress-nginx
+  # Allow the monitoring namespace to scrape app pods (pg/pgbouncer excluded).
+  allowMonitoringScrape: true
+  # Enable only if the solver KEDA scaler queries solver-pg instead of the main PG.
+  allowKedaScaler: false

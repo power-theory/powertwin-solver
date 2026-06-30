@@ -1,0 +1,88 @@
+# main (production) environment to namespace powertwin-main
+global:
+  branch: main
+  imageTag: main
+
+ingress:
+  flask:
+    host: solver.powertwin.io
+  mss:
+    host: solver-mss.powertwin.io
+
+secrets:
+  # Production secrets MUST be injected by CI / sealed-secrets, not committed here.
+  pgAdminToken: ""
+  apiSolverToken: ""
+  slackVerificationToken: ""
+  slackSigningSecret: ""
+  slackWebhookUrl: ""
+
+pg:
+  persistence:
+    # Solver deletes sim files after each run, so this DB stays small (15Gi).
+    size: 15Gi
+  resources:
+    requests:
+      cpu: "0.025"
+      memory: 64Mi
+    limits:
+      cpu: "0.1"
+      memory: 128Mi
+
+pgbouncer:
+  image:
+    tag: ""
+  replicas: 2
+  pdb:
+    enabled: true
+    minAvailable: 1
+  resources:
+    requests:
+      cpu: "0.01"
+      memory: 16Mi
+    limits:
+      cpu: "0.05"
+      memory: 64Mi
+
+flask:
+  image:
+    tag: ""
+  replicas: 1
+  nodeSelector:
+    workload: solver
+  tolerations:
+    - key: workload
+      operator: Equal
+      value: solver
+      effect: NoSchedule
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  terminationGracePeriodSeconds: 14400
+  # KEDA queue-based scaling for prod (scales 0..4 on queued sims, true scale-to-
+  keda:
+    enabled: true
+  hpa:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilization: 80
+  urbanopt:
+    simulationYear: "2019"
+    reportingFrequency: "Hourly"
+
+mss:
+  image:
+    tag: ""
+  replicas: 1
+  resources:
+    requests:
+      cpu: "0.01"
+      memory: 64Mi
+    limits:
+      cpu: "0.05"
+      memory: 128Mi

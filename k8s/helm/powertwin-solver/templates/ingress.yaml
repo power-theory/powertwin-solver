@@ -1,0 +1,59 @@
+{{- if .Values.ingress.enabled }}
+{{- $flaskName := include "solver.componentName" (dict "ctx" . "component" "flask") }}
+{{- $mssName := include "solver.componentName" (dict "ctx" . "component" "mss") }}
+{{- $flaskHost := .Values.ingress.flask.host | default (include "solver.ingressHost" (dict "ctx" . "service" .Values.ingress.flask.service)) -}}
+{{- $mssHost := .Values.ingress.mss.host | default (include "solver.ingressHost" (dict "ctx" . "service" .Values.ingress.mss.service)) -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "solver.fullname" . }}
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+  annotations:
+    {{- if and .Values.ingress.tls.enabled .Values.ingress.tls.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.tls.clusterIssuer | quote }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    {{- if .Values.ingress.flask.enabled }}
+    - hosts:
+        - {{ $flaskHost | quote }}
+      secretName: {{ $flaskName }}-tls
+    {{- end }}
+    {{- if .Values.ingress.mss.enabled }}
+    - hosts:
+        - {{ $mssHost | quote }}
+      secretName: {{ $mssName }}-tls
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- if .Values.ingress.flask.enabled }}
+    - host: {{ $flaskHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $flaskName }}
+                port:
+                  number: {{ .Values.flask.port }}
+    {{- end }}
+    {{- if .Values.ingress.mss.enabled }}
+    - host: {{ $mssHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $mssName }}
+                port:
+                  number: {{ .Values.mss.port }}
+    {{- end }}
+{{- end }}

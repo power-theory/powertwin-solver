@@ -1,0 +1,48 @@
+{{- $component := "flask" }}
+{{- $name := include "solver.componentName" (dict "ctx" . "component" $component) }}
+{{- if .Values.flask.keda.enabled }}
+# KEDA queue-based autoscaling: scales flask 0..N on queued sim-job count.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ $name }}-pg
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+spec:
+  secretTargetRef:
+    - parameter: password
+      name: {{ include "solver.secretName" . }}
+      key: MAIN_PG_PASSWORD
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ $name }}
+  minReplicaCount: {{ .Values.flask.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.flask.hpa.maxReplicas }}
+  cooldownPeriod: {{ .Values.flask.keda.cooldownPeriod }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          # Never scale a solver pod away while a 4-hour job might be running.
+          stabilizationWindowSeconds: {{ .Values.flask.keda.cooldownPeriod }}
+  triggers:
+    - type: postgresql
+      metadata:
+        host: {{ .Values.flask.keda.pg.host | quote }}
+        port: {{ .Values.flask.keda.pg.port | quote }}
+        dbName: {{ .Values.flask.keda.pg.dbName | quote }}
+        userName: {{ .Values.flask.keda.pg.userName | quote }}
+        sslmode: {{ .Values.flask.keda.pg.sslmode | quote }}
+        query: {{ .Values.flask.keda.query | quote }}
+        targetQueryValue: "1"
+      authenticationRef:
+        name: {{ $name }}-pg
+{{- end }}

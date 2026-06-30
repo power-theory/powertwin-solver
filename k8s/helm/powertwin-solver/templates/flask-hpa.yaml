@@ -1,0 +1,28 @@
+{{- $component := "flask" }}
+{{- $name := include "solver.componentName" (dict "ctx" . "component" $component) }}
+{{- if and .Values.flask.hpa.enabled (not .Values.flask.keda.enabled) }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ .Values.flask.hpa.minReplicas }}
+  maxReplicas: {{ .Values.flask.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.flask.hpa.targetCPUUtilization }}
+  behavior:
+    {{- toYaml .Values.flask.hpa.behavior | nindent 4 }}
+{{- end }}
+#

@@ -1,0 +1,18 @@
+{{- $component := "flask" }}
+{{- $name := include "solver.componentName" (dict "ctx" . "component" $component) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "solver.labels" . | nindent 4 }}
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.flask.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "solver.selectorLabels" (dict "ctx" . "component" $component) | nindent 4 }}

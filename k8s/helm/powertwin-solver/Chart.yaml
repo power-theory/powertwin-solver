@@ -1,0 +1,6 @@
+apiVersion: v2
+name: powertwin-solver
+description: PowerTwin Solver (EnergyPlus/UrbanOpt simulation engine, PgBouncer, dedicated PostgreSQL, and microservices)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
