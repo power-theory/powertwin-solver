@@ -86,7 +86,9 @@ build_mss:
 
 .deploy_template:
   stage: deploy
-  image: alpine/helm:3.21.2
+  image:
+    name: alpine/helm:3.21.2
+    entrypoint: [""]   # override helm entrypoint so the shell script runs
   tags:
     - k8s
   before_script:
