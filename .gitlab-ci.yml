@@ -32,7 +32,7 @@ test_resolvers:
   script:
     # mpi4py (in solver/requirements) has no slim-image wheel; build it against a real MPI toolchain
     - apt-get update && apt-get install -y --no-install-recommends gcc libopenmpi-dev
-    - pip install -r solver/requirements.txt --quiet
+    - pip install -r solver/requirements.txt pytest --quiet
     - python tests/test_resolvers.py
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^(dev|main)$/
