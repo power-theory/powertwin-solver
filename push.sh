@@ -1,7 +1,10 @@
 #!/bin/bash
 set -e
 
-REGISTRY="100.72.180.45:5000"
+if [ -f .env.local ]; then
+  set -a; source .env.local; set +a
+fi
+
 GITHUB_REMOTE="github"
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -64,9 +67,9 @@ docker compose -f docker-compose-prod.yml build
 # docker compose build tags images using the image: field from compose file
 # e.g. 100.72.180.45:5000/powertwin-solver-flask:dev
 echo ""
-echo "--- Pushing to registry (${REGISTRY}) ---"
+echo "--- Pushing to registry (${DOCKER_REGISTRY}) ---"
 for SERVICE in "${SERVICES[@]}"; do
-  REGISTRY_IMAGE="${REGISTRY}/${SERVICE}"
+  REGISTRY_IMAGE="${DOCKER_REGISTRY}/${SERVICE}"
 
   echo "  ${REGISTRY_IMAGE}:${BRANCH}, :${SHORT_SHA}"
   docker tag "${REGISTRY_IMAGE}:${BRANCH}" "${REGISTRY_IMAGE}:${SHORT_SHA}"
@@ -81,5 +84,5 @@ done
 
 echo ""
 echo "=== Done ==="
-echo "Pull with: docker pull ${REGISTRY}/<service>:${BRANCH}"
+echo "Pull with: docker pull ${DOCKER_REGISTRY}/<service>:${BRANCH}"
 echo "Services: ${SERVICES[*]}"

@@ -25,6 +25,7 @@ import json
 import os
 import re
 import sqlite3
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
@@ -270,6 +271,65 @@ def test_capture_through_clean_report(sim_outputs):
             if captured <= 0:
                 gaps[f"{a}/{fuel}"] = f"raw={raw:.0f} but cleaned '{cleaned_name}' {'missing' if not hits else 'zero'}"
     assert not gaps, f"per-fuel capture gaps (raw fuel has energy, its cleaned file does not): {gaps}"
+
+
+def test_declared_sensors_reach_consolidated_logs(sim_outputs):
+    """DB-file survival gate -- the arrow AFTER clean_report. Every sensor clean_report
+    captured (a non-zero cleaned_predicted_*.csv) must survive into the consolidated,
+    DB-loadable sensor-logs file that consolidate_sensor_logs.py produces, with its value
+    preserved (raw passthrough, no resample) and the [sensor_id, collection_id, ts, value,
+    metadata] schema the DB loader expects. test_capture_through_clean_report proves cleaning
+    captured each fuel; THIS proves consolidation does not drop what cleaning kept. Water
+    (sensor_type 4) has no EnergyPlus meter column and is not declared -> must never appear.
+    (Leaf sensor_ids are globally unique per (building, type), so consolidation's sensor_id+ts
+    dedup cannot collide -> per-sensor value conservation is exact.)"""
+    _, local_dir, want_ids, _ = sim_outputs
+    cleaned_root = os.path.join(local_dir, "cleaned_reports")
+    if not os.path.isdir(cleaned_root):
+        pytest.skip("no cleaned_reports produced (KEEP_RUN_DIR off or clean_report did not run)")
+
+    # EXPECTED = what clean_report emitted: sensor_id -> total |value| across the slice.
+    expected = {}
+    for f in glob.glob(os.path.join(cleaned_root, "*", "cleaned_predicted_*.csv")):
+        d = pd.read_csv(f)
+        if d.empty or "value" not in d.columns or "id" not in d.columns:
+            continue
+        v = float(d["value"].abs().sum())
+        if v <= 0:
+            continue
+        sid = str(d["id"].iloc[0])
+        expected[sid] = expected.get(sid, 0.0) + v
+    assert expected, "clean_report produced no non-zero cleaned sensor files to consolidate"
+
+    # RUN the real consolidation tool the way HPC does (raw passthrough -> values conserved).
+    consolidate = importlib.import_module("modules.utils.consolidate_sensor_logs")
+    out_csv = os.path.join(local_dir, "consolidated_sensor_logs.csv")
+    r = subprocess.run([sys.executable, consolidate.__file__,
+                        "--input-dir", cleaned_root, "--output", out_csv,
+                        "--collection-id", "1", "--workers", "1"],
+                       capture_output=True, text=True, timeout=600)
+    assert os.path.exists(out_csv), f"consolidation produced no DB file:\nSTDOUT:\n{r.stdout}\nSTDERR:\n{r.stderr}"
+
+    con = pd.read_csv(out_csv)
+    assert list(con.columns) == ["sensor_id", "collection_id", "ts", "value", "metadata"], \
+        f"DB-incompatible schema: {list(con.columns)}"
+
+    # (a) SURVIVAL: every sensor_id clean_report captured reaches the DB file.
+    con_ids = set(con["sensor_id"].astype(str))
+    dropped = sorted(set(expected) - con_ids)
+    assert not dropped, f"sensors captured by clean_report but DROPPED in consolidation: {dropped}"
+
+    # (b) VALUE conserved cleaned -> consolidated (no resample; unique ids -> exact).
+    got = (con.assign(_sid=con["sensor_id"].astype(str))
+              .groupby("_sid")["value"].apply(lambda s: float(s.abs().sum())))
+    bad = {sid: (round(exp, 1), round(float(got.get(sid, 0.0)), 1))
+           for sid, exp in expected.items()
+           if abs(float(got.get(sid, 0.0)) - exp) > max(1.0, 0.01 * exp)}
+    assert not bad, f"value not conserved cleaned->consolidated {{sensor_id:(cleaned,consolidated)}}: {bad}"
+
+    # (c) Water (sensor_type 4: no meter column, not declared) must never appear.
+    assert not glob.glob(os.path.join(cleaned_root, "*", "cleaned_predicted_water.csv")), \
+        "Water (sensor_type 4) has no EnergyPlus meter -> must never produce a cleaned/consolidated log"
 
 
 def test_resolved_values_reach_idf(sim_outputs):

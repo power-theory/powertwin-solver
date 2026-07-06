@@ -24,7 +24,7 @@ services:
       start_period: 30s
 
   powertwin-solver-pgbouncer:
-    image: ${REGISTRY:-100.72.180.45:5000}/powertwin-solver-pgbouncer:${CI_COMMIT_BRANCH:-dev}
+    image: ${DOCKER_REGISTRY}/powertwin-solver-pgbouncer:${CI_COMMIT_BRANCH}
     build: ./pgbouncer
     container_name: ${NAME_PREFIX:-}powertwin-solver-pgbouncer
     environment:
@@ -61,7 +61,7 @@ services:
       start_period: 30s
 
   powertwin-solver-flask:
-    image: ${REGISTRY:-100.72.180.45:5000}/powertwin-solver-flask:${CI_COMMIT_BRANCH:-dev}
+    image: ${DOCKER_REGISTRY}/powertwin-solver-flask:${CI_COMMIT_BRANCH}
     container_name: ${NAME_PREFIX:-}powertwin-solver-flask
     build:
       context: ./solver
@@ -107,7 +107,7 @@ services:
       - default
 
   powertwin-solver-mss:
-    image: ${REGISTRY:-100.72.180.45:5000}/powertwin-solver-mss:${CI_COMMIT_BRANCH:-dev}
+    image: ${DOCKER_REGISTRY}/powertwin-solver-mss:${CI_COMMIT_BRANCH}
     container_name: ${NAME_PREFIX:-}powertwin-solver-mss
     build:
       context: ./mss

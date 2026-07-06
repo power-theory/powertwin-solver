@@ -71,7 +71,7 @@ variables:
   NAME_SUFFIX_MSS: mss
 
   # Registry
-  REGISTRY: 100.72.180.45:5000
+  DOCKER_REGISTRY: ${DOCKER_REGISTRY}
 
   # Project Name
   PROJECT_NAME: ${CI_COMMIT_BRANCH}-${CI_PROJECT_NAME}
@@ -110,7 +110,7 @@ variables:
   script:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-pgbouncer
     - echo "Pulling PgBouncer image from registry..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-pgbouncer || docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm powertwin-solver-pgbouncer
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-pgbouncer
     - echo "Deploying PgBouncer Docker container to $CI_COMMIT_BRANCH environment..."
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-pgbouncer
     - echo "PgBouncer Deployed @ ${ENVIRONMENT_URL_PGBOUNCER}"
@@ -124,7 +124,7 @@ variables:
   script:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-flask
     - echo "Pulling Flask image from registry..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-flask || docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm powertwin-solver-flask
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-flask
     - echo "Deploying FLASK Docker container to $CI_COMMIT_BRANCH environment..."
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d powertwin-solver-flask
     - echo "FLASK Deployed @ ${ENVIRONMENT_URL_FLASK}"
@@ -138,7 +138,7 @@ variables:
   script:
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml down --volumes --remove-orphans powertwin-solver-mss
     - echo "Pulling MSS image from registry..."
-    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-mss || docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml build --force-rm powertwin-solver-mss
+    - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml pull powertwin-solver-mss
     - echo "Deploying Microservices Docker container to $CI_COMMIT_BRANCH environment..."
     - docker-compose -p $PROJECT_NAME -f docker-compose-prod.yml up -d --no-deps powertwin-solver-mss
     - echo "Microservices Deployed @ ${ENVIRONMENT_URL_MSS}"
