@@ -19,6 +19,19 @@ The goal is correct defaults for **arbitrary building stock in any U.S. county**
 
 **The ASU demo dataset (`solver/upload/demo_data/`) is one test fixture, and it is 100% commercial.** It is a convenient place to prove reachability and pull real numbers, but it is NOT the definition of "real impact." A bug that only the residential path hits is exactly as severe as one the commercial path hits — score it by its impact on the workflow it belongs to, using representative inputs for that workflow (real or synthetic). "The ASU set doesn't exercise this" is a **coverage note, never a severity downgrade.** Treating commercial-only demo data as ground truth has previously caused real residential bugs (heating-fuel resolution, multifamily occupants, electric-furnace efficiency, seasonal vacancy) to be mislabeled LATENT — do not repeat that.
 
+### Required input metadata (missing fields = silent bias, not a crash)
+
+Resolution quality is only as good as the per-building metadata, and missing fields fail **silently** — they fall back to flat national defaults, not errors. Score a missing-field finding by which tier it breaks. Critically: **a missing division key (`state`/`county_fips`) is HIGH/CRITICAL, not DEFENSIVE** — real footprint-sourced ingest (OpenStreetMap / Microsoft Building Footprints) routinely omits `state`, so this is the common production case, not an edge case. (A prior audit rated exactly this LOW and it turned out to be the single largest error in the Teton accuracy report.)
+
+- **Tier 1 — required to simulate** (missing → building excluded + marked Failed): `id` (geojson / `asset_geometries_properties`), `area` (`asset_metadata`), and `latitude`+`longitude` (`asset_metadata`, for weather-station assignment).
+- **Tier 2 — required for accurate, unbiased defaults** (missing → SILENT fallback to flat national averages):
+  - `county_fips` **or** `state` (`asset_metadata`) — sets census division/region → the local fuel mix, envelope, and system-type marginals (RECS/CBECS/ACS). Missing **both** → `division = None` → the county-first heating reconciliation aborts to the flat `natural gas` default (~100% gas heating), discarding the correct ACS county marginal. `county_fips` is preferred (finer; unlocks the ACS county fuel table; `build_asset_ctx` derives `state` from its first two digits).
+  - `asset_subtype_id` (CSV column) — building type/archetype; unknown → Single-Family Detached (by design, see 4b).
+  - `year_built` (`asset_metadata`) — vintage; missing → all-vintage marginal (coarser, acceptable).
+- **Tier 3 — derived, not required**: `climate_zone` (from the weather station), `floor_count` (defaults to 1), `number_of_units`/`bedrooms` (from area + subtype).
+
+When auditing, inspect the shape of the *production* metadata, not just the fixture — `read_metadata` logs how many buildings lack a division key or vintage. A field that degrades to a flat default is a silent-bias risk weighted by how often it is actually absent in production, never by whether it crashes.
+
 ### Ground rules
 
 **"No bugs found" is a valid and valuable result.** An audit that confirms stability is more useful than one that manufactures findings. Do not lower your severity threshold to avoid returning empty-handed. If you find nothing critical, say so clearly and explain what you checked.

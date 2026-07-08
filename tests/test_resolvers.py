@@ -133,6 +133,38 @@ def make_ctx(state, year, area, bt):
 
 
 # ============================================================
+# 0. State/division recovery from county_fips (footprint-source shape)
+# ============================================================
+def test_state_from_county_fips():
+    """Footprint-sourced metadata (OSM/Microsoft) carries county_fips + lat/lon but
+    no state. build_asset_ctx must recover state/division from the FIPS prefix, and
+    must coerce or reject a malformed FIPS rather than derive a wrong state from a
+    bad prefix (guards the ACS county-first heating-fuel reconciliation)."""
+    section = "county_fips->state"
+    # (a) state-less, county_fips-only -> correct state + division (the real footprint shape)
+    for fips, exp_state, exp_div in (("56039", "WY", "Mountain North"),
+                                     ("06037", "CA", "Pacific"),
+                                     ("17031", "IL", "East North Central")):
+        ctx = build_asset_ctx({"county_fips": fips, "area": 2000},
+                              building_type="Single-Family Detached")
+        check(f"state from {fips}", ctx["state"], exp_state, section)
+        check(f"division from {fips}", ctx["division"], exp_div, section)
+    # (b) an explicit state is not overridden by the county_fips derivation
+    ctx = build_asset_ctx({"state": "CA", "county_fips": "56039", "area": 2000})
+    check("explicit state wins over fips", ctx["state"], "CA", section)
+    # (c) float county_fips (pandas NaN-upcast, 6037.0) must coerce to '06037' -> CA,
+    #     never slice '60' -> American Samoa
+    ctx = build_asset_ctx({"county_fips": 6037.0, "area": 2000})
+    check("float fips coerced", ctx["county_fips"], "06037", section)
+    check("float fips -> CA (not AS)", ctx["state"], "CA", section)
+    # (d) an out-of-range prefix (a ZIP 90210 -> '90') or junk must NOT derive a wrong
+    #     state -- its prefix isn't a real state FIPS, so state stays None (flat fallback).
+    for bad in ("90210", "abc"):
+        ctx = build_asset_ctx({"county_fips": bad, "area": 2000})
+        check(f"bad fips {bad!r} -> no state", ctx["state"], None, section)
+
+
+# ============================================================
 # 1. Window type resolver -- exact values from reference data
 # ============================================================
 def test_window_type():

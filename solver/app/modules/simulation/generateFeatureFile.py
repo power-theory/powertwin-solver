@@ -101,8 +101,10 @@ def read_metadata(metadata_csv):
             total_rows += 1
             asset_name = row['asset_name']
             asset_subtype_id = row.get('asset_subtype_id', '')
-            asset_geometries_properties = json.loads(row['asset_geometries_properties'])
-            asset_metadata = json.loads(row['asset_metadata'])
+            # Enforce a lowercase key contract at ingestion so downstream lookups
+            # never have to check case variants ('state'/'State', etc.).
+            asset_geometries_properties = {str(k).lower(): v for k, v in json.loads(row['asset_geometries_properties']).items()}
+            asset_metadata = {str(k).lower(): v for k, v in json.loads(row['asset_metadata']).items()}
 
             floor_area = asset_metadata.get('area')
             building_id = str(asset_geometries_properties.get('id')) # Most important id, considered the PK
@@ -150,7 +152,7 @@ def read_metadata(metadata_csv):
             building_climate_zone_list[building_id] = climate_zone
             building_metadata_list[building_id] = asset_metadata
 
-            raw_year = asset_metadata.get('year_built') or asset_metadata.get('yearBuilt')
+            raw_year = asset_metadata.get('year_built')
             if raw_year is not None:
                 try:
                     building_year_list[building_id] = int(raw_year)
@@ -162,6 +164,22 @@ def read_metadata(metadata_csv):
     logger.info(f"Metadata: {accepted} buildings accepted from {total_rows} rows. "
                 f"Skipped {skipped} ({skip_counts['missing_area']} missing area, "
                 f"{skip_counts['missing_id']} missing ID, {skip_counts['duplicate_id']} duplicate ID)")
+
+    # Metadata-quality signal: these fields are NOT required to simulate, but when
+    # absent the resolver silently falls back to flat national defaults (biased),
+    # so surface the gap loudly rather than let it pass unseen. National-readiness
+    # keeps the building via fallbacks, so this warns -- it does not drop anything.
+    no_geo_key = sum(1 for md in building_metadata_list.values()
+                     if not (md.get('state') or md.get('county_fips')))
+    no_vintage = sum(1 for md in building_metadata_list.values()
+                     if not md.get('year_built'))
+    if no_geo_key:
+        logger.warning(f"Metadata quality: {no_geo_key}/{accepted} accepted buildings have neither 'state' nor "
+                       f"'county_fips' -- their fuel/envelope/system defaults fall back to flat national averages "
+                       f"(biased, e.g. ~100% natural-gas heating) unless a lat/lon county lookup succeeds.")
+    if no_vintage:
+        logger.warning(f"Metadata quality: {no_vintage}/{accepted} accepted buildings missing year_built -- "
+                       f"vintage-specific envelope/system defaults fall back to the all-vintage marginal.")
 
     return building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list
 

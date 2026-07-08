@@ -384,6 +384,35 @@ def _derive_county_fips(lat, lon) -> str | None:
     return None
 
 
+# 2-digit state FIPS -> USPS abbreviation (INCITS 38). The first two digits of a
+# 5-digit county FIPS are the state code, so this lets build_asset_ctx recover a
+# state (and thus census division/region) from county_fips alone.
+_STATE_FIPS_TO_ABBR = {
+    '01': 'AL', '02': 'AK', '04': 'AZ', '05': 'AR', '06': 'CA', '08': 'CO',
+    '09': 'CT', '10': 'DE', '11': 'DC', '12': 'FL', '13': 'GA', '15': 'HI',
+    '16': 'ID', '17': 'IL', '18': 'IN', '19': 'IA', '20': 'KS', '21': 'KY',
+    '22': 'LA', '23': 'ME', '24': 'MD', '25': 'MA', '26': 'MI', '27': 'MN',
+    '28': 'MS', '29': 'MO', '30': 'MT', '31': 'NE', '32': 'NV', '33': 'NH',
+    '34': 'NJ', '35': 'NM', '36': 'NY', '37': 'NC', '38': 'ND', '39': 'OH',
+    '40': 'OK', '41': 'OR', '42': 'PA', '44': 'RI', '45': 'SC', '46': 'SD',
+    '47': 'TN', '48': 'TX', '49': 'UT', '50': 'VT', '51': 'VA', '53': 'WA',
+    '54': 'WV', '55': 'WI', '56': 'WY',
+    '60': 'AS', '66': 'GU', '69': 'MP', '72': 'PR', '78': 'VI',
+}
+
+
+def _normalize_county_fips(value) -> str | None:
+    """Normalize county_fips to a 5-digit string, tolerating the two real
+    representation variants: a float from a pandas NaN-upcast FIPS column
+    (6037.0 -> '06037') and an int/short string with a dropped leading zero
+    (6037 -> '06037'). Without this, str(6037.0)[:2] would be '60' -> American
+    Samoa. A junk/out-of-range value needs no rejection here -- its prefix simply
+    isn't in _STATE_FIPS_TO_ABBR, so state resolves to None (honest flat fallback)."""
+    if not value:
+        return None
+    return str(value).split('.')[0].zfill(5)
+
+
 def build_asset_ctx(metadata: dict, building_type: str | None = None,
                     climate_zone: str | None = None,
                     building_id: str | None = None) -> dict:
@@ -391,31 +420,43 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
     here so the resolvers all see the same shape: {building_type, region, division,
     vintage, state, area, bedrooms, floor_count, units, climate_zone, building_id,
     county_fips}. Missing keys are None; resolvers fall back accordingly."""
-    state = _normalize_state(metadata.get('state') or metadata.get('State'))
+    # Enforce a lowercase key contract up front so lookups below never have to
+    # check case variants ('state'/'State', etc.).
+    metadata = {str(k).lower(): v for k, v in metadata.items()}
+
+    county_fips = _normalize_county_fips(metadata.get('county_fips'))
+    if not county_fips:
+        county_fips = _derive_county_fips(
+            metadata.get('latitude'), metadata.get('longitude'))
+
+    state = _normalize_state(metadata.get('state'))
+    # Footprint-sourced assets often carry county_fips + lat/lon but no state.
+    # Recover the state from the county FIPS prefix (first two digits are the
+    # state FIPS code) when it's absent -- otherwise division stays None and the
+    # county-first heating-fuel reconciliation drops to the flat 'natural gas'
+    # default, discarding the ACS county marginal already in hand.
+    if not state and county_fips:
+        state = _STATE_FIPS_TO_ABBR.get(county_fips[:2])
     refs = _load_ref('census_regions')
     region = refs['state_to_region'].get(state) if state else None
     division = refs.get('state_to_division', {}).get(state) if state else None
     bt = building_type if building_type is not None else metadata.get('building_type')
     cz = climate_zone if climate_zone is not None else metadata.get('climate_zone')
     bid = building_id if building_id is not None else metadata.get('building_id')
-    county_fips = metadata.get('county_fips')
-    if not county_fips:
-        county_fips = _derive_county_fips(
-            metadata.get('latitude'), metadata.get('longitude'))
     return {
         'building_type': bt,
         'state': state,
         'region': region,
         'division': division,
-        'vintage': _vintage_bin(metadata.get('year_built') or metadata.get('yearBuilt')),
-        'decade_vintage': _decade_vintage_bin(metadata.get('year_built') or metadata.get('yearBuilt')),
+        'vintage': _vintage_bin(metadata.get('year_built')),
+        'decade_vintage': _decade_vintage_bin(metadata.get('year_built')),
         'area': metadata.get('area') or metadata.get('floor_area'),
         'bedrooms': metadata.get('bedrooms') or metadata.get('number_of_bedrooms'),
         'floor_count': _coerce_int(metadata.get('floor_count')),
         'units': _coerce_int(metadata.get('number_of_units') or metadata.get('units') or metadata.get('number_of_residential_units')),
         'climate_zone': cz,
         'building_id': bid,
-        'county_fips': str(county_fips).zfill(5) if county_fips else None,
+        'county_fips': county_fips,
     }
 
 

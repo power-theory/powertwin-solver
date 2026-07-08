@@ -15,9 +15,20 @@ docker compose up --detach
 2. Click autorun at the top of homepage or run autorun command
 
 ## Starting a Simulation
-To begin a simulation there are 2 required files. The geojson file and the metadata csv.
-Geojson must contain all the geometry and required properties id, asset_id, and floor_count.
-Metadata csv for the simluation must contain building area, building type, and building name however clean report will require additional features.
+To begin a simulation there are 2 required files: the GeoJSON (geometry) and the metadata CSV.
+
+**GeoJSON** — each feature needs the polygon geometry plus `id` and `asset_id` (`floor_count`/`height` optional; `floor_count` defaults to 1).
+
+**Metadata CSV** — the per-building `asset_metadata` JSON drives the simulation defaults. Fields fall in three tiers:
+
+- **Required to simulate** (a building missing any of these is excluded and marked Failed): `area` (conditioned floor area, ft²) and `latitude` + `longitude` (used to assign the weather station).
+- **Required for accurate, unbiased defaults** (missing these silently falls back to flat national averages):
+  - `county_fips` (preferred) **or** `state` — sets the census division/region that drives the local fuel mix, envelope R-values, and heating/cooling system types (RECS/CBECS/ACS). With **neither**, every building resolves to the flat default (e.g. ~100% natural-gas heating), discarding the local marginal. `county_fips` is preferred: it is finer, unlocks the ACS county-level fuel table, and `state` is derived from its first two digits.
+  - `asset_subtype_id` (CSV column) — building type/archetype; unknown falls back to Single-Family Detached.
+  - `year_built` — construction vintage; missing uses the all-vintage marginal.
+- **Derived (not required)**: `climate_zone` (from the weather station), `number_of_units`/`bedrooms` (from area + subtype).
+
+`asset_name` is also required for report labeling. `read_metadata` logs a metadata-quality summary flagging how many buildings lack a division key (`state`/`county_fips`) or `year_built`.
 
 1. Upload Geojson and Metadata csv files
 2. Adjust the feature file configuration for any custom changes, otherwise default configuration will apply
