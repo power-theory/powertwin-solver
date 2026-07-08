@@ -10,11 +10,11 @@ GITHUB_REMOTE="github"
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 SHORT_SHA=$(git rev-parse --short HEAD)
 
-# Compose services that get built (excludes postgres:17 which is a stock image)
-COMPOSE_PROJECT="powertwin-solver"
-SERVICES=("powertwin-solver-pgbouncer" "powertwin-solver-flask" "powertwin-solver-mss")
+# DISABLED with the registry-push block below (CI now builds images to ECR):
+# COMPOSE_PROJECT="powertwin-solver"
+# SERVICES=("powertwin-solver-pgbouncer" "powertwin-solver-flask" "powertwin-solver-mss")
 
-echo "=== Push & Registry Sync ==="
+echo "=== Push ==="
 echo "Branch: ${BRANCH}"
 echo "Commit: ${SHORT_SHA}"
 echo ""
@@ -55,34 +55,33 @@ else
   echo "--- Skipping GitHub (remote '${GITHUB_REMOTE}' not configured) ---"
 fi
 
-# 3. Build images from docker-compose-prod.yml
-# Export CI_COMMIT_BRANCH so compose tags images with the current branch
-# (matches what GitLab CI does automatically).
+# ---------------------------------------------------------------------------
+# DISABLED (2026-07): building images and pushing to the local ${DOCKER_REGISTRY}
+# is now redundant. The promoted .gitlab-ci.yml builds flask/pgbouncer/mss and
+# pushes them to ECR in-pipeline (on dev/main push), then deploys to EKS via
+# helm. This block only fed the legacy docker-compose deploy. Re-enable if you
+# run that path against the local registry.
+# ---------------------------------------------------------------------------
+# # 3. Build images from docker-compose-prod.yml
+# echo ""
+# echo "--- Building images ---"
+# export CI_COMMIT_BRANCH="${BRANCH}"
+# docker compose -f docker-compose-prod.yml build
+#
+# # 4. Tag and push to local registry
+# echo ""
+# echo "--- Pushing to registry (${DOCKER_REGISTRY}) ---"
+# for SERVICE in "${SERVICES[@]}"; do
+#   REGISTRY_IMAGE="${DOCKER_REGISTRY}/${SERVICE}"
+#   echo "  ${REGISTRY_IMAGE}:${BRANCH}, :${SHORT_SHA}"
+#   docker tag "${REGISTRY_IMAGE}:${BRANCH}" "${REGISTRY_IMAGE}:${SHORT_SHA}"
+#   docker push "${REGISTRY_IMAGE}:${BRANCH}"
+#   docker push "${REGISTRY_IMAGE}:${SHORT_SHA}"
+#   if [ "${BRANCH}" = "main" ]; then
+#     docker tag "${REGISTRY_IMAGE}:${BRANCH}" "${REGISTRY_IMAGE}:latest"
+#     docker push "${REGISTRY_IMAGE}:latest"
+#   fi
+# done
+
 echo ""
-echo "--- Building images ---"
-export CI_COMMIT_BRANCH="${BRANCH}"
-docker compose -f docker-compose-prod.yml build
-
-# 4. Tag and push to local registry
-# docker compose build tags images using the image: field from compose file
-# e.g. 100.72.180.45:5000/powertwin-solver-flask:dev
-echo ""
-echo "--- Pushing to registry (${DOCKER_REGISTRY}) ---"
-for SERVICE in "${SERVICES[@]}"; do
-  REGISTRY_IMAGE="${DOCKER_REGISTRY}/${SERVICE}"
-
-  echo "  ${REGISTRY_IMAGE}:${BRANCH}, :${SHORT_SHA}"
-  docker tag "${REGISTRY_IMAGE}:${BRANCH}" "${REGISTRY_IMAGE}:${SHORT_SHA}"
-  docker push "${REGISTRY_IMAGE}:${BRANCH}"
-  docker push "${REGISTRY_IMAGE}:${SHORT_SHA}"
-
-  if [ "${BRANCH}" = "main" ]; then
-    docker tag "${REGISTRY_IMAGE}:${BRANCH}" "${REGISTRY_IMAGE}:latest"
-    docker push "${REGISTRY_IMAGE}:latest"
-  fi
-done
-
-echo ""
-echo "=== Done ==="
-echo "Pull with: docker pull ${DOCKER_REGISTRY}/<service>:${BRANCH}"
-echo "Services: ${SERVICES[*]}"
+echo "=== Done (pushed to git; CI builds images and deploys) ==="
