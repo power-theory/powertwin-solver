@@ -42,7 +42,7 @@ import requests
 # scope, DB connection) that don't vary across runs. Everything that DOES
 # vary across runs lives in the Config dataclass below.
 # ----------------------------------------------------------------------------
-REPO = pathlib.Path(__file__).resolve().parents[1]
+REPO = pathlib.Path(__file__).resolve().parents[2]
 SIM_OUTPUT_DIR = REPO / "powertwin_data" / "user_files"
 RUNS_DIR = REPO / "tests" / "runs"
 DATASET_DIR = REPO / "solver" / "upload" / "demo_data"

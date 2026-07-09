@@ -420,36 +420,37 @@ In both cases the override is snapshot-and-restore inside the request handler (`
 
 ### ASU validation results
 
-> Validated on the bundled ASU **demo dataset** (`solver/upload/demo_data/asu_metadata.csv`): ~71 commercial buildings × 2023 metered actuals (111 Electricity, 31 Hot Water, 103 CO2 sensors). Same dataset is exposed in the UI as the "ASU" demo collection.
+> Validated on the bundled ASU **demo dataset** (`solver/upload/demo_data/asu_metadata.csv`): ~71 commercial buildings × 2023 metered actuals (112 Electricity, 36 Hot Water, 108 CO2 sensors scored). Same dataset is exposed in the UI as the "ASU" demo collection.
 
 UBEM URBANopt prediction of ASU campus buildings on 2023 metered
-electricity: **top 10 < 10%, top 20 < 15%, top 30 < 21%** mean absolute
-percentage error per asset on annual totals. Holds for both
-`URBANOPT_DYNAMIC_DEFAULTS=true` (resolver) and `=false` (flat) arms.
+electricity: under dynamic defaults (ON) the best-fit assets reach
+**top 10 < 5%, top 20 < 11%, top 30 < 18%** mean absolute percentage
+error per asset on annual totals; the flat (OFF) arm is higher (top 10
+~13%, top 20 ~15%).
 
-Top-N mean MAPE per sensor type (post-fix), ranked by `mape_true` ascending:
+Top-N mean MAPE per sensor type, ranked by `mape_true` ascending (run
+`20260709T054047`, 2 cores, defaults / no zero-interpolation):
 
 | sensor | n | top-10 OFF/ON | top-20 OFF/ON | top-30 OFF/ON | top-50 OFF/ON |
 |---|---|---|---|---|---|
-| Electricity | 111 | 9.2% / 7.9% | 14.7% / 14.2% | 19.8% / 20.4% | 31.7% / 32.5% |
-| Hot Water | 31 | 51.6% / 51.6% | 68.4% / 68.4% | 87.0% / 87.0% | (n<50) |
-| CO2 Emissions | 103 | 20.6% / 17.3% | 24.0% / 23.5% | 29.0% / 28.0% | 41.4% / 40.4% |
+| Electricity | 112 | 12.5% / 4.9% | 15.3% / 10.7% | 20.1% / 17.5% | 31.8% / 29.3% |
+| Hot Water | 36 | 37.1% / 36.4% | 57.7% / 57.2% | 69.0% / 68.6% | (n<50) |
+| CO2 Emissions | 108 | 13.6% / 9.6% | 22.0% / 19.4% | 26.9% / 26.2% | 39.9% / 39.1% |
 
-Top-N gaps are within paired-test noise (±1.3 pp Electricity, ±3.3 pp
-CO2). The real signal of the resolver fixes lives in the tail: bands
-81-111 on Electricity collapsed from ~700% to ~350%, vintage `pre-1980`
-from 311% to 271%, `Public order and safety` from 204% to 144%. CO2
-shows the cleanest ON-vs-OFF separation because fuel-mix correctness
-maps directly to emissions factors. Hot Water deltas are exactly zero
-because all 31 sensors are on pre-2010 buildings where ON and OFF
-resolve SWH fuel identically.
+At the top (well-metered assets) the dynamic-defaults ON arm clearly
+beats flat OFF for electricity (top-10 4.9% vs 12.5%) and CO2 (9.6% vs
+13.6%); Hot Water is near-parity, as SWH fuel resolves similarly on
+these mostly pre-2010 buildings. On the full population the mean is
+tail-dominated and OFF fits ASU's aggregate marginally better (annual
+overall MAPE: electricity 150% OFF vs 175% ON).
 
 ASU regressions vs. national defaults concentrate in (a) pre-1980
 vintage and dorm-style Lodging where the campus housing archetype
 diverges from CBECS SmallHotel, and (b) sub-metered buildings where the
-actuals scope doesn't match whole-building predictions. The flat-default
-arm happens to fit ASU's idiosyncrasies marginally better in aggregate;
-the dynamic-default arm is nationally more defensible.
+actuals scope doesn't match whole-building predictions. So the resolver
+helps where the meter data is clean and whole-building, while the
+aggregate is dragged by that mismatched-actuals tail; the
+dynamic-default arm remains nationally more defensible.
 
 ### Occupancy Modeling
 - Develop dynamic occupancy modeling system
