@@ -65,7 +65,7 @@ docker exec -it powertwin-solver-flask /bin/bash
 | Command | Description | Usage |
 |---------|-------------|-------|
 | `solver autorun` | Run simulation using `simulation.json` | `solver autorun` |
-| `solver start` | Start a new simulation | `solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <location> <num_cores>` |
+| `solver start` | Start a new simulation | `solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <num_cores>` |
 | `solver status` | Check simulation status | `solver status <simulation_name> [-b <batch_id>]` |
 | `solver stop` | Stop running simulation | `solver stop` |
 | `solver delete` | Delete a simulation | `solver delete <simulation_name>` |
@@ -78,14 +78,14 @@ docker exec -it powertwin-solver-flask /bin/bash
 
 #### Start Simulation
 ```sh
-solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <location> <num_cores>
+solver start <simulation_name> <asset_geojson_path> <metadata_csv_path> <num_cores>
 ```
 - Starts a new simulation with specified parameters
 - Required files:
   - Asset GeoJSON file with geometry and properties
   - Metadata CSV with building information
   - Configuration JSON for custom settings
-- Supports multiple locations and core allocation
+- Optional `--shared-storage <path>` (HPC shared storage) and `-k`/`--keep` (keep the run directory); core count via the `<num_cores>` positional
 - OPTIONAL: Set up simulation.json onfiguration file and use autorun command
 
 #### Recovery Process
@@ -191,7 +191,7 @@ python read_sqlite_db.py <path_to_db>
 
 ### Weather Files
 - **Source:** TMY3 (Typical Meteorological Year 3) weather data from the National Renewable Energy Laboratory (NREL)
-- **Stations:** 1,470 USA weather stations defined in `solver/app/urbanopt/master_weather.geojson`
+- **Stations:** 3,026 USA weather stations defined in `solver/app/urbanopt/master_weather.geojson`
 - **Files:** `.epw`, `.ddy`, `.stat` files downloaded on-demand from NREL S3 storage
 - **Selection:** Nearest station by haversine distance from building lat/lon coordinates
 
@@ -274,7 +274,7 @@ These are controlled by the `DOE_REF_INCOMPATIBLE` constant in `PowerTwin.rb`. L
 
 ### Verified Compatible Types
 
-All remaining commercial building types have been empirically verified against DOE Ref Pre-1980 and DOE Ref 1980-2004 templates by running `create_bar_from_building_type_ratios` + `create_typical_building_from_model` through OpenStudio. The full QA matrix (`tests/qa_dynamic_defaults_matrix.py`) tests all 28 building types across 4 census regions and vintage bins (1344 test cells total):
+All remaining commercial building types have been empirically verified against DOE Ref Pre-1980 and DOE Ref 1980-2004 templates by running `create_bar_from_building_type_ratios` + `create_typical_building_from_model` through OpenStudio. The full QA matrix (`tests/tools/qa_dynamic_defaults_matrix.py`) tests all 28 building types across 16 resolver fields and 3 arms (override / resolver / flat), 1344 test cells total:
 
 SecondarySchool, SmallOffice, MediumOffice, LargeOffice, RetailStandalone, RetailStripmall, FullServiceRestaurant, LargeHotel, Warehouse, Hospital, Outpatient, MidriseApartment
 
@@ -285,7 +285,7 @@ For Mixed Use buildings, the template applies to **all** component types in a si
 ## Future Development Roadmap
 
 ### Building Type Coverage
-All 28 building types in `asset_subtypes.csv` have code paths in `PowerTwin.rb` and `generateFeatureFile.py`, and their parameter pipelines are verified correct by the QA matrix (1344/1344 L1-L3 green). All types have been end-to-end sim-tested with both `URBANOPT_DYNAMIC_DEFAULTS=true` and `=false` arms, producing 8760-row cleaned reports (24/24 pass in `tests/sim_verify_building_types.py`).
+All 28 building types in `asset_subtypes.csv` have code paths in `PowerTwin.rb` and `generateFeatureFile.py`, and their parameter pipelines are verified correct by the QA matrix (1344/1344 L1-L3 green). All types have been end-to-end sim-tested with both `URBANOPT_DYNAMIC_DEFAULTS=true` and `=false` arms, producing 8760-row cleaned reports (24/24 pass in `tests/tools/sim_verify_building_types.py`).
 
 ## Programmable Simulation Parameters
 
@@ -302,25 +302,25 @@ seeded into `simulation_*_types` tables and served at
 | Field | Type | Flat fallback | Dynamic resolver | Notes |
 |---|---|---|---|---|
 | `system_type` | enum | `Inferred` | — | omitted from feature.json so urbanopt picks the building_type's template default |
-| `heating_system_fuel_type` | enum | `natural gas` | RECS 2020 / CBECS 2018 region+vintage mode | `simulation_fuel_types` |
+| `heating_system_fuel_type` | enum | `natural gas` | residential: ACS 2022 county fuel shares reconciled with RECS 2020 division system-types, share-weighted per building; commercial: CBECS 2018 region shares | `simulation_fuel_types` |
 | `cooling_system_fuel_type` | enum | `electricity` | constant (~99%) | `simulation_fuel_types` |
-| `service_water_heating_fuel_type` | enum | `natural gas` | RECS 2020 / CBECS 2018 region+vintage mode | `simulation_fuel_types` |
-| `window_type` | enum | `Double Pane` | — | `simulation_window_types` |
+| `service_water_heating_fuel_type` | enum | `natural gas` | residential: conditioned on the resolved heating fuel (RECS 2020 SWH-follows-heat); commercial: CBECS 2018 region shares | `simulation_fuel_types` |
+| `window_type` | enum | `Double Pane` | RECS 2020 TYPEGLASS / CBECS 2018 WINTYP by vintage | `simulation_window_types` |
 | `wall_material` | enum | `Insulated` | RECS 2020 / CBECS 2018 region+vintage tier | `simulation_surface_materials` (solver appends " Wall") |
 | `roof_material` | enum | `Insulated` | RECS 2020 / CBECS 2018 region+vintage tier | `simulation_surface_materials` (solver appends " Roof") |
 | `window_to_wall_ratio` | number | `0.20` | OpenStudio Standards prototype WWR per building_type (commercial only) | range `[0.0, 0.8]` |
 | `wall_r_value` | number | `13.0` | ResStock TRG / CBECS region+vintage avg | range `[1.0, 80.0]` |
 | `roof_r_value` | number | `30.0` | ResStock TRG / CBECS region+vintage avg | range `[1.0, 80.0]` |
 | `floor_height` | number | `9.0` ft | — | range `[6.0, 20.0]` |
-| `weekday_start_time` | time `HH:MM` | `""` (template default) | — | emit only when paired with non-empty `weekday_duration` |
-| `weekday_duration` | time `HH:MM` | `""` (template default) | — | must not equal `24:00` (schedule collision) |
-| `weekend_start_time` | time `HH:MM` | `""` (template default) | — | emit only when paired with non-empty `weekend_duration` |
-| `weekend_duration` | time `HH:MM` | `""` (template default) | — | must not equal `24:00` |
+| `weekday_start_time` | time `HH:MM` | `""` (template default) | OpenStudio Standards operating hours per building_type | emit only when paired with non-empty `weekday_duration` |
+| `weekday_duration` | time `HH:MM` | `""` (template default) | OpenStudio Standards operating hours per building_type | must not equal `24:00` (schedule collision) |
+| `weekend_start_time` | time `HH:MM` | `""` (template default) | OpenStudio Standards operating hours per building_type | emit only when paired with non-empty `weekend_duration` |
+| `weekend_duration` | time `HH:MM` | `""` (template default) | OpenStudio Standards operating hours per building_type | must not equal `24:00` |
 | `number_of_occupants` | number | flat `OCCUPANTS_MAPPING[occupancy_type]` | residential: `bedrooms + 1` (HPXML/Manual J); commercial: `area_sqft × people_per_1000ft² / 1000` (OpenStudio Standards) | range `[0, 100000]`. Empty triggers dynamic resolution; any explicit value (including 0) overrides it. |
 
 Defaults resolve in this precedence:
 1. Explicit `assets.metadata.<field>` set, non-empty → use it.
-2. Dynamic resolver (see column above) keyed on the asset's `(building_type, state→census_region, year_built→vintage_bin, area, bedrooms)` context → use it.
+2. Dynamic resolver (see column above) keyed on the asset's `(building_type, county_fips→ACS county fuel marginal (+ derived state), state→census_region/division, year_built→vintage_bin, area, bedrooms)` context. Residential fuel is share-weighted per building when `URBANOPT_STOCHASTIC_SAMPLING` is on, else modal → use it.
 3. Flat fallback above.
 
 Editing any of these fields on a `Building` asset (asset_type_id=6) re-queues
@@ -329,46 +329,51 @@ a simulation via the `notify_asset_update` trigger.
 ### Default-value provenance
 
 Every default and dynamic resolver in `sim_params_spec.py` traces to an
-authoritative NREL / NatLabRockies / EIA source. Lookup tables live in
-`solver/upload/reference_data/`.
+authoritative EIA / NREL / Census source. **`tests/assumptions_ledger.yaml`
+is the authoritative per-field ledger** -- the source assumption, invariants,
+and verification (oracle) status for every field, plus the deduped source
+origins and enumerated trust boundaries. The lookup tables live in
+`solver/upload/reference_data/` (each JSON carries a `_source` block); this
+section is the human-readable overview.
 
 **Feature flag**: `URBANOPT_DYNAMIC_DEFAULTS` (env var, default `false`).
 When `false` (the conservative default), the solver and API both use the
 flat `SIM_PARAM_DEFAULTS` directly, preserving the pre-dynamic behavior for
 unmodified assets. When `true`, `resolve_default()` consults the lookup
-tables below before falling back.
+tables in `reference_data/` before falling back.
 
-| File | Source | What it provides |
-|---|---|---|
-| `openstudio_standards_people_per_area.json` | [NREL openstudio-standards `ashrae_90_1_2013.spc_typ.json`](https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/standards/ashrae_90_1/ashrae_90_1_2013/data/ashrae_90_1_2013.spc_typ.json) | Per-building_type `occupancy_per_area` (people / 1000 ft²) used by the commercial occupancy composite formula. Office uses the WholeBuilding aggregate; Warehouse uses an area-weighted DOE-prototype mix; others use the primary representative space type. |
-| `recs2020_residential_fuel_mix.json` | [EIA RECS 2020](https://www.eia.gov/consumption/residential/data/2020/), Tables HC6.5 / HC7.5 / HC8.5 | Per (census_region, vintage_bin) modal heating / cooling / service-water fuel for residential workflow assets. |
-| `cbecs2018_commercial_fuel_mix.json` | [EIA CBECS 2018](https://www.eia.gov/consumption/commercial/data/2018/), Tables B14 / B16 / B19 | Same shape for commercial workflow assets, derived from CBECS 2018 commercial floorspace fuel-use tables. |
-| `recs2020_envelope.json` | EIA RECS 2020 + [NREL ResStock Technical Reference Guide 2025](https://oedi-data-lake.s3.amazonaws.com/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2025/resstock_amy2018_release_1/ResStockTechnicalReferenceGuide_2025_1.pdf) + [NEEA RBSA 2012](https://neea.org/data/residential-building-stock-assessment) + IECC vintage minimums | Per (census_region, vintage_bin) modal wall / roof material tier and R-values for residential, plus per-building_type residential WWR (SFD / SFA / Multifamily) sourced from ResStock TRG and IECC 2021 fenestration limits. |
-| `cbecs2018_envelope.json` | EIA CBECS 2018 + [NREL ComStock Reference Documentation V.1](https://www.osti.gov/biblio/1967948) + ASHRAE 90.1 vintage minimums | Per (census_region, vintage_bin) modal wall / roof material tier and R-values for commercial. Also: per-building_type `window_to_wall_ratio` keyed by DOE Reference Building prototype name. |
-| `census_regions.json` | [US Census Bureau Statistical Regions and Divisions](https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf) | State→Census-Region (Northeast / Midwest / South / West) map. Carries both 2-letter abbreviation keys and a `state_name_to_abbr` reverse map so `build_asset_ctx` accepts either `'AZ'` or `'Arizona'` (any case). |
-| `building_type_aliases.json` | [NREL ComStock Building Type Crosswalks](https://nrel.github.io/ComStock.github.io/docs/resources/explanations/building_type_crosswalks.html) + [NREL openstudio-standards space-type list](https://github.com/NREL/openstudio-standards/blob/master/lib/openstudio-standards/standards/ashrae_90_1/ashrae_90_1_2013/data/ashrae_90_1_2013.spc_typ.json) + [PNNL-32815](https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-32815.pdf) | PowerTwin asset_subtype (CBECS PBA vocabulary) → DOE Reference Building / OpenStudio Standards prototype crosswalk. 13 mapped entries; CBECS categories NREL doesn't model (Religious worship, Public assembly, Service, Nursing, Refrigerated warehouse, Enclosed mall, Vacant) are documented as `_omitted_explicit` so the resolver degrades to flat defaults instead of using fabricated proxies. |
-| `unit_scale_factors.json` | EnergyPlus + UrbanOpt schema | EnergyPlus unit-suffix to kBtu scaling (existing; moved into `reference_data/` alongside the new tables). |
+**Feature flag**: `URBANOPT_STOCHASTIC_SAMPLING` (env var, default `false`;
+`is_stochastic_sampling_enabled()`). Only meaningful when dynamic defaults are
+on. With sampling off, each resolved distribution returns its modal value, so
+every asset in the same (region/division, vintage, building_type) cell gets the
+identical fuel/material. With sampling on, the resolver draws each field
+share-weighted from the distribution, keyed on a deterministic
+`md5(building_id : field)` hash, so the simulated population reproduces the
+local fuel/material mix (e.g. a county that is ~65% electric / ~21% gas) rather
+than one modal value for all, while staying reproducible per building.
+
+**Key sources:** ACS 2022 county house-heating-fuel (Table B25040 -- the
+residential fuel marginal) reconciled with RECS 2020 division system-types;
+CBECS 2018 for commercial fuel + WWR; ResStock / ComStock realized metadata
+for envelope R-values + window type; RECS 2020 / CBECS 2018 for window pane
+count and material tiers; OpenStudio Standards for occupancy density +
+operating hours; ACS 2022 for vacancy. The full file-by-file catalog (16
+lookup tables, with source URLs and extraction dates) lives in
+`solver/upload/reference_data/` -- each JSON's `_source` block -- and the
+per-field source assumption + oracle status is in the ledger's `sources:`.
 
 **Residential occupants formula (HPXML / ACCA Manual J)**:
-`occupants = bedrooms + 1` per the [OpenStudio-HPXML BuildResidentialHPXML README](https://github.com/NREL/OpenStudio-HPXML/blob/master/BuildResidentialHPXML/README.md): *"If NumberofResidents is not provided, it defaults to the number of bedrooms plus one per Manual J."* When `bedrooms` is absent on the asset, the solver infers `bedrooms ≈ round(area_sqft / 600)` (ResStock typical SFD).
+`occupants = bedrooms + 1` per the [OpenStudio-HPXML BuildResidentialHPXML README](https://github.com/NREL/OpenStudio-HPXML/blob/master/BuildResidentialHPXML/README.md): *"If NumberofResidents is not provided, it defaults to the number of bedrooms plus one per Manual J."* When `bedrooms` is absent on the asset, the solver infers `bedrooms ≈ round(area_sqft / 800 / units)` (`SQFT_PER_BEDROOM = 800`, ResStock typical SFD).
 
 **Commercial occupants formula (OpenStudio Standards)**:
-`occupants = round(area_sqft × people_per_1000ft² / 1000)` where `people_per_1000ft²` is sourced from the OpenStudio Standards JSON for ASHRAE 90.1-2013 per building_type (above). PowerTwin's CBECS-vocabulary `asset_subtype.name` is first translated to the matching DOE Reference Building prototype name via `building_type_aliases.json` (e.g. `Education → PrimarySchool`, `Lodging → SmallHotel`, `Outpatient health care → Outpatient`). Falls back to the flat `OCCUPANTS_MAPPING` when the translated `building_type` isn't in the density table or has no canonical DOE prototype.
+`occupants = round(area_sqft × people_per_1000ft² / 1000)` where `people_per_1000ft²` is sourced from the OpenStudio Standards JSON for ASHRAE 90.1-2013 per building_type. PowerTwin's CBECS-vocabulary `asset_subtype.name` is first translated to the matching DOE Reference Building prototype name via `building_type_aliases.json` (e.g. `Education → PrimarySchool`, `Lodging → SmallHotel`, `Outpatient health care → Outpatient`). Falls back to the flat `OCCUPANTS_MAPPING` when the translated `building_type` isn't in the density table or has no canonical DOE prototype.
 
 **State normalization**: `build_asset_ctx` accepts the asset's `state` in either 2-letter abbreviation (`AZ`, `CA`) or full-name (`Arizona`, `California`, any case) form. The normalization lookup is the `state_name_to_abbr` map in `census_regions.json`. Asset ingest sources differ in convention, and a state-format mismatch silently kills every region-keyed lookup (heating/SWH fuel, wall/roof material, wall/roof R-value) for that asset; normalization at the resolver entry point eliminates that class of bug.
 
 **HPXML schema reference**:
 [HPXML Data Dictionary](https://hpxml.nrel.gov/datadictionary/) — `NumberofResidents` schema (`xs:double`, optional).
 
-**Vintage bins** (used by all RECS/CBECS lookups): `pre-1980`, `1980-1999`, `2000-2009`, `2010+`. Follows RECS published categorization.
-
-**How to update**: when EIA publishes a new RECS / CBECS release, or NREL ships a new openstudio-standards or ResStock TRG, the procedure is:
-1. Re-extract the updated values from the canonical source files
-2. Bump `_source.extracted` (date) in each JSON
-3. Confirm `sim_params_spec.py.SIM_PARAM_DEFAULTS` flat fallbacks still match the new national plurality/mode
-4. Update the table above with the new source URLs if any moved
-
-**Resolver coverage (operational note)**: with `URBANOPT_DYNAMIC_DEFAULTS=true`, an asset must have both `state` and `year_built` populated for the resolver to produce a region+vintage value. When either is missing the resolver degrades gracefully:
+**Resolver coverage (operational note)**: with `URBANOPT_DYNAMIC_DEFAULTS=true`, an asset needs a division key plus `year_built` for the resolver to produce a fully region/division+vintage value. The division key is `county_fips` (preferred: it also unlocks the ACS county fuel marginal and derives `state` from its first two digits) or `state`. When either is missing the resolver degrades gracefully (read `state` in the table below as "the division key, satisfiable by `county_fips`"):
 
 | Asset metadata has... | Fields that still resolve dynamically | Fields that fall to flat default |
 |---|---|---|
@@ -411,10 +416,10 @@ Every field in `DYNAMIC_FIELDS` always appears in `levels`. A field that does no
 
 | Endpoint | Override carrier | Notes |
 |---|---|---|
-| `POST /api/simulation/start` (synchronous) | multipart form field | Used by the A/B accuracy test in `tests/score_dynamic_defaults_ab.py` to run back-to-back sims with the flag flipped. |
+| `POST /api/simulation/start` (synchronous) | multipart form field | Used by the A/B accuracy test in `tests/tools/score_dynamic_defaults_ab.py` to run back-to-back sims with the flag flipped. |
 | `POST /api/simulation/asset_update` (asynchronous) | JSON body field | The powertwin-db listener can opt in by including the field when triggering a per-asset resim. |
 
-In both cases the override is snapshot-and-restore inside the request handler (`os.environ` mutation, see `views.py:start_simulation` and `_run_asset_update_simulation`), so it doesn't leak to the next sim. `SIMULATION_CONCURRENCY=1` (single in-flight sim per Flask process) is the invariant that makes the env mutation safe -- the existing `URBANOPT_REPORTING_FREQUENCY` override depends on the same assumption. `resolve_default()` reads `URBANOPT_DYNAMIC_DEFAULTS` via `is_dynamic_defaults_enabled()` at call time, so the mutation takes effect for feature-file generation that runs in the same thread.
+In both cases the override is snapshot-and-restore inside the request handler (`os.environ` mutation, see `views.py:start_simulation` and `_run_asset_update_simulation`), so it doesn't leak to the next sim. A process-wide `_SIM_ENV_LOCK` (`views.py`) serializes the env-sensitive window via the `_sim_env_override` snapshot/restore context manager, so overlapping sims (the async `asset_update` path can run alongside a synchronous `start`) never observe each other's `os.environ` mutation; the existing `URBANOPT_REPORTING_FREQUENCY` override relies on the same lock. `resolve_default()` reads `URBANOPT_DYNAMIC_DEFAULTS` via `is_dynamic_defaults_enabled()` at call time, so the mutation takes effect for feature-file generation that runs in the same thread.
 
 **Residential leap-year patch**: `URBANOPT_SIMULATION_YEAR=2024` (or any leap year) used to break the residential workflow because TMY3 EPWs are 8760 hours and OpenStudio-HPXML's `location.rb:apply_year` rejects the mismatch (it expects 8784 hours for a leap-year sim). `solver/patches/patch_hpxml_leap_year.py` (applied at Dockerfile build time) downgrades the model calendar to `sim_year - 1` when an 8760-hour EPW is paired with a leap year, so EnergyPlus reads its full weather stream against a non-leap calendar. Day-of-week assignment shifts by 1; for stock-survey aggregation that's acceptable noise. Commercial workflows are unaffected because they tolerate the mismatch silently. Without the patch, every residential sim with a leap-year `URBANOPT_SIMULATION_YEAR` fails fast at `BuildResidentialModel.run`.
 
