@@ -30,7 +30,10 @@ def process_worker(args):
                 if types and not any(csv_path.stem.endswith(t) for t in types):
                     continue
                 try:
-                    df = pd.read_csv(csv_path, parse_dates=['ts'])
+                    # id is the sensor_id (exceeds int32). Read as str so a NaN row can't coerce the
+                    # whole column to float64 and emit it as '<id>.0' -- a trailing-.0 corrupted id
+                    # (the values are well under 2^53, so this is a float FORMATTING bug, not precision loss)
+                    df = pd.read_csv(csv_path, parse_dates=['ts'], dtype={'id': str})
                 except Exception:
                     continue
 

@@ -526,7 +526,13 @@ def convert_geometry_to_geojson(geojson_array):
             # Ensure asset_id is in properties if available
             if 'asset_id' in geom_item and 'asset_id' not in properties:
                 properties['asset_id'] = geom_item['asset_id']
-            
+            # keep id/asset_id string-typed on the intermediate geojson: they are identifiers, not
+            # numbers, and are matched as strings downstream -- avoids any numeric-JSON reformatting
+            if properties.get('asset_id') is not None:
+                properties['asset_id'] = str(properties['asset_id'])
+            if properties.get('id') is not None:
+                properties['id'] = str(properties['id'])
+
             # Create feature
             feature = {
                 'type': 'Feature',

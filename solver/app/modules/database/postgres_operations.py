@@ -51,7 +51,7 @@ def create_table():
     try:
         cur.execute(f"""
             CREATE TABLE IF NOT EXISTS {DB_NAME} (
-                asset_id SERIAL PRIMARY KEY,
+                asset_id BIGINT PRIMARY KEY,
                 batch INTEGER,
                 order_rank INTEGER,
                 simulation_name VARCHAR(255),
@@ -572,8 +572,8 @@ def get_asset_stats(simulation_name=None):
         cur = conn.cursor()
         
         query = f"""
-            SELECT 
-                asset_id::integer,
+            SELECT
+                asset_id::bigint,
                 batch::integer,
                 order_rank::integer,
                 simulation_name,
@@ -642,7 +642,7 @@ def ensure_columns_exist():
         
         # Define expected columns with their types
         expected_columns = {
-            'asset_id': 'SERIAL PRIMARY KEY',
+            'asset_id': 'BIGINT PRIMARY KEY',
             'batch': 'INTEGER',
             'order_rank': 'INTEGER',
             'simulation_name': 'VARCHAR(255)',
