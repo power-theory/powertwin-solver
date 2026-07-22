@@ -127,8 +127,8 @@ flask:
     targetCPUUtilization: 80
     behavior:
       scaleDown:
-        # Never scale a solver pod away while a 4-hour job might be running.
-        stabilizationWindowSeconds: 14400
+        # k8s caps this at 3600; a running sim is held up by the CPU target + do-not-disrupt, not this window.
+        stabilizationWindowSeconds: 3600
         policies:
           - type: Pods
             value: 1
@@ -145,6 +145,7 @@ flask:
     enabled: false # set true per-env (e.g. values-main) once the queue query is set
     minReplicaCount: 0 # scale to zero when no jobs are queued
     cooldownPeriod: 14400 # 4h - never interrupt an in-flight simulation
+    scaleDownStabilization: 3600 # HPA scaleDown window; k8s rejects >3600, so cooldownPeriod cannot be reused here
     # Count Queued AND Processing so a 0-scale pod is summoned and HELD for the whole job
     # (the listener flips Queued to Processing in ms; counting only Queued never wakes flask).
     query: "SELECT count(*) FROM simulation_jobs WHERE simulation_job_status_type_id IN (1, 2)"

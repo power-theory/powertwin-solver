@@ -31,8 +31,8 @@ spec:
     horizontalPodAutoscalerConfig:
       behavior:
         scaleDown:
-          # Never scale a solver pod away while a 4-hour job might be running.
-          stabilizationWindowSeconds: {{ .Values.flask.keda.cooldownPeriod }}
+          # k8s caps this at 3600; a running sim is held up by cooldownPeriod + the Queued/Processing query, not this window.
+          stabilizationWindowSeconds: {{ .Values.flask.keda.scaleDownStabilization | default 3600 }}
   triggers:
     - type: postgresql
       metadata:
