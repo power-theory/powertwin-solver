@@ -63,13 +63,13 @@ flask:
       cpu: "2"
       memory: 4Gi
   terminationGracePeriodSeconds: 14400
-  # KEDA queue-based scaling for prod (scales 0..4 on queued sims, true scale-to-
+  # KEDA queue-based scaling for prod (scales 0..1 on queued sims, true scale-to-
   keda:
     enabled: true
   hpa:
     enabled: true
     minReplicas: 1
-    maxReplicas: 4
+    maxReplicas: 1  # capped at 1: the sim listener is concurrency-1, so extra flask pods add no throughput and break the async protocol -- flask keeps sim state on pod-local emptyDir and the Service has no session affinity, so status/results polls round-robin to pods without the data (404) and jobs jam behind the single slot. Raise only alongside shared /solver/data + a higher listener concurrency.
     targetCPUUtilization: 80
   urbanopt:
     simulationYear: "2019"
