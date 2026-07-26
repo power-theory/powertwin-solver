@@ -84,21 +84,11 @@ build_mss:
         ./mss
     - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-mss --all-tags
 
-build_surrogate:
-  extends: .build_template
-  script:
-    - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-surrogate:${IMAGE_TAG}
-        -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-surrogate:${CI_COMMIT_BRANCH}
-        -f ./surrogate/Dockerfile ./surrogate
-    - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-surrogate --all-tags
-
-build_classifier:
-  extends: .build_template
-  script:
-    - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-classifier:${IMAGE_TAG}
-        -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-classifier:${CI_COMMIT_BRANCH}
-        -f ./classifier/Dockerfile ./classifier
-    - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-classifier --all-tags
+# NOTE: the surrogate + classifier modeling images are NOT built here. They run on HPC
+# (Medicine Bow), not the k8s cluster, so they are not in the helm chart and nothing consumes
+# an ECR -surrogate/-classifier image. Like the solver image on HPC, they are pushed to Docker
+# Hub manually when needed (docker build ./surrogate | ./classifier -> docker push). Re-add a
+# build job here only if a Docker Hub (not ECR) push target and an HPC consumer are wired up.
 
 # Deploy
 
