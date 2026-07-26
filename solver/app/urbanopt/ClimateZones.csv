@@ -2146,7 +2146,9 @@ G32031;Washoe;Nevada;5;5;Cold;Cold;B;B
 G18003;Allen;Indiana;5;5;Cold;Cold;A;A
 G19139;Muscatine;Iowa;5;5;Cold;Cold;A;A
 G19163;Scott;Iowa;5;5;Cold;Cold;A;A
-G02158;Kusilvak;Alaska;;;;;;
+G02158;Kusilvak;Alaska;8;8;Subarctic;Subarctic;;
+G02063;Chugach;Alaska;7;7;Very Cold;Very Cold;;
+G02066;Copper River;Alaska;7;7;Very Cold;Very Cold;;
 G05017;Chicot;Arkansas;3;3;Mixed-Humid;Mixed-Humid;A;A
 G22123;West Carroll;Louisiana;3;3;Mixed-Humid;Mixed-Humid;A;A
 G01063;Greene;Alabama;3;3;Mixed-Humid;Mixed-Humid;A;A

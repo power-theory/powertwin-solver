@@ -84,6 +84,22 @@ build_mss:
         ./mss
     - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-mss --all-tags
 
+build_surrogate:
+  extends: .build_template
+  script:
+    - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-surrogate:${IMAGE_TAG}
+        -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-surrogate:${CI_COMMIT_BRANCH}
+        -f ./surrogate/Dockerfile ./surrogate
+    - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-surrogate --all-tags
+
+build_classifier:
+  extends: .build_template
+  script:
+    - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-classifier:${IMAGE_TAG}
+        -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-classifier:${CI_COMMIT_BRANCH}
+        -f ./classifier/Dockerfile ./classifier
+    - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-classifier --all-tags
+
 # Deploy
 
 .deploy_template:

@@ -10,10 +10,13 @@ tests/runs/
 tests/qa_matrix_fixtures/_arms/
 tests/qa_matrix_fixtures/_generated/
 data/
+# but keep the surrogate source package that happens to be named data/
+!surrogate/app/modules/data/
+!surrogate/app/modules/data/**
+# ...except its compiled bytecode, which the negation above would otherwise re-track
+surrogate/app/modules/data/**/__pycache__/
 powertwin_data
 postgres_data
 .github/instructions
 .github/prompts
-surrogate
-classifier
 *.log

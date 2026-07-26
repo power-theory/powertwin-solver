@@ -65,6 +65,26 @@ services:
     tty: true
     restart: unless-stopped
 
+  # Modeling images (opt-in: `docker compose --profile modeling run powertwin-solver-surrogate ...`).
+  # Batch/training jobs, not long-running services.
+  powertwin-solver-surrogate:
+    container_name: powertwin-solver-surrogate
+    profiles: ["modeling"]
+    build:
+      context: ./surrogate
+    volumes:
+      - ${SURROGATE_DATA_DIR:-./surrogate_runs}:/work/surrogate_runs
+    tty: true
+
+  powertwin-solver-classifier:
+    container_name: powertwin-solver-classifier
+    profiles: ["modeling"]
+    build:
+      context: ./classifier
+    volumes:
+      - ${SURROGATE_DATA_DIR:-./surrogate_runs}:/work/surrogate_runs
+    tty: true
+
 volumes:
   powertwin-solver-flask:
   postgres_data:
