@@ -44,8 +44,11 @@ flask:
       cpu: "0.5"
       memory: 1Gi
     limits:
-      cpu: "1"
-      memory: 2Gi
+      # Each concurrent sim needs ~1 core + ~0.7Gi (measured on dev). Sized for 3
+      # parallel sims (matches API_SOLVER_CONCURRENCY_LIMIT=3); 3 sims OOM'd at 2Gi.
+      # The solver node is an 8Gi xlarge, so 3Gi fits with room.
+      cpu: "3"
+      memory: 3Gi
   nodeSelector:
     workload: solver
   tolerations:
