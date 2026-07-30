@@ -109,7 +109,11 @@ def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
         # Legacy POWERTWIN_KEEP_DIRS=1 also keeps the urbanopt-emitted
         # feature_reports + generated_files dirs. Retained for apptainer
         # wrappers that haven't migrated to URBANOPT_KEEP_RUN_DIR yet.
-        keep_additional_dirs = os.environ.get('POWERTWIN_KEEP_DIRS') == '1'
+        from modules.utils.sim_flags import get_sim_flag
+        _keep = get_sim_flag('POWERTWIN_KEEP_DIRS')
+        if _keep is None:
+            _keep = os.environ.get('POWERTWIN_KEEP_DIRS')
+        keep_additional_dirs = _keep == '1'
         keep_dirs = {'feature_reports', 'generated_files'} if keep_additional_dirs else set()
 
         for item in os.listdir(ASSET_DIR):

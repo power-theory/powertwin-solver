@@ -56,7 +56,13 @@ def _load_ref(name: str) -> dict:
 # assets. Mirror the same env var on the API side (simulationParamsSpec.js)
 # so the frontend can surface "dynamic vs flat" default labels consistently.
 def _env_bool(name: str, default: bool = False) -> bool:
-    raw = os.environ.get(name)
+    # Per-sim thread-local override wins over the shared env, so concurrent sims
+    # read their own flags (see modules.utils.sim_flags); fall back to os.environ
+    # for the global/unset case, preserving the prior behavior.
+    from modules.utils.sim_flags import get_sim_flag
+    raw = get_sim_flag(name)
+    if raw is None:
+        raw = os.environ.get(name)
     if raw is None:
         return default
     return str(raw).strip().lower() in ('1', 'true', 'yes', 'on')

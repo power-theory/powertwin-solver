@@ -21,6 +21,7 @@ from modules.utils import (
     pack_simulation_results, atomic_write_json, write_status,
 )
 from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
+from modules.utils.sim_flags import set_sim_flags, clear_sim_flags
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Views', external_log_dir)
@@ -72,39 +73,25 @@ LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 # non-deterministic resolved values across runs. This lock serializes the
 # env-sensitive window, enforcing the SIMULATION_CONCURRENCY=1 invariant the
 # overrides have always assumed but never enforced.
-_SIM_ENV_LOCK = threading.Lock()
-
-
 @contextlib.contextmanager
 def _sim_env_override(dynamic_defaults=None, stochastic=None, reporting_frequency=None,
                       keep_dirs=None):
-    """Serialize and scope per-request env overrides under _SIM_ENV_LOCK. Each
-    var is snapshotted and restored on exit; a value of None means 'no override
-    for this var'. The lock is held for the whole sim body so the env stays
-    consistent for both the Python feature-file generation and the inherited-env
-    uo subprocess that follow. keep_dirs (bool) maps to POWERTWIN_KEEP_DIRS,
-    folded in here so it can't race the same way the URBANOPT flags did."""
-    keep_val = None if keep_dirs is None else ('1' if keep_dirs else '')
-    overrides = (
-        ('URBANOPT_DYNAMIC_DEFAULTS', dynamic_defaults),
-        ('URBANOPT_STOCHASTIC_SAMPLING', stochastic),
-        ('URBANOPT_REPORTING_FREQUENCY', reporting_frequency),
-        ('POWERTWIN_KEEP_DIRS', keep_val),
-    )
-    with _SIM_ENV_LOCK:
-        saved = {name: os.environ.get(name) for name, _ in overrides}
-        for name, val in overrides:
-            if val is not None:
-                os.environ[name] = val
-                logger.info(f"{name} override: {val}")
-        try:
-            yield
-        finally:
-            for name, prev in saved.items():
-                if prev is None:
-                    os.environ.pop(name, None)
-                else:
-                    os.environ[name] = prev
+    """Scope per-request URBANOPT flags to THIS thread (the async sim runs on its
+    own daemon thread). The flags go into thread-local state, read by the Python
+    resolver (sim_params_spec) and injected into the uo subprocess env
+    (command_timer.run_command). No shared os.environ mutation and no global lock,
+    so concurrent sims on one gunicorn worker run in parallel with correctly
+    isolated flags. A value of None means 'no override for this var'."""
+    set_sim_flags(dynamic_defaults, stochastic, reporting_frequency, keep_dirs)
+    for name, val in (('URBANOPT_DYNAMIC_DEFAULTS', dynamic_defaults),
+                      ('URBANOPT_STOCHASTIC_SAMPLING', stochastic),
+                      ('URBANOPT_REPORTING_FREQUENCY', reporting_frequency)):
+        if val is not None:
+            logger.info(f"{name} override: {val}")
+    try:
+        yield
+    finally:
+        clear_sim_flags()
 
 def home():
     return render_template('base.html')
@@ -149,9 +136,8 @@ def start_simulation():
     # Use centralized HPC detection
     is_hpc = is_hpc_environment()
 
-    # POWERTWIN_KEEP_DIRS is applied via _sim_env_override below (serialized
-    # under _SIM_ENV_LOCK), not mutated on the global env here, so it can't
-    # leak into a concurrent async sim on the same worker.
+    # POWERTWIN_KEEP_DIRS is applied via _sim_env_override below (thread-local),
+    # not mutated on the global env here, so it can't leak into a concurrent sim.
 
     # Reference the volume directory where the local files will be stored
     # TODO: Set as global variable for consistency across all LOCAL_DIR references 
@@ -189,9 +175,9 @@ def start_simulation():
     ASSET_GEOJSON.save(asset_geojson_path)
     METADATA_CSV.save(metadata_csv_path)
 
-    # Per-request URBANOPT env overrides. _sim_env_override serializes the
-    # window under _SIM_ENV_LOCK and restores on exit, so an async sim's daemon
-    # thread on the same worker can't observe this request's flags mid-run.
+    # Per-request URBANOPT env overrides. _sim_env_override scopes these to this
+    # thread (not the shared os.environ), so a concurrent sim on the same worker
+    # can't observe this request's flags mid-run.
     with _sim_env_override(request_dynamic_defaults, request_stochastic,
                            keep_dirs=keep_dirs):
         # Call the create_feature_files and initialize_uo to run the simulation
@@ -370,9 +356,9 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
     """Background worker. Runs without a Flask request context -- do not reference `request`."""
     # Per-request URBANOPT env overrides (reporting_frequency / dynamic_defaults
     # / stochastic_sampling). The resolver and the uo subprocess read these at
-    # call time; _sim_env_override serializes the window under _SIM_ENV_LOCK and
-    # restores on exit, so a concurrent async sim on the same worker can't
-    # observe this sim's flags (and vice versa).
+    # call time; _sim_env_override scopes them to this thread (not the shared
+    # os.environ), so concurrent async sims on the same worker can't observe
+    # each other's flags.
     with _sim_env_override(request_dynamic_defaults, request_stochastic,
                            request_reporting_frequency):
         try:
@@ -622,10 +608,10 @@ def autorun_simulation():
         
         logger.debug(f"HPC Environment: {is_hpc}, Shared Storage: {shared_storage}")
         
-        # autorun sets no per-request override, but the resolver + uo subprocess
-        # still read the global URBANOPT_* env at call time. Hold _SIM_ENV_LOCK
-        # (no mutations) so this run can't observe a concurrent sim's mid-flight
-        # override on the same worker.
+        # autorun sets no per-request override, so the resolver + uo subprocess
+        # read the global URBANOPT_* env at call time. _sim_env_override applies
+        # empty per-thread flags, so this run is unaffected by a concurrent sim's
+        # flags on the same worker.
         with _sim_env_override():
             logger.debug("Calling create_feature_files from autorun_simulation()")
             create_featurefiles(SIMULATION_DIR, LOCAL_DIR, ASSET_GEOJSON, METADATA_CSV, num_cores, simulation_name)

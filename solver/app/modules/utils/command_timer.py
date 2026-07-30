@@ -14,7 +14,11 @@ logger = initialize_logger("Run Command", external_log_dir)
 def run_command(command):
     start_time = time.time()
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        # Pass per-sim thread-local flags explicitly (URBANOPT_* / POWERTWIN_KEEP_DIRS)
+        # instead of relying on inherited process env, so concurrent sims each hand the
+        # uo subprocess their own flags without a shared-os.environ race.
+        from modules.utils.sim_flags import sim_env
+        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True, env=sim_env())
         end_time = time.time()
         logger.info(f"Command '{command}' executed successfully.")
         logger.info(f"Output: {result.stdout}")
