@@ -1,0 +1,9 @@
+.git
+powertwin_data
+tmp
+node_modules
+surrogate_runs
+solver/upload/measures
+solver/logs
+**/__pycache__
+**/*.pyc

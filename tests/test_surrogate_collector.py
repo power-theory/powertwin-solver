@@ -131,20 +131,17 @@ def test_collect_e2e(tmp_path):
         for slug in schema.target_slugs():
             (d / f"cleaned_predicted_{slug}.csv").write_text("value\n" + "\n".join(["1.0"] * 24) + "\n")
 
-    # in.osw per building under the urbanopt tree, + the EPW it names
-    weather_dir = tmp_path / "weather"
-    weather_dir.mkdir()
-    _write_epw(str(weather_dir / "test.epw"), ELEV)
+    # each building's run dir under the urbanopt tree, with in.osw + the preserved in.epw that
+    # KEEP_RUN_DIR leaves behind (the resolver reads weather straight from in.epw)
     uo = tmp_path / "sim" / "urbanopt_simulation" / "batch_0"
     for bid in (comm_id, res_id):
         bd = uo / str(bid)
         bd.mkdir(parents=True)
-        osw = {"steps": [{"measure_dir_name": "ChangeBuildingLocation",
-                          "arguments": {"weather_file_name": "test.epw"}}]}
-        (bd / "in.osw").write_text(json.dumps(osw))
+        (bd / "in.osw").write_text(json.dumps({"steps": []}))
+        _write_epw(str(bd / "in.epw"), ELEV)
 
     out = tmp_path / "out"
-    wr = C.make_osw_weather_resolver(sim_output_dir=str(tmp_path / "sim"), weather_dir=str(weather_dir))
+    wr = C.make_osw_weather_resolver(sim_output_dir=str(tmp_path / "sim"))
     res = C.collect(str(manifest_path), str(reports), str(out), weather_resolver=wr, stochastic=False)
     assert res["n"] == 2
 
