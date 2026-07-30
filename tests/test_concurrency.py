@@ -1,117 +1,110 @@
 #!/usr/bin/env python3
-"""Concurrency regression guard for the per-request URBANOPT env override.
+"""Concurrency guard for the per-request URBANOPT flag overrides.
 
-The async simulation endpoint returns 202 and runs the sim on a daemon thread,
-so two sims can be in flight on one gunicorn worker and share the process's
-os.environ. Before the fix, _run_asset_update_simulation mutated the global
-URBANOPT_DYNAMIC_DEFAULTS / _STOCHASTIC_SAMPLING with no lock, so sim A's
-resolver could observe sim B's flags -> non-deterministic resolved values
-across runs (the class of race documented in the project root-cause notes).
+The async simulation endpoint returns 202 and runs each sim on its own daemon
+thread, so multiple sims are in flight on one gunicorn worker. Two properties
+must hold:
 
-views.py can't be imported standalone (flask/psycopg/app deps), so we extract
-the actual _SIM_ENV_LOCK + _sim_env_override source and exec it -- this tests
-the real fix code, not a reimplementation. If someone reverts to unguarded
-os.environ mutation, the concurrency assertion below fails.
+  1. Isolation without serialization: a sim's per-request flags
+     (URBANOPT_DYNAMIC_DEFAULTS / _STOCHASTIC_SAMPLING / _REPORTING_FREQUENCY /
+     POWERTWIN_KEEP_DIRS) must NOT leak into a concurrent sim. The old design
+     enforced this by serializing every sim under _SIM_ENV_LOCK (the flags lived
+     in the shared os.environ); the flags are now thread-local
+     (modules.utils.sim_flags), so sims run in PARALLEL with isolated flags --
+     no lock, no serialization.
+  2. No global mutation: a sim thread must not write the flags into the process
+     os.environ (that shared write was the original race). Unset flags fall back
+     to os.environ so a deployment-wide default still applies.
 
-    python3 tests/test_sim_env_override.py
+Run via `pytest tests/test_concurrency.py` or `python3 tests/test_concurrency.py`.
 """
 import os
-import re
+import sys
 import threading
-import contextlib
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VIEWS = os.path.join(REPO, "solver", "app", "views.py")
+sys.path.insert(0, os.path.join(REPO, "solver", "app"))
+
+from modules.utils.sim_flags import (  # noqa: E402
+    set_sim_flags, get_sim_flag, clear_sim_flags, sim_env,
+)
 
 
-def _load_override():
-    src = open(VIEWS).read()
-    lock_def = re.search(r"^_SIM_ENV_LOCK = threading\.Lock\(\)", src, re.M)
-    cm = re.search(r"^@contextlib\.contextmanager\ndef _sim_env_override.*?(?=\n\n\n|\n#####)",
-                   src, re.S | re.M)
-    assert lock_def, "views.py must define _SIM_ENV_LOCK (concurrency guard removed?)"
-    assert cm, "views.py must define _sim_env_override context manager"
-
-    class _StubLogger:
-        def info(self, *a, **k):
-            pass
-
-    ns = {"os": os, "threading": threading, "contextlib": contextlib, "logger": _StubLogger()}
-    exec(lock_def.group(0) + "\n" + cm.group(0), ns)
-    return ns["_sim_env_override"]
-
-
-def test_override_serializes_under_concurrency():
-    _sim_env_override = _load_override()
+def test_flags_isolated_across_concurrent_threads():
+    """Two threads set different flags and stay live at once; each must observe
+    only its own value, and sim_env() (the uo subprocess env) must carry it."""
     os.environ.pop("URBANOPT_DYNAMIC_DEFAULTS", None)
     barrier = threading.Barrier(2)
     leaks = []
 
     def worker(val):
-        barrier.wait()
-        for _ in range(2000):
-            with _sim_env_override(dynamic_defaults=val):
-                if os.environ.get("URBANOPT_DYNAMIC_DEFAULTS") != val:
-                    leaks.append((val, os.environ.get("URBANOPT_DYNAMIC_DEFAULTS")))
+        set_sim_flags(dynamic_defaults=val)
+        barrier.wait()  # maximize overlap so a shared-state bug would surface
+        try:
+            for _ in range(5000):
+                if get_sim_flag("URBANOPT_DYNAMIC_DEFAULTS") != val:
+                    leaks.append((val, "flag", get_sim_flag("URBANOPT_DYNAMIC_DEFAULTS")))
                     return
+                if sim_env().get("URBANOPT_DYNAMIC_DEFAULTS") != val:
+                    leaks.append((val, "env", sim_env().get("URBANOPT_DYNAMIC_DEFAULTS")))
+                    return
+        finally:
+            clear_sim_flags()
 
     for _ in range(10):
         leaks.clear()
         a = threading.Thread(target=worker, args=("true",))
         b = threading.Thread(target=worker, args=("false",))
         a.start(); b.start(); a.join(); b.join()
-        assert not leaks, f"cross-thread env leak -> lock not serializing: {leaks[:3]}"
+        assert not leaks, f"per-request flag leaked across concurrent sims: {leaks[:3]}"
 
 
-def test_override_restores_prior_value():
-    _sim_env_override = _load_override()
-    os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = "preexisting"
-    with _sim_env_override(dynamic_defaults="temp"):
-        assert os.environ["URBANOPT_DYNAMIC_DEFAULTS"] == "temp"
-    assert os.environ["URBANOPT_DYNAMIC_DEFAULTS"] == "preexisting"
+def test_no_global_env_mutation():
+    """A sim thread's flags must never touch the shared process os.environ."""
+    os.environ.pop("URBANOPT_DYNAMIC_DEFAULTS", None)
+
+    def worker():
+        set_sim_flags(dynamic_defaults="true")
+        assert get_sim_flag("URBANOPT_DYNAMIC_DEFAULTS") == "true"
+        clear_sim_flags()
+
+    t = threading.Thread(target=worker)
+    t.start(); t.join()
+    assert os.environ.get("URBANOPT_DYNAMIC_DEFAULTS") is None, \
+        "per-request flag leaked into the global os.environ"
 
 
-def test_override_none_leaves_env_untouched():
-    _sim_env_override = _load_override()
-    os.environ.pop("URBANOPT_STOCHASTIC_SAMPLING", None)
-    with _sim_env_override(dynamic_defaults=None, stochastic=None):
-        assert "URBANOPT_STOCHASTIC_SAMPLING" not in os.environ
+def test_unset_falls_back_to_environ():
+    """With no thread-local override, readers fall back to os.environ so a
+    deployment-wide flag still applies (unchanged behavior for the common path)."""
+    os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = "true"
+    try:
+        assert get_sim_flag("URBANOPT_DYNAMIC_DEFAULTS") is None
+        assert sim_env().get("URBANOPT_DYNAMIC_DEFAULTS") == "true"
+    finally:
+        os.environ.pop("URBANOPT_DYNAMIC_DEFAULTS", None)
 
 
 def test_keep_dirs_mapping():
-    _sim_env_override = _load_override()
+    """keep_dirs True -> '1' (clean_report reads == '1'), False -> '' (off),
+    None -> no override (falls back to env)."""
     os.environ.pop("POWERTWIN_KEEP_DIRS", None)
-    # True -> '1' (clean_report reads == '1'); restored to absent on exit.
-    with _sim_env_override(keep_dirs=True):
-        assert os.environ.get("POWERTWIN_KEEP_DIRS") == "1"
-    assert "POWERTWIN_KEEP_DIRS" not in os.environ
-    # False -> '' (reads as off, not '1'); restored on exit.
-    with _sim_env_override(keep_dirs=False):
-        assert os.environ.get("POWERTWIN_KEEP_DIRS") != "1"
-    assert "POWERTWIN_KEEP_DIRS" not in os.environ
-    # None -> untouched.
-    with _sim_env_override(keep_dirs=None):
-        assert "POWERTWIN_KEEP_DIRS" not in os.environ
-
-
-def test_override_restores_on_exception():
-    _sim_env_override = _load_override()
-    os.environ.pop("URBANOPT_DYNAMIC_DEFAULTS", None)
-    try:
-        with _sim_env_override(dynamic_defaults="temp"):
-            raise RuntimeError("boom")
-    except RuntimeError:
-        pass
-    assert "URBANOPT_DYNAMIC_DEFAULTS" not in os.environ, "env not restored after exception"
+    set_sim_flags(keep_dirs=True)
+    assert get_sim_flag("POWERTWIN_KEEP_DIRS") == "1"
+    assert sim_env().get("POWERTWIN_KEEP_DIRS") == "1"
+    set_sim_flags(keep_dirs=False)
+    assert get_sim_flag("POWERTWIN_KEEP_DIRS") != "1"
+    set_sim_flags(keep_dirs=None)
+    assert get_sim_flag("POWERTWIN_KEEP_DIRS") is None
+    clear_sim_flags()
 
 
 def main():
     tests = [
-        ("serializes under concurrency", test_override_serializes_under_concurrency),
-        ("restores prior value",         test_override_restores_prior_value),
-        ("none leaves env untouched",    test_override_none_leaves_env_untouched),
-        ("keep_dirs mapping",            test_keep_dirs_mapping),
-        ("restores on exception",        test_override_restores_on_exception),
+        ("flags isolated across concurrent threads", test_flags_isolated_across_concurrent_threads),
+        ("no global env mutation",                   test_no_global_env_mutation),
+        ("unset falls back to environ",              test_unset_falls_back_to_environ),
+        ("keep_dirs mapping",                        test_keep_dirs_mapping),
     ]
     for name, fn in tests:
         fn()
@@ -120,4 +113,5 @@ def main():
     return 0
 
 
-# Run via `pytest tests/test_concurrency.py`.
+if __name__ == "__main__":
+    raise SystemExit(main())
