@@ -566,6 +566,31 @@ module URBANopt
             require File.join(File.dirname(__FILE__), 'residential/util')
             residential(scenario, feature, args, building_type)
 
+            # BuildResidentialModel declares urbanopt_feature_id via makeIntegerArgument -- an
+            # OpenStudio Integer, i.e. a 32-bit int. National building ids are
+            # collection_id * 10**10 + asset_id (e.g. 10000001023), which OVERFLOWS int32:
+            # setValue returns false and OpenStudio reports the misleading "passed argument has type
+            # 'String' while 'Integer' was expected", failing every residential building before any
+            # measure runs. Verified in-container: setValue(2147483647)=true, setValue(10000001023)=false.
+            # 10**10 is an exact multiple of 2_000_000_000, so this modulo recovers the asset_id
+            # itself -- unique per building and always int32-safe. The measure only echoes this value
+            # in ResStock/HPXML error strings (paths we do not use), so nothing else depends on it.
+            if args.key?(:urbanopt_feature_id)
+              raw_id = args[:urbanopt_feature_id].to_i
+              recovered = raw_id % 2_000_000_000
+              # The modulo is only collision-free while the id scheme stays
+              # collection_id * 10**10 + asset_id with asset_id < 2e9 (10**10 is an exact multiple
+              # of 2e9, so the modulo recovers asset_id itself). If the scheme ever changes, two
+              # buildings could silently share a feature id -- so verify reconstruction and fail
+              # LOUD instead. Small ids (tests, single-asset sims) reconstruct trivially.
+              if (raw_id / 10**10) * 10**10 + recovered != raw_id
+                raise "building id #{raw_id} violates the collection_id*10**10 + asset_id(<2e9) " \
+                      'scheme; the int32 feature-id recovery would collide -- update PowerTwin.rb ' \
+                      'and tests/test_feature_id_int32.py together'
+              end
+              args[:urbanopt_feature_id] = recovered
+            end
+
             # Then onto optional "template" mapping
             # mappers/residential/template/util.rb
             template = nil
@@ -1176,8 +1201,11 @@ module URBANopt
               valid_src = { htg_src: %w[Electricity NaturalGas DistrictHeating DistrictAmbient Inferred],
                             clg_src: %w[Electricity DistrictCooling DistrictAmbient Inferred] }
               %i[heating_system_fuel_type cooling_system_fuel_type].each do |field|
-                next unless PowerTwinRefs.present?(props[field])
-                mapped = fuel_map[props[field].to_s.downcase]
+                # *_extended: enum-invalid fuels (district steam) rehomed by feature generation so
+                # the file passes schema validation; same value, different key.
+                raw_fuel = props[:"#{field}_extended"] || props[field]
+                next unless PowerTwinRefs.present?(raw_fuel)
+                mapped = fuel_map[raw_fuel.to_s.downcase]
                 arg = field == :heating_system_fuel_type ? :htg_src : :clg_src
                 next unless mapped && valid_src[arg].include?(mapped)
                 ['create_typical_building_from_model 1', 'create_typical_building_from_model 2'].each do |step|
@@ -1231,8 +1259,9 @@ module URBANopt
               swh_fuel_map = { 'electricity' => 'Electricity', 'natural gas' => 'NaturalGas',
                                'fuel oil' => 'FuelOil', 'propane' => 'Propane', 'wood' => 'NaturalGas',
                                'district steam' => 'NaturalGas' }
-              if PowerTwinRefs.present?(props[:service_water_heating_fuel_type])
-                ep_fuel = swh_fuel_map[props[:service_water_heating_fuel_type].to_s.downcase]
+              swh_raw = props[:service_water_heating_fuel_type_extended] || props[:service_water_heating_fuel_type]
+              if PowerTwinRefs.present?(swh_raw)
+                ep_fuel = swh_fuel_map[swh_raw.to_s.downcase]
                 case ep_fuel
                 when 'Electricity', 'NaturalGas', 'HeatPump'
                   ['create_typical_building_from_model 1', 'create_typical_building_from_model 2'].each do |step|

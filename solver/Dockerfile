@@ -70,6 +70,12 @@ RUN which uo && uo --version
 # Copy application code and set environment variables
 COPY . .
 
+# request the E+ 23.2+/OS 3.9 renamed district meters (DistrictHeatingWater/Steam) in the reporting
+# measure, and fail the build if the VENDORED measure copy (which shadows the gem at runtime via
+# measure_paths precedence) has drifted from the patched gem -- a gem upgrade must be re-vendored
+# deliberately, never silently ignored
+RUN python3 ./patches/patch_district_meters.py
+
 # Install the solver package
 RUN pip install -e ./app
 

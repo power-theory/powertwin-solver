@@ -273,23 +273,21 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
     MAPPER_FILE = os.path.join(MAPPERS_DIR, 'PowerTwin.rb')
     BASELINE_FILE = os.path.join(MAPPERS_DIR, 'Baseline.rb')
     
-    if not os.path.exists(MAPPER_FILE):
-        # Use absolute path for HPC environment, relative path otherwise
-        if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
-            UPLOAD_MAPPER = os.path.join('/solver', 'upload', 'PowerTwin.rb')
-        else:
-            UPLOAD_MAPPER = os.path.join('upload', 'PowerTwin.rb')
-            
-        logger.debug(f"BATCH {batch_index}: Looking for mapper at: {UPLOAD_MAPPER}")
-        logger.debug(f"BATCH {batch_index}: Current directory: {os.getcwd()}")
-        
-        if os.path.exists(UPLOAD_MAPPER):
-            logger.info(f"BATCH {batch_index}: Found mapper file, copying to {MAPPER_FILE}")
-            # Deploy PowerTwin.rb + its required siblings as one unit.
-            from modules.simulation.mapper_setup import deploy_mapper
-            deploy_mapper(os.path.dirname(UPLOAD_MAPPER), MAPPERS_DIR)
-        else:
-            logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found at {UPLOAD_MAPPER}")
+    # Use absolute path for HPC environment, relative path otherwise
+    if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
+        UPLOAD_MAPPER = os.path.join('/solver', 'upload', 'PowerTwin.rb')
+    else:
+        UPLOAD_MAPPER = os.path.join('upload', 'PowerTwin.rb')
+
+    logger.debug(f"BATCH {batch_index}: Looking for mapper at: {UPLOAD_MAPPER}")
+
+    if os.path.exists(UPLOAD_MAPPER):
+        # Deploy PowerTwin.rb + its required siblings as one unit. Runs on EVERY batch (mappers/
+        # persists between runs, so gating on absence pins the first copy); it is a content-sync.
+        from modules.simulation.mapper_setup import deploy_mapper
+        deploy_mapper(os.path.dirname(UPLOAD_MAPPER), MAPPERS_DIR)
+    else:
+        logger.error(f"BATCH {batch_index}: PowerTwin.rb mapper file not found at {UPLOAD_MAPPER}")
             
     # Move the feature file to the project directory
     try:

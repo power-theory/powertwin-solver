@@ -30,8 +30,10 @@ cd "${REPO_ROOT}"
 NGPU=$(nvidia-smi -L | wc -l)
 echo "[$(date '+%F %T')] training surrogate: dataset=${DATASET} epochs=${EPOCHS} gpus=${NGPU}"
 
-# One process per GPU (DDP). batch-size is PER-GPU.
+# One process per GPU (DDP). batch-size is PER-GPU. --model must be explicit: the train.py
+# default is the production CPU tree model, which refuses to run under torchrun.
 torchrun --standalone --nproc_per_node="${NGPU}" -m surrogate.train \
+    --model tcn \
     --data "${DATASET}" \
     --out "${DATASET}/checkpoints" \
     --epochs "${EPOCHS}" \

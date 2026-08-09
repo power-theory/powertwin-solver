@@ -508,7 +508,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         'SC': 'SRVCc', 'PA': 'RFCEc', 'CO': 'RMPAc', 'AZ': 'AZNMc', 'ME': 'NEWEc',
         'AL': 'SRSOc', 'MD': 'RFCEc', 'NH': 'NEWEc', 'MA': 'NEWEc', 'ND': 'MROWc',
         'NV': 'NWPPc', 'CT': 'NEWEc', 'DE': 'RFCEc', 'RI': 'NEWEc',
-        'AK': 'AKGDc', 'HI': 'HIc'
+        # AK/HI deliberately absent: the schema's future-subregion enum is CONUS-only, so 'AKGDc'
+        # and 'HIc' fail validation and kill the whole project section. Unmapped -> key omitted.
     }
 
     hourly_historical_mapping = {
@@ -598,7 +599,28 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         ],
         "features": [new_feature]
     }
-    
+
+    # The site_properties schema constrains each electricity_emissions_* subregion to an enum, and
+    # the FUTURE enum is CONUS-only (eGRID future projections exclude AK/HI). Emitting a value
+    # outside the enum fails validation for the WHOLE project section -- URBANopt then rejects the
+    # feature file and the building never simulates -- so omit an unmapped subregion instead.
+    # (`required: []`, so absent keys validate; the annual/hourly enums do cover AK/HI.)
+    for _key in ("electricity_emissions_future_subregion",
+                 "electricity_emissions_hourly_historical_subregion",
+                 "electricity_emissions_annual_historical_subregion"):
+        if final_json["project"].get(_key) is None:
+            del final_json["project"][_key]
+
+    # Same schema-gate problem for fuels: the building_properties fuel enum has no 'district steam'
+    # (a real CBECS commercial fuel the resolver emits), and an invalid value rejects the whole
+    # feature at `uo run` load -- before the mapper's fuel_map ('district steam' -> DistrictHeating)
+    # could ever run. Rehome it to an unvalidated *_extended key (custom keys pass validation); the
+    # mapper reads the extended key first and drives create_typical htg_src=DistrictHeating, which
+    # EnergyPlus reports as DistrictHeating -> captured by the Steam sensor.
+    _fprops = final_json["features"][0]["properties"]
+    for _f in ("heating_system_fuel_type", "service_water_heating_fuel_type"):
+        if str(_fprops.get(_f, "")).lower() == "district steam":
+            _fprops[_f + "_extended"] = _fprops.pop(_f)
 
     return final_json, building_id, building_name
 

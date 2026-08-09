@@ -55,12 +55,19 @@ def _load_ref(name: str) -> dict:
 # SIM_PARAM_DEFAULTS -- preserving the pre-dynamic behavior for existing
 # assets. Mirror the same env var on the API side (simulationParamsSpec.js)
 # so the frontend can surface "dynamic vs flat" default labels consistently.
+_get_sim_flag = None  # lazy-bound below; the surrogate collector primes it with a file-loaded
+# sim_flags so this module works outside the solver package (no modules.* stubs in sys.modules)
+
+
 def _env_bool(name: str, default: bool = False) -> bool:
     # Per-sim thread-local override wins over the shared env, so concurrent sims
     # read their own flags (see modules.utils.sim_flags); fall back to os.environ
     # for the global/unset case, preserving the prior behavior.
-    from modules.utils.sim_flags import get_sim_flag
-    raw = get_sim_flag(name)
+    global _get_sim_flag
+    if _get_sim_flag is None:
+        from modules.utils.sim_flags import get_sim_flag
+        _get_sim_flag = get_sim_flag
+    raw = _get_sim_flag(name)
     if raw is None:
         raw = os.environ.get(name)
     if raw is None:

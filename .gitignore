@@ -7,6 +7,7 @@ tmp
 __pycache__
 solver/app/test/
 tests/runs/
+surrogate/tuning/results.jsonl
 tests/qa_matrix_fixtures/_arms/
 tests/qa_matrix_fixtures/_generated/
 data/

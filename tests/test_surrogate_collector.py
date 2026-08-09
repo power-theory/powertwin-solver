@@ -69,6 +69,48 @@ def test_hhmm_parser():
     assert C._hhmm_to_hours(None) is None
 
 
+def test_load_sps_does_not_shadow_solver_package():
+    """_load_sps must never register 'modules'/'modules.utils' stubs: a stub in sys.modules
+    permanently shadows the REAL solver package, so any later real import in the same process
+    (e.g. test_sim_e2e's views) dies with an order-dependent ImportError. The sim_flags seam is
+    primed by file-load instead."""
+    had = {k: (k in sys.modules) for k in ("modules", "modules.utils")}
+    sps = C._load_sps()
+    for k, was_there in had.items():
+        assert (k in sys.modules) == was_there, f"_load_sps registered a stub {k!r}"
+    # and the seam is primed: flag reads resolve through the file-loaded sim_flags
+    assert sps._get_sim_flag is not None
+    os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = "true"
+    assert sps.is_dynamic_defaults_enabled() is True
+    os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = "false"
+    assert sps.is_dynamic_defaults_enabled() is False
+
+
+def test_shape_factor_scales_geometry_like_the_sim():
+    """The sim multiplies its reconstructed-square perimeter by the real polygon's shape factor
+    (generateFeatureFile); the sampler stamps that factor into the manifest entry and the collector
+    must scale perimeter/wall_area/window_area by it -- and default to 1.0 (synthetic squares)."""
+    sps = C._load_sps()
+    os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = "true"
+    os.environ["URBANOPT_STOCHASTIC_SAMPLING"] = "false"
+    base = _building(10000000001, "Office")
+    square = C.resolve_static_vector(dict(base), sps, schema)
+    elongated = C.resolve_static_vector(dict(base, shape_factor=1.5), sps, schema)
+
+    # a manifest predating the stamp must FAIL, not silently default to a square
+    stale = {k: v for k, v in base.items() if k != "shape_factor"}
+    with pytest.raises(KeyError, match="no shape_factor"):
+        C.resolve_static_vector(stale, sps, schema)
+
+    assert square["shape_factor"] == 1.0
+    assert elongated["shape_factor"] == 1.5
+    side = math.sqrt(square["footprint_area"])
+    assert square["perimeter"] == pytest.approx(4.0 * side)
+    assert elongated["perimeter"] == pytest.approx(4.0 * side * 1.5)
+    assert elongated["wall_area"] == pytest.approx(square["wall_area"] * 1.5)
+    assert elongated["window_area"] == pytest.approx(square["window_area"] * 1.5)
+
+
 def _write_epw(path, elevation_m):
     """Minimal but structurally-valid EPW: 8 header lines (LOCATION carries elevation) + 8760 rows
     with >=22 comma fields so read_epw_channels' columns (6,7,8,13,14,21) parse."""
@@ -106,11 +148,13 @@ def _building(bid, building_type):
         "floor_area_ft2": 20000,
         "footprint_area_ft2": 10000,
         "floor_count": 2,
+        "shape_factor": 1.0,
         "decade_vintage": "2000-2009",
         "year_built": 2005,
     }
 
 
+@pytest.mark.requires_container
 def test_collect_e2e(tmp_path):
     """Full collect(): synthetic manifest + reports + in.osw + EPW -> manifest.parquet. Assert the
     previously-dead static features are now populated, elevation comes from the EPW, and the glazing

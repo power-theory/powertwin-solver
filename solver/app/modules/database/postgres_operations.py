@@ -632,10 +632,25 @@ def ensure_columns_exist():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        # asset_id is BIGINT in CREATE TABLE, but that only applies to a table being created now.
+        # Databases predating the SERIAL->BIGINT change still hold int4, and national ids
+        # (collection_id * 10**10 + asset_id) exceed 2**31 -- insert_asset would raise
+        # NumericValueOutOfRange, which is caught and rolled back, so assets would silently never
+        # land and the run would produce no simulations. Migrate in place (no-op when already BIGINT).
+        cur.execute(f"""
+            SELECT data_type FROM information_schema.columns
+            WHERE table_name = '{DB_NAME}' AND column_name = 'asset_id'
+        """)
+        row = cur.fetchone()
+        if row and row[0] == 'integer':
+            logger.info(f"Migrating {DB_NAME}.asset_id from integer to BIGINT (national ids exceed int4)")
+            cur.execute(f"ALTER TABLE {DB_NAME} ALTER COLUMN asset_id TYPE BIGINT")
+            conn.commit()
+
         # First check which columns exist
         cur.execute(f"""
-            SELECT column_name 
-            FROM information_schema.columns 
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_name = '{DB_NAME}'
         """)
         existing_columns = {row[0] for row in cur.fetchall()}

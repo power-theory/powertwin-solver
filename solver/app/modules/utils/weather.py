@@ -42,6 +42,7 @@ def download_url(url, filepath, timeout=30, retries=3, backoff=1.0):
                 raise
 
 _weather_stations_cache = None
+_unusable_stations_cache = None
 _climate_zone_by_fips = None
 _county_lookup = None
 _fips_cache = {}
@@ -49,9 +50,11 @@ _fips_cache = {}
 if os.environ.get('SLURM_JOB_ID'):
     CLIMATE_ZONES_CSV = os.path.join('/solver', 'app', 'urbanopt', 'ClimateZones.csv')
     US_COUNTIES_GEOJSON = os.path.join('/solver', 'app', 'urbanopt', 'us_counties.geojson')
+    UNUSABLE_STATIONS_JSON = os.path.join('/solver', 'app', 'urbanopt', 'stations_unusable_stat.json')
 else:
     CLIMATE_ZONES_CSV = os.path.join('app', 'urbanopt', 'ClimateZones.csv')
     US_COUNTIES_GEOJSON = os.path.join('app', 'urbanopt', 'us_counties.geojson')
+    UNUSABLE_STATIONS_JSON = os.path.join('app', 'urbanopt', 'stations_unusable_stat.json')
 
 if os.environ.get('SLURM_JOB_ID'):  # Check if running in HPC environment
     MASTER_WEATHER_GEOJSON = os.path.join('/solver','app','urbanopt','master_weather.geojson')
@@ -122,19 +125,46 @@ def get_epw_utc_offset(weather_title):
         raise ValueError(f"Bad UTC offset field in {epw_file}: {parts[8]!r}") from e
 
 
+def _load_unusable_stations():
+    """The stations_unusable_stat.json snapshot dict: 'unusable_stat' lists station titles whose
+    .stat ships the legacy abbreviated design-conditions table (create_typical aborts: "Expected to
+    find 15 Heating Design Temperatures but found 3"), so they are excluded from station selection
+    and the building takes its next-nearest station; 'total_stations' couples the snapshot to the
+    master_weather.geojson it was built from (checked in _load_weather_stations)."""
+    global _unusable_stations_cache
+
+    if _unusable_stations_cache is None:
+        with open(UNUSABLE_STATIONS_JSON, 'r') as f:
+            _unusable_stations_cache = json.load(f)
+    return _unusable_stations_cache
+
+
 def _load_weather_stations():
     global _weather_stations_cache
-    
+
     if _weather_stations_cache is not None:
         return _weather_stations_cache
-    
+
     with open(MASTER_WEATHER_GEOJSON, 'r') as f:
         weather_data = json.load(f)
-    
+
+    snapshot = _load_unusable_stations()
+    # snapshot coupling: the blocklist was built FROM this geojson. If the geojson was updated
+    # without rebuilding (solver/patches/build_stations_unusable_stat.py), new legacy-.stat
+    # stations would default to usable and abort create_typical hours into a campaign.
+    if snapshot.get('total_stations') != len(weather_data['features']):
+        raise RuntimeError(
+            f"stations_unusable_stat.json was built from {snapshot.get('total_stations')} stations "
+            f"but master_weather.geojson now has {len(weather_data['features'])}: rerun "
+            f"solver/patches/build_stations_unusable_stat.py"
+        )
+    unusable = set(snapshot['unusable_stat'])
     weather_stations = []
     for feature in weather_data['features']:
         coords = feature['geometry']['coordinates']  # [longitude, latitude]
         title = feature['properties']['title']
+        if title in unusable:
+            continue
         state = extract_state_from_weather_filename(title)
         
         # Extract EPW URL from the HTML anchor tag

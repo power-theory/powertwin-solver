@@ -123,25 +123,26 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
             os.remove(rb_file)
             logger.debug(f"Removed existing mapper file: {os.path.basename(rb_file)}")
 
-        logger.debug(f"Copying mapper file to {MAPPER_DESTINATION}")
-        # Deploy PowerTwin.rb + its required siblings (powertwin_refs.rb,
-        # reference_data) as one unit -- the .rb cleanup above removes the refs
-        # file, so it must be re-copied here. See mapper_setup.deploy_mapper.
-        from modules.simulation.mapper_setup import deploy_mapper
-        deploy_mapper(os.path.dirname(MAPPER_FILE), MAPPER_DESTINATION)
+    # Deploy the mapper, its siblings and the custom measures on EVERY run, not only when the
+    # project is first created: project dirs persist between runs (the cleanup keeps mappers/ and
+    # measures/), so gating these on the project's absence would pin the first copy forever -- a
+    # re-vendored measure or mapper would never reach an existing sim dir, and <project>/measures
+    # shadows the gem at runtime. All three are content-syncs: no-ops when already identical.
+    logger.debug(f"Deploying mapper + measures into {UO_SIMULATION_DIR}")
+    from modules.simulation.mapper_setup import deploy_mapper, deploy_measures
+    upload_dir = os.path.dirname(MAPPER_FILE)
+    deploy_mapper(upload_dir, MAPPER_DESTINATION)
 
-        # Overlay our customized base_workflow.osw (adds set_window_construction,
-        # set_service_water_heating_fuel, set_people_per_floor_area, the roof
-        # insulation step, etc.) on top of urbanopt-cli's stock template.
-        upload_dir = os.path.dirname(MAPPER_FILE)
-        custom_osw = os.path.join(upload_dir, 'base_workflow.osw')
-        if os.path.exists(custom_osw):
-            shutil.copy(custom_osw, os.path.join(MAPPER_DESTINATION, 'base_workflow.osw'))
+    # Overlay our customized base_workflow.osw (adds set_window_construction,
+    # set_service_water_heating_fuel, set_people_per_floor_area, the roof
+    # insulation step, etc.) on top of urbanopt-cli's stock template.
+    custom_osw = os.path.join(upload_dir, 'base_workflow.osw')
+    if os.path.exists(custom_osw):
+        shutil.copy(custom_osw, os.path.join(MAPPER_DESTINATION, 'base_workflow.osw'))
 
-        # Stage our custom measures under <project>/measures/ so openstudio CLI
-        # can resolve them by measure_dir_name without explicit measure_paths.
-        from modules.simulation.mapper_setup import deploy_measures
-        deploy_measures(upload_dir, UO_SIMULATION_DIR)
+    # Stage our custom measures under <project>/measures/ so openstudio CLI
+    # can resolve them by measure_dir_name without explicit measure_paths.
+    deploy_measures(upload_dir, UO_SIMULATION_DIR)
 
     # Initialize all assets with "Not Processed Yet" status using bulk update
     try:
