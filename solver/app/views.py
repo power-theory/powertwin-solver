@@ -672,11 +672,20 @@ def get_simulation_status(simulation_name):
     if os.path.isfile(status_path):
         try:
             with open(status_path, 'r') as f:
-                return jsonify(json.load(f)), 200
+                payload = json.load(f)
+            # pid/pid_start are reaper bookkeeping, not status: keep them out of the API shape
+            return jsonify({k: v for k, v in payload.items() if k not in ('pid', 'pid_start')}), 200
         except Exception as e:
             logger.error(f"Failed to read status.json for {simulation_name}: {e}")
             send_error_to_mss('get_simulation_status', str(e))
             return jsonify({'error': str(e)}), 500
+
+    # No status.json and no sim dir means this pod lost the run (restart) -- 404 so the listener
+    # requeues. Keyed on sim_local_dir alone: DATA_DIR/<sim> is an emptyDir that outlives the
+    # container, so requiring it too suppressed the 404 on the restart it exists for.
+    if not os.path.isdir(sim_local_dir):
+        logger.warning(f"No record of simulation {simulation_name} (no status.json, no working dir)")
+        return jsonify({'error': 'no such simulation', 'simulation_name': simulation_name}), 404
 
     # Fallback to legacy diagnostics for non-async callers.
     try:
@@ -725,6 +734,10 @@ def delete_simulation(simulation_name):
             removed.append(LOCAL_DIR_SIM)
         if not removed:
             return jsonify({'message': 'Nothing to delete', 'simulation_name': simulation_name}), 200
+        # Leave a tombstone so a late or duplicate status poll reads 'deleted' rather than 404.
+        # 404 means "this pod lost the run" and the listener requeues on it -- without this, a
+        # straggler poll after a successful cleanup would re-run a finished simulation.
+        write_status(LOCAL_DIR_SIM, 'deleted', simulation_name=simulation_name)
         logger.info(f"Simulation '{simulation_name}' cleanup removed: {removed}")
         return jsonify({'message': 'Simulation cleaned up', 'removed': removed}), 200
     except Exception as e:

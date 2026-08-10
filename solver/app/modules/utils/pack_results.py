@@ -5,6 +5,11 @@ import os
 import re
 from glob import glob
 
+# sibling module, not the package: modules/utils/__init__ imports FROM this file (circular)
+from .setup_logger import initialize_logger
+
+logger = initialize_logger('Pack Results', os.environ.get('POWERTWIN_LOG_DIR'))
+
 import pandas as pd
 
 
@@ -288,9 +293,20 @@ def atomic_write_json(path, payload):
     os.rename(tmp, path)
 
 
+def proc_start(pid):
+    """Process start time from /proc, or None if the pid is not running. Paired with the
+    pid it identifies one exact process, so a recycled pid cannot pass as the original."""
+    try:
+        with open(f'/proc/{pid}/stat') as f:
+            return f.read().rsplit(')', 1)[1].split()[19]
+    except (OSError, IndexError):
+        return None
+
+
 def write_status(local_dir, phase, **extra):
     """Write a small status.json indicating the current phase. Always atomic."""
-    payload = {'phase': phase, **extra}
+    pid = os.getpid()
+    payload = {'phase': phase, 'pid': pid, 'pid_start': proc_start(pid), **extra}
     atomic_write_json(os.path.join(local_dir, 'status.json'), payload)
 
 
@@ -304,3 +320,42 @@ def read_status(local_dir):
             return json.load(f)
     except (json.JSONDecodeError, OSError):
         return None
+
+
+TERMINAL_PHASES = {'completed', 'failed', 'deleted'}
+
+
+def reap_orphaned_sims(base=None):
+    """Fail any sim whose owning process is gone. Its worker thread died with that process
+    but status.json still reads 'urbanopt_running', so the API polls a dead run until the
+    wall clock. Called per gunicorn worker, so it must skip sims a live sibling still owns:
+    only (pid, pid_start) both matching a running process counts as alive. A status.json
+    with no pid predates this and is always stale. Sims whose dir did not survive the
+    restart never reach here; get_simulation_status 404s those instead."""
+    base = base or os.path.join('powertwin-solver-pg', 'user_files')
+    for status_path in glob(os.path.join(base, '*', 'status.json')):
+        sim_local_dir = os.path.dirname(status_path)
+        # the WHOLE body is guarded, not just the write: this runs inside create_app(), so
+        # anything escaping kills the gunicorn worker at boot and the arbiter respawns it into
+        # the same file -- a crash loop. read_status only rejects invalid JSON, so a valid
+        # non-dict (a list) reaches .get() and raises before any write is attempted.
+        try:
+            status = read_status(sim_local_dir)
+            if not isinstance(status, dict) or status.get('phase') in TERMINAL_PHASES:
+                continue
+            pid = status.get('pid')
+            # `is not None` matters: proc_start returns None for a DEAD pid, and it also
+            # returned None at write time if /proc was unreadable then. Comparing them bare
+            # makes None == None true, so such a run reads as alive forever.
+            live = proc_start(pid) if pid else None
+            if live is not None and live == status.get('pid_start'):
+                continue
+            # a concurrent delete_simulation may have removed the dir since the glob;
+            # atomic_write_json would recreate it and strand a status.json nobody reads
+            if not os.path.isdir(sim_local_dir):
+                continue
+            write_status(sim_local_dir, 'failed',
+                         simulation_name=status.get('simulation_name', os.path.basename(sim_local_dir)),
+                         error='solver restarted while this run was in progress')
+        except Exception as e:  # noqa: BLE001 - boot-time: an escape crash-loops every worker
+            logger.warning(f"could not reap {sim_local_dir}: {e}")
