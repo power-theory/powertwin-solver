@@ -18,6 +18,19 @@ def test_snapshot_counts_are_internally_consistent():
     assert len(SNAP["unusable_stat"]) == len(set(SNAP["unusable_stat"])), "duplicate titles"
 
 
+def test_effective_station_count_matches_what_the_loader_yields():
+    """usable_count is a TITLE count, but weather._load_weather_stations filters FEATURES by title --
+    and the geojson currently carries one duplicated title (a blocklisted Brazilian station), so it
+    drops 790 features for 789 blocklisted titles. Pin the effective number both the solver and the
+    sampler end up with, so a future geojson edit cannot silently change it."""
+    titles = [f["properties"]["title"] for f in GEO["features"]]
+    unusable = set(SNAP["unusable_stat"])
+    effective = sum(1 for t in titles if t not in unusable)
+    assert effective == 2236, f"effective station count moved to {effective}"
+    # duplicated titles are the whole reason effective != usable_count; keep that explicit
+    assert len(titles) - len(set(titles)) == SNAP["usable_count"] - effective
+
+
 def test_snapshot_matches_the_committed_geojson():
     feats = GEO["features"]
     assert SNAP["total_stations"] == len(feats), (
