@@ -94,6 +94,74 @@ def get_sqlite_connection():
     conn.execute("PRAGMA busy_timeout=30000")
     return conn
 
+def _table_ddl(table_name, if_not_exists=True):
+    """Single source of the tracking-table schema, shared by create_table and the rekey."""
+    exists = "IF NOT EXISTS " if if_not_exists else ""
+    return f"""
+        CREATE TABLE {exists}{table_name} (
+                asset_id INTEGER NOT NULL,
+                batch INTEGER,
+                order_rank INTEGER,
+                simulation_name VARCHAR(255) NOT NULL,
+                state VARCHAR(255),
+                weather_file VARCHAR(255),
+                floor_area REAL,
+                number_of_stories INTEGER,
+                complexity INTEGER,
+                uorun_time REAL,
+                uoprocess_time REAL,
+                asset_name VARCHAR(255),
+                subtype VARCHAR(255),
+                status VARCHAR(255),
+                total_time REAL,
+                failure_reason TEXT,
+                node_name VARCHAR(255),
+                process_id VARCHAR(255),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                -- Keyed by run, not by asset: concurrent sims of one asset must not share a row.
+                PRIMARY KEY (asset_id, simulation_name)
+            )
+    """
+
+
+def _rekey_if_needed(conn, table_name):
+    """Rebuild a table still keyed on asset_id alone. One row per asset let a later run
+    replace an earlier one: on a node that is two users simulating the same asset, and in
+    the master db it is a later simulation silently overwriting an earlier one's record.
+    SQLite cannot ALTER a primary key, so copy through a new table."""
+    old = f"{table_name}_old"
+    cols = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    # Skip only when the key is ALREADY the composite one. Testing `!= 1` instead conflated a
+    # table with NO primary key (pk flags all 0) with "already migrated", and there
+    # INSERT OR REPLACE degenerates to a plain INSERT and quietly accumulates duplicate rows.
+    if sum(1 for c in cols if c['pk']) == 2:
+        return False
+
+    logger.info(f"Rekeying {table_name} to PRIMARY KEY (asset_id, simulation_name)")
+    # Explicit BEGIN: python's sqlite3 opens a transaction for DML but not DDL, so without
+    # it the rename commits on its own and a failed copy strands the rows behind an empty
+    # table that the next run skips (the key already looks right).
+    conn.execute("BEGIN")
+    try:
+        conn.execute(f"ALTER TABLE {table_name} RENAME TO {old}")
+        conn.execute(_table_ddl(table_name, if_not_exists=False))
+        kept = {c['name'] for c in conn.execute(f"PRAGMA table_info({table_name})")}
+        dropped = [c['name'] for c in cols if c['name'] not in kept]
+        if dropped:
+            logger.warning(f"Rekey drops columns absent from the current schema: {dropped}")
+        names = ', '.join(c['name'] for c in cols if c['name'] in kept)
+        # NULL simulation_name cannot enter the key and no run can ever match it.
+        conn.execute(f"INSERT INTO {table_name} ({names}) SELECT {names}"
+                     f" FROM {old} WHERE simulation_name IS NOT NULL")
+        conn.execute(f"DROP TABLE {old}")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return True
+
+
 def create_table() -> bool:
     """Create the main assets table if it doesn't exist."""
     logger.debug('Creating SQLite table if not exists')
@@ -120,30 +188,7 @@ def create_table() -> bool:
         
         # Create main table with same schema as PostgreSQL version
         # Note: asset_id stores original building IDs, not auto-incremented values
-        conn.execute(f"""
-            CREATE TABLE IF NOT EXISTS {table_name} (
-                asset_id INTEGER PRIMARY KEY,
-                batch INTEGER,
-                order_rank INTEGER,
-                simulation_name VARCHAR(255),
-                state VARCHAR(255),
-                weather_file VARCHAR(255),
-                floor_area REAL,
-                number_of_stories INTEGER,
-                complexity INTEGER,
-                uorun_time REAL,
-                uoprocess_time REAL,
-                asset_name VARCHAR(255),
-                subtype VARCHAR(255),
-                status VARCHAR(255),
-                total_time REAL,
-                failure_reason TEXT,
-                node_name VARCHAR(255),
-                process_id VARCHAR(255),
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        conn.execute(_table_ddl(table_name))
         conn.commit()
 
         # Add diagnostic columns to existing tables that don't have them
@@ -155,11 +200,17 @@ def create_table() -> bool:
                 pass  # Column already exists
 
         logger.debug(f"Table '{table_name}' created or verified to exist")
-        return True
-        
+
     except Exception as e:
         logger.error(f"Error creating table: {e}")
         return False
+
+    # OUTSIDE the try, and deliberately not swallowed: every caller of create_table discards the
+    # return value, so a rekey that silently failed would leave the run on the legacy
+    # asset_id-only key and collapse concurrent sims into one row -- the original bug, with no
+    # signal at all. Postgres fails loud here too.
+    _rekey_if_needed(conn, table_name)
+    return True
 
 
 
@@ -181,7 +232,10 @@ def insert_asset(asset_id: int, state: str, weather_file: str, floor_area: float
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Processed Yet')
         """, (asset_id, state, weather_file, floor_area, number_of_stories,
               complexity, asset_name, subtype, simulation_name))
-        
+        # get_sqlite_connection hands back a fresh connection per call, so without this the
+        # insert is discarded when it goes out of scope (insert_bulk_assets already commits).
+        conn.commit()
+
         logger.debug(f"Asset {asset_id} inserted successfully")
         return True
         
@@ -219,7 +273,15 @@ def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
                 if missing_keys:
                     logger.error(f"Asset {i} missing keys: {missing_keys}, available keys: {list(asset.keys())}")
                     return False
-                    
+                # value, not just presence: asset_id and simulation_name are the key and are now
+                # NOT NULL, and INSERT OR IGNORE suppresses a NOT NULL violation as readily as a
+                # PK conflict -- the row would vanish while this still logged success.
+                null_keys = [k for k in ('asset_id', 'simulation_name') if asset[k] is None]
+                if null_keys:
+                    logger.error(f"Asset {i} has null {null_keys}; these form the row key")
+                    return False
+
+
                 insert_data.append((
                     asset['asset_id'], asset['state'], asset['weather_file'],
                     asset['floor_area'], asset['number_of_stories'], asset['complexity'],
@@ -241,13 +303,14 @@ def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
         # Update existing records but protect finished assets
         for asset_data in insert_data:
             conn.execute(f"""
-                UPDATE {table_name} SET 
+                UPDATE {table_name} SET
                     state = ?, weather_file = ?, floor_area = ?, number_of_stories = ?,
-                    complexity = ?, asset_name = ?, subtype = ?, simulation_name = ?,
+                    complexity = ?, asset_name = ?, subtype = ?,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE asset_id = ? AND (status IS NULL OR status != 'Finished')
-            """, (asset_data[1], asset_data[2], asset_data[3], asset_data[4], 
-                  asset_data[5], asset_data[6], asset_data[7], asset_data[8], asset_data[0]))
+                WHERE asset_id = ? AND simulation_name = ?
+                  AND (status IS NULL OR status != 'Finished')
+            """, (asset_data[1], asset_data[2], asset_data[3], asset_data[4],
+                  asset_data[5], asset_data[6], asset_data[7], asset_data[0], asset_data[8]))
         conn.commit()
         
         logger.info(f"Bulk inserted {len(assets)} assets successfully")
@@ -369,18 +432,21 @@ def get_distinct_weather_files(simulation_name: str) -> list:
 
 
 @retry_on_database_error
-def get_weather(asset_id: int) -> Optional[Tuple[str, str]]:
-    """Get weather file and state for an asset."""
+def get_weather(asset_id: int, simulation_name: str) -> Optional[Tuple[str, str]]:
+    """Get weather file and state for an asset in a specific run.
+
+    simulation_name is REQUIRED: (asset_id, simulation_name) is the row key, and matching on
+    asset_id alone returns whichever concurrent run's row comes first -- another user's weather.
+    """
     logger.debug(f'Getting weather file for asset {asset_id}')
-    
     try:
         conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
-        
+
         cursor = conn.execute(f"""
-            SELECT state, weather_file FROM {table_name} 
-            WHERE asset_id = ?
-        """, (asset_id,))
+            SELECT state, weather_file FROM {table_name}
+            WHERE asset_id = ? AND simulation_name = ?
+        """, (asset_id, simulation_name))
         
         row = cursor.fetchone()
         if row:
@@ -602,19 +668,22 @@ def get_asset_total(simulation_name: str) -> int:
 
 
 @retry_on_database_error
-def update_batch(asset_id: int, batch: int) -> bool:
-    """Update batch for a specific asset."""
+def update_batch(asset_id: int, batch: int, simulation_name: str) -> bool:
+    """Update batch for a specific asset in a specific run.
+
+    simulation_name is REQUIRED: without it the UPDATE rewrites the batch of every concurrent
+    run of that asset.
+    """
     logger.debug(f'Updating asset {asset_id} to batch {batch}')
-    
     try:
         conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
-        
+
         conn.execute(f"""
-            UPDATE {table_name} 
+            UPDATE {table_name}
             SET batch = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE asset_id = ?
-        """, (batch, asset_id))
+            WHERE asset_id = ? AND simulation_name = ?
+        """, (batch, asset_id, simulation_name))
         conn.commit()
         
         logger.debug(f"Asset {asset_id} batch updated to {batch}")
@@ -634,19 +703,21 @@ def update_simulation_name(recovery_simulation_name: str, corrupted_simulation_n
         conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
+        # simulation_name is half the key now, so this rename can collide; returning False makes
+        # recover_UOsim delete every feature file. Fail loud.
         conn.execute(f"""
-            UPDATE {table_name} 
+            UPDATE {table_name}
             SET simulation_name = ?, updated_at = CURRENT_TIMESTAMP
             WHERE batch = ? AND simulation_name = ? AND (status IS NULL OR status != 'Finished')
         """, (recovery_simulation_name, batch_id, corrupted_simulation_name))
         conn.commit()
-        
+
         logger.debug(f"Simulation name updated from {corrupted_simulation_name} to {recovery_simulation_name} for batch {batch_id}")
         return True
-        
+
     except Exception as e:
         logger.error(f"Error updating simulation name: {e}")
-        return False
+        raise
 
 
 @retry_on_database_error
@@ -750,27 +821,7 @@ def create_preservation_database(master_db_path: str, simulation_name: str) -> T
         preserve_conn.row_factory = sqlite3.Row
         
         # Create table with same schema
-        preserve_conn.execute(f"""
-            CREATE TABLE {table_name} (
-                asset_id INTEGER PRIMARY KEY,
-                batch INTEGER,
-                order_rank INTEGER,
-                simulation_name VARCHAR(255),
-                state VARCHAR(255),
-                weather_file VARCHAR(255),
-                floor_area REAL,
-                number_of_stories INTEGER,
-                complexity INTEGER,
-                uorun_time REAL,
-                uoprocess_time REAL,
-                asset_name VARCHAR(255),
-                subtype VARCHAR(255),
-                status VARCHAR(255),
-                total_time REAL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        preserve_conn.execute(_table_ddl(table_name, if_not_exists=False))
         
         # Copy finished assets to preservation database
         preserved_count = 0
@@ -1045,29 +1096,12 @@ def consolidate_databases(simulation_name: str, node_dirs: List[str], master_db_
         master_conn.row_factory = sqlite3.Row
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
-        # Create table if needed
-        master_conn.execute(f"""
-            CREATE TABLE IF NOT EXISTS {table_name} (
-                asset_id INTEGER PRIMARY KEY,
-                batch INTEGER,
-                order_rank INTEGER,
-                simulation_name VARCHAR(255),
-                state VARCHAR(255),
-                weather_file VARCHAR(255),
-                floor_area REAL,
-                number_of_stories INTEGER,
-                complexity INTEGER,
-                uorun_time REAL,
-                uoprocess_time REAL,
-                asset_name VARCHAR(255),
-                subtype VARCHAR(255),
-                status VARCHAR(255),
-                total_time REAL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
+        # Create table if needed. The master accumulates every simulation, so a pre-existing
+        # one keyed on asset_id alone loses an earlier run whenever a later one repeats an
+        # asset. Rekey before the transaction: it commits, and DDL cannot share one.
+        master_conn.execute(_table_ddl(table_name))
+        _rekey_if_needed(master_conn, table_name)
+
         # Begin atomic transaction
         master_conn.execute("BEGIN TRANSACTION")
         

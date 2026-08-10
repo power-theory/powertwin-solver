@@ -51,10 +51,10 @@ def create_table():
     try:
         cur.execute(f"""
             CREATE TABLE IF NOT EXISTS {DB_NAME} (
-                asset_id BIGINT PRIMARY KEY,
+                asset_id BIGINT NOT NULL,
                 batch INTEGER,
                 order_rank INTEGER,
-                simulation_name VARCHAR(255),
+                simulation_name VARCHAR(255) NOT NULL,
                 state VARCHAR(255),
                 weather_file VARCHAR(255),
                 floor_area NUMERIC,
@@ -68,7 +68,9 @@ def create_table():
                 total_time NUMERIC,
                 failure_reason TEXT,
                 node_name VARCHAR(255),
-                process_id VARCHAR(255)
+                process_id VARCHAR(255),
+                -- keyed by run, not by asset: concurrent sims must not share a row
+                PRIMARY KEY (asset_id, simulation_name)
             )
         """)
         conn.commit()
@@ -90,15 +92,14 @@ def insert_asset(asset_id, state, weather_file, floor_area, number_of_stories, c
         cur.execute(f"""
             INSERT INTO {DB_NAME} (asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (asset_id) DO UPDATE SET
+            ON CONFLICT (asset_id, simulation_name) DO UPDATE SET
                 state = EXCLUDED.state,
                 weather_file = EXCLUDED.weather_file,
                 floor_area = EXCLUDED.floor_area,
                 number_of_stories = EXCLUDED.number_of_stories,
                 complexity = EXCLUDED.complexity,
                 asset_name = EXCLUDED.asset_name,
-                subtype = EXCLUDED.subtype,
-                simulation_name = EXCLUDED.simulation_name
+                subtype = EXCLUDED.subtype
         """, (asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name))
         conn.commit()
     except Exception as e:
@@ -136,7 +137,7 @@ def insert_bulk_assets(asset_data_list):
             INSERT INTO {DB_NAME}
             (asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
             VALUES {values_clause}
-            ON CONFLICT (asset_id) DO UPDATE SET
+            ON CONFLICT (asset_id, simulation_name) DO UPDATE SET
                 state = EXCLUDED.state,
                 weather_file = EXCLUDED.weather_file,
                 floor_area = EXCLUDED.floor_area,
@@ -144,17 +145,14 @@ def insert_bulk_assets(asset_data_list):
                 complexity = EXCLUDED.complexity,
                 asset_name = EXCLUDED.asset_name,
                 subtype = EXCLUDED.subtype,
-                simulation_name = EXCLUDED.simulation_name,
                 status = NULL,
                 batch = NULL,
                 order_rank = NULL,
                 uorun_time = NULL,
                 uoprocess_time = NULL,
                 total_time = NULL
-            -- Same simulation_name + already Finished: skip (HPC re-submission protection).
-            -- Different simulation_name: refresh fully (on-demand re-run for the asset).
-            WHERE {DB_NAME}.simulation_name IS DISTINCT FROM EXCLUDED.simulation_name
-               OR {DB_NAME}.status IS NULL
+            -- already Finished: skip (HPC re-submission protection)
+            WHERE {DB_NAME}.status IS NULL
                OR {DB_NAME}.status != 'Finished'
         """
         
@@ -190,12 +188,12 @@ def distribute_assets_to_batches(num_cores, simulation_name):
             WHERE simulation_name = %s AND weather_file IS NOT NULL
         )
         UPDATE {DB_NAME} AS t
-        SET 
+        SET
             batch = (oa.row_num %% %s),
             order_rank = oa.row_num
         FROM ordered_assets AS oa
-        WHERE t.asset_id = oa.asset_id;
-        """, (simulation_name, num_cores))
+        WHERE t.asset_id = oa.asset_id AND t.simulation_name = %s;
+        """, (simulation_name, num_cores, simulation_name))
         affected_rows = cur.rowcount
         
         conn.commit()
@@ -210,13 +208,14 @@ def distribute_assets_to_batches(num_cores, simulation_name):
         conn.close()
 
 
-def update_batch(asset_id, batch):
+def update_batch(asset_id, batch, simulation_name):
     """Legacy update batch method."""
     logger.debug('Within update_batch()')
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute(f'UPDATE {DB_NAME} SET batch = %s WHERE asset_id = %s', (batch, asset_id))
+        cur.execute(f'UPDATE {DB_NAME} SET batch = %s WHERE asset_id = %s AND simulation_name = %s',
+                    (batch, asset_id, simulation_name))
         conn.commit()
     except Exception as e:
         print(f"Error updating batch for asset ID {asset_id}: {e}")
@@ -226,15 +225,16 @@ def update_batch(asset_id, batch):
         conn.close()
 
 
-def update_time(asset_id, uorun_time, uoprocess_time, total_time):
+def update_time(asset_id, uorun_time, uoprocess_time, total_time, simulation_name):
     """Legacy update time method."""
     logger.debug('Within update_time()')
     conn = get_db_connection()
     cur = conn.cursor()
     try:
         cur.execute(f"""
-            UPDATE {DB_NAME} SET uorun_time = %s, uoprocess_time = %s, total_time = %s WHERE asset_id = %s
-        """, (uorun_time, uoprocess_time, total_time, asset_id))
+            UPDATE {DB_NAME} SET uorun_time = %s, uoprocess_time = %s, total_time = %s
+            WHERE asset_id = %s AND simulation_name = %s
+        """, (uorun_time, uoprocess_time, total_time, asset_id, simulation_name))
         conn.commit()
     except Exception as e:
         print(f"Error updating time for asset ID {asset_id}: {e}")
@@ -245,18 +245,25 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time):
     
 
 def update_status(status, asset_id=None, simulation_name=None, failure_reason=None):
+    # above the try: the except below swallows everything, so a guard inside it is not a signal
+    if asset_id is not None and simulation_name is None:
+        raise ValueError(f"update_status for asset {asset_id} needs simulation_name")
+    if asset_id is None and simulation_name is None:
+        raise ValueError("Either asset_id or simulation_name must be provided")
+
     conn = get_db_connection()
     cur = conn.cursor()
     try:
         if failure_reason and asset_id is not None:
-            cur.execute(f'UPDATE {DB_NAME} SET status = %s, failure_reason = %s WHERE asset_id = %s',
-                        (status, failure_reason, asset_id))
+            cur.execute(f'UPDATE {DB_NAME} SET status = %s, failure_reason = %s'
+                        f' WHERE asset_id = %s AND simulation_name = %s',
+                        (status, failure_reason, asset_id, simulation_name))
         elif asset_id is not None:
-            cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE asset_id = %s', (status, asset_id))
-        elif simulation_name is not None:
-            cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE simulation_name = %s', (status, simulation_name))
+            cur.execute(f'UPDATE {DB_NAME} SET status = %s'
+                        f' WHERE asset_id = %s AND simulation_name = %s',
+                        (status, asset_id, simulation_name))
         else:
-            raise ValueError("Either asset_id or simulation_name must be provided")
+            cur.execute(f'UPDATE {DB_NAME} SET status = %s WHERE simulation_name = %s', (status, simulation_name))
         conn.commit()
     except Exception as e:
         print(f"Error updating status for asset ID {asset_id}: {e}")
@@ -308,14 +315,17 @@ def update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, 
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        # simulation_name is half the key now, so this rename can collide; swallowing it makes
+        # the caller delete every feature file (see recover_UOsim). Fail loud.
         cur.execute(f"""
-            UPDATE {DB_NAME} SET simulation_name = %s 
+            UPDATE {DB_NAME} SET simulation_name = %s
             WHERE batch = %s AND simulation_name = %s AND status != 'Finished'
         """, (RECOVERY_SIMULATION_NAME, batch_id, CORRUPTED_SIMULATION_NAME))
         conn.commit()
     except Exception as e:
-        print(f"Error updating simulation name for batch_id {batch_id}: {e}")
+        logger.error(f"Error updating simulation name for batch_id {batch_id}: {e}")
         conn.rollback()
+        raise
     finally:
         cur.close()
         conn.close()
@@ -399,23 +409,27 @@ def get_distinct_weather_files(simulation_name):
         conn.close()
 
 
-def get_weather(asset_id):
+def get_weather(asset_id, simulation_name):
     """
     Retrieve weather information for a given asset.
-    
+
     Args:
         asset_id: The asset ID to retrieve weather data for
-        
+        simulation_name: REQUIRED -- (asset_id, simulation_name) is the row key. Without it the
+            query matches any concurrent run of the same asset and returns whichever row comes
+            first, i.e. another user's weather file.
+
     Returns:
         tuple: (State, WeatherFile.epw) - State code and weather file name with .epw extension
     """
     if asset_id is None:
         raise ValueError("asset_id must be provided to retrieve weather information.")
-
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute(f'SELECT state, weather_file FROM {DB_NAME} WHERE asset_id = %s', (asset_id,))
+        cur.execute(f'SELECT state, weather_file FROM {DB_NAME}'
+                    f' WHERE asset_id = %s AND simulation_name = %s',
+                    (asset_id, simulation_name))
         result = cur.fetchone()
         
         if result is None:
@@ -647,6 +661,43 @@ def ensure_columns_exist():
             cur.execute(f"ALTER TABLE {DB_NAME} ALTER COLUMN asset_id TYPE BIGINT")
             conn.commit()
 
+        # tables predating the composite key hold one row per asset; rekey in place
+        pk_probe = f"""
+            SELECT c.conname, array_length(c.conkey, 1)
+            FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid
+            WHERE t.relname = '{DB_NAME}' AND c.contype = 'p'
+        """
+        cur.execute(pk_probe)
+        pk = cur.fetchone()
+        # rekey unless the key is ALREADY the composite one. `pk[1] == 1` skipped a table with
+        # NO primary key (fetchone -> None), where every ON CONFLICT insert then fails.
+        if pk is None or pk[1] != 2:
+            # Concurrent sims all reach this. Serialize on the table, then re-probe: the
+            # losers see the composite key the winner installed and skip the DDL.
+            cur.execute(f"LOCK TABLE {DB_NAME} IN ACCESS EXCLUSIVE MODE")
+            cur.execute(pk_probe)
+            pk = cur.fetchone()
+        if pk is None or pk[1] != 2:
+            logger.info(f"Rekeying {DB_NAME} to PRIMARY KEY (asset_id, simulation_name)")
+            # A NULL simulation_name cannot enter a PK. Those rows are finished-run leftovers
+            # that no simulation_name query can ever match, so they are dead weight.
+            cur.execute(f"DELETE FROM {DB_NAME} WHERE simulation_name IS NULL")
+            cur.execute(f"ALTER TABLE {DB_NAME} ALTER COLUMN simulation_name SET NOT NULL")
+            if pk is not None:  # a table with no primary key has nothing to drop
+                cur.execute(f"ALTER TABLE {DB_NAME} DROP CONSTRAINT {pk[0]}")
+            cur.execute(f"ALTER TABLE {DB_NAME} ADD PRIMARY KEY (asset_id, simulation_name)")
+            conn.commit()
+            # every later INSERT uses ON CONFLICT (asset_id, simulation_name), which errors if
+            # the key is not actually in place -- and insert_bulk_assets swallows that, so the
+            # run lands zero assets. Fail here, where the cause is still visible.
+            cur.execute(pk_probe)
+            pk = cur.fetchone()
+            if not pk or pk[1] != 2:
+                raise RuntimeError(
+                    f"rekey of {DB_NAME} did not take: primary key is {pk}; refusing to continue "
+                    f"because every ON CONFLICT (asset_id, simulation_name) insert would fail"
+                )
+
         # First check which columns exist
         cur.execute(f"""
             SELECT column_name
@@ -657,10 +708,10 @@ def ensure_columns_exist():
         
         # Define expected columns with their types
         expected_columns = {
-            'asset_id': 'BIGINT PRIMARY KEY',
+            'asset_id': 'BIGINT NOT NULL',
             'batch': 'INTEGER',
             'order_rank': 'INTEGER',
-            'simulation_name': 'VARCHAR(255)',
+            'simulation_name': 'VARCHAR(255) NOT NULL',  # half the primary key (see create_table)
             'state': 'VARCHAR(255)',
             'weather_file': 'VARCHAR(255)',
             'floor_area': 'NUMERIC',
@@ -691,8 +742,11 @@ def ensure_columns_exist():
         conn.commit()
         
     except Exception as e:
+        # A failed migration is not survivable: the insert paths below it assume the composite
+        # key, so swallowing this turns a schema problem into a silent zero-asset run.
         logger.error(f"Error checking/adding columns: {e}")
         conn.rollback()
+        raise
     finally:
         cur.close()
         conn.close()

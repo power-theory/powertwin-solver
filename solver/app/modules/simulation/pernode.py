@@ -237,8 +237,18 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
     f"{'='*47}"
 )
 
-    state, weather_file = get_weather(asset_id)
-    
+    # sqlite get_weather returns None (not a tuple) when the run has no row for this asset, so
+    # unpacking it directly raises an opaque TypeError. Mirror run_UOsim's guard so the asset is
+    # recorded Failed with a reason instead.
+    weather = get_weather(asset_id, simulation_name)
+    if not weather:
+        raise RuntimeError(f"no weather row for asset {asset_id} in simulation {simulation_name}")
+    state, weather_file = weather
+
+    # A no-coords building has no resolved weather and can't be simulated.
+    if not weather_file:
+        raise RuntimeError("missing coordinates (no lat/lon): cannot resolve a weather station; excluded from EnergyPlus")
+
     # NOTE: Remove .epw extension if present (database stores full filename with .epw)
     if weather_file.endswith('.epw'):
         weather_file = weather_file[:-4]

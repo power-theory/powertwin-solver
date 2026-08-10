@@ -4,7 +4,11 @@ Reads the SQLite database after a run and produces a diagnostic report showing
 what failed, why, and any patterns (node correlation, batch correlation, etc.).
 
 Usage:
-    python -m app.modules.diagnostics.failure_analysis <db_path> [table_name]
+    python -m app.modules.diagnostics.failure_analysis <db_path> [table_name] [simulation_name]
+
+The master database accumulates every run, and the tracking table is keyed by
+(asset_id, simulation_name), so an unscoped report interleaves concurrent runs of the same
+asset. Pass simulation_name to scope it; omitting it reports across all runs and says so.
 """
 
 import sqlite3
@@ -13,8 +17,8 @@ import os
 from collections import Counter
 
 
-def analyze_failures(db_path, table_name="powertwin"):
-    """Analyze failures in a PowerTwin simulation database."""
+def analyze_failures(db_path, table_name="powertwin", simulation_name=None):
+    """Analyze failures in a PowerTwin simulation database, optionally scoped to one run."""
     if not os.path.exists(db_path):
         print(f"ERROR: Database not found at {db_path}")
         return
@@ -27,9 +31,14 @@ def analyze_failures(db_path, table_name="powertwin"):
     print("POWERTWIN FAILURE ANALYSIS REPORT")
     print("=" * 60)
     print(f"Database: {db_path}")
+    print(f"Simulation: {simulation_name or 'ALL RUNS (rows from concurrent runs are interleaved)'}")
     print()
 
-    cursor = conn.execute(f"SELECT status, COUNT(*) as count FROM {table_name} GROUP BY status")
+    where = "WHERE simulation_name = ?" if simulation_name else ""
+    args = (simulation_name,) if simulation_name else ()
+
+    cursor = conn.execute(
+        f"SELECT status, COUNT(*) as count FROM {table_name} {where} GROUP BY status", args)
     status_counts = {row['status']: row['count'] for row in cursor}
     total = sum(status_counts.values())
 
@@ -54,7 +63,9 @@ def analyze_failures(db_path, table_name="powertwin"):
     # Failed assets detail
     failed_cursor = conn.execute(
         f"SELECT asset_id, asset_name, batch, failure_reason, node_name, process_id "
-        f"FROM {table_name} WHERE status = 'Failed' ORDER BY batch, asset_id"
+        f"FROM {table_name} WHERE status = 'Failed'"
+        + (" AND simulation_name = ?" if simulation_name else "")
+        + " ORDER BY batch, asset_id", args
     )
     failed_assets = [dict(row) for row in failed_cursor]
 
@@ -117,9 +128,11 @@ def analyze_failures(db_path, table_name="powertwin"):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python -m app.modules.diagnostics.failure_analysis <db_path> [table_name]")
+        print("Usage: python -m app.modules.diagnostics.failure_analysis "
+              "<db_path> [table_name] [simulation_name]")
         sys.exit(1)
 
     db_path = sys.argv[1]
     table_name = sys.argv[2] if len(sys.argv) > 2 else "powertwin"
-    analyze_failures(db_path, table_name)
+    simulation_name = sys.argv[3] if len(sys.argv) > 3 else None
+    analyze_failures(db_path, table_name, simulation_name)

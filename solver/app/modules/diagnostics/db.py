@@ -86,34 +86,43 @@ def distribute_assets_to_batches(num_cores, simulation_name):
         return postgres_ops.distribute_assets_to_batches(num_cores, simulation_name)
 
 
-def update_batch(asset_id, batch):
+def update_batch(asset_id, batch, simulation_name):
     """Update batch using appropriate database for the environment."""
     if IS_HPC_ENVIRONMENT:
-        return sqlite_ops.update_batch(asset_id, batch)
+        return sqlite_ops.update_batch(asset_id, batch, simulation_name)
     else:
-        return postgres_ops.update_batch(asset_id, batch)
+        return postgres_ops.update_batch(asset_id, batch, simulation_name)
 
 
-def update_time(asset_id, uorun_time, uoprocess_time, total_time, simulation_name=None):
-    """Update timing using appropriate database for the environment."""
+def update_time(asset_id, uorun_time, uoprocess_time, total_time, simulation_name):
+    """Update timing using appropriate database for the environment.
+
+    simulation_name is REQUIRED. This used to look it up by asset_id alone when omitted, which
+    with a per-run key picks an ARBITRARY concurrent run (and fell back to the literal string
+    'unknown', writing timings onto a row no query can find). Both callers pass it.
+    """
+    if simulation_name is None:
+        raise ValueError(
+            f"update_time for asset {asset_id} needs simulation_name: asset_id alone matches "
+            f"every concurrent run of that asset"
+        )
     if IS_HPC_ENVIRONMENT:
-        # SQLite version expects simulation_name, try to get it if not provided
-        if simulation_name is None:
-            logger.warning(f"simulation_name not provided for update_time, asset_id: {asset_id}, "
-                           f"attempting to retrieve from database")
-            # Try to get simulation name from existing record
-            conn = sqlite_ops.get_sqlite_connection()
-            table_name = os.environ.get("PGDATABASE", "powertwin")
-            cursor = conn.execute(f"SELECT simulation_name FROM {table_name} WHERE asset_id = ?", (asset_id,))
-            row = cursor.fetchone()
-            simulation_name = row['simulation_name'] if row else 'unknown'
         return sqlite_ops.update_time(simulation_name, asset_id, uorun_time, uoprocess_time, total_time)
     else:
-        return postgres_ops.update_time(asset_id, uorun_time, uoprocess_time, total_time)
+        return postgres_ops.update_time(asset_id, uorun_time, uoprocess_time, total_time, simulation_name)
 
     
 def update_status(status, asset_id=None, simulation_name=None, failure_reason=None):
-    """Update status using appropriate database for the environment."""
+    """Update status using appropriate database for the environment.
+
+    Naming an asset_id without a simulation_name is rejected: it would match every concurrent
+    run of that asset. (simulation_name alone is fine -- that means "the whole run".)
+    """
+    if asset_id is not None and simulation_name is None:
+        raise ValueError(
+            f"update_status for asset {asset_id} needs simulation_name: asset_id alone matches "
+            f"every concurrent run of that asset"
+        )
     if IS_HPC_ENVIRONMENT:
         if simulation_name and asset_id:
             return sqlite_ops.update_status(simulation_name, asset_id, status, failure_reason=failure_reason)
@@ -176,22 +185,20 @@ def get_distinct_weather_files(simulation_name):
         return postgres_ops.get_distinct_weather_files(simulation_name)
 
 
-def get_weather(asset_id, simulation_name=None):
-    """Get weather using appropriate database for the environment."""
+def get_weather(asset_id, simulation_name):
+    """Get weather using appropriate database for the environment. simulation_name is REQUIRED:
+    (asset_id, simulation_name) is the row key.
+
+    Note: this used to guard a `sqlite_ops.copy_master_to_local(simulation_name)` call for a
+    "distributed mode" that was never implemented -- the function does not exist. It stayed
+    invisible only because every caller passed asset_id alone, so `if simulation_name:` was
+    always false; scoping weather lookups to the run made it reachable and it raised
+    AttributeError on the first HPC asset. Each node already reads its own node database.
+    """
     if IS_HPC_ENVIRONMENT:
-        # In distributed mode, we might need to copy master data first
-        if simulation_name:
-            # Only copy data once per process
-            copy_flag = f"/tmp/.weather_data_copied_{simulation_name}_{os.getpid()}"
-            if not os.path.exists(copy_flag):
-                sqlite_ops.copy_master_to_local(simulation_name)
-                # Create flag file to avoid repeated copying
-                with open(copy_flag, 'w') as f:
-                    f.write(str(os.getpid()))
-        
-        return sqlite_ops.get_weather(asset_id)
+        return sqlite_ops.get_weather(asset_id, simulation_name)
     else:
-        return postgres_ops.get_weather(asset_id)
+        return postgres_ops.get_weather(asset_id, simulation_name)
 
         
 def get_bulk_assets(simulation_name, batch=None):

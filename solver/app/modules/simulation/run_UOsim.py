@@ -107,7 +107,7 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
     f"{'='*47}"
 )
 
-    state, weather_file = get_weather(asset_id)
+    state, weather_file = get_weather(asset_id, simulation_name)
 
     # A no-coords building has no resolved weather and can't be simulated. If it reaches here, raise
     # so process_single_asset records it Failed (with this reason) via its except path rather than
