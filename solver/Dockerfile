@@ -40,12 +40,12 @@ COPY ./requirements.txt /solver/requirements.txt
 RUN pip install --ignore-installed -r requirements.txt
 
 # Install Ruby dependencies
-RUN gem install public_suffix -v 5.1.1
+RUN gem install --no-document public_suffix -v 5.1.1
 RUN gem uninstall multipart-post --force --all && \
-    gem install multipart-post -v 2.1.1
+    gem install --no-document multipart-post -v 2.1.1
 
 # Install urbanopt-cli and verify installation
-RUN gem install urbanopt-cli -v 1.0.1 && \
+RUN gem install --no-document urbanopt-cli -v 1.0.1 && \
     echo "Gem installation complete. Checking gem bin directory:" && \
     ls -la /usr/local/lib/ruby/gems/3.2.2/bin/ || echo "Gem bin directory not found" && \
     echo "Testing uo command accessibility:" && \
@@ -62,7 +62,7 @@ RUN rm -f /usr/local/bin/bundle /usr/local/bin/bundler && \
     uo create --combined --project-folder /tmp/prewarm && \
     cd /tmp/prewarm && \
     bundle install --jobs 4 --retry 3 && \
-    gem install ruby2_keywords -v 0.0.5 && \
+    gem install --no-document ruby2_keywords -v 0.0.5 && \
     rm -rf /tmp/prewarm
 
 # Final verification that uo is in PATH
