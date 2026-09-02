@@ -13,6 +13,7 @@ import subprocess
 
 from .clean_report import clean_single_report
 from modules.utils import initialize_logger, run_command, check_storage
+from modules.utils.command_timer import uo_timeout
 from modules.utils.check_uo import get_urbanopt_command
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
@@ -356,14 +357,16 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
             logger.error(f"BATCH {batch_index}: UrbanOpt CLI discovery failed: {e}")
             raise
 
-        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
+        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}",
+                                  timeout=uo_timeout())
 
         logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
         # Scenario-level post-processor (best-effort). See run_UOsim.py for the
         # rationale (clean_single_report only needs per-asset feature_reports
         # which `uo run` already produced).
         try:
-            uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
+            uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}",
+                                          timeout=uo_timeout(cap=7200))
         except Exception as e:
             logger.warning(f"BATCH {batch_index}: uo process failed (non-fatal): {e}")
             uo_process_time = 0
@@ -413,7 +416,7 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
         check_storage(hpc_storage, min_free_gb=5)
     except RuntimeError as e:
         logger.error(f"BATCH {batch_num}: {str(e)}")
-        return
+        return False, asset_data[0], str(e)
 
     
     asset_id, asset_name = asset_data

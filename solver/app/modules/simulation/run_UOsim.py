@@ -7,6 +7,7 @@ import subprocess
 
 from .clean_report import clean_single_report
 from modules.utils import initialize_logger, run_command, check_storage
+from modules.utils.command_timer import uo_timeout
 from modules.utils.check_uo import get_urbanopt_command
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
@@ -227,7 +228,8 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
             logger.error(f"BATCH {batch_index}: UrbanOpt CLI discovery failed: {e}")
             raise
 
-        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}")
+        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}",
+                                  timeout=uo_timeout())
 
         logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
         # `uo process` runs the scenario-level post-processor (urbanopt-reopt
@@ -238,9 +240,10 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
         # the scenario-level step is non-load-bearing for us. Make it best-
         # effort: log and continue instead of failing the whole sim.
         try:
-            uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}")
+            uo_process_time = run_command(f"{uo_cmd} process -d -f {FEATURE_FILE_JSON} -s {SCENARIO_FILE_CSV}",
+                                          timeout=uo_timeout(cap=7200))
         except Exception as e:
-            logger.warning(f"BATCH {batch_index}: uo process failed (non-fatal — per-asset feature_reports already written): {e}")
+            logger.warning(f"BATCH {batch_index}: uo process failed (non-fatal; per-asset feature_reports already written): {e}")
             uo_process_time = 0
         total_time = uo_run_time + uo_process_time
     except Exception as e:
@@ -288,7 +291,7 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
         check_storage(hpc_storage, min_free_gb=5)
     except RuntimeError as e:
         logger.error(f"BATCH {batch_num}: {str(e)}")
-        return
+        return False, asset_data[0], str(e)
 
     
     asset_id, asset_name = asset_data
@@ -311,6 +314,11 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
         return True, asset_id, None
     except Exception as e:
         error_msg = str(e)
+        # Stable prefix so timeouts cluster as ONE reason in failure triage (reasons are grouped
+        # by string, and the raw TimeoutExpired message embeds the per-building command path,
+        # which would scatter them into 1-building groups).
+        if isinstance(e, subprocess.TimeoutExpired):
+            error_msg = f"TIMEOUT after {e.timeout}s: {error_msg}"
         # Capture stderr from subprocess errors for Ruby/UrbanOpt diagnostics
         if hasattr(e, 'stderr') and e.stderr:
             error_msg = f"{error_msg}\nSTDERR: {e.stderr[:500]}"

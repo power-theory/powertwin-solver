@@ -109,6 +109,8 @@ spec:
               value: {{ .Values.flask.urbanopt.dynamicDefaults | quote }}
             - name: URBANOPT_KEEP_RUN_DIR
               value: {{ .Values.flask.urbanopt.keepRunDir | quote }}
+            - name: URBANOPT_RUN_TIMEOUT_S
+              value: {{ .Values.flask.urbanopt.runTimeoutS | quote }}
             {{- range $key, $value := .Values.flask.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}

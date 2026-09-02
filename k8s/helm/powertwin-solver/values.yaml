@@ -166,6 +166,7 @@ flask:
     simulationYear: "2025"
     dynamicDefaults: "false"
     keepRunDir: "false"
+    runTimeoutS: "129600"
 
   # Extra non-sensitive runtime env.
   env: {}
