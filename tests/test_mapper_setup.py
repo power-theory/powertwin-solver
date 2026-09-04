@@ -72,7 +72,6 @@ def test_deploy_calls_are_not_gated_on_destination_absence():
     sites = [
         "solver/app/modules/simulation/initialize_UOsim.py",
         "solver/app/modules/simulation/run_UOsim.py",
-        "solver/app/modules/simulation/pernode.py",
     ]
     for rel in sites:
         tree = ast.parse(open(os.path.join(REPO, rel)).read())

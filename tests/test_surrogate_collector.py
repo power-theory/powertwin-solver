@@ -20,6 +20,13 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "surrogate"))
 
+# The surrogate tree is NOT in the solver container image (build context is solver/), and its deps
+# may be absent in minimal CI runners. Skip cleanly instead of erroring collection: a collection
+# error aborts even fully-deselected pytest runs, which is how this file silently blocked the
+# requires_container stage until 2026-09-02.
+_surrogate = pytest.importorskip(
+    "app.modules.schema", reason="surrogate tree/deps unavailable (solver-only environment)"
+)
 from app.modules import schema  # noqa: E402
 from app.modules.data import collector as C  # noqa: E402
 
