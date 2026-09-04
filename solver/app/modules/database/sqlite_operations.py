@@ -73,25 +73,49 @@ def retry_on_database_error(func):
     return wrapper
 @retry_on_database_error
 def get_sqlite_connection():
-    """Get SQLite database connection using SQLiteManager."""
+    """SQLite connection with environment-dependent lifetime and journal mode.
+
+    LOCAL (flask container, tests): per-thread cached connection (Q/A R-017) -- the old
+    open-per-call pattern let two module calls in one thread hold each other's write locks
+    through the 30 s busy_timeout, and thread_local was declared for this cache but never
+    assigned (which also made the retry decorator's reset path dead code). WAL is fine on
+    a local disk.
+
+    HPC (SLURM): a FRESH connection per call and journal_mode=DELETE for EVERY database.
+    The master db lives on network storage where WAL is unsafe (its -shm mmap does not
+    coordinate across nodes); nat80 ran clean only because transient per-call handles kept
+    the WAL window microscopic. Caching those handles (first teton3tt attempt, job
+    15949939) held WAL state open across a 20-node job and stormed SQLITE_PROTOCOL
+    ("locking protocol") until inserts died. Transient handles + DELETE journal is the
+    proven shape on this filesystem; CPython closes sqlite connections at dealloc, so
+    per-call connections do not leak descriptors."""
     manager = get_sqlite_manager()
     db_path = manager.get_db_path()
-   
+    on_hpc = bool(os.environ.get('SLURM_JOB_ID'))
+
+    if not on_hpc:
+        cached = getattr(thread_local, "connection", None)
+        if cached is not None and getattr(thread_local, "db_path", None) == db_path:
+            return cached
+
     # Ensure directory exists for node databases
     db_dir = os.path.dirname(db_path)
     if db_dir and not os.path.exists(db_dir):
         os.makedirs(db_dir, exist_ok=True)
-    
+
     conn = sqlite3.connect(db_path)
     # Enable Row factory for dictionary-style access
     conn.row_factory = sqlite3.Row
-    # Use DELETE journal mode for node databases on network filesystems (WAL requires mmap)
-    if 'node_' in db_path:
+    if on_hpc or 'node_' in db_path:
+        # Network filesystem: WAL requires cross-process shared memory; DELETE is safe.
         conn.execute("PRAGMA journal_mode=DELETE")
         conn.execute("PRAGMA synchronous=FULL")
     else:
         conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=30000")
+    if not on_hpc:
+        thread_local.connection = conn
+        thread_local.db_path = db_path
     return conn
 
 def _table_ddl(table_name, if_not_exists=True):
@@ -166,20 +190,10 @@ def create_table() -> bool:
     """Create the main assets table if it doesn't exist."""
     logger.debug('Creating SQLite table if not exists')
 
-    # Clean stale node directories from previous runs (assumes fresh run)
-    manager = get_sqlite_manager()
-    db_dir = os.path.dirname(manager.get_db_path())
-    if db_dir and os.path.exists(db_dir):
-        import shutil
-        for entry in os.listdir(db_dir):
-            entry_path = os.path.join(db_dir, entry)
-            if os.path.isdir(entry_path) and entry.startswith('node_'):
-                try:
-                    shutil.rmtree(entry_path)
-                    logger.info(f"Cleaned stale node directory: {entry}")
-                except Exception as e:
-                    logger.warning(f"Could not clean stale node dir {entry}: {e}")
-
+    # NOTE (Q/A R-018): create_table used to rmtree every node_* directory here under an
+    # "assumes fresh run" comment -- reachable from three views.py endpoints, so a new
+    # submission could delete LIVE node databases mid-campaign. The HPC start script owns
+    # stale-run cleanup (its Step 1 cleans the sqlite dir); in-code sweeping is removed.
     try:
         conn = get_sqlite_connection()
         
@@ -300,17 +314,20 @@ def insert_bulk_assets(assets: List[Dict[str, Any]]) -> bool:
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, insert_data)
         
-        # Update existing records but protect finished assets
-        for asset_data in insert_data:
-            conn.execute(f"""
-                UPDATE {table_name} SET
-                    state = ?, weather_file = ?, floor_area = ?, number_of_stories = ?,
-                    complexity = ?, asset_name = ?, subtype = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE asset_id = ? AND simulation_name = ?
-                  AND (status IS NULL OR status != 'Finished')
-            """, (asset_data[1], asset_data[2], asset_data[3], asset_data[4],
-                  asset_data[5], asset_data[6], asset_data[7], asset_data[0], asset_data[8]))
+        # Update existing records but protect finished assets. Mirrors the postgres upsert
+        # (Q/A R-019b): a re-submitted asset must have its run state RESET (status, batch,
+        # order_rank, timings) or it keeps stale scheduling and looks already-run. One
+        # executemany instead of a per-row loop.
+        conn.executemany(f"""
+            UPDATE {table_name} SET
+                state = ?, weather_file = ?, floor_area = ?, number_of_stories = ?,
+                complexity = ?, asset_name = ?, subtype = ?,
+                status = NULL, batch = NULL, order_rank = NULL,
+                uorun_time = NULL, uoprocess_time = NULL, total_time = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE asset_id = ? AND simulation_name = ?
+              AND (status IS NULL OR status != 'Finished')
+        """, [(a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[0], a[8]) for a in insert_data])
         conn.commit()
         
         logger.info(f"Bulk inserted {len(assets)} assets successfully")
@@ -330,7 +347,7 @@ def get_bulk_assets(simulation_name: str, limit: Optional[int] = None) -> List[D
         conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
-        query = f"SELECT * FROM {table_name} WHERE simulation_name = ?"
+        query = f"SELECT * FROM {table_name} WHERE simulation_name = ? ORDER BY order_rank"
         params = [simulation_name]
         
         if limit:
@@ -367,14 +384,24 @@ def bulk_update_status(asset_ids: List[int], status: str, simulation_name: str) 
         # Use executemany for efficient bulk updates
         update_data = [(status, simulation_name, asset_id) for asset_id in asset_ids]
         
-        conn.executemany(f"""
+        # Q/A R-027b: resetting to 'Not Processed Yet' must not resurrect Finished work --
+        # that is the re-submission path that silently re-ran whole campaigns.
+        protect = " AND (status IS NULL OR status != 'Finished')" if status == 'Not Processed Yet' else ""
+        cur = conn.executemany(f"""
             UPDATE {table_name} 
             SET status = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE simulation_name = ? AND asset_id = ?
+            WHERE simulation_name = ? AND asset_id = ?{protect}
         """, update_data)
         conn.commit()
-        
-        logger.info(f"Successfully updated status to '{status}' for {len(asset_ids)} assets")
+        updated = cur.rowcount if cur.rowcount is not None and cur.rowcount >= 0 else 0
+        # Report REAL success like postgres (Q/A D-05): the constant True let recover_UOsim
+        # believe a bulk update that matched zero rows had worked.
+        if updated != len(asset_ids) and status != 'Not Processed Yet':
+            logger.error(
+                f"bulk_update_status matched {updated}/{len(asset_ids)} assets for '{status}' "
+                f"in {simulation_name}")
+            return False
+        logger.info(f"Successfully updated status to '{status}' for {updated} assets")
         return True
         
     except Exception as e:
@@ -421,7 +448,7 @@ def get_distinct_weather_files(simulation_name: str) -> list:
 
         cursor = conn.execute(f"""
             SELECT DISTINCT weather_file FROM {table_name}
-            WHERE simulation_name = ? AND weather_file IS NOT NULL
+            WHERE simulation_name = ? AND weather_file IS NOT NULL AND (status IS NULL OR status != 'Finished')
         """, (simulation_name,))
 
         return [row['weather_file'] for row in cursor.fetchall()]
@@ -495,7 +522,8 @@ def get_failed_assets(simulation_name: str) -> List[Dict[str, Any]]:
         
         cursor = conn.execute(f"""
             SELECT * FROM {table_name} 
-            WHERE simulation_name = ? AND status = 'Failed'
+            WHERE simulation_name = ? AND status = 'Failed' COLLATE NOCASE
+            ORDER BY batch, order_rank
         """, (simulation_name,))
         
         rows = cursor.fetchall()
@@ -521,7 +549,7 @@ def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bo
         # Count SIMULATABLE assets only -- a NULL weather_file (no-coords building, recorded Failed)
         # can't run in EnergyPlus, so it's never distributed to a batch.
         cursor = conn.execute(f"""
-            SELECT COUNT(*) as count FROM {table_name} WHERE simulation_name = ? AND weather_file IS NOT NULL
+            SELECT COUNT(*) as count FROM {table_name} WHERE simulation_name = ? AND weather_file IS NOT NULL AND (status IS NULL OR status != 'Finished')
         """, (simulation_name,))
         
         total_assets = cursor.fetchone()['count']
@@ -529,32 +557,28 @@ def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bo
         if total_assets == 0:
             logger.warning(f"No assets found for simulation {simulation_name}")
             return False
-            
-        assets_per_batch = total_assets // total_batches
-        remainder = total_assets % total_batches
-        
-        # Update assets with batch assignments
+        if total_batches < 1:
+            logger.error(f"total_batches={total_batches} for {simulation_name}; nothing distributed")
+            return False
+
+        # Mirror the postgres LPT balancing (Q/A R-012): complexity DESC with round-robin
+        # assignment and a GLOBAL order_rank. The old contiguous asset_id chunks abandoned
+        # longest-processing-time-first on exactly the platform (HPC) where uneven batch
+        # durations cost allocation hours; complexity was computed and stored but never read.
         cursor = conn.execute(f"""
             SELECT asset_id FROM {table_name}
-            WHERE simulation_name = ? AND weather_file IS NOT NULL
-            ORDER BY asset_id
+            WHERE simulation_name = ? AND weather_file IS NOT NULL AND (status IS NULL OR status != 'Finished')
+            ORDER BY CAST(complexity AS INTEGER) DESC,
+                     CAST(number_of_stories AS INTEGER) DESC,
+                     CAST(floor_area AS REAL) DESC, asset_id
         """, (simulation_name,))
-        
         asset_ids = [row['asset_id'] for row in cursor.fetchall()]
-        
-        current_asset = 0
-        for batch_num in range(total_batches):
-            batch_size = assets_per_batch + (1 if batch_num < remainder else 0)
-            batch_assets = asset_ids[current_asset:current_asset + batch_size]
-            
-            for i, asset_id in enumerate(batch_assets):
-                conn.execute(f"""
-                    UPDATE {table_name} 
-                    SET batch = ?, order_rank = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE simulation_name = ? AND asset_id = ?
-                """, (batch_num, i, simulation_name, asset_id))
-            
-            current_asset += batch_size
+        conn.executemany(f"""
+            UPDATE {table_name}
+            SET batch = ?, order_rank = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE simulation_name = ? AND asset_id = ?
+        """, [(rank % total_batches, rank, simulation_name, aid)
+              for rank, aid in enumerate(asset_ids)])
         
         conn.commit()
         logger.info(f"Distributed {total_assets} assets across {total_batches} batches")
@@ -566,20 +590,26 @@ def distribute_assets_to_batches(simulation_name: str, total_batches: int) -> bo
 
 
 @retry_on_database_error
-def get_status_stats(simulation_name: str) -> Dict[str, int]:
-    """Get status statistics for a simulation."""
-    logger.debug(f'Getting status stats for simulation {simulation_name}')
+def get_status_stats(simulation_name: str, batch_id: int = None) -> Dict[str, int]:
+    """Get status statistics for a simulation (optionally one batch -- Q/A D-02: per-batch
+    progress previously reported whole-simulation counts and could exceed 100%)."""
+    logger.debug(f'Getting status stats for simulation {simulation_name} batch {batch_id}')
     
     try:
         conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
+        where = "WHERE simulation_name = ?"
+        params = [simulation_name]
+        if batch_id is not None:
+            where += " AND batch = ?"
+            params.append(batch_id)
         cursor = conn.execute(f"""
             SELECT status, COUNT(*) as count 
             FROM {table_name} 
-            WHERE simulation_name = ? 
+            {where}
             GROUP BY status
-        """, (simulation_name,))
+        """, params)
         
         rows = cursor.fetchall()
         stats = {row['status']: row['count'] for row in rows}
@@ -600,9 +630,12 @@ def get_bulk_batchids(simulation_name: str) -> List[int]:
         conn = get_sqlite_connection()
         table_name = os.environ.get("PGDATABASE", "powertwin")
         
+        # NULL batches are included on purpose: recovery renames never-distributed
+        # rows via update_simulation_name(..., batch=None), which is only reachable
+        # when None appears in this list (D-51; postgres never filtered them either).
         cursor = conn.execute(f"""
             SELECT DISTINCT batch FROM {table_name} 
-            WHERE simulation_name = ? AND batch IS NOT NULL
+            WHERE simulation_name = ?
             ORDER BY batch
         """, (simulation_name,))
         
@@ -705,11 +738,14 @@ def update_simulation_name(recovery_simulation_name: str, corrupted_simulation_n
         
         # simulation_name is half the key now, so this rename can collide; returning False makes
         # recover_UOsim delete every feature file. Fail loud.
+        batch_pred = "batch IS NULL" if batch_id is None else "batch = ?"
+        params = ([recovery_simulation_name, corrupted_simulation_name] if batch_id is None
+                  else [recovery_simulation_name, batch_id, corrupted_simulation_name])
         conn.execute(f"""
             UPDATE {table_name}
             SET simulation_name = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE batch = ? AND simulation_name = ? AND (status IS NULL OR status != 'Finished')
-        """, (recovery_simulation_name, batch_id, corrupted_simulation_name))
+            WHERE {batch_pred} AND simulation_name = ? AND (status IS NULL OR status != 'Finished')
+        """, params)
         conn.commit()
 
         logger.debug(f"Simulation name updated from {corrupted_simulation_name} to {recovery_simulation_name} for batch {batch_id}")
@@ -743,7 +779,30 @@ def delete_table(simulation_name: str) -> bool:
 
 
 @retry_on_database_error
-def get_asset_stats(simulation_name: str) -> Dict[str, Any]:
+def get_asset_stats(simulation_name: str = None):
+    """Per-asset rows matching the postgres shape (Q/A R-020): views.py iterates dicts with
+    asset_id/batch/order_rank/complexity/timings; the old single aggregate dict KeyError'd the
+    HPC stats export. None/'' means all simulations, like postgres (Q/A D-15)."""
+    try:
+        conn = get_sqlite_connection()
+        table_name = os.environ.get("PGDATABASE", "powertwin")
+        q = (f"SELECT asset_id, batch, order_rank, simulation_name, state, weather_file, "
+             f"floor_area, number_of_stories, complexity, "
+             f"COALESCE(uorun_time, 0) as uorun_time, COALESCE(uoprocess_time, 0) as uoprocess_time, "
+             f"asset_name, subtype, status, COALESCE(total_time, 0) as total_time FROM {table_name}")
+        params = []
+        if simulation_name:
+            q += " WHERE simulation_name = ?"
+            params.append(simulation_name)
+        q += " ORDER BY simulation_name, batch, order_rank"
+        rows = conn.execute(q, params).fetchall()
+        return [dict(r) for r in rows]
+    except Exception as e:
+        logger.error(f"Error getting asset stats: {e}")
+        return []
+
+
+def get_asset_stats_aggregate(simulation_name: str) -> Dict[str, Any]:
     """Get comprehensive statistics for a simulation."""
     logger.debug(f'Getting asset stats for simulation {simulation_name}')
     
@@ -779,7 +838,10 @@ def get_asset_stats(simulation_name: str) -> Dict[str, Any]:
         return {}
 
 
-@retry_on_database_error
+# Q/A D-14: no retry decorator here on purpose -- the body has filesystem side effects
+# (timestamped preservation files, backup/restore/rmtree). A lock-retry would re-enter from the
+# top, orphaning the previous attempt's artifacts. Locks inside are already bounded by
+# busy_timeout; a genuine failure should surface, not loop.
 def create_preservation_database(master_db_path: str, simulation_name: str) -> Tuple[str, int]:
     """
     Create a preservation database to save all 'Finished' assets before consolidation.
@@ -910,7 +972,10 @@ def merge_preservation_database(master_conn, preservation_db_path: str, simulati
         logger.error(f"Failed to merge preservation database: {e}")
         raise
 
-@retry_on_database_error
+# Q/A D-14: no retry decorator here on purpose -- the body has filesystem side effects
+# (timestamped preservation files, backup/restore/rmtree). A lock-retry would re-enter from the
+# top, orphaning the previous attempt's artifacts. Locks inside are already bounded by
+# busy_timeout; a genuine failure should surface, not loop.
 def consolidate_databases(simulation_name: str, node_dirs: List[str], master_db_path: str) -> bool:
     """
     Atomic consolidation of node-specific databases back to master database.
@@ -989,6 +1054,7 @@ def consolidate_databases(simulation_name: str, node_dirs: List[str], master_db_
     # Collect all node data first (verification phase)
     node_data_summary = []
     total_node_records = 0
+    union_keys = set()  # DISTINCT (asset_id, simulation_name) across node DBs + preserved (R-016)
     node_status_counts = {}
     
     base_dir = os.path.dirname(master_db_path)
@@ -1041,6 +1107,17 @@ def consolidate_databases(simulation_name: str, node_dirs: List[str], master_db_
                 f"SELECT status, COUNT(*) as count FROM {table_name} WHERE simulation_name = ? GROUP BY status",
                 (simulation_name,)
             )
+            # collect the node's row KEYS so the expected count can be a DISTINCT union
+            # (Q/A R-016: node DBs are seeded from master, so Finished rows can live in both
+            # a node DB and the preservation set; a plain sum double-counts them and the
+            # count check then rolls back a consolidation that was actually correct)
+            # Scoped to the simulation: a node DB seeded via the zero-assigned-batches
+            # fallback can carry foreign simulation rows; unscoped keys inflate the
+            # expected count and roll back a correct consolidation (code-review).
+            for krow in node_conn.execute(
+                    f"SELECT asset_id, simulation_name FROM {table_name} WHERE simulation_name = ?",
+                    (simulation_name,)):
+                union_keys.add((krow[0], krow[1]))
             node_statuses = {}
             for row in node_status_cursor:
                 node_statuses[row[0]] = row[1]
@@ -1078,8 +1155,18 @@ def consolidate_databases(simulation_name: str, node_dirs: List[str], master_db_
     logger.info(f"Verification complete: {total_node_records} total records from {len(node_data_summary)} nodes")
     logger.info(f"Node status distribution: {node_status_counts}")
     
-    # Calculate expected final count (node records + preserved finished assets)
-    expected_final_count = total_node_records + preserved_finished_count
+    # Expected final count = DISTINCT (asset_id, simulation_name) across nodes UNION preserved
+    # (Q/A R-016). The old node+preserved SUM assumed disjoint sets.
+    if preservation_db_path and os.path.exists(preservation_db_path):
+        pconn = sqlite3.connect(preservation_db_path)
+        try:
+            for krow in pconn.execute(
+                    f"SELECT asset_id, simulation_name FROM {table_name} WHERE simulation_name = ?",
+                    (simulation_name,)):
+                union_keys.add((krow[0], krow[1]))
+        finally:
+            pconn.close()
+    expected_final_count = len(union_keys)
     logger.info(f"Expected final count: {expected_final_count} ({total_node_records} from nodes + {preserved_finished_count} preserved)")
     
     if total_node_records == 0 and preserved_finished_count == 0:

@@ -13,12 +13,16 @@ external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Database', external_log_dir)
 
 # Environment detection using centralized method
-IS_HPC_ENVIRONMENT = is_hpc_environment()
+# Q/A X-3: this used to be a module-level constant frozen at import, so per-process env changes
+# (request overrides, tests, late scheduler detection) never re-routed the backend. Evaluate at
+# call time via the helper instead.
+def _is_hpc():
+    return is_hpc_environment()
 
 
 def create_table():
     """Create table using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.create_table()
     else:
         return postgres_ops.create_table()
@@ -26,7 +30,7 @@ def create_table():
 
 def insert_asset(asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name):
     """Insert asset using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.insert_asset(asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
     else:
         return postgres_ops.insert_asset(asset_id, state, weather_file, floor_area, number_of_stories, complexity, asset_name, subtype, simulation_name)
@@ -34,9 +38,9 @@ def insert_asset(asset_id, state, weather_file, floor_area, number_of_stories, c
   
 def insert_bulk_assets(asset_data_list):
     """Insert bulk assets using appropriate database for the environment."""
-    logger.debug(f"insert_bulk_assets called: HPC={IS_HPC_ENVIRONMENT}, asset_count={len(asset_data_list) if asset_data_list else 0}")
+    logger.debug(f"insert_bulk_assets called: HPC={_is_hpc()}, asset_count={len(asset_data_list) if asset_data_list else 0}")
     
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         # Convert docker format to SQLite format if needed
         if not asset_data_list:
             logger.debug("No assets to insert")
@@ -80,7 +84,7 @@ def insert_bulk_assets(asset_data_list):
 
 def distribute_assets_to_batches(num_cores, simulation_name):
     """Distribute assets to batches using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.distribute_assets_to_batches(simulation_name, num_cores)
     else:
         return postgres_ops.distribute_assets_to_batches(num_cores, simulation_name)
@@ -88,7 +92,7 @@ def distribute_assets_to_batches(num_cores, simulation_name):
 
 def update_batch(asset_id, batch, simulation_name):
     """Update batch using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.update_batch(asset_id, batch, simulation_name)
     else:
         return postgres_ops.update_batch(asset_id, batch, simulation_name)
@@ -106,7 +110,7 @@ def update_time(asset_id, uorun_time, uoprocess_time, total_time, simulation_nam
             f"update_time for asset {asset_id} needs simulation_name: asset_id alone matches "
             f"every concurrent run of that asset"
         )
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.update_time(simulation_name, asset_id, uorun_time, uoprocess_time, total_time)
     else:
         return postgres_ops.update_time(asset_id, uorun_time, uoprocess_time, total_time, simulation_name)
@@ -123,7 +127,7 @@ def update_status(status, asset_id=None, simulation_name=None, failure_reason=No
             f"update_status for asset {asset_id} needs simulation_name: asset_id alone matches "
             f"every concurrent run of that asset"
         )
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         if simulation_name and asset_id:
             return sqlite_ops.update_status(simulation_name, asset_id, status, failure_reason=failure_reason)
         else:
@@ -135,7 +139,7 @@ def update_status(status, asset_id=None, simulation_name=None, failure_reason=No
 
 def bulk_update_status(asset_ids, status, simulation_name):
     """Bulk update status for multiple assets using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         if simulation_name and asset_ids:
             return sqlite_ops.bulk_update_status(asset_ids, status, simulation_name)
         else:
@@ -152,7 +156,7 @@ def bulk_update_status(asset_ids, status, simulation_name):
 
 def update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, batch_id):
     """Update simulation name using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, batch_id)
     else:
         return postgres_ops.update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, batch_id)
@@ -160,7 +164,7 @@ def update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, 
 
 def delete_table(table_name):
     """Delete table using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.delete_table(table_name)
     else:
         return postgres_ops.delete_table(table_name)
@@ -168,10 +172,13 @@ def delete_table(table_name):
         
 def get_status_stats(simulation_name, batch_id=None):
     """Get status stats using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
-        stats = sqlite_ops.get_status_stats(simulation_name)
-        finished_assets = stats.get('Finished', 0)
+    if _is_hpc():
+        stats = sqlite_ops.get_status_stats(simulation_name, batch_id)
         failed_assets = stats.get('Failed', 0)
+        # Postgres counts Finished+Failed as terminal ("done"); mirroring that here is what lets
+        # HPC batch progress reach 100% when a batch contains failures (Q/A D-01). batch_id is
+        # forwarded so per-batch progress stops reporting whole-simulation counts (Q/A D-02).
+        finished_assets = stats.get('Finished', 0) + failed_assets
         return finished_assets, failed_assets
     else:
         return postgres_ops.get_status_stats(simulation_name, batch_id)
@@ -179,7 +186,7 @@ def get_status_stats(simulation_name, batch_id=None):
 
 def get_distinct_weather_files(simulation_name):
     """Get distinct weather file names for a simulation."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.get_distinct_weather_files(simulation_name)
     else:
         return postgres_ops.get_distinct_weather_files(simulation_name)
@@ -195,7 +202,7 @@ def get_weather(asset_id, simulation_name):
     always false; scoping weather lookups to the run made it reachable and it raised
     AttributeError on the first HPC asset. Each node already reads its own node database.
     """
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.get_weather(asset_id, simulation_name)
     else:
         return postgres_ops.get_weather(asset_id, simulation_name)
@@ -203,7 +210,7 @@ def get_weather(asset_id, simulation_name):
         
 def get_bulk_assets(simulation_name, batch=None):
     """Get bulk assets using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         assets = sqlite_ops.get_bulk_assets(simulation_name)
         if batch is None:
             # Return just asset IDs for compatibility
@@ -218,7 +225,7 @@ def get_bulk_assets(simulation_name, batch=None):
 
 def get_bulk_batchids(simulation_name):
     """Get bulk batch IDs using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.get_bulk_batchids(simulation_name)
     else:
         return postgres_ops.get_bulk_batchids(simulation_name)
@@ -226,7 +233,7 @@ def get_bulk_batchids(simulation_name):
 
 def get_batch_total(simulation_name):
     """Get batch total using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         return sqlite_ops.get_batch_total(simulation_name)
     else:
         return postgres_ops.get_batch_total(simulation_name)
@@ -235,7 +242,7 @@ def get_batch_total(simulation_name):
 
 def get_asset_total(simulation_name, batch_id=None):
     """Get asset total using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         total = sqlite_ops.get_asset_total(simulation_name)
         if batch_id is not None:
             # SQLite version doesn't support batch_id parameter, need to filter manually
@@ -249,7 +256,7 @@ def get_asset_total(simulation_name, batch_id=None):
 
 def get_failed_assets(simulation_name, batch_id=None):
     """Get failed assets using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
+    if _is_hpc():
         failed_assets = sqlite_ops.get_failed_assets(simulation_name)
         # Convert to docker format (just asset IDs)
         return [asset['asset_id'] if isinstance(asset, dict) else asset for asset in failed_assets]
@@ -260,12 +267,14 @@ def get_failed_assets(simulation_name, batch_id=None):
 
 def get_asset_stats(simulation_name=None):
     """Get asset stats using appropriate database for the environment."""
-    if IS_HPC_ENVIRONMENT:
-        stats = sqlite_ops.get_asset_stats(simulation_name if simulation_name else '')
-        # Convert SQLite dict format to docker list format
-        if stats:
+    if _is_hpc():
+        # sqlite now returns per-asset rows in the postgres shape (Q/A R-020); None means all
+        # simulations on both backends (Q/A D-15: '' matched nothing yet stayed truthy, so the
+        # 404 guard never fired and the export KeyError'd instead)
+        rows = sqlite_ops.get_asset_stats(simulation_name or None)
+        if rows:
             filename = f"{simulation_name}_assets_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv" if simulation_name else f"all_assets_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            return [stats], filename  # Wrap in list for compatibility
+            return rows, filename
         return [], None
     else:
         return postgres_ops.get_asset_stats(simulation_name)

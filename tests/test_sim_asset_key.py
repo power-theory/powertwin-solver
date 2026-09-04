@@ -32,6 +32,8 @@ def sqlite_ops(tmp_path, monkeypatch):
     monkeypatch.setattr(mgr, "db_path", str(tmp_path / "powertwin.db"), raising=False)
     if hasattr(ops.thread_local, "connection"):
         del ops.thread_local.connection
+    if hasattr(ops.thread_local, "db_path"):
+        del ops.thread_local.db_path
     return ops
 
 

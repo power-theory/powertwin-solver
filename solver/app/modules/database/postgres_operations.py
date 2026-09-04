@@ -186,6 +186,7 @@ def distribute_assets_to_batches(num_cores, simulation_name):
                 ) - 1 as row_num
             FROM {DB_NAME}
             WHERE simulation_name = %s AND weather_file IS NOT NULL
+                  AND (status IS NULL OR status != 'Finished')
         )
         UPDATE {DB_NAME} AS t
         SET
@@ -286,10 +287,12 @@ def bulk_update_status(asset_ids, status, simulation_name):
     try:
         # Use unnest() to efficiently update multiple rows in a single query
         # This is much more efficient than individual updates or loops
+        # Q/A R-027b: the reset path must not resurrect Finished work on re-submission.
+        protect = " AND (status IS NULL OR status != 'Finished')" if status == 'Not Processed Yet' else ""
         query = f"""
             UPDATE {DB_NAME} 
             SET status = %s 
-            WHERE asset_id = ANY(%s) 
+            WHERE asset_id = ANY(%s){protect} 
             AND simulation_name = %s
         """
         
@@ -298,6 +301,10 @@ def bulk_update_status(asset_ids, status, simulation_name):
         conn.commit()
         
         logger.info(f"Successfully updated status to '{status}' for {updated_count} assets")
+        # Mirror sqlite (D-05/R-027b): a reset that protectively skipped Finished rows
+        # is success, not failure -- rowcount may legitimately fall short then.
+        if status == 'Not Processed Yet':
+            return True
         return updated_count == len(asset_ids)
         
     except Exception as e:
@@ -319,8 +326,9 @@ def update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, 
         # the caller delete every feature file (see recover_UOsim). Fail loud.
         cur.execute(f"""
             UPDATE {DB_NAME} SET simulation_name = %s
-            WHERE batch = %s AND simulation_name = %s AND status != 'Finished'
-        """, (RECOVERY_SIMULATION_NAME, batch_id, CORRUPTED_SIMULATION_NAME))
+            WHERE {('batch IS NULL' if batch_id is None else 'batch = %s')} AND simulation_name = %s AND (status IS NULL OR status != 'Finished')
+        """, ((RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME) if batch_id is None
+              else (RECOVERY_SIMULATION_NAME, batch_id, CORRUPTED_SIMULATION_NAME)))
         conn.commit()
     except Exception as e:
         logger.error(f"Error updating simulation name for batch_id {batch_id}: {e}")
@@ -385,7 +393,9 @@ def get_status_stats(simulation_name, batch_id=None):
             
     except Exception as e:
         logger.error(f"Database error getting batch stats: {str(e)}")
-        return 0, 0, 0
+        # two-tuple like every success path: the old 3-tuple made any DB error a ValueError
+        # at the unpacking callers (Q/A D-03)
+        return 0, 0
     finally:
         cur.close()
         conn.close()  
@@ -399,6 +409,7 @@ def get_distinct_weather_files(simulation_name):
         cur.execute(f"""
             SELECT DISTINCT weather_file FROM {DB_NAME}
             WHERE simulation_name = %s AND weather_file IS NOT NULL
+                  AND (status IS NULL OR status != 'Finished')
         """, (simulation_name,))
         return [row[0] for row in cur.fetchall()]
     except Exception as e:
