@@ -25,9 +25,27 @@ import threading
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "solver", "app"))
 
+# Solver-runtime deps (rich, flask, psutil...) are container-only; importorskip keeps host
+# collection clean instead of ERRORing the whole run (Q/A campaign WP-01).
+import pytest as _pytest
+_pytest.importorskip("rich", reason="solver runtime deps unavailable on host")
+
 from modules.utils.sim_flags import (  # noqa: E402
     set_sim_flags, get_sim_flag, clear_sim_flags, sim_env,
 )
+
+
+@_pytest.fixture(autouse=True)
+def _restore_dynamic_defaults_env():
+    """These tests pop URBANOPT_DYNAMIC_DEFAULTS to prove fallback semantics;
+    without restoring it they poison every later module that relies on the
+    ambient flag (is_dynamic_defaults_enabled defaults to FALSE when unset)."""
+    saved = os.environ.get("URBANOPT_DYNAMIC_DEFAULTS")
+    yield
+    if saved is None:
+        os.environ.pop("URBANOPT_DYNAMIC_DEFAULTS", None)
+    else:
+        os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = saved
 
 
 def test_flags_isolated_across_concurrent_threads():

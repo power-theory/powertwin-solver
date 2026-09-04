@@ -33,7 +33,7 @@ test_resolvers:
     # mpi4py (in solver/requirements) has no slim-image wheel; build it against a real MPI toolchain
     - apt-get update && apt-get install -y --no-install-recommends gcc libopenmpi-dev
     - pip install -r solver/requirements.txt pytest --quiet
-    - python tests/test_resolvers.py
+    - python -m pytest tests/ -m "not requires_container" -q
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^(dev|main)$/
 
@@ -63,7 +63,7 @@ test_resolvers:
 build_flask:
   extends: .build_template
   script:
-    - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask:${IMAGE_TAG}
+    - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask:${IMAGE_TAG} --build-arg GIT_SHA=${CI_COMMIT_SHA}
         -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask:${CI_COMMIT_BRANCH}
         -f ./solver/Dockerfile ./solver
     - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask --all-tags
@@ -123,7 +123,7 @@ build_mss:
         }}' > /tmp/secrets.json
     # URBANOPT runtime config is sourced from GitLab CI vars (single source of truth) so
     # changing year/resample/etc needs no chart change and cannot get stranded again.
-    - export URBANOPT_SETS="--set-string flask.urbanopt.simulationYear=${URBANOPT_SIMULATION_YEAR} --set-string flask.urbanopt.reportingFrequency=${URBANOPT_REPORTING_FREQUENCY} --set-string flask.urbanopt.resample=${URBANOPT_RESAMPLE} --set-string flask.urbanopt.dynamicDefaults=${URBANOPT_DYNAMIC_DEFAULTS} --set-string flask.urbanopt.postprocessTranslations=${URBANOPT_POSTPROCESS_TRANSLATIONS}"
+    - export URBANOPT_SETS="--set-string flask.urbanopt.simulationYear=${URBANOPT_SIMULATION_YEAR:-2026} --set-string flask.urbanopt.reportingFrequency=${URBANOPT_REPORTING_FREQUENCY:-Timestep} --set-string flask.urbanopt.resample=${URBANOPT_RESAMPLE:-} --set-string flask.urbanopt.dynamicDefaults=${URBANOPT_DYNAMIC_DEFAULTS:-false} --set-string flask.urbanopt.postprocessTranslations=${URBANOPT_POSTPROCESS_TRANSLATIONS:-false} --set-string flask.urbanopt.stochasticSampling=${URBANOPT_STOCHASTIC_SAMPLING:-false} --set-string flask.urbanopt.keepRunDir=${URBANOPT_KEEP_RUN_DIR:-false} --set-string flask.urbanopt.runTimeoutS=${URBANOPT_RUN_TIMEOUT_S:-129600}"
 
 deploy_dev:
   extends: .deploy_template

@@ -46,13 +46,14 @@ LEDGER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assumpti
 REF_DIR = os.path.join(REPO, "solver", "upload", "reference_data")
 SPEC_PATH = os.path.join(REPO, "solver", "app", "modules", "simulation", "sim_params_spec.py")
 
-# Map a ledger oracle file-stem -> the actual test file on disk.
+# Map a ledger oracle file-stem -> the actual test file on disk. Derived from the directory
+# rather than hardcoded: the old five-entry whitelist meant a guard placed in any sixth test file
+# could not be cited by the ledger without editing this dict (Q/A campaign C-4). Every
+# tests/test_*.py and tests/test_*.rb is now citable; existence remains asserted per oracle.
 ORACLE_FILES = {
-    "test_resolvers": os.path.join(REPO, "tests", "test_resolvers.py"),
-    "test_regression_guards": os.path.join(REPO, "tests", "test_regression_guards.py"),
-    "test_powertwin_refs": os.path.join(REPO, "tests", "test_powertwin_refs.rb"),
-    "test_sim_e2e": os.path.join(REPO, "tests", "test_sim_e2e.py"),
-    "test_assumptions_ledger": os.path.abspath(__file__),
+    os.path.splitext(f)[0]: os.path.join(REPO, "tests", f)
+    for f in sorted(os.listdir(os.path.join(REPO, "tests")))
+    if f.startswith("test_") and os.path.splitext(f)[1] in (".py", ".rb")
 }
 VALID_STATUS = {
     "PROVEN", "RESOLVER_PROVEN_INTEGRATION_PARTIAL", "RESOLVER_PROVEN_INTEGRATION_UNVERIFIED",
