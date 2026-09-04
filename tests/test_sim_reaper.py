@@ -11,6 +11,11 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "solver", "app"))
 
+# Solver-runtime deps (rich, flask, psutil...) are container-only; importorskip keeps host
+# collection clean instead of ERRORing the whole run (Q/A campaign WP-01).
+import pytest as _pytest
+_pytest.importorskip("rich", reason="solver runtime deps unavailable on host")
+
 from modules.utils.pack_results import proc_start, read_status, reap_orphaned_sims, write_status
 
 

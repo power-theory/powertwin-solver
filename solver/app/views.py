@@ -106,6 +106,35 @@ def home():
 # generate feature files and start the UrbanOpt simulation. This function parallelizes the 
 # simulation after the feature files are created.
 ############################################################################################################
+
+def _cleanup_recovery_dirs(*dirs):
+    """Remove partially-created recovery dirs so a retry is not 400'd (Q/A D-44)."""
+    for d in dirs:
+        try:
+            if os.path.exists(d):
+                shutil.rmtree(d)
+        except Exception as e:
+            logger.warning(f"could not clean recovery dir {d}: {e}")
+
+
+def _is_deleted_tombstone(path):
+    """True when `path` holds only the terminal 'deleted' status tombstone (Q/A D-43).
+
+    delete_simulation deliberately leaves a status.json reading 'deleted' for late polls, but the
+    write lands after the rmtree and recreates the directory -- which then made the
+    name-already-exists guard reject re-use of that simulation name forever. A tombstone-only
+    directory is free for re-use (the caller removes it)."""
+    if not os.path.isdir(path):
+        return False
+    entries = os.listdir(path)
+    if len(entries) != 1 or entries[0] != 'status.json':
+        return False
+    try:
+        with open(os.path.join(path, 'status.json')) as fh:
+            return json.load(fh).get('phase') == 'deleted'
+    except Exception:
+        return False
+
 def start_simulation():
     logger.debug("Within start_simulation()")
 
@@ -159,6 +188,9 @@ def start_simulation():
     # Simulation directory contains all files necessary for the simulation
     SIMULATION_DIR = os.path.join(DATA_DIR, f'{simulation_name}')
     LOCAL_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
+    for _d in (SIMULATION_DIR, LOCAL_DIR):
+        if _is_deleted_tombstone(_d):
+            shutil.rmtree(_d)  # freed name (Q/A D-43)
     if os.path.exists(SIMULATION_DIR) or os.path.exists(LOCAL_DIR):
         logger.error("Error: Simulation name already exists.")
         return jsonify({'error': 'Simulation name already exists.'}), 400
@@ -309,6 +341,9 @@ def process_asset_update():
         LOCAL_BASE = os.path.join('powertwin-solver-pg', 'user_files')
         SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
         sim_local_dir = os.path.join(LOCAL_BASE, simulation_name)
+        for _d in (SIMULATION_DIR, sim_local_dir):
+            if _is_deleted_tombstone(_d):
+                shutil.rmtree(_d)  # freed name (Q/A D-43; code-review: this guard missed the helper)
         if os.path.exists(SIMULATION_DIR) or os.path.exists(sim_local_dir):
             return jsonify({'error': 'Simulation name already exists.'}), 400
 
@@ -579,6 +614,9 @@ def autorun_simulation():
     # Simulation directory contains all files necessary for the simulation
     SIMULATION_DIR = os.path.join(DATA_DIR, f'{simulation_name}')
     LOCAL_DIR = os.path.join(LOCAL_DIR, f'{simulation_name}')
+    for _d in (SIMULATION_DIR, LOCAL_DIR):
+        if _is_deleted_tombstone(_d):
+            shutil.rmtree(_d)  # freed name (Q/A D-43)
     if os.path.exists(SIMULATION_DIR) or os.path.exists(LOCAL_DIR):
         logger.error("Error: Simulation name already exists.")
         return jsonify({'error': 'Simulation name already exists.'}), 400
@@ -884,8 +922,9 @@ def get_simulation_data():
 
 ############################################################################################################
 # Name: def recovery()
-# Description: This function recovers a corrupted simulation by removing assets that are "Processing" or "Not Processed Yet"
-#   from the feature_files directory and re-running the UO simulation.
+# Description: Recovers a corrupted simulation by KEEPING the unfinished assets ("Processing" /
+#   "Not Processed Yet" / "Failed") and re-running only those; Finished assets' feature files are
+#   pruned from the recovery set and their results carried over from the corrupted run.
 # Calls the simulation_recovery function to recover the corrupted simulation.
 ############################################################################################################
 def recovery():
@@ -927,19 +966,24 @@ def recovery():
     metadata_csv_path = os.path.join(CORRUPTED_SIMULATION_DIR, f'{corrupted_simulation_name}_metadata.csv')
     geojson_path = os.path.join(CORRUPTED_SIMULATION_DIR, f'{corrupted_simulation_name}_asset.geojson')
 
-    # Only this file requires error handling
+    # Both inputs are load-bearing (Q/A R-025: the old comment claimed only the metadata needed
+    # handling; a missing GeoJSON raised a bare 500 with no MSS error).
     if not os.path.exists(metadata_csv_path):
         logger.error("Metadata CSV file not found in the corrupted simulation directory")
+        _cleanup_recovery_dirs(RECOVERY_DIR_LOCAL, RECOVERY_DIR_CONTAINER)
         return jsonify({'error': 'Metadata CSV file not found in the corrupted simulation directory'}), 404
+    if not os.path.exists(geojson_path):
+        logger.error("GeoJSON file not found in the corrupted simulation directory")
+        _cleanup_recovery_dirs(RECOVERY_DIR_LOCAL, RECOVERY_DIR_CONTAINER)
+        return jsonify({'error': 'GeoJSON file not found in the corrupted simulation directory'}), 404
 
     # Copy and rename the metadata CSV and geojson to the recovery directory
     new_metadata_csv_path = os.path.join(RECOVERY_DIR_LOCAL, f'{recover_simulation_name}_metadata.csv')
     new_geojson_name_path = os.path.join(RECOVERY_DIR_LOCAL, f'{recover_simulation_name}_asset.geojson')
 
-    shutil.copy(metadata_csv_path, new_metadata_csv_path)
-    shutil.copy(geojson_path, new_geojson_name_path)
-    
     try:
+        shutil.copy(metadata_csv_path, new_metadata_csv_path)
+        shutil.copy(geojson_path, new_geojson_name_path)
         
         logger.debug("Calling simulation_recovery from recovery()")
         with _sim_env_override(keep_dirs=keep_dirs):
@@ -954,6 +998,22 @@ def recovery():
     except Exception as e:
         logger.error(f"Exception during simulation recovery: {str(e)}")
         send_error_to_mss('recovery', str(e))
+        # Q/A D-44: leave nothing behind that would 400 the retry with 'already exists' --
+        # but ONLY when the failed attempt renamed no rows. If batches already moved to the
+        # recovery name, a same-name retry would rebuild its asset list WITHOUT them and
+        # prune their feature files, stranding those rows (code-review). In that partial
+        # state, keep the dirs so the retry 400s and a human resolves the names.
+        try:
+            from modules.diagnostics.db import get_bulk_batchids
+            partially_renamed = bool(get_bulk_batchids(recover_simulation_name))
+        except Exception:
+            partially_renamed = True  # cannot verify -> keep dirs, fail safe
+        if partially_renamed:
+            logger.error(
+                f"Recovery failed AFTER renaming rows to {recover_simulation_name}; "
+                "keeping recovery directories so a blind same-name retry cannot strand them")
+        else:
+            _cleanup_recovery_dirs(RECOVERY_DIR_LOCAL, RECOVERY_DIR_CONTAINER)
         return jsonify({'error': str(e)}), 500
 
 

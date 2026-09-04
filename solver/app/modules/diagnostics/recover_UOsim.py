@@ -68,23 +68,28 @@ def download_weather_files_bulk(weather_stations_set):
         
         successful_downloads = 0
         failed_downloads = 0
+        pending_downloads = 0
         
         for weather_title in weather_stations_set:
             if weather_title in station_lookup:
                 station = station_lookup[weather_title]
                 try:
-                    # Check if weather files already exist (similar to get_location logic)
-                    weather_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'urbanopt', 'weather')
+                    # Probe the REAL per-station store (Q/A R-026: this used to check
+                    # app/urbanopt/weather -- a directory the pipeline never writes -- and then
+                    # count the missing file as an accomplished download while downloading
+                    # nothing; get_location performs the actual download later at sim time).
+                    weather_dir = os.path.join(os.path.dirname(__file__), '..', '..',
+                                               'urbanopt', 'weather_files', weather_title)
                     epw_file = os.path.join(weather_dir, f"{weather_title}.epw")
                     
-                    if not os.path.exists(epw_file):
-                        # Download would happen here - for now just mark as successful
-                        # since get_location already handles the actual download logic
+                    if os.path.exists(epw_file):
                         successful_downloads += 1
-                        logger.debug(f"Weather files ensured for station: {weather_title}")
+                        logger.debug(f"Weather files already present for station: {weather_title}")
                     else:
-                        successful_downloads += 1
-                        logger.debug(f"Weather files already exist for station: {weather_title}")
+                        pending_downloads += 1
+                        logger.info(
+                            f"Weather files for {weather_title} not present yet; "
+                            f"get_location will download them during the simulation")
                 except Exception as e:
                     failed_downloads += 1
                     logger.warning(f"Failed to ensure weather files for {weather_title}: {e}")
@@ -92,6 +97,8 @@ def download_weather_files_bulk(weather_stations_set):
                 failed_downloads += 1
                 logger.warning(f"Weather station not found in lookup: {weather_title}")
                 
+        if pending_downloads:
+            logger.info(f"{pending_downloads} station(s) will download at simulation time")
         return successful_downloads, failed_downloads
         
     except Exception as e:
@@ -99,11 +106,10 @@ def download_weather_files_bulk(weather_stations_set):
         return 0, len(weather_stations_set)
 
 ############################################################################################################
-# Name: simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, batch_id, num_cores)
-# Description: This function recovers a corrupted simulation by extracting the feature files from the corrupted simulation
-#   and zipping them into a new feature_files.zip in the recovery directory.
-#   The function then continues with the recovery process by analyzing the assets in the feature files.
-#   The function returns the total number of assets processed.
+# Name: simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPTED_SIMULATION_NAME, RECOVERY_SIMULATION_NAME, num_cores, batch_id=None)
+# Description: Recovers a corrupted simulation: extracts the corrupted run's feature files, prunes
+#   the Finished assets (their results carry over), re-zips the remainder into the recovery
+#   directory, and re-runs those batches. Returns the batch range in HPC mode, else None.
 ############################################################################################################
 def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPTED_SIMULATION_NAME, RECOVERY_SIMULATION_NAME, num_cores, batch_id=None):
     from modules.simulation import create_bulk_featurefiles
@@ -159,7 +165,10 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
     
     if batch_id is None:
         batch_list = get_bulk_batchids(CORRUPTED_SIMULATION_NAME)
-        
+        # Q/A D-51: DISTINCT batch includes NULL for never-distributed rows, and
+        # `WHERE batch = NULL` matches nothing in SQL -- that whole group used to be silently
+        # dropped from the rename and stranded under the corrupted name. The rename helpers
+        # treat batch=None as IS NULL now.
         # Collect all assets from all batches
         for batch in batch_list:
             update_simulation_name(RECOVERY_SIMULATION_NAME, CORRUPTED_SIMULATION_NAME, batch)
@@ -176,6 +185,18 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
         logger.info(f"Collected {len(batch_assets)} assets from batch {batch_id}")
 
     logger.info(f"Total assets to recover: {len(all_asset_ids)}")
+
+    if not all_asset_ids:
+        # Everything in scope is Finished (the rename protects Finished rows, so nothing
+        # moved): a benign nothing-to-recover state, not a failure. Bail BEFORE the prune
+        # below deletes every extracted feature file and the empty campaign surfaces as a
+        # confusing D-48 500 (code-review).
+        logger.info(
+            f"No unfinished assets to recover from {CORRUPTED_SIMULATION_NAME}; "
+            "all targeted work is already Finished. Nothing to do.")
+        shutil.rmtree(RECOVERY_DIR, ignore_errors=True)
+        shutil.rmtree(LOCAL_RECOVERY_DIR, ignore_errors=True)
+        return False
     
 
     # Get failed assets
@@ -260,21 +281,3 @@ def simulation_recovery(RECOVERY_DIR, LOCAL_RECOVERY_DIR, CORRUPTED_DIR, CORRUPT
         
     if is_hpc:
         return batch_range
-        
-
-
-if __name__ == "__main__":
-    USERFILES_DIR = os.path.join('powertwin-solver-pg', 'user_files')
-    CORRUPTED_SIMULATION_DIR = 'example_simulation'
-    RECOVERY_DIR = 'example_recovery'
-    RECOVERY_DIR_LOCAL = 'example_recovery'
-    batch_id = 1
-    num_cores = 4
-    simulation_recovery(CORRUPTED_SIMULATION_DIR, RECOVERY_DIR, RECOVERY_DIR_LOCAL, batch_id, num_cores)
-        
-    
-        
-        
-            
-
-

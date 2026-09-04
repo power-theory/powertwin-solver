@@ -20,8 +20,20 @@ def wait_for_all_nodes_ready():
     
     logger.info(f"Node {node_id}: Waiting for all {total_nodes} nodes to be ready...")
     
-    # Create ready marker
-    ready_dir = os.path.join(os.environ.get('HPC_SHARED_STORAGE', '/tmp'), 'node_ready')
+    # Create ready marker. JOB-SCOPED directory (Q/A R-023a): the old shared 'node_ready' dir
+    # was never cleaned, so a prior campaign's markers satisfied any later job with <= as many
+    # nodes -- the barrier was a no-op after the first run. The /tmp fallback is node-local and
+    # can never satisfy a multi-node barrier (R-023b); warn loudly instead of burning 10 minutes
+    # per node in silence.
+    shared = os.environ.get('HPC_SHARED_STORAGE')
+    if not shared and total_nodes > 1:
+        logger.warning(
+            "HPC_SHARED_STORAGE unset: node-ready barrier falls back to node-local /tmp and "
+            "CANNOT synchronize %s nodes -- skipping the barrier instead of timing out",
+            total_nodes)
+        return
+    ready_dir = os.path.join(shared or '/tmp',
+                             f"node_ready_{os.environ.get('SLURM_JOB_ID')}")
     os.makedirs(ready_dir, exist_ok=True)
     
     ready_file = os.path.join(ready_dir, f'node_{node_id}_ready')

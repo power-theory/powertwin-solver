@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 import csv
+import glob
 import json
 import subprocess
 
@@ -124,8 +125,13 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
     WEATHER_DESTINATION = os.path.join(SIMULATION_DIR, "weather")
     WEATHER_EPW_FILE = os.path.join(WEATHER_DESTINATION, f"{weather_file}.epw")
 
-    if not os.path.exists(WEATHER_EPW_FILE):
-        logger.warning(f"Weather file not found at {WEATHER_EPW_FILE}, copying...")
+    # Guard on ALL three extensions (Q/A R-022 addendum): keying on the .epw alone let a dir
+    # with .epw-but-no-.stat short-circuit the copy, and a missing .stat is exactly what aborts
+    # create_typical downstream.
+    _wx_files = [os.path.join(WEATHER_DESTINATION, f"{weather_file}.{e}")
+                 for e in ("epw", "ddy", "stat")]
+    if not all(os.path.exists(f) for f in _wx_files):
+        logger.warning(f"Weather file(s) incomplete under {WEATHER_DESTINATION}, copying...")
         os.makedirs(WEATHER_DESTINATION, exist_ok=True)
 
         # Use HPC shared storage for weather files when available
@@ -244,8 +250,10 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
                                           timeout=uo_timeout(cap=7200))
         except Exception as e:
             logger.warning(f"BATCH {batch_index}: uo process failed (non-fatal; per-asset feature_reports already written): {e}")
-            uo_process_time = 0
-        total_time = uo_run_time + uo_process_time
+            uo_process_time = None  # not a real timing (Q/A D-49); update_time stores NULL
+        # uo_process_time is None when the non-fatal process step failed (D-49);
+        # total is then just the run time (None + float raised and failed the asset).
+        total_time = uo_run_time + (uo_process_time or 0)
     except Exception as e:
         logger.error(f"BATCH {batch_index}: Error running UrbanOpt commands: {str(e)}")
         raise e
@@ -256,14 +264,20 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
     # Rename SIMULATION_DIR to locate the asset file
     ASSET_RUN_DIR = os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_index}')
         
-    # Clean Report 
-    metadata_files = [f for f in os.listdir(LOCAL_DIR) if f.endswith('metadata.csv')]
-    if metadata_files:
-        METADATA_CSV = os.path.join(LOCAL_DIR, metadata_files[0])
-        logger.debug(f"BATCH {batch_index}: Cleaning report for {asset_id}:{asset_name}...") 
-        clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,ASSET_RUN_DIR, METADATA_CSV, asset_id)
-    else:
-        logger.error(f"No metadata file found with pattern *metadata.csv in f'{LOCAL_DIR}', not cleaning report")
+    # Clean Report. ONE predicate, shared with clean_report.py's own glob (Q/A R-024): the old
+    # endswith('metadata.csv') guard admitted a bare metadata.csv that the consumer's
+    # *_metadata.csv glob then rejected -- the report was never cleaned, the run dir was deleted
+    # below, and the asset still went Finished. Cleaning is load-bearing; a failure fails the asset.
+    metadata_files = sorted(glob.glob(os.path.join(LOCAL_DIR, '*_metadata.csv')))
+    if not metadata_files:
+        raise RuntimeError(
+            f"no *_metadata.csv in {LOCAL_DIR}; cannot clean report for {asset_id}")
+    METADATA_CSV = metadata_files[0]
+    logger.debug(f"BATCH {batch_index}: Cleaning report for {asset_id}:{asset_name}...")
+    cleaned_ok = clean_single_report(LOCAL_DIR, LOCAL_BATCH_SIMULATION_DIR, ASSET_RUN_DIR,
+                                     METADATA_CSV, asset_id)
+    if cleaned_ok is False:
+        raise RuntimeError(f"cleaning produced no report for {asset_id} (see clean_report log)")
 
 
     feature_end_time = time.time()
@@ -388,20 +402,3 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     # Leave processing queue after completion in HPC environment
     if os.environ.get('SLURM_JOB_ID'):
         leave_processing_queue(batch_num)
-    
-
-
-
-############################################################################################################
-# Name: main()
-# Description: This function is the entry point for the script. Used for testing purposes.
-############################################################################################################
-if __name__ == "__main__":
-    batch = 1
-    SIMULATION_DIR = os.path.join(os.getcwd(), 'output')
-    METADATA_CSV = os.path.join(os.getcwd(), 'metadata.csv')
-    simulation_name = ''
-    
-    run_batch(batch, SIMULATION_DIR, METADATA_CSV, simulation_name)
-    
-    

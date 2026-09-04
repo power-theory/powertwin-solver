@@ -96,7 +96,7 @@ def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
     # URBANOPT_KEEP_RUN_DIR (bool, default false) short-circuits the
     # per-asset cleanup so test verifiers (and ad-hoc forensics) can read
     # eplusout.sql, in.idf, generated_files/, feature_reports/ etc. after
-    # a sim. Identical gating to run_UOsim.py / pernode.py / views.py so
+    # a sim. Identical gating to run_UOsim.py / views.py so
     # one toggle preserves every cleanup point.
     # Back-compat: legacy SIMULATION_KEEP_RUN_DIR and POWERTWIN_KEEP_DIRS
     # still honored so existing apptainer wrappers and .env.local files
@@ -140,12 +140,15 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
     CLEANED_REPORT_DEST = os.path.join(LOCAL_DIR,'cleaned_reports', f'{asset_id}')
     os.makedirs(CLEANED_REPORT_DEST, exist_ok=True)
     
-    # Find the metadata CSV file that ends with _metadata.csv
-    METADATA_CSV = glob(os.path.join(LOCAL_DIR, '*_metadata.csv'))
-    if not METADATA_CSV:
-        logger.error("No metadata CSV file found")
-        return
-    METADATA_CSV = METADATA_CSV[0]  
+    # Use the caller-supplied METADATA_CSV; re-glob only as a fallback (Q/A R-024: the argument
+    # was unconditionally overwritten, and guard/glob predicate drift silently skipped cleaning).
+    if not METADATA_CSV or not os.path.exists(METADATA_CSV):
+        candidates = glob(os.path.join(LOCAL_DIR, '*_metadata.csv'))
+        if not candidates:
+            logger.error("No metadata CSV file found")
+            return False
+        METADATA_CSV = candidates
+    METADATA_CSV = (METADATA_CSV[0] if isinstance(METADATA_CSV, list) else METADATA_CSV)  
     
     UNCLEAN_REPORT_CSV = os.path.join(SIMULATION_DIR, asset_id, "feature_reports", "default_feature_report.csv")
     ASSET_DIR = os.path.join(SIMULATION_DIR, asset_id)
@@ -292,16 +295,3 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
         
     # Clean the asset directory    
     clean_asset_dir(ASSET_DIR, LOCAL_ASSET_DIR)
-
-############################################################################################################
-# Main script:
-# Description: This function is the entry point for the script. Used for testing purposes.
-############################################################################################################
-if __name__ == "__main__":
-    SIMULATION_DIR = ''
-    METADATA_CSV = 'metadata.csv'
-    asset_id = '1'
-    SIMULATION_DIR = 'output'
-    
-    # Process the CSV file
-    clean_single_report(SIMULATION_DIR,SIMULATION_DIR, METADATA_CSV, asset_id)

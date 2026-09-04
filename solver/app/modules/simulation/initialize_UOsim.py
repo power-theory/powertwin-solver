@@ -158,6 +158,8 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
 
             # Don't reset assets already recorded Failed (e.g. no-coords buildings excluded from the
             # run): Failed is terminal -- resetting to 'Not Processed Yet' would lose it.
+            # Finished is protected inside bulk_update_status itself (Q/A R-027b), so a
+            # same-name re-submission no longer re-runs completed work.
             failed_ids = set(get_failed_assets(simulation_name) or [])
             asset_ids = [a for a in asset_ids if a not in failed_ids]
 
@@ -229,7 +231,8 @@ def pre_copy_weather_files(SIMULATION_DIR, simulation_name):
 # Description: This function initializes the UrbanOpt simulation by extracting the feature files from the zip file.
 #   It then prepares the record for the simulation by creating the UrbanOpt project and copying the mapper file.
 #   The function then runs the simulations in parallel.
-#   The function returns the total number of batches and assets.
+#   Returns the batch range in HPC mode (batches run externally via SLURM); returns None
+#   locally, where the batches are executed in-process before returning.
 ############################################################################################################
 def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name):
     start_time = time.time()
@@ -263,6 +266,12 @@ def initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name):
 
     # Prepare the database and setup UrbanOpt project
     batch_range = prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name)
+    if is_hpc_environment() and not batch_range:
+        # Q/A D-48: an empty batch range means asset analysis or distribution failed; proceeding
+        # used to run a zero-batch campaign that reported success. Fail loud instead.
+        raise RuntimeError(
+            f"prepare_record produced no batches for {simulation_name}; "
+            "asset analysis/distribution failed -- refusing to run an empty campaign")
 
     # Pre-copy weather files before parallel execution to prevent race conditions
     pre_copy_weather_files(SIMULATION_DIR, simulation_name)
