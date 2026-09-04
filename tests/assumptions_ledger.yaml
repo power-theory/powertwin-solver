@@ -185,7 +185,7 @@ ctx_derivation:
     oracle: {status: PROPERTY, note: "exercised by all division-keyed tests; add a direct 50-state+DC enumeration"}
   units_and_bedrooms:
     from: "metadata.number_of_units|units|number_of_residential_units ; bedrooms|number_of_bedrooms"
-    logic: "_coerce_int; residential bedrooms default 2, SQFT_PER_BEDROOM=800 when area present but bedrooms absent; MF per-unit denominator"
+    logic: "_coerce_int; residential bedrooms default 3 (RECS 2020 SFD mode, 50.4%), SQFT_PER_BEDROOM=700 (RECS 2020 weighted: 695 SFD / 655 all homes) when area present but bedrooms absent; MF per-unit denominator"
     invariants: ["MF occupant denominator == HPXML unit count (must agree)"]
     control: IN
     oracle: {status: PARTIAL, tests: [test_regression_guards::H7], note: "MF per-unit tested; bedroom-default + int-coercion edges not directly enumerated"}
@@ -251,7 +251,7 @@ fields:
     flat_default: natural gas
     resolver: "_resolve_fuel -> _resolve_heating_fuel (res) / cbecs (com)"
     source_assumption:
-      residential: "RECS2020_fuel_mix marginal, reconciled COUNTY-FIRST to ACS2022_county_fuel; combustion gas/propane/oil split from same marginal; all-electric cells fall back to RECS2020_fuel_by_system_type"
+      residential: "RECS2020_fuel_mix marginal, reconciled COUNTY-FIRST to ACS2022_county_fuel; furnace/boiler first draw electricity at the reconciled electric fraction from RECS2020_fuel_by_system_type (R-035: electric furnaces are up to 64% of a cell's furnaces), remainder split gas/propane/oil from same marginal; all-electric cells fall back to RECS2020_fuel_by_system_type"
       commercial: "CBECS2018_fuel_mix"
     invariants:
       - "population electric/wood marginal == target (ACS county else RECS division) within ~2pp"
@@ -270,7 +270,7 @@ fields:
     flat_default: furnace
     resolver: "_resolve_heating_system_type -> _reconciled_system_shares"
     source_assumption:
-      residential: "RECS2020_heating_system_type shares (division x decade), RECONCILED so the implied fuel marginal matches ACS county (else RECS division): electric systems scaled to electricity marginal split by division hp:er; wood_stove to wood marginal; furnace+boiler take combustion remainder"
+      residential: "RECS2020_heating_system_type shares (division x decade), RECONCILED so the implied fuel marginal matches ACS county (else RECS division): electric mass = hp + er + furnace/boiler electric fractions (RECS fuel-by-system) scaled to electricity marginal proportionally; wood_stove to wood marginal; furnace/boiler combustion portions take the combustion remainder (R-035: furnace-electric mass survives instead of inflating heat_pump)"
     invariants:
       - "reconciled group shares reproduce the fuel marginal (the reconciliation contract)"
       - "modal type need NOT equal raw RECS mode -- reconciliation intentionally reshapes (electric-heavy South -> heat-pump-dominant)"
@@ -327,7 +327,7 @@ fields:
     workflow: both
     type: enum
     values: [Single Pane, Double Pane, Triple Pane]
-    flat_default: Double Pane
+    flat_default: Double Pane   # L-009: RECS 2020 TYPEGLASS national mode (63.1% double / 35.2% single / 1.7% triple, NWEIGHT-weighted; recomputed 2026-09)
     resolver: "_resolve_window_type"
     source_assumption: {both: "per (region x vintage) glazing DISTRIBUTION transcribed from RECS 2020 TYPEGLASS (res) / CBECS 2018 WINTYP (com); share-weighted per building by id-hash (mode when stochastic off); separate res/com tables"}
     physical_mapping: "tier -> U/SHGC: residential CZ_WINDOW_RES (IECC2015) or physical glazing bounds; commercial CZ_WINDOW x TIER_FACTOR (ASHRAE 90.1)"
@@ -347,6 +347,7 @@ fields:
     resolver: "_resolve_envelope"
     source_assumption: {both: "DERIVED from the share-weighted R draw (residential ResStock / commercial ComStock realized stock) via R->tier thresholds"}
     invariants: ["tier derived from the SAME R draw as *_r_value (tier and R always agree)", "wall: R<=7 Standard / <=14 Insulated / else Super; roof: R<19 / <38 / else"]
+    note: "L-011: tier bin edges are HEURISTIC (no external citation); roof edges track IECC ceiling minimums (R-19 pre-2009 / R-38 2009+), wall edges bracket the flat wall_r default (13 -> Insulated). Bins only label the R draw; energy flows through the R value itself."
     oracle:
       resolver: [test_resolvers::resolver_golden, test_resolvers::envelope]
       integration: []   # built into model; no sim-output assertion that material landed
@@ -357,9 +358,9 @@ fields:
   wall_r_value:
     workflow: both
     type: numeric
-    range: [1.0, 80.0]
+    range: [1.0, 80.0]   # L-014: sanity clamp, not physics -- R-1 ~ uninsulated assembly film resistance floor; R-80 above any realized-stock wall (ResStock max cavity ~R-40ish, Passive-House walls ~R-40-60); clamp exists to reject unit errors
     units: "hr-ft2-F/Btu (CAVITY-only for residential)"
-    flat_default: 13.0
+    flat_default: 13.0   # L-012 adjudicated 2026-09: post-1980 stock-weighted mean cavity R from repo recs2020_envelope.json = 13.07; reviewer's 14.59 matches neither weighting -- 13.0 stands
     resolver: "_resolve_envelope"
     source_assumption: {residential: "ResStock 2024.2 realized-stock CAVITY-R {mode, shares} distribution (SFD, weighted), share-weighted per building", commercial: "ComStock 2024.1 realized-stock ASSEMBLY-R {mode, shares}, dual-keyed by climate zone (primary) + census region (fallback), share-weighted per building"}
     physical_mapping: "residential cavity->HPXML assembly via PowerTwinRefs.wall_assembly_r = cavity*0.75 + 2.5 (wood-frame parallel-path heuristic); commercial R is already assembly"
@@ -410,7 +411,7 @@ fields:
     flat_default: ""   # empty -> omit, template default
     resolver: "_resolve_occupants"
     source_assumption:
-      residential: "bedrooms+1 per dwelling unit (HPXML/Manual J); 800 sqft/bedroom if bedrooms absent; default 2 bedrooms; divided by units for MF"
+      residential: "bedrooms+1 per dwelling unit (HPXML/Manual J); 700 sqft/bedroom if bedrooms absent (RECS 2020 weighted: 695 SFD); default 3 bedrooms (RECS 2020 SFD mode); divided by units for MF"
       commercial: "area x OS_people_per_area / 1000 (ASHRAE 90.1-2013 density by DOE prototype)"
     invariants: ["MF per-unit denominator consistent with HPXML unit count", "vacant -> 0"]
     oracle:
@@ -444,11 +445,11 @@ fields:
   floor_height:
     workflow: both
     type: numeric
-    range: [6.0, 20.0]
+    range: [6.0, 20.0]   # L-020 KNOWN-LIMIT: max 20ft excludes high-bay stock (warehouses/religious ~28ft); raising it is a value change deferred to roadmap, not adopted in WP-08
     units: feet
-    flat_default: 9.0
+    flat_default: 9.0    # L-020: 9ft is the DOE commercial prototype floor-to-floor baseline used by the ASHRAE 90.1 Appendix G modeling convention (not a numbered 90.1 table); citation corrected from bare "ASHRAE_90_1_2013"
     resolver: none
-    source_assumption: {both: "ASHRAE_90_1_2013 commercial baseline"}
+    source_assumption: {both: "DOE commercial prototype / 90.1 Appendix G baseline floor-to-floor height"}
     oracle: {status: STATIC}
 
 # =============================================================================

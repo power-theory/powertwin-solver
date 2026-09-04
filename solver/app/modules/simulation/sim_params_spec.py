@@ -199,20 +199,11 @@ ENUM_VALUES = {
         'VAV district chilled water with gas coil reheat',
         'PVAV with gas heat with electric reheat',
         'PVAV with central air source heat pump reheat', 'PVAV with PFP boxes',
-        'Residential - electric resistance and no cooling',
-        'Residential - electric resistance and central air conditioner',
-        'Residential - electric resistance and room air conditioner',
-        'Residential - electric resistance and evaporative cooler',
-        'Residential - furnace and no cooling',
-        'Residential - furnace and central air conditioner',
-        'Residential - furnace and room air conditioner',
-        'Residential - furnace and evaporative cooler',
-        'Residential - boiler and no cooling',
-        'Residential - boiler and central air conditioner',
-        'Residential - boiler and room air conditioner',
-        'Residential - boiler and evaporative cooler',
-        'Residential - air-to-air heat pump', 'Residential - mini-split heat pump',
-        'Residential - ground-to-air heat pump',
+        # NOTE (Q/A R-002): the 15 'Residential - *' values from urbanopt's building_properties
+        # schema are deliberately EXCLUDED: system_type is consumed only by the commercial
+        # create_typical_building_from_model measure, whose choice list rejects them -- they
+        # validated here, then failed at measure run time. Residential HVAC comes from
+        # heating_system_type/fuel via the HPXML path instead.
     },
     'heating_system_type':             {'heat_pump', 'furnace', 'boiler', 'electric_resistance', 'wood_stove'},
     'water_heater_type':               {'storage water heater', 'instantaneous water heater', 'heat pump water heater'},
@@ -279,18 +270,29 @@ def validate_metadata(metadata):
     SIM_PARAM_DEFAULTS in get_param).
     """
     errors = []
+    # Validate against RESOLVER_ENUM_VALUES (everything the downstream toolchain can map):
+    # explicit 'district steam' heating/SWH and cooling 'none' are documented API levers,
+    # and strict ENUM_VALUES would reject them at the boundary (district-steam e2e).
     for key, valid in ENUM_VALUES.items():
         val = metadata.get(key)
         if val in (None, ''):
             continue
-        if val not in valid:
-            errors.append(f"invalid {key}={val!r} (must be one of: {sorted(valid)})")
+        allowed = RESOLVER_ENUM_VALUES.get(key, valid)
+        if val not in allowed:
+            errors.append(f"invalid {key}={val!r} (must be one of: {sorted(allowed)})")
     for key in TIME_FIELDS:
         val = metadata.get(key)
         if val in (None, ''):
             continue
         if not _TIME_RE.match(str(val)):
             errors.append(f"invalid {key}={val!r} (must be HH:MM, 00:00-23:59)")
+    # vacant was previously unvalidated (Q/A R-006) while its consumer's old `is True` check
+    # silently mis-simulated stringly-typed values. Accept only bool-like encodings so a bad
+    # value is rejected at the API boundary instead of surprising the vacancy model.
+    val = metadata.get('vacant')
+    if val not in (None, '', True, False, 'true', 'True', 'TRUE', 'false', 'False', 'FALSE',
+                   0, 1, '0', '1'):
+        errors.append(f"invalid vacant={val!r} (must be a boolean or 'true'/'false')")
     # Numeric range / type validation is handled by get_param at read time
     # (clamps + warns instead of rejecting).
     return (len(errors) == 0, errors)
@@ -470,6 +472,10 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
         'climate_zone': cz,
         'building_id': bid,
         'county_fips': county_fips,
+        # Explicit system/heater overrides ride in the ctx so the FUEL resolvers can condition on
+        # what the user actually chose instead of a redraw (Q/A R-037). Enum-validated at use.
+        'heating_system_type': metadata.get('heating_system_type'),
+        'water_heater_type': metadata.get('water_heater_type'),
     }
 
 
@@ -529,12 +535,15 @@ def _office_size_class(ctx: dict) -> str:
     return 'MediumOffice'
 
 
-SQFT_PER_BEDROOM = 800
+# RECS 2020 microdata (NWEIGHT-weighted): conditioned ft^2 per bedroom = 695 for
+# single-family detached, 655 across all homes (Q/A WP-08 recomputation). The
+# old value of 800 under-counted bedrooms (and so occupants) by ~15%.
+SQFT_PER_BEDROOM = 700
 
 def _resolve_occupants(ctx: dict) -> int | None:
     """Composite occupants resolver:
         residential: HPXML/Manual J convention -> bedrooms + 1, PER dwelling unit
-                     (bedrooms inferred from per-unit area at ~800 ft^2/br when absent)
+                     (bedrooms inferred from per-unit area at ~700 ft^2/br when absent)
         commercial:  area_sqft * people_per_1000ft^2 / 1000
                      (people_per_1000ft^2 from OpenStudio Standards 90.1-2013,
                      keyed by DOE Reference Building prototype name)
@@ -555,7 +564,7 @@ def _resolve_occupants(ctx: dict) -> int | None:
             if area:
                 bedrooms = max(1, round(float(area) / units / SQFT_PER_BEDROOM))
             else:
-                bedrooms = 2  # HPXML modal SFD assumption
+                bedrooms = 3  # RECS 2020 modal SFD bedroom count (50.4%; '2' is 13.7%)
         else:
             try:
                 bedrooms = max(1, round(int(bedrooms) / units))
@@ -742,6 +751,19 @@ def _resolve_heating_fuel(ctx, sys_type):
         return ('wood', 'building_type_only')
     if sys_type not in ('furnace', 'boiler'):
         return (None, None)
+    # Q/A R-035: furnaces/boilers are NOT pure combustion -- RECS puts electricity at up
+    # to 64% of a division-vintage's furnaces (ESC 2020+). Draw electricity first at the
+    # reconciled electric fraction (the same arithmetic that set the system-type shares,
+    # so mass is conserved across the two draws), then split the remainder over the
+    # combustion marginal as before.
+    parts = _reconcile_internals(ctx)
+    e_frac = parts.get('furn_e_frac' if sys_type == 'furnace' else 'boil_e_frac', 0.0) if parts else 0.0
+    if e_frac > 0:
+        record = {'shares': {'electricity': round(e_frac, 4), '_combustion': round(1 - e_frac, 4)},
+                  'mode': 'electricity' if e_frac >= 0.5 else '_combustion'}
+        pick = _select_fuel_by_share(record, ctx, salt='heating_system_fuel_type_elec')
+        if pick == 'electricity':
+            return ('electricity', 'division_vintage')
     if ctx.get('county_fips'):
         cs = _load_ref('acs2022_county_fuel').get('fuel_share', {}).get(ctx['county_fips'])
         comb = {k: (cs or {}).get(k, 0) for k in ('natural gas', 'propane', 'fuel oil')}
@@ -767,7 +789,11 @@ def _resolve_swh_fuel(ctx, sys_type):
     propane/oil furnaces and collapsed to ~the marginal, giving only ~48% gas SWH for
     gas-heated homes.) A heat pump water heater is electric by definition (resolved on its
     own hash salt). Returns (fuel, level)."""
-    wh_type, _ = _resolve_water_heater_type(ctx)
+    explicit_wh = ctx.get('water_heater_type')
+    if explicit_wh in ENUM_VALUES.get('water_heater_type', set()):
+        wh_type = explicit_wh  # explicit override drives the fuel conditioning (Q/A R-037)
+    else:
+        wh_type, _ = _resolve_water_heater_type(ctx)
     if wh_type == 'heat pump water heater':
         return ('electricity', 'building_type_only')
     heating_fuel, hlevel = _resolve_heating_fuel(ctx, sys_type)
@@ -801,9 +827,16 @@ def _resolve_fuel(field: str, ctx: dict):
         if field == 'cooling_system_fuel_type' and cz_num >= 7 and is_residential:
             return ('none', 'building_type_only')
         return (section['_constant_default']['mode'], 'building_type_only')
-    # Residential heating/SWH fuel is conditioned on the heating system type.
+    # Residential heating/SWH fuel is conditioned on the heating system type. An EXPLICIT
+    # metadata system type must drive this (Q/A R-037): the redraw used to ignore the override,
+    # pairing a user's heat_pump with a resolver-drawn natural gas -- the exact impossible combo
+    # the conditioning exists to prevent.
     if field in ('heating_system_fuel_type', 'service_water_heating_fuel_type') and is_residential:
-        sys_type, _ = _resolve_heating_system_type(ctx)
+        explicit_sys = ctx.get('heating_system_type')
+        if explicit_sys in ENUM_VALUES.get('heating_system_type', set()):
+            sys_type = explicit_sys
+        else:
+            sys_type, _ = _resolve_heating_system_type(ctx)
         if field == 'heating_system_fuel_type':
             r = _resolve_heating_fuel(ctx, sys_type)
         else:
@@ -848,6 +881,71 @@ def _resolve_heating_system_type(ctx: dict):
     return (_select_fuel_by_share(record, ctx, salt='heating_system_type'), level)
 
 
+
+def _system_electric_fraction(ctx, sys_type):
+    """P(electricity | sys_type, division, vintage) from the RECS fuel-by-system table.
+    Q/A R-035: electric furnaces are up to 64% of a division-vintage's furnaces (ESC 2020+);
+    treating furnace/boiler as pure combustion reassigned that mass to heat_pump at COP 3."""
+    cond = _load_ref("recs2020_fuel_by_system_type").get(sys_type, {}).get("_division", {})
+    division = ctx.get('division')
+    if not division or division not in cond:
+        return 0.0
+    div_data = cond[division]
+    decade = ctx.get('decade_vintage')
+    record = div_data.get(decade) if (decade and decade in div_data) else div_data.get('all')
+    if not record:
+        return 0.0
+    return float(record.get('shares', {}).get('electricity', 0) or 0)
+
+
+def _reconcile_internals(ctx):
+    """Shared arithmetic for the county-first reconciliation (system shares AND the furnace/
+    boiler electric-fuel fractions must come from ONE computation or they drift). Returns None
+    when no division data, else a dict of the reconciled pieces."""
+    record, level = _raw_heating_system_record(ctx)
+    if record is None:
+        return None
+    s = dict(record.get('shares', {}))
+    hp = s.get('heat_pump', 0); er = s.get('electric_resistance', 0)
+    furn = s.get('furnace', 0); boil = s.get('boiler', 0)
+    fe = _system_electric_fraction(ctx, 'furnace')
+    be = _system_electric_fraction(ctx, 'boiler')
+    e_target = _heating_marginal_target(ctx, 'electricity')
+    if e_target is None:
+        # no marginal to reconcile against: raw shares, raw conditional fractions
+        return {'level': level, 'raw': True, 'shares': s,
+                'furn_e_frac': fe, 'boil_e_frac': be}
+    w_target = _heating_marginal_target(ctx, 'wood')
+    w_t = w_target if w_target is not None else s.get('wood_stove', 0)
+    e_t = max(0.0, e_target)
+    c_t = max(0.0, 1.0 - e_t - w_t)
+    elec_mass = hp + er + furn * fe + boil * be
+    comb_mass = furn * (1 - fe) + boil * (1 - be)
+    new = {}
+    if elec_mass > 0:
+        k = e_t / elec_mass
+        new['heat_pump'] = k * hp
+        new['electric_resistance'] = k * er
+        furn_e = k * furn * fe
+        boil_e = k * boil * be
+    else:
+        new['heat_pump'] = 0.0
+        new['electric_resistance'] = e_t
+        furn_e = boil_e = 0.0
+    new['wood_stove'] = w_t
+    if comb_mass > 0:
+        k = c_t / comb_mass
+        furn_c = k * furn * (1 - fe)
+        boil_c = k * boil * (1 - be)
+    else:
+        furn_c, boil_c = c_t, 0.0
+    new['furnace'] = furn_e + furn_c
+    new['boiler'] = boil_e + boil_c
+    return {'level': level, 'raw': False, 'shares': new,
+            'furn_e_frac': (furn_e / new['furnace']) if new['furnace'] > 0 else 0.0,
+            'boil_e_frac': (boil_e / new['boiler']) if new['boiler'] > 0 else 0.0}
+
+
 def _reconciled_system_shares(ctx):
     """THE county-first heating reconciliation -- the single place the system-type
     distribution is scaled so the resolved heating-fuel marginals match the
@@ -855,46 +953,21 @@ def _reconciled_system_shares(ctx):
     division). Returns (record, level) with record['shares'] the reconciled
     distribution, or (None, None) when no division data exists.
 
-      electric systems (heat_pump + electric_resistance) -> electricity marginal,
-        split by the division heat_pump:electric_resistance ratio;
-      wood_stove                                         -> wood marginal;
-      furnace + boiler                                   -> combustion remainder,
-        split by the division furnace:boiler ratio.
+      electric mass (heat_pump + electric_resistance + the electric fractions of
+        furnace/boiler per RECS fuel-by-system, Q/A R-035) -> electricity marginal,
+        partitioned proportionally;
+      wood_stove -> wood marginal;
+      combustion portions of furnace/boiler -> combustion remainder, proportional.
+      A furnace/boiler share is the sum of its electric and combustion parts, so
+      electric-furnace mass survives instead of inflating heat_pump at COP 3.
 
     The raw division distribution is returned unchanged when no marginal target
     is available (no county_fips and no division fuel-mix row)."""
-    record, level = _raw_heating_system_record(ctx)
-    if record is None:
+    parts = _reconcile_internals(ctx)
+    if parts is None:
         return (None, None)
-    e_target = _heating_marginal_target(ctx, 'electricity')
-    if e_target is None:
-        return (record, level)
-    s = dict(record.get('shares', {}))
-    hp = s.get('heat_pump', 0); er = s.get('electric_resistance', 0)
-    furn = s.get('furnace', 0); boil = s.get('boiler', 0)
-    elec_div = hp + er
-    comb_div = furn + boil
-    w_target = _heating_marginal_target(ctx, 'wood')
-    w_t = w_target if w_target is not None else s.get('wood_stove', 0)
-    e_t = max(0.0, e_target)
-    c_t = max(0.0, 1.0 - e_t - w_t)
-    new = {}
-    if elec_div > 0:
-        new['heat_pump'] = e_t * hp / elec_div
-        new['electric_resistance'] = e_t * er / elec_div
-    else:
-        # division shows no electric systems; treat new electric homes as
-        # resistance (COP 1) rather than overstating heat-pump efficiency.
-        new['heat_pump'] = 0.0
-        new['electric_resistance'] = e_t
-    new['wood_stove'] = w_t
-    if comb_div > 0:
-        new['furnace'] = c_t * furn / comb_div
-        new['boiler'] = c_t * boil / comb_div
-    else:
-        new['furnace'] = c_t
-        new['boiler'] = 0.0
-    return ({'shares': new, 'mode': max(new, key=new.get)}, level)
+    shares = parts['shares']
+    return ({'shares': shares, 'mode': max(shares, key=shares.get)}, parts['level'])
 
 
 def _resolve_water_heater_type(ctx: dict):
@@ -1107,6 +1180,18 @@ def get_param(metadata, key, ctx=None):
     resolved yet).
     """
     raw = metadata.get(key)
+    if raw is not None and raw != '':
+        # Enum gate on the METADATA path too (Q/A D-26): an arbitrary explicit string used to
+        # ride into the feature JSON and get silently dropped by the Ruby fuel_map
+        # (template-default physics, no log). Gate against RESOLVER_ENUM_VALUES, the full set
+        # the downstream toolchain can map -- gating on strict ENUM_VALUES rejected the
+        # documented explicit 'district steam' / cooling 'none' levers (caught by the
+        # district-steam container e2e).
+        _meta_allowed = RESOLVER_ENUM_VALUES.get(key, ENUM_VALUES.get(key))
+        if _meta_allowed is not None and str(raw) not in _meta_allowed:
+            log.warning(
+                f"ignoring invalid metadata {key}={raw!r} (not in enum); resolving default instead")
+            raw = None
     if raw is not None and raw != '':
         if key in NUMERIC_RANGES:
             lo, hi = NUMERIC_RANGES[key]

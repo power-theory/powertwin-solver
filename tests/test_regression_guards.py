@@ -130,7 +130,6 @@ def _mapper_deploy_sites_copy_refs():
         helper = fh.read()
     helper_ok = "powertwin_refs.rb" in helper and "reference_data" in helper
     sites = ["solver/app/modules/simulation/run_UOsim.py",
-             "solver/app/modules/simulation/pernode.py",
              "solver/app/modules/simulation/initialize_UOsim.py"]
     missing = []
     for s in sites:
@@ -204,9 +203,9 @@ def h7_multifamily_per_unit_occupants():
                               build_asset_ctx({"state": "AZ", "year_built": 2005, "area": 1800}, building_type="Single-Family Detached"))[0]
     occ_mf = resolve_default("number_of_occupants",
                              build_asset_ctx({"state": "AZ", "year_built": 2005, "area": 8000, "number_of_units": 8}, building_type="Multifamily"))[0]
-    # per-unit: round(8000/8/800)+1 = 2; pre-fix whole-building would be round(8000/800)+1 = 11
-    fixed = occ_sfd == 3 and occ_mf == 2
-    detail = f"SFD(1800,1u)={occ_sfd}(want 3); MF(8000,8u)={occ_mf}(want 2 per-unit; pre-fix bug=11 whole-building)"
+    # per-unit: round(8000/8/700)+1 = 2; pre-fix whole-building would be round(8000/700)+1 = 12
+    fixed = occ_sfd == 4 and occ_mf == 2
+    detail = f"SFD(1800,1u)={occ_sfd}(want 4: round(1800/700)=3br+1); MF(8000,8u)={occ_mf}(want 2 per-unit; pre-fix bug=12 whole-building)"
     return V("H7", "multifamily per-unit occupants [fixed]",
              "OK (fixed)" if fixed else "REGRESSED (whole-building occupants in per-unit field)", detail)
 
@@ -249,13 +248,13 @@ def h6_preview_sim_agree_on_time():
 
 
 def h8_electric_furnace_efficiency():
-    """All electric heating is now carried by the heat_pump/electric_resistance
-    system types (reconciled to the electricity marginal in BOTH the county and
-    no-county paths), so furnaces are combustion-only and the resolver no longer
-    emits furnace+electricity. The PowerTwin.rb AFUE guard (set 1.0 + skip
-    combustion AFUE for electric fuel) is kept as defensive code in case an
-    electric furnace ever arrives via a metadata override -- verify it remains.
-    Also confirm the resolver does NOT produce furnace+electricity."""
+    """Q/A R-035: electric furnaces are REAL stock (RECS 2020: up to 64% of a
+    division-vintage's furnaces) and the resolver now deliberately emits
+    furnace+electricity at the reconciled electric fraction, instead of
+    reassigning that mass to heat_pump at COP 3. The PowerTwin.rb AFUE guard
+    (set 1.0 + skip combustion AFUE turnover for electric fuel) is therefore
+    LOAD-BEARING, not defensive: verify it remains, and verify the resolver
+    actually produces electric furnaces where the data says they exist."""
     fuel_for_furnace = Counter()
     for i in range(1500):
         ctx = build_asset_ctx({"state": "TX", "year_built": 2005, "area": 1800},
@@ -263,12 +262,14 @@ def h8_electric_furnace_efficiency():
         st = resolve_default("heating_system_type", ctx)[0]
         if st == "furnace":
             fuel_for_furnace[resolve_default("heating_system_fuel_type", ctx)[0]] += 1
+    total = sum(fuel_for_furnace.values())
     elec_furnaces = fuel_for_furnace.get("electricity", 0)
     guarded = _electric_furnace_efficiency_guarded()
-    fixed = elec_furnaces == 0 and guarded
-    detail = (f"furnace+electricity emitted={elec_furnaces} (want 0; furnaces are "
-              f"combustion-only); PowerTwin.rb AFUE guard present: {guarded}")
-    return V("H8", "electric furnace guard + furnaces combustion-only [fixed]",
+    # WSC 2000s furnaces are ~30% electric in RECS; require a nonzero share.
+    fixed = total > 0 and elec_furnaces > 0 and guarded
+    detail = (f"furnace+electricity emitted={elec_furnaces}/{total} (want >0: "
+              f"electric furnaces are real stock, R-035); PowerTwin.rb AFUE guard present: {guarded}")
+    return V("H8", "electric furnaces carried + AFUE guard load-bearing [R-035]",
              "OK (fixed)" if fixed else "REGRESSED", detail)
 
 

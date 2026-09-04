@@ -433,12 +433,13 @@ def test_cooling_suppression_subarctic():
 def test_occupants():
     section = "occupants"
 
-    # Residential: bedrooms+1 formula (bedrooms inferred from area)
+    # Residential: bedrooms+1 formula (bedrooms inferred from area at the
+    # RECS-2020-verified 700 ft^2/bedroom -- Q/A WP-08 L-016)
     cases = [
-        (800,  2),   # 800/800 = 1 br -> 2
-        (1600, 3),   # 1600/800 = 2 br -> 3
-        (2400, 4),   # 2400/800 = 3 br -> 4
-        (4000, 6),   # 4000/800 = 5 br -> 6
+        (800,  2),   # round(800/700)  = 1 br -> 2
+        (1600, 3),   # round(1600/700) = 2 br -> 3
+        (2400, 4),   # round(2400/700) = 3 br -> 4
+        (4000, 7),   # round(4000/700) = 6 br -> 7
     ]
     for area, exp in cases:
         ctx = make_ctx("TX", 2000, area, "Single-Family Detached")
@@ -1030,7 +1031,14 @@ def test_county_fuel():
         building_type="Single-Family Detached", building_id="county_test_001",
     )
     val, level = resolve_default("heating_system_fuel_type", ctx)
-    check("county fuel resolves at county_acs", level, "county_acs", section)
+    # Q/A R-035: a furnace/boiler can draw electricity first (division-level
+    # conditional), so county_acs applies to the combustion draws; electric
+    # outcomes resolve at building_type_only/division_vintage.
+    if val in ('natural gas', 'propane', 'fuel oil'):
+        check("county combustion fuel resolves at county_acs", level, "county_acs", section)
+    else:
+        check_in("county electric fuel level", level,
+                 {'building_type_only', 'division_vintage'}, section)
     check_in("county fuel valid enum", val, ENUM_VALUES["heating_system_fuel_type"], section)
 
     # Without building_id, should fall back to mode of county shares
@@ -1048,13 +1056,21 @@ def test_county_fuel():
     check_in("no bid county fuel valid", val_mode,
              ENUM_VALUES["heating_system_fuel_type"], section)
 
-    # SWH should NOT use county ACS (B25040 is heating fuel only)
+    # SWH never reads county ACS directly (B25040 is heating fuel only); it
+    # conditions on the resolved heating fuel and propagates that level, so
+    # the SWH level must match the heating-fuel level for the same building
+    # (unless the SWH draw lands on a heat pump water heater, which is
+    # electric by definition at building_type_only).
     ctx2 = build_asset_ctx(
         {"state": "AZ", "year_built": 2000, "area": 2000, "county_fips": "04013"},
         building_type="Single-Family Detached", building_id="county_swh_001",
     )
-    _, swh_level = resolve_default("service_water_heating_fuel_type", ctx2)
-    check("SWH does not use county_acs", swh_level != 'county_acs', True, section)
+    swh_val, swh_level = resolve_default("service_water_heating_fuel_type", ctx2)
+    _, hf_level = resolve_default("heating_system_fuel_type", ctx2)
+    check_in("SWH valid enum", swh_val,
+             ENUM_VALUES["service_water_heating_fuel_type"], section)
+    check_in("SWH level tracks heating fuel or HPWH", swh_level,
+             {hf_level, 'building_type_only'}, section)
 
     # County fuel should produce a distribution with building_ids
     ct = Counter()
@@ -1957,7 +1973,7 @@ def test_boiler_division_fuel():
             ct[fuel_val] += 1
             if len(ct) == 1:
                 check("boiler div fuel level", fuel_level, "division_vintage", section)
-                boiler_valid = {'natural gas', 'propane', 'fuel oil'}
+                boiler_valid = {'natural gas', 'propane', 'fuel oil', 'electricity'}
                 check_in("boiler div fuel valid", fuel_val, boiler_valid, section)
 
     check("found boilers in MA (no county)", boiler_found, True, section)
@@ -1968,11 +1984,11 @@ def test_boiler_division_fuel():
             check_in(f"boiler div fuel '{fuel}' valid", fuel, all_fuels, section)
         check("boiler div has fuel", len(ct) >= 1, True, section)
 
-    # Division-level boiler heating fuel must never be electricity/wood: those are
-    # filtered to combustion fuels (mirrors Ruby safeguard). Covers the sparse
-    # RECS cells that hold ONLY electricity/wood (e.g. East South Central 2000-2009
-    # = 100% electricity) where the filter must fall back to natural gas.
-    combustion = {'natural gas', 'propane', 'fuel oil'}
+    # Q/A R-035: boiler heating fuel may be electricity (RECS 2020: ~7% of boilers
+    # nationally; some sparse cells like East South Central 2000-2009 are 100%
+    # electric) -- the old combustion-only filter silently rewrote that mass to
+    # natural gas. Wood is still never emitted for boilers.
+    allowed = {'natural gas', 'propane', 'fuel oil', 'electricity'}
     for state, year in [("AL", 2005), ("TX", 1975), ("AZ", 1955), ("IL", 1995)]:
         boiler_fuels = Counter()
         for i in range(400):
@@ -1984,8 +2000,22 @@ def test_boiler_division_fuel():
                 fuel, _ = resolve_default("heating_system_fuel_type", ctx)
                 boiler_fuels[fuel] += 1
         for fuel in boiler_fuels:
-            check_in(f"boiler {state}/{year} heating fuel combustion-only",
-                     fuel, combustion, section)
+            check_in(f"boiler {state}/{year} heating fuel allowed",
+                     fuel, allowed, section)
+        check(f"boiler {state}/{year} no wood", boiler_fuels.get('wood', 0), 0, section)
+    # AL (East South Central) 2005 sits in the 100%-electric RECS boiler cell:
+    # if enough boilers are drawn there, electricity must dominate their fuel.
+    esc = Counter()
+    for i in range(600):
+        ctx = build_asset_ctx(
+            {"state": "AL", "year_built": 2005, "area": 2000},
+            building_type="Single-Family Detached", building_id=f"besc_{i:04d}",
+        )
+        if resolve_default("heating_system_type", ctx)[0] == 'boiler':
+            esc[resolve_default("heating_system_fuel_type", ctx)[0]] += 1
+    if sum(esc.values()) >= 5:
+        check("ESC 2000s boilers mostly electric",
+              esc.get('electricity', 0) / sum(esc.values()) > 0.5, True, section)
 
 
 # ============================================================

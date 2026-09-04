@@ -592,20 +592,20 @@
   "res|East North Central|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 279,
-        "natural gas": 1692,
-        "propane": 29
+        "electricity": 306,
+        "natural gas": 1666,
+        "propane": 28
       },
       "heating_system_type": {
-        "boiler": 240,
-        "electric_resistance": 229,
-        "furnace": 1481,
-        "heat_pump": 50
+        "boiler": 253,
+        "electric_resistance": 152,
+        "furnace": 1563,
+        "heat_pump": 32
       },
       "roof_material": {
         "Insulated": 888,
@@ -622,9 +622,9 @@
         "49.0": 202
       },
       "service_water_heating_fuel_type": {
-        "electricity": 544,
-        "natural gas": 1436,
-        "propane": 20
+        "electricity": 555,
+        "natural gas": 1424,
+        "propane": 21
       },
       "wall_material": {
         "Insulated": 204,
@@ -662,23 +662,23 @@
   "res|East North Central|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 307,
-        "fuel oil": 34,
-        "natural gas": 1494,
-        "propane": 127,
-        "wood": 38
+        "electricity": 297,
+        "fuel oil": 33,
+        "natural gas": 1512,
+        "propane": 124,
+        "wood": 34
       },
       "heating_system_type": {
-        "boiler": 240,
-        "electric_resistance": 265,
-        "furnace": 1415,
-        "heat_pump": 42,
-        "wood_stove": 38
+        "boiler": 270,
+        "electric_resistance": 152,
+        "furnace": 1510,
+        "heat_pump": 34,
+        "wood_stove": 34
       },
       "roof_material": {
         "Insulated": 880,
@@ -695,10 +695,10 @@
         "49.0": 205
       },
       "service_water_heating_fuel_type": {
-        "electricity": 591,
-        "fuel oil": 14,
-        "natural gas": 1321,
-        "propane": 73,
+        "electricity": 588,
+        "fuel oil": 15,
+        "natural gas": 1325,
+        "propane": 71,
         "wood": 1
       },
       "wall_material": {
@@ -737,22 +737,22 @@
   "res|East North Central|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 322,
+        "electricity": 328,
         "fuel oil": 4,
-        "natural gas": 1636,
-        "propane": 37,
+        "natural gas": 1629,
+        "propane": 38,
         "wood": 1
       },
       "heating_system_type": {
-        "boiler": 26,
-        "electric_resistance": 153,
-        "furnace": 1651,
-        "heat_pump": 169,
+        "boiler": 31,
+        "electric_resistance": 80,
+        "furnace": 1800,
+        "heat_pump": 88,
         "wood_stove": 1
       },
       "roof_material": {
@@ -770,9 +770,9 @@
         "49.0": 227
       },
       "service_water_heating_fuel_type": {
-        "electricity": 563,
+        "electricity": 572,
         "fuel oil": 1,
-        "natural gas": 1414,
+        "natural gas": 1405,
         "propane": 22
       },
       "wall_material": {
@@ -811,23 +811,23 @@
   "res|East North Central|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 434,
-        "fuel oil": 25,
-        "natural gas": 1332,
-        "propane": 165,
-        "wood": 44
+        "electricity": 440,
+        "fuel oil": 26,
+        "natural gas": 1329,
+        "propane": 171,
+        "wood": 34
       },
       "heating_system_type": {
-        "boiler": 21,
-        "electric_resistance": 214,
-        "furnace": 1501,
-        "heat_pump": 220,
-        "wood_stove": 44
+        "boiler": 52,
+        "electric_resistance": 108,
+        "furnace": 1681,
+        "heat_pump": 125,
+        "wood_stove": 34
       },
       "roof_material": {
         "Insulated": 1039,
@@ -844,11 +844,10 @@
         "49.0": 235
       },
       "service_water_heating_fuel_type": {
-        "electricity": 743,
-        "fuel oil": 13,
-        "natural gas": 1150,
-        "propane": 93,
-        "wood": 1
+        "electricity": 731,
+        "fuel oil": 14,
+        "natural gas": 1156,
+        "propane": 99
       },
       "wall_material": {
         "Insulated": 980,
@@ -885,20 +884,20 @@
   "res|East North Central|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 327,
+        "electricity": 315,
         "fuel oil": 1,
-        "natural gas": 1646,
-        "propane": 26
+        "natural gas": 1657,
+        "propane": 27
       },
       "heating_system_type": {
-        "electric_resistance": 151,
-        "furnace": 1673,
-        "heat_pump": 176
+        "electric_resistance": 82,
+        "furnace": 1807,
+        "heat_pump": 111
       },
       "roof_material": {
         "Insulated": 890,
@@ -915,9 +914,9 @@
         "49.0": 428
       },
       "service_water_heating_fuel_type": {
-        "electricity": 595,
-        "natural gas": 1386,
-        "propane": 19
+        "electricity": 579,
+        "natural gas": 1398,
+        "propane": 23
       },
       "wall_material": {
         "Insulated": 625,
@@ -952,21 +951,21 @@
   "res|East North Central|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 613,
-        "fuel oil": 20,
-        "natural gas": 1188,
-        "propane": 159,
+        "electricity": 645,
+        "fuel oil": 24,
+        "natural gas": 1161,
+        "propane": 150,
         "wood": 20
       },
       "heating_system_type": {
-        "electric_resistance": 291,
-        "furnace": 1367,
-        "heat_pump": 322,
+        "electric_resistance": 162,
+        "furnace": 1614,
+        "heat_pump": 204,
         "wood_stove": 20
       },
       "roof_material": {
@@ -984,10 +983,10 @@
         "49.0": 413
       },
       "service_water_heating_fuel_type": {
-        "electricity": 826,
-        "fuel oil": 8,
-        "natural gas": 1078,
-        "propane": 88
+        "electricity": 864,
+        "fuel oil": 9,
+        "natural gas": 1045,
+        "propane": 82
       },
       "wall_material": {
         "Insulated": 647,
@@ -1022,21 +1021,21 @@
   "res|East South Central|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 930,
-        "fuel oil": 19,
-        "natural gas": 898,
-        "propane": 107,
+        "electricity": 942,
+        "fuel oil": 13,
+        "natural gas": 885,
+        "propane": 114,
         "wood": 46
       },
       "heating_system_type": {
-        "electric_resistance": 89,
-        "furnace": 1024,
-        "heat_pump": 841,
+        "electric_resistance": 76,
+        "furnace": 1216,
+        "heat_pump": 662,
         "wood_stove": 46
       },
       "roof_material": {
@@ -1054,10 +1053,10 @@
         "49.0": 51
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1066,
-        "fuel oil": 14,
-        "natural gas": 841,
-        "propane": 77,
+        "electricity": 1070,
+        "fuel oil": 10,
+        "natural gas": 834,
+        "propane": 84,
         "wood": 2
       },
       "wall_material": {
@@ -1091,20 +1090,20 @@
   "res|East South Central|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1249,
-        "natural gas": 592,
-        "propane": 135,
+        "electricity": 1254,
+        "natural gas": 607,
+        "propane": 115,
         "wood": 24
       },
       "heating_system_type": {
-        "electric_resistance": 147,
-        "furnace": 727,
-        "heat_pump": 1102,
+        "electric_resistance": 92,
+        "furnace": 1145,
+        "heat_pump": 739,
         "wood_stove": 24
       },
       "roof_material": {
@@ -1122,10 +1121,10 @@
         "49.0": 79
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1263,
+        "electricity": 1260,
         "fuel oil": 2,
-        "natural gas": 636,
-        "propane": 99
+        "natural gas": 652,
+        "propane": 86
       },
       "wall_material": {
         "Insulated": 1389,
@@ -1163,22 +1162,22 @@
   "res|East South Central|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1440,
-        "natural gas": 486,
-        "propane": 63,
-        "wood": 11
+        "electricity": 1443,
+        "natural gas": 472,
+        "propane": 66,
+        "wood": 19
       },
       "heating_system_type": {
         "boiler": 14,
-        "electric_resistance": 211,
-        "furnace": 535,
-        "heat_pump": 1229,
-        "wood_stove": 11
+        "electric_resistance": 134,
+        "furnace": 1060,
+        "heat_pump": 773,
+        "wood_stove": 19
       },
       "roof_material": {
         "Insulated": 1424,
@@ -1195,9 +1194,10 @@
         "49.0": 53
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1367,
-        "natural gas": 569,
-        "propane": 63,
+        "electricity": 1377,
+        "fuel oil": 2,
+        "natural gas": 562,
+        "propane": 58,
         "wood": 1
       },
       "wall_material": {
@@ -1233,22 +1233,22 @@
   "res|Middle Atlantic|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 300,
-        "fuel oil": 315,
+        "electricity": 296,
+        "fuel oil": 318,
         "natural gas": 1301,
-        "propane": 49,
+        "propane": 50,
         "wood": 35
       },
       "heating_system_type": {
-        "boiler": 559,
-        "electric_resistance": 198,
-        "furnace": 1106,
-        "heat_pump": 102,
+        "boiler": 583,
+        "electric_resistance": 161,
+        "furnace": 1129,
+        "heat_pump": 92,
         "wood_stove": 35
       },
       "roof_material": {
@@ -1266,9 +1266,9 @@
         "49.0": 118
       },
       "service_water_heating_fuel_type": {
-        "electricity": 670,
-        "fuel oil": 127,
-        "natural gas": 1153,
+        "electricity": 661,
+        "fuel oil": 130,
+        "natural gas": 1159,
         "propane": 49,
         "wood": 1
       },
@@ -1302,22 +1302,22 @@
   "res|Middle Atlantic|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 490,
-        "fuel oil": 139,
-        "natural gas": 1099,
-        "propane": 203,
+        "electricity": 479,
+        "fuel oil": 146,
+        "natural gas": 1105,
+        "propane": 201,
         "wood": 69
       },
       "heating_system_type": {
-        "boiler": 321,
-        "electric_resistance": 348,
-        "furnace": 1120,
-        "heat_pump": 142,
+        "boiler": 346,
+        "electric_resistance": 299,
+        "furnace": 1153,
+        "heat_pump": 133,
         "wood_stove": 69
       },
       "roof_material": {
@@ -1335,10 +1335,10 @@
         "49.0": 99
       },
       "service_water_heating_fuel_type": {
-        "electricity": 818,
-        "fuel oil": 69,
-        "natural gas": 979,
-        "propane": 130,
+        "electricity": 794,
+        "fuel oil": 76,
+        "natural gas": 1003,
+        "propane": 123,
         "wood": 4
       },
       "wall_material": {
@@ -1377,22 +1377,22 @@
   "res|Middle Atlantic|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 763,
-        "fuel oil": 29,
-        "natural gas": 993,
-        "propane": 194,
+        "electricity": 781,
+        "fuel oil": 27,
+        "natural gas": 978,
+        "propane": 193,
         "wood": 21
       },
       "heating_system_type": {
-        "boiler": 142,
-        "electric_resistance": 369,
-        "furnace": 1074,
-        "heat_pump": 394,
+        "boiler": 154,
+        "electric_resistance": 317,
+        "furnace": 1162,
+        "heat_pump": 346,
         "wood_stove": 21
       },
       "roof_material": {
@@ -1410,9 +1410,9 @@
         "49.0": 200
       },
       "service_water_heating_fuel_type": {
-        "electricity": 955,
-        "fuel oil": 16,
-        "natural gas": 920,
+        "electricity": 987,
+        "fuel oil": 17,
+        "natural gas": 887,
         "propane": 108,
         "wood": 1
       },
@@ -1449,22 +1449,22 @@
   "res|Mountain North|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 337,
+        "electricity": 345,
         "natural gas": 1502,
-        "propane": 101,
-        "wood": 60
+        "propane": 96,
+        "wood": 57
       },
       "heating_system_type": {
-        "boiler": 205,
-        "electric_resistance": 266,
-        "furnace": 1398,
-        "heat_pump": 71,
-        "wood_stove": 60
+        "boiler": 212,
+        "electric_resistance": 98,
+        "furnace": 1603,
+        "heat_pump": 30,
+        "wood_stove": 57
       },
       "roof_material": {
         "Insulated": 955,
@@ -1481,11 +1481,11 @@
         "49.0": 88
       },
       "service_water_heating_fuel_type": {
-        "electricity": 608,
-        "fuel oil": 2,
-        "natural gas": 1317,
-        "propane": 70,
-        "wood": 3
+        "electricity": 614,
+        "fuel oil": 3,
+        "natural gas": 1315,
+        "propane": 64,
+        "wood": 4
       },
       "wall_material": {
         "Standard": 2000
@@ -1518,22 +1518,22 @@
   "res|Mountain North|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 339,
-        "natural gas": 1479,
-        "propane": 97,
-        "wood": 85
+        "electricity": 348,
+        "natural gas": 1477,
+        "propane": 104,
+        "wood": 71
       },
       "heating_system_type": {
-        "boiler": 89,
-        "electric_resistance": 279,
-        "furnace": 1487,
-        "heat_pump": 60,
-        "wood_stove": 85
+        "boiler": 105,
+        "electric_resistance": 151,
+        "furnace": 1637,
+        "heat_pump": 36,
+        "wood_stove": 71
       },
       "roof_material": {
         "Insulated": 1147,
@@ -1550,11 +1550,10 @@
         "49.0": 91
       },
       "service_water_heating_fuel_type": {
-        "electricity": 664,
-        "fuel oil": 4,
-        "natural gas": 1249,
-        "propane": 78,
-        "wood": 5
+        "electricity": 670,
+        "natural gas": 1263,
+        "propane": 65,
+        "wood": 2
       },
       "wall_material": {
         "Insulated": 1515,
@@ -1591,21 +1590,21 @@
   "res|Mountain North|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 597,
-        "natural gas": 1324,
+        "electricity": 600,
+        "natural gas": 1321,
         "propane": 39,
         "wood": 40
       },
       "heating_system_type": {
-        "boiler": 93,
-        "electric_resistance": 420,
-        "furnace": 1270,
-        "heat_pump": 177,
+        "boiler": 99,
+        "electric_resistance": 269,
+        "furnace": 1475,
+        "heat_pump": 117,
         "wood_stove": 40
       },
       "roof_material": {
@@ -1623,10 +1622,10 @@
         "49.0": 181
       },
       "service_water_heating_fuel_type": {
-        "electricity": 813,
+        "electricity": 804,
         "fuel oil": 1,
-        "natural gas": 1143,
-        "propane": 42,
+        "natural gas": 1157,
+        "propane": 37,
         "wood": 1
       },
       "wall_material": {
@@ -1662,22 +1661,22 @@
   "res|Mountain South|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1424,
-        "fuel oil": 2,
-        "natural gas": 551,
-        "propane": 20,
+        "electricity": 1405,
+        "fuel oil": 1,
+        "natural gas": 575,
+        "propane": 16,
         "wood": 3
       },
       "heating_system_type": {
-        "boiler": 15,
-        "electric_resistance": 268,
-        "furnace": 558,
-        "heat_pump": 1156,
+        "boiler": 17,
+        "electric_resistance": 189,
+        "furnace": 943,
+        "heat_pump": 848,
         "wood_stove": 3
       },
       "roof_material": {
@@ -1695,9 +1694,9 @@
         "49.0": 98
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1340,
-        "fuel oil": 3,
-        "natural gas": 610,
+        "electricity": 1317,
+        "fuel oil": 1,
+        "natural gas": 635,
         "propane": 47
       },
       "wall_material": {
@@ -1731,22 +1730,22 @@
   "res|Mountain South|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 863,
-        "natural gas": 1048,
-        "propane": 18,
-        "wood": 71
+        "electricity": 892,
+        "natural gas": 1019,
+        "propane": 20,
+        "wood": 69
       },
       "heating_system_type": {
-        "boiler": 28,
-        "electric_resistance": 159,
-        "furnace": 1038,
-        "heat_pump": 704,
-        "wood_stove": 71
+        "boiler": 32,
+        "electric_resistance": 109,
+        "furnace": 1243,
+        "heat_pump": 547,
+        "wood_stove": 69
       },
       "roof_material": {
         "Insulated": 984,
@@ -1763,10 +1762,10 @@
         "49.0": 94
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1016,
+        "electricity": 1027,
         "fuel oil": 3,
-        "natural gas": 943,
-        "propane": 35,
+        "natural gas": 935,
+        "propane": 32,
         "wood": 3
       },
       "wall_material": {
@@ -1800,21 +1799,21 @@
   "res|Mountain South|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1395,
-        "fuel oil": 1,
-        "natural gas": 582,
-        "propane": 22
+        "electricity": 1428,
+        "fuel oil": 2,
+        "natural gas": 545,
+        "propane": 25
       },
       "heating_system_type": {
-        "boiler": 26,
-        "electric_resistance": 179,
-        "furnace": 579,
-        "heat_pump": 1216
+        "boiler": 30,
+        "electric_resistance": 97,
+        "furnace": 1170,
+        "heat_pump": 703
       },
       "roof_material": {
         "Insulated": 1126,
@@ -1831,10 +1830,10 @@
         "49.0": 101
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1319,
+        "electricity": 1321,
         "fuel oil": 1,
-        "natural gas": 639,
-        "propane": 41
+        "natural gas": 634,
+        "propane": 44
       },
       "wall_material": {
         "Insulated": 1496,
@@ -1872,23 +1871,23 @@
   "res|Mountain South|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 881,
-        "fuel oil": 23,
-        "natural gas": 965,
-        "propane": 71,
-        "wood": 60
+        "electricity": 838,
+        "fuel oil": 19,
+        "natural gas": 1003,
+        "propane": 77,
+        "wood": 63
       },
       "heating_system_type": {
-        "boiler": 38,
-        "electric_resistance": 120,
-        "furnace": 1021,
-        "heat_pump": 761,
-        "wood_stove": 60
+        "boiler": 49,
+        "electric_resistance": 66,
+        "furnace": 1413,
+        "heat_pump": 409,
+        "wood_stove": 63
       },
       "roof_material": {
         "Insulated": 1149,
@@ -1905,11 +1904,11 @@
         "49.0": 90
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1003,
+        "electricity": 959,
         "fuel oil": 14,
-        "natural gas": 917,
-        "propane": 60,
-        "wood": 6
+        "natural gas": 959,
+        "propane": 63,
+        "wood": 5
       },
       "wall_material": {
         "Insulated": 1539,
@@ -1947,20 +1946,20 @@
   "res|Mountain South|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1431,
-        "fuel oil": 3,
-        "natural gas": 543,
-        "propane": 18,
+        "electricity": 1386,
+        "fuel oil": 2,
+        "natural gas": 582,
+        "propane": 25,
         "wood": 5
       },
       "heating_system_type": {
-        "furnace": 564,
-        "heat_pump": 1431,
+        "furnace": 1043,
+        "heat_pump": 952,
         "wood_stove": 5
       },
       "roof_material": {
@@ -1978,10 +1977,10 @@
         "49.0": 200
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1331,
+        "electricity": 1317,
         "fuel oil": 1,
-        "natural gas": 626,
-        "propane": 42
+        "natural gas": 635,
+        "propane": 47
       },
       "wall_material": {
         "Insulated": 597,
@@ -2015,18 +2014,18 @@
   "res|Mountain South|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 676,
-        "natural gas": 1311,
+        "electricity": 663,
+        "natural gas": 1324,
         "wood": 13
       },
       "heating_system_type": {
-        "furnace": 1311,
-        "heat_pump": 676,
+        "furnace": 1522,
+        "heat_pump": 465,
         "wood_stove": 13
       },
       "roof_material": {
@@ -2044,9 +2043,9 @@
         "49.0": 188
       },
       "service_water_heating_fuel_type": {
-        "electricity": 806,
-        "natural gas": 1178,
-        "propane": 15,
+        "electricity": 792,
+        "natural gas": 1194,
+        "propane": 13,
         "wood": 1
       },
       "wall_material": {
@@ -2081,22 +2080,22 @@
   "res|New England|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 592,
-        "fuel oil": 168,
-        "natural gas": 1186,
-        "propane": 51,
+        "electricity": 587,
+        "fuel oil": 180,
+        "natural gas": 1176,
+        "propane": 54,
         "wood": 3
       },
       "heating_system_type": {
-        "boiler": 519,
-        "electric_resistance": 501,
-        "furnace": 886,
-        "heat_pump": 91,
+        "boiler": 621,
+        "electric_resistance": 313,
+        "furnace": 999,
+        "heat_pump": 64,
         "wood_stove": 3
       },
       "roof_material": {
@@ -2114,10 +2113,10 @@
         "49.0": 140
       },
       "service_water_heating_fuel_type": {
-        "electricity": 825,
-        "fuel oil": 68,
-        "natural gas": 1053,
-        "propane": 54
+        "electricity": 822,
+        "fuel oil": 73,
+        "natural gas": 1050,
+        "propane": 55
       },
       "wall_material": {
         "Standard": 2000
@@ -2150,22 +2149,22 @@
   "res|New England|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 300,
-        "fuel oil": 741,
-        "natural gas": 868,
+        "electricity": 301,
+        "fuel oil": 747,
+        "natural gas": 861,
         "propane": 56,
         "wood": 35
       },
       "heating_system_type": {
-        "boiler": 616,
-        "electric_resistance": 253,
-        "furnace": 1049,
-        "heat_pump": 47,
+        "boiler": 668,
+        "electric_resistance": 166,
+        "furnace": 1102,
+        "heat_pump": 29,
         "wood_stove": 35
       },
       "roof_material": {
@@ -2183,11 +2182,10 @@
         "49.0": 118
       },
       "service_water_heating_fuel_type": {
-        "electricity": 781,
-        "fuel oil": 351,
-        "natural gas": 808,
-        "propane": 59,
-        "wood": 1
+        "electricity": 759,
+        "fuel oil": 356,
+        "natural gas": 820,
+        "propane": 65
       },
       "wall_material": {
         "Standard": 2000
@@ -2220,22 +2218,22 @@
   "res|New England|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 584,
-        "fuel oil": 181,
-        "natural gas": 1163,
-        "propane": 71,
+        "electricity": 579,
+        "fuel oil": 185,
+        "natural gas": 1167,
+        "propane": 68,
         "wood": 1
       },
       "heating_system_type": {
-        "boiler": 422,
-        "electric_resistance": 440,
-        "furnace": 993,
-        "heat_pump": 144,
+        "boiler": 487,
+        "electric_resistance": 326,
+        "furnace": 1073,
+        "heat_pump": 113,
         "wood_stove": 1
       },
       "roof_material": {
@@ -2253,10 +2251,10 @@
         "49.0": 107
       },
       "service_water_heating_fuel_type": {
-        "electricity": 816,
-        "fuel oil": 84,
-        "natural gas": 1045,
-        "propane": 55
+        "electricity": 798,
+        "fuel oil": 83,
+        "natural gas": 1073,
+        "propane": 46
       },
       "wall_material": {
         "Insulated": 1204,
@@ -2294,23 +2292,23 @@
   "res|New England|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 378,
-        "fuel oil": 642,
-        "natural gas": 684,
-        "propane": 185,
-        "wood": 111
+        "electricity": 366,
+        "fuel oil": 634,
+        "natural gas": 689,
+        "propane": 193,
+        "wood": 118
       },
       "heating_system_type": {
-        "boiler": 440,
-        "electric_resistance": 286,
-        "furnace": 1071,
-        "heat_pump": 92,
-        "wood_stove": 111
+        "boiler": 474,
+        "electric_resistance": 213,
+        "furnace": 1130,
+        "heat_pump": 65,
+        "wood_stove": 118
       },
       "roof_material": {
         "Insulated": 1138,
@@ -2327,10 +2325,10 @@
         "49.0": 104
       },
       "service_water_heating_fuel_type": {
-        "electricity": 872,
-        "fuel oil": 305,
-        "natural gas": 682,
-        "propane": 137,
+        "electricity": 871,
+        "fuel oil": 301,
+        "natural gas": 679,
+        "propane": 145,
         "wood": 4
       },
       "wall_material": {
@@ -2369,22 +2367,22 @@
   "res|New England|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 580,
-        "fuel oil": 167,
-        "natural gas": 1200,
-        "propane": 50,
+        "electricity": 569,
+        "fuel oil": 174,
+        "natural gas": 1202,
+        "propane": 52,
         "wood": 3
       },
       "heating_system_type": {
-        "boiler": 161,
-        "electric_resistance": 383,
-        "furnace": 1256,
-        "heat_pump": 197,
+        "boiler": 167,
+        "electric_resistance": 310,
+        "furnace": 1357,
+        "heat_pump": 163,
         "wood_stove": 3
       },
       "roof_material": {
@@ -2402,9 +2400,9 @@
         "49.0": 161
       },
       "service_water_heating_fuel_type": {
-        "electricity": 827,
-        "fuel oil": 70,
-        "natural gas": 1064,
+        "electricity": 820,
+        "fuel oil": 74,
+        "natural gas": 1067,
         "propane": 39
       },
       "wall_material": {
@@ -2440,22 +2438,22 @@
   "res|New England|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 507,
-        "fuel oil": 86,
-        "natural gas": 863,
-        "propane": 443,
+        "electricity": 483,
+        "fuel oil": 78,
+        "natural gas": 880,
+        "propane": 458,
         "wood": 101
       },
       "heating_system_type": {
-        "boiler": 158,
-        "electric_resistance": 320,
-        "furnace": 1234,
-        "heat_pump": 187,
+        "boiler": 180,
+        "electric_resistance": 270,
+        "furnace": 1310,
+        "heat_pump": 139,
         "wood_stove": 101
       },
       "roof_material": {
@@ -2473,10 +2471,10 @@
         "49.0": 157
       },
       "service_water_heating_fuel_type": {
-        "electricity": 923,
-        "fuel oil": 41,
-        "natural gas": 804,
-        "propane": 231,
+        "electricity": 914,
+        "fuel oil": 35,
+        "natural gas": 812,
+        "propane": 238,
         "wood": 1
       },
       "wall_material": {
@@ -2512,22 +2510,22 @@
   "res|Pacific|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 560,
+        "electricity": 553,
         "fuel oil": 1,
-        "natural gas": 1402,
-        "propane": 31,
+        "natural gas": 1406,
+        "propane": 34,
         "wood": 6
       },
       "heating_system_type": {
-        "boiler": 17,
-        "electric_resistance": 412,
-        "furnace": 1417,
-        "heat_pump": 148,
+        "boiler": 19,
+        "electric_resistance": 265,
+        "furnace": 1606,
+        "heat_pump": 104,
         "wood_stove": 6
       },
       "roof_material": {
@@ -2545,10 +2543,10 @@
         "49.0": 72
       },
       "service_water_heating_fuel_type": {
-        "electricity": 755,
+        "electricity": 723,
         "fuel oil": 1,
-        "natural gas": 1213,
-        "propane": 31
+        "natural gas": 1242,
+        "propane": 34
       },
       "wall_material": {
         "Standard": 2000
@@ -2581,23 +2579,23 @@
   "res|Pacific|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 609,
+        "electricity": 600,
         "fuel oil": 18,
-        "natural gas": 1267,
-        "propane": 34,
-        "wood": 72
+        "natural gas": 1277,
+        "propane": 32,
+        "wood": 73
       },
       "heating_system_type": {
-        "boiler": 12,
-        "electric_resistance": 425,
-        "furnace": 1307,
-        "heat_pump": 184,
-        "wood_stove": 72
+        "boiler": 14,
+        "electric_resistance": 281,
+        "furnace": 1504,
+        "heat_pump": 128,
+        "wood_stove": 73
       },
       "roof_material": {
         "Insulated": 891,
@@ -2614,10 +2612,10 @@
         "49.0": 106
       },
       "service_water_heating_fuel_type": {
-        "electricity": 817,
+        "electricity": 844,
         "fuel oil": 13,
-        "natural gas": 1129,
-        "propane": 41
+        "natural gas": 1107,
+        "propane": 36
       },
       "wall_material": {
         "Standard": 2000
@@ -2650,21 +2648,21 @@
   "res|Pacific|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 631,
-        "natural gas": 1339,
-        "propane": 27,
+        "electricity": 576,
+        "natural gas": 1388,
+        "propane": 33,
         "wood": 3
       },
       "heating_system_type": {
-        "boiler": 14,
-        "electric_resistance": 370,
-        "furnace": 1352,
-        "heat_pump": 261,
+        "boiler": 17,
+        "electric_resistance": 257,
+        "furnace": 1542,
+        "heat_pump": 181,
         "wood_stove": 3
       },
       "roof_material": {
@@ -2682,9 +2680,9 @@
         "49.0": 71
       },
       "service_water_heating_fuel_type": {
-        "electricity": 812,
-        "natural gas": 1161,
-        "propane": 26,
+        "electricity": 766,
+        "natural gas": 1204,
+        "propane": 29,
         "wood": 1
       },
       "wall_material": {
@@ -2723,21 +2721,21 @@
   "res|Pacific|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 618,
-        "natural gas": 1271,
-        "propane": 49,
+        "electricity": 627,
+        "natural gas": 1264,
+        "propane": 47,
         "wood": 62
       },
       "heating_system_type": {
-        "boiler": 12,
-        "electric_resistance": 342,
-        "furnace": 1308,
-        "heat_pump": 276,
+        "boiler": 13,
+        "electric_resistance": 243,
+        "furnace": 1489,
+        "heat_pump": 193,
         "wood_stove": 62
       },
       "roof_material": {
@@ -2755,10 +2753,10 @@
         "49.0": 88
       },
       "service_water_heating_fuel_type": {
-        "electricity": 816,
+        "electricity": 823,
         "fuel oil": 4,
-        "natural gas": 1123,
-        "propane": 56,
+        "natural gas": 1120,
+        "propane": 52,
         "wood": 1
       },
       "wall_material": {
@@ -2797,22 +2795,22 @@
   "res|Pacific|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 616,
-        "fuel oil": 4,
-        "natural gas": 1341,
-        "propane": 37,
+        "electricity": 614,
+        "fuel oil": 3,
+        "natural gas": 1342,
+        "propane": 39,
         "wood": 2
       },
       "heating_system_type": {
-        "boiler": 20,
-        "electric_resistance": 331,
-        "furnace": 1362,
-        "heat_pump": 285,
+        "boiler": 21,
+        "electric_resistance": 241,
+        "furnace": 1526,
+        "heat_pump": 210,
         "wood_stove": 2
       },
       "roof_material": {
@@ -2830,9 +2828,9 @@
         "49.0": 167
       },
       "service_water_heating_fuel_type": {
-        "electricity": 798,
-        "natural gas": 1169,
-        "propane": 33
+        "electricity": 787,
+        "natural gas": 1182,
+        "propane": 31
       },
       "wall_material": {
         "Insulated": 553,
@@ -2867,21 +2865,21 @@
   "res|Pacific|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 914,
-        "natural gas": 1010,
-        "propane": 34,
+        "electricity": 875,
+        "natural gas": 1041,
+        "propane": 42,
         "wood": 42
       },
       "heating_system_type": {
-        "boiler": 14,
-        "electric_resistance": 510,
-        "furnace": 1030,
-        "heat_pump": 404,
+        "boiler": 16,
+        "electric_resistance": 358,
+        "furnace": 1302,
+        "heat_pump": 282,
         "wood_stove": 42
       },
       "roof_material": {
@@ -2899,11 +2897,11 @@
         "49.0": 194
       },
       "service_water_heating_fuel_type": {
-        "electricity": 999,
+        "electricity": 1005,
         "fuel oil": 1,
-        "natural gas": 953,
-        "propane": 44,
-        "wood": 3
+        "natural gas": 949,
+        "propane": 43,
+        "wood": 2
       },
       "wall_material": {
         "Insulated": 604,
@@ -2938,22 +2936,22 @@
   "res|South Atlantic|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1103,
-        "fuel oil": 92,
-        "natural gas": 689,
-        "propane": 68,
+        "electricity": 1064,
+        "fuel oil": 83,
+        "natural gas": 714,
+        "propane": 91,
         "wood": 48
       },
       "heating_system_type": {
-        "boiler": 43,
-        "electric_resistance": 153,
-        "furnace": 806,
-        "heat_pump": 950,
+        "boiler": 54,
+        "electric_resistance": 124,
+        "furnace": 1093,
+        "heat_pump": 681,
         "wood_stove": 48
       },
       "roof_material": {
@@ -2971,10 +2969,10 @@
         "49.0": 74
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1160,
-        "fuel oil": 51,
-        "natural gas": 719,
-        "propane": 70
+        "electricity": 1161,
+        "fuel oil": 48,
+        "natural gas": 707,
+        "propane": 84
       },
       "wall_material": {
         "Standard": 2000
@@ -3007,22 +3005,22 @@
   "res|South Atlantic|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1427,
+        "electricity": 1378,
         "fuel oil": 13,
-        "natural gas": 465,
-        "propane": 62,
+        "natural gas": 527,
+        "propane": 49,
         "wood": 33
       },
       "heating_system_type": {
-        "boiler": 7,
-        "electric_resistance": 82,
-        "furnace": 533,
-        "heat_pump": 1345,
+        "boiler": 13,
+        "electric_resistance": 54,
+        "furnace": 1070,
+        "heat_pump": 830,
         "wood_stove": 33
       },
       "roof_material": {
@@ -3040,11 +3038,10 @@
         "49.0": 52
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1351,
-        "fuel oil": 11,
-        "natural gas": 559,
-        "propane": 78,
-        "wood": 1
+        "electricity": 1342,
+        "fuel oil": 8,
+        "natural gas": 589,
+        "propane": 61
       },
       "wall_material": {
         "Insulated": 1422,
@@ -3082,20 +3079,20 @@
   "res|South Atlantic|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1341,
-        "natural gas": 618,
-        "propane": 22,
+        "electricity": 1403,
+        "natural gas": 561,
+        "propane": 17,
         "wood": 19
       },
       "heating_system_type": {
-        "electric_resistance": 111,
-        "furnace": 640,
-        "heat_pump": 1230,
+        "electric_resistance": 58,
+        "furnace": 1198,
+        "heat_pump": 725,
         "wood_stove": 19
       },
       "roof_material": {
@@ -3113,10 +3110,10 @@
         "49.0": 62
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1292,
+        "electricity": 1310,
         "fuel oil": 1,
-        "natural gas": 663,
-        "propane": 42,
+        "natural gas": 628,
+        "propane": 59,
         "wood": 2
       },
       "wall_material": {
@@ -3152,22 +3149,22 @@
   "res|West North Central|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 314,
-        "fuel oil": 16,
-        "natural gas": 1459,
-        "propane": 175,
+        "electricity": 308,
+        "fuel oil": 15,
+        "natural gas": 1464,
+        "propane": 177,
         "wood": 36
       },
       "heating_system_type": {
-        "boiler": 173,
-        "electric_resistance": 178,
-        "furnace": 1477,
-        "heat_pump": 136,
+        "boiler": 195,
+        "electric_resistance": 135,
+        "furnace": 1537,
+        "heat_pump": 97,
         "wood_stove": 36
       },
       "roof_material": {
@@ -3185,9 +3182,9 @@
         "49.0": 187
       },
       "service_water_heating_fuel_type": {
-        "electricity": 649,
-        "fuel oil": 10,
-        "natural gas": 1252,
+        "electricity": 650,
+        "fuel oil": 11,
+        "natural gas": 1250,
         "propane": 88,
         "wood": 1
       },
@@ -3227,21 +3224,21 @@
   "res|West North Central|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 569,
-        "natural gas": 1272,
-        "propane": 145,
+        "electricity": 581,
+        "natural gas": 1255,
+        "propane": 150,
         "wood": 14
       },
       "heating_system_type": {
-        "boiler": 31,
-        "electric_resistance": 208,
-        "furnace": 1386,
-        "heat_pump": 361,
+        "boiler": 36,
+        "electric_resistance": 96,
+        "furnace": 1678,
+        "heat_pump": 176,
         "wood_stove": 14
       },
       "roof_material": {
@@ -3259,9 +3256,9 @@
         "49.0": 260
       },
       "service_water_heating_fuel_type": {
-        "electricity": 803,
-        "natural gas": 1122,
-        "propane": 75
+        "electricity": 822,
+        "natural gas": 1102,
+        "propane": 76
       },
       "wall_material": {
         "Insulated": 973,
@@ -3299,21 +3296,21 @@
   "res|West North Central|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 741,
-        "natural gas": 1043,
-        "propane": 180,
+        "electricity": 785,
+        "natural gas": 1011,
+        "propane": 168,
         "wood": 36
       },
       "heating_system_type": {
-        "boiler": 64,
-        "electric_resistance": 221,
-        "furnace": 1159,
-        "heat_pump": 520,
+        "boiler": 91,
+        "electric_resistance": 73,
+        "furnace": 1583,
+        "heat_pump": 217,
         "wood_stove": 36
       },
       "roof_material": {
@@ -3331,9 +3328,9 @@
         "49.0": 419
       },
       "service_water_heating_fuel_type": {
-        "electricity": 928,
-        "natural gas": 980,
-        "propane": 91,
+        "electricity": 992,
+        "natural gas": 912,
+        "propane": 95,
         "wood": 1
       },
       "wall_material": {
@@ -3369,22 +3366,22 @@
   "res|West South Central|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1148,
+        "electricity": 1170,
         "fuel oil": 2,
-        "natural gas": 834,
-        "propane": 15,
+        "natural gas": 810,
+        "propane": 17,
         "wood": 1
       },
       "heating_system_type": {
-        "boiler": 22,
-        "electric_resistance": 304,
-        "furnace": 829,
-        "heat_pump": 844,
+        "boiler": 25,
+        "electric_resistance": 218,
+        "furnace": 1139,
+        "heat_pump": 617,
         "wood_stove": 1
       },
       "roof_material": {
@@ -3402,10 +3399,10 @@
         "49.0": 64
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1142,
+        "electricity": 1162,
         "fuel oil": 1,
-        "natural gas": 821,
-        "propane": 36
+        "natural gas": 800,
+        "propane": 37
       },
       "wall_material": {
         "Standard": 2000
@@ -3438,21 +3435,21 @@
   "res|West South Central|1965|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 835,
-        "natural gas": 1094,
-        "propane": 51,
+        "electricity": 820,
+        "natural gas": 1105,
+        "propane": 55,
         "wood": 20
       },
       "heating_system_type": {
-        "boiler": 24,
-        "electric_resistance": 211,
-        "furnace": 1121,
-        "heat_pump": 624,
+        "boiler": 25,
+        "electric_resistance": 147,
+        "furnace": 1383,
+        "heat_pump": 425,
         "wood_stove": 20
       },
       "roof_material": {
@@ -3470,9 +3467,9 @@
         "49.0": 73
       },
       "service_water_heating_fuel_type": {
-        "electricity": 952,
-        "natural gas": 1000,
-        "propane": 47,
+        "electricity": 961,
+        "natural gas": 990,
+        "propane": 48,
         "wood": 1
       },
       "wall_material": {
@@ -3506,21 +3503,21 @@
   "res|West South Central|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1135,
-        "fuel oil": 2,
-        "natural gas": 844,
-        "propane": 19
+        "electricity": 1115,
+        "fuel oil": 1,
+        "natural gas": 859,
+        "propane": 25
       },
       "heating_system_type": {
-        "boiler": 10,
-        "electric_resistance": 165,
-        "furnace": 855,
-        "heat_pump": 970
+        "boiler": 16,
+        "electric_resistance": 104,
+        "furnace": 1250,
+        "heat_pump": 630
       },
       "roof_material": {
         "Insulated": 1295,
@@ -3537,9 +3534,9 @@
         "49.0": 74
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1135,
-        "natural gas": 838,
-        "propane": 27
+        "electricity": 1127,
+        "natural gas": 849,
+        "propane": 24
       },
       "wall_material": {
         "Insulated": 1403,
@@ -3577,22 +3574,22 @@
   "res|West South Central|1990|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1256,
-        "natural gas": 680,
-        "propane": 48,
-        "wood": 16
+        "electricity": 1269,
+        "natural gas": 685,
+        "propane": 29,
+        "wood": 17
       },
       "heating_system_type": {
-        "boiler": 4,
-        "electric_resistance": 216,
-        "furnace": 724,
-        "heat_pump": 1040,
-        "wood_stove": 16
+        "boiler": 9,
+        "electric_resistance": 135,
+        "furnace": 1100,
+        "heat_pump": 739,
+        "wood_stove": 17
       },
       "roof_material": {
         "Insulated": 1314,
@@ -3609,11 +3606,11 @@
         "49.0": 76
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1235,
+        "electricity": 1241,
         "fuel oil": 2,
-        "natural gas": 711,
-        "propane": 51,
-        "wood": 1
+        "natural gas": 706,
+        "propane": 49,
+        "wood": 2
       },
       "wall_material": {
         "Insulated": 1444,
@@ -3651,19 +3648,19 @@
   "res|West South Central|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1140,
-        "natural gas": 838,
-        "propane": 22
+        "electricity": 1151,
+        "natural gas": 829,
+        "propane": 20
       },
       "heating_system_type": {
-        "electric_resistance": 218,
-        "furnace": 860,
-        "heat_pump": 922
+        "electric_resistance": 109,
+        "furnace": 1436,
+        "heat_pump": 455
       },
       "roof_material": {
         "Insulated": 1396,
@@ -3680,9 +3677,9 @@
         "49.0": 60
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1157,
-        "natural gas": 802,
-        "propane": 41
+        "electricity": 1133,
+        "natural gas": 824,
+        "propane": 43
       },
       "wall_material": {
         "Insulated": 1301,
@@ -3717,20 +3714,20 @@
   "res|West South Central|2015|nocounty": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 3,
+      "number_of_occupants": 4,
       "weekday_start_time": null
     },
     "stoch": {
       "heating_system_fuel_type": {
-        "electricity": 1165,
-        "natural gas": 758,
-        "propane": 60,
+        "electricity": 1134,
+        "natural gas": 788,
+        "propane": 61,
         "wood": 17
       },
       "heating_system_type": {
-        "electric_resistance": 226,
-        "furnace": 818,
-        "heat_pump": 939,
+        "electric_resistance": 108,
+        "furnace": 1432,
+        "heat_pump": 443,
         "wood_stove": 17
       },
       "roof_material": {
@@ -3748,9 +3745,9 @@
         "49.0": 64
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1167,
+        "electricity": 1205,
         "fuel oil": 1,
-        "natural gas": 783,
+        "natural gas": 745,
         "propane": 47,
         "wood": 2
       },
