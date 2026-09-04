@@ -705,8 +705,14 @@ module URBANopt
               when 'boiler'
                 args[:heating_system_type] = 'Boiler'
                 htg_fuel = res_props[:heating_system_fuel_type].to_s.downcase
-                htg_fuel = 'natural gas' if %w[electricity wood].include?(htg_fuel)
+                # Wood boilers are not in the resolver's vocabulary; coerce to gas.
+                # Electricity is legitimate (RECS 2020: ~7% of boilers nationally,
+                # 12-18% across the West) and HPXML supports electric boilers (Q/A R-035).
+                # 1.0 efficiency cited to ResStock 2024.2: 'Electric Boiler, 100% AFUE'
+                # is its sole electric-boiler efficiency label (same as electric furnace).
+                htg_fuel = 'natural gas' if htg_fuel == 'wood'
                 args[:heating_system_fuel] = htg_fuel
+                args[:heating_system_heating_efficiency] = 1.0 if htg_fuel == 'electricity'
               when 'electric_resistance'
                 args[:heating_system_type] = 'ElectricResistance'
                 args[:heating_system_fuel] = 'electricity'
@@ -771,7 +777,10 @@ module URBANopt
                     args[:heating_system_heating_efficiency] = PowerTwinRefs.furnace_afue(eff_hvac_year)
                   end
                 elsif sys == 'Boiler'
-                  args[:heating_system_heating_efficiency] = PowerTwinRefs.boiler_afue(eff_hvac_year)
+                  # Combustion AFUE turnover; an electric boiler stays 1.0 (ResStock 100% AFUE).
+                  unless args[:heating_system_fuel].to_s.downcase == 'electricity'
+                    args[:heating_system_heating_efficiency] = PowerTwinRefs.boiler_afue(eff_hvac_year)
+                  end
                 end
                 southern = res_props[:region].to_s == 'South'
                 if args[:cooling_system_type].to_s != 'none'
@@ -789,7 +798,12 @@ module URBANopt
               end
             end
 
-            # Vacant buildings: no occupants, pipe-freeze heating, no cooling.
+            # Vacant buildings: no occupants, pipe-freeze heating, no cooling, and the
+            # occupant-driven loads suppressed (Q/A R-009): HPXML derives hot water and
+            # plug loads from BEDROOM count, not occupants, so without these a vacant house
+            # simulated full DHW and plug draw at pipe-freeze setpoints while the commercial
+            # branch correctly cuts equipment 80% and lighting 90%. The always-on refrigerator
+            # is deliberately left running.
             if res_props[:vacant]
               args[:geometry_unit_num_occupants] = 0
               # String-typed setpoint args (see cooling setpoint note above).
@@ -797,6 +811,9 @@ module URBANopt
               args[:hvac_control_heating_weekend_setpoint] = '55'
               args[:hvac_control_cooling_weekday_setpoint] = '99'
               args[:hvac_control_cooling_weekend_setpoint] = '99'
+              args[:water_fixtures_usage_multiplier] = 0
+              args[:misc_plug_loads_television_annual_kwh] = 0
+              args[:misc_plug_loads_other_annual_kwh] = 0
             end
 
             # Parse BuildResidentialHPXML measure xml so we can fill "args" in with default values where keys aren't already assigned
@@ -1015,6 +1032,9 @@ module URBANopt
                   system_type = 'Fan coil air-cooled chiller with boiler'
                 when 'VAV with gas reheat'
                   system_type = 'VAV air-cooled chiller with gas boiler reheat'
+                when 'DOAS with fan coil district chilled water and boiler'
+                  # urbanopt schema wording vs measure choice-list wording (Q/A R-002 near-miss)
+                  system_type = 'DOAS with fan coil district chilled water with boiler'
                 end
               else
                 system_type = 'Inferred'
@@ -1053,11 +1073,29 @@ module URBANopt
               end
 
               # set weather file
+              # The rescue below exists ONLY for the accessor raising on an absent field
+              # (legacy features without the key). Read it inside its own guard so the
+              # empty-value fail-loud raise cannot be swallowed by that same rescue
+              # (code-review finding: the R-030 fix was a no-op as originally written).
+              weather_field_present = true
               begin
                 weather_filename = feature.weather_filename
-                if !feature.weather_filename.nil? && !feature.weather_filename.empty?
+              rescue StandardError
+                weather_field_present = false
+                weather_filename = nil
+              end
+              if weather_field_present && (weather_filename.nil? || weather_filename.to_s.empty?)
+                # Q/A R-030 (live variant): a present-but-empty weather_filename used to
+                # short-circuit BOTH this assignment and the rescue fallback, silently keeping
+                # the osw default (Buffalo). Fail loud -- the wrong weather corrupts every result.
+                raise StandardError, "feature.weather_filename is nil/empty: refusing to simulate against the osw default weather"
+              end
+              begin
+                if weather_field_present
                   OpenStudio::Extension.set_measure_argument(osw, 'ChangeBuildingLocation', 'weather_file_name', weather_filename)
                   puts "Setting weather_file_name to #{weather_filename} as specified in the FeatureFile"
+                else
+                  raise StandardError, 'weather field absent'
                 end
               rescue StandardError
                 puts 'No weather_file specified on feature'
@@ -1220,10 +1258,8 @@ module URBANopt
                 OpenStudio::Extension.set_measure_argument(osw, 'set_heating_fuel', 'fuel', htg_fuel_override[raw_htg])
               end
 
-              # Asset context for the reference-data lookups below.
-              state   = (feature.weather_filename.to_s.split('_', -1)[1] rescue nil)
-              region  = PowerTwinRefs.state_to_region(state)
-              vintage = PowerTwinRefs.vintage_bin(year_built)
+              # (Q/A D-35: the state/region/vintage locals once computed here were read by nothing --
+      # the reference-data lookups resolve their own context -- so they are removed.)
 
               # Envelope: CBECS-direct explicit R-value via IncreaseInsulation with
               # allow_reduction=true so the measure can drop walls/roofs below the
@@ -1263,7 +1299,9 @@ module URBANopt
               if PowerTwinRefs.present?(swh_raw)
                 ep_fuel = swh_fuel_map[swh_raw.to_s.downcase]
                 case ep_fuel
-                when 'Electricity', 'NaturalGas', 'HeatPump'
+                when 'Electricity', 'NaturalGas'
+                # ('HeatPump' is in the measure's choice list but swh_fuel_map can never emit
+                # it -- residential HPWH routes through the HPXML path instead; Q/A R-038)
                   ['create_typical_building_from_model 1', 'create_typical_building_from_model 2'].each do |step|
                     OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'swh_src', ep_fuel, step)
                   end
