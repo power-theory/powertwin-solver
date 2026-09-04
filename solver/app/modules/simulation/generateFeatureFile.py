@@ -296,11 +296,34 @@ def process_feature(feature, building_area_list, building_type_list, building_na
                           building_type=building_type, climate_zone=climate_zone,
                           building_id=building_id)
     occupancy_subtype = BUILDING_TYPE_TO_OCCUPANCY.get(building_type, "Unknown")
+    # Track explicitness separately: an explicit metadata count is the highest precedence tier and
+    # must survive the stochastic vacancy draw below (Q/A R-007) -- the same protection explicit
+    # `vacant` already had.
+    # Explicit only if the value actually parses: an unusable count ('abc') must not
+    # suppress the vacancy draw on the strength of key presence alone (code-review).
+    _explicit_occ_raw = asset_metadata.get('number_of_occupants')
+    try:
+        occupants_explicit = _explicit_occ_raw is not None and str(_explicit_occ_raw).strip() != '' \
+            and int(float(str(_explicit_occ_raw))) >= 0
+    except (TypeError, ValueError):
+        occupants_explicit = False
     occ_override = get_param(asset_metadata, 'number_of_occupants', ctx)
     try:
         number_of_occupants = int(occ_override)
     except (TypeError, ValueError):
-        number_of_occupants = OCCUPANTS_MAPPING.get(occupancy_subtype, 1)
+        # Unresolved count. The flat OCCUPANTS_MAPPING constants are WHOLE-BUILDING archetype
+        # numbers; delivering them raw was two defects (Q/A D-20 + L-018):
+        #   - commercial: PowerTwin.rb feeds the value to set_people_per_floor_area target_total
+        #     UNGATED, so a 300k ft2 hotel got pinned to 20 people whenever dynamic defaults were
+        #     off. Omit instead (None -> key dropped below) so the measure's area-scaled
+        #     occupancy default applies.
+        #   - residential: the consumer is geometry_unit_num_occupants (PER UNIT), so divide the
+        #     whole-building constant by the resolved unit count.
+        if residential_units is not None:
+            number_of_occupants = max(
+                1, round(OCCUPANTS_MAPPING.get(occupancy_subtype, 1) / residential_units))
+        else:
+            number_of_occupants = None
 
     # Create new properties (must be first)
     new_properties = {
@@ -316,7 +339,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # explicitly resolved count. Coincides with the resolver for SFD; MAY differ for a multifamily
     # unit -- unverified (the leaf slice's only MF rep is vacant). This is a delivery-robustness fix,
     # NOT a confirmed defect: the 800181 symptom that prompted it was vacancy (0 occupants is correct).
-    new_properties["number_of_occupants"] = number_of_occupants
+    if number_of_occupants is not None:
+        new_properties["number_of_occupants"] = number_of_occupants
 
     # Programmable sim params: read from asset_metadata via get_param, which
     # checks dynamic (national-stock) defaults before the flat fallback. See
@@ -355,7 +379,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "type": "Building",
         "building_type": building_type,
         "number_of_stories": floor_count,
-        "number_of_occupants": number_of_occupants,
+        # occupants delivered conditionally above/below; None means omit (Q/A D-20)
         "floor_height": floor_height,
         "window_to_wall_ratio": window_to_wall_ratio,
         "windows": [{
@@ -368,9 +392,10 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         "service_water_heating_fuel_type": get_param(asset_metadata, 'service_water_heating_fuel_type', ctx),
         "water_heater_type":              get_param(asset_metadata, 'water_heater_type', ctx),
         "constructions": {
-            # Metadata stores just the insulation tier ("Standard",
-            # "Insulated", "Super Insulated"); urbanopt's construction-set
-            # lookup expects the surface-suffixed name, so append it here.
+            # Metadata stores the insulation tier ("Standard", "Insulated",
+            # "Super Insulated"). The surface-suffixed material NAME is legacy:
+            # PowerTwin.rb consumes only r_value (its own comment says the tier
+            # label is no longer consumed); the string stays for readability.
             "wall": {
                 "material": f"{get_param(asset_metadata, 'wall_material', ctx)} Wall",
                 "r_value":  get_param(asset_metadata, 'wall_r_value', ctx),
@@ -408,9 +433,33 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     if ctx.get('region'):
         new_properties["region"] = ctx['region']
 
+    # Vacancy precedence (Q/A R-005/R-007/D-28):
+    #   explicit vacant (bool-like)  >  explicit occupant count  >  'Vacant' subtype  >  ACS draw
+    # The old `is True` identity check silently simulated a JSON string "true" as OCCUPIED and,
+    # worse, suppressed the stochastic draw -- a stringly-typed override was LESS vacant than
+    # omitting the key. Bool-like encodings are now honored; unrecognized values are logged and
+    # fall through to the draw instead of silently deciding either way.
+    # Tuples on purpose: 'in' against a SET hashes the operand, and metadata JSON can
+    # legally carry unhashable values ([] / {}) which would raise TypeError before the
+    # unrecognized-value warning could fire (code-review). Tuple membership uses ==.
+    _TRUE_LIKE = (True, 'true', 'True', 'TRUE', 1, '1')
+    _FALSE_LIKE = (False, 'false', 'False', 'FALSE', 0, '0', '')
     vacant_override = asset_metadata.get('vacant')
-    if vacant_override is not None:
-        vacant = vacant_override is True
+    if vacant_override in _TRUE_LIKE:
+        vacant = True
+    elif vacant_override in _FALSE_LIKE or (vacant_override is None and occupants_explicit):
+        # explicit occupant count implies occupied unless vacant is explicitly true (the model
+        # draw must not zero a user-stated count)
+        vacant = False
+    elif vacant_override is not None:
+        logger.warning(
+            f"Building {building_id}: unrecognized vacant value {vacant_override!r}; "
+            f"falling back to the ACS vacancy model")
+        vacant = is_vacant(ctx)
+    elif building_type == 'Vacant':
+        # subtype 7 is literally 'Vacant'; is_vacant() is residential-only so these never drew
+        # vacant and simulated with archetype occupancy (Q/A D-28)
+        vacant = True
     else:
         vacant = is_vacant(ctx)
     if vacant:
@@ -550,7 +599,11 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         'MT': '6B', 'NE': '5A', 'NV': '3B', 'NH': '6A', 'NJ': '4A',
         'NM': '4B', 'NY': '5A', 'NC': '4A', 'ND': '7A', 'OH': '5A',
         'OK': '3A', 'OR': '4C', 'PA': '5A', 'RI': '5A', 'SC': '3A',
-        'SD': '6A', 'TN': '4A', 'TX': '2A', 'UT': '5B', 'VT': '6A',
+        'SD': '6A', 'TN': '4A',
+        # Territories (Q/A R-029): absent entries sent these buildings into the mapper's empty
+        # rescue, silently simulating with the osw default Buffalo 6A climate arguments while the
+        # weather file WAS correctly assigned. All are IECC 1A tropical.
+        'PR': '1A', 'VI': '1A', 'GU': '1A', 'AS': '1A', 'MP': '1A', 'TX': '2A', 'UT': '5B', 'VT': '6A',
         'VA': '4A', 'WA': '4C', 'WV': '5A', 'WI': '6A', 'WY': '6B',
         'DC': '4A'
     }
