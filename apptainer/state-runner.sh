@@ -60,8 +60,14 @@ WORK_DIR="${SHARED_DIR}/state-runner-work"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Defaults (overridable via CLI args)
-SIM_SCRIPT="${HOME}/patch-sql-start.sh"
-STATES_FILE="${SHARED_DIR}/states.conf"
+# Q/A D-58: default to the TRACKED script; override with SIM_SCRIPT for a local variant
+# Under sbatch, $0 is the slurmd SPOOL copy, so dirname "$0" points nowhere useful
+# (code-review). SLURM_SUBMIT_DIR is where sbatch was invoked -- the directory the
+# runner and its siblings actually live in for the documented `sbatch state-runner.sh`
+# flow; dirname "$0" remains the fallback for direct execution.
+RUNNER_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")" && pwd)}"
+SIM_SCRIPT="${SIM_SCRIPT:-${RUNNER_DIR}/example-sql-start.sh}"
+STATES_FILE="${STATES_FILE:-${RUNNER_DIR}/states.conf}"
 CONSOLIDATE_SCRIPT="${SCRIPT_DIR}/consolidate-state.sh"
 DRY_RUN=0
 START_FROM=""

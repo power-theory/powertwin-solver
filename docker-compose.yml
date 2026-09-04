@@ -43,7 +43,7 @@ services:
     volumes:
       - ${DATA_DIR:-./powertwin_data}:/solver/powertwin-solver-pg
     healthcheck:
-      test: exit 0
+      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"127.0.0.1\",8080),2)'"]
     environment:
       - DEV_MODE=${DEV_MODE:-false}
       - FLASK_MSS_BASE_URL=${FLASK_MSS_BASE_URL:-}

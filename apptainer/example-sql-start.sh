@@ -193,6 +193,13 @@ print_status() {
 # Returns: 0 on success, 1 on failure
 #------------------------------------------------------------------------------
 check_sif_files() {
+    # Q/A X-1: surface the image provenance so a months-stale hand-built SIF is visible in
+    # every job log instead of silently running old resolver code.
+    if apptainer exec "${SOLVER_SIF}" cat /solver/BUILD_INFO 2>/dev/null; then
+        print_status "info" "flask.sif build info printed above"
+    else
+        print_status "warn" "flask.sif carries no BUILD_INFO (built before provenance stamping)"
+    fi
 
     if [ ! -f "$SOLVER_SIF" ]; then
         print_status "error" "Solver SIF file not found at: $SOLVER_SIF"
@@ -398,7 +405,12 @@ handle_termination() {
         print_status "info" "Attempting emergency database consolidation to preserve work..."
         print_status "info" "No timeout applied - large databases require extended time"
         
+        # Q/A X-2: same gem environment as the parallel step so ruby resolution
+        # cannot differ between phases of one job (comment outside the continuation).
         apptainer exec \
+            --env "GEM_HOME=${SHARED_GEM_HOME}" \
+            --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2" \
+            --env "BUNDLE_PATH=${SHARED_GEM_HOME}" \
             --bind "${DATA_DIR}:/powertwin_data" \
             --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files" \
             --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}" \
@@ -411,7 +423,7 @@ handle_termination() {
             "${SOLVER_SIF}" bash -c "cd /solver && python -m app.direct_runner consolidate-databases \"${SIMULATION_NAME}\"" \
             2>&1 | tee "${LOG_DIR}/emergency_consolidation_${SLURM_JOB_ID}.log"
         
-        EMERGENCY_CONSOLIDATE_EXIT_CODE=$?
+        EMERGENCY_CONSOLIDATE_EXIT_CODE=${PIPESTATUS[0]}
         if [ $EMERGENCY_CONSOLIDATE_EXIT_CODE -eq 0 ]; then
             print_status "info" "Emergency database consolidation completed successfully"
             
@@ -527,7 +539,13 @@ initialize_environment() {
 #------------------------------------------------------------------------------
 create_feature_files() {
     
+    # Q/A X-2: same gem environment as the parallel step so ruby resolution
+    # cannot differ between phases of one job. NOTE: comments must stay OUTSIDE
+    # the backslash continuation or bash truncates the command at the comment.
     apptainer exec \
+        --env "GEM_HOME=${SHARED_GEM_HOME}" \
+        --env "GEM_PATH=${SHARED_GEM_HOME}:/usr/local/lib/ruby/gems/3.2.2" \
+        --env "BUNDLE_PATH=${SHARED_GEM_HOME}" \
         --bind "${DATA_DIR}:/powertwin_data" \
         --bind "${USER_FILES_DIR}:/powertwin-solver-pg/user_files" \
         --bind "${HPC_SHARED_STORAGE}:${HPC_SHARED_STORAGE}" \
@@ -537,10 +555,11 @@ create_feature_files() {
         --env "POWERTWIN_STEP=setup" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
         --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
-        --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
-        --env "URBANOPT_SIMULATION_YEAR=${URBANOPT_SIMULATION_YEAR}" \
         --env "URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE}" \
         --env "URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS}" \
+        --env "URBANOPT_RUN_TIMEOUT_S=${URBANOPT_RUN_TIMEOUT_S:-129600}" \
+        --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
+        --env "URBANOPT_SIMULATION_YEAR=${URBANOPT_SIMULATION_YEAR}" \
         --env "URBANOPT_REPORTING_FREQUENCY=${URBANOPT_REPORTING_FREQUENCY}" \
         --env "URBANOPT_DYNAMIC_DEFAULTS=${URBANOPT_DYNAMIC_DEFAULTS}" \
         --env "URBANOPT_STOCHASTIC_SAMPLING=${URBANOPT_STOCHASTIC_SAMPLING}" \
@@ -582,6 +601,9 @@ initialize_urbanopt() {
       --env "POWERTWIN_STEP=setup" \
       --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
       --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
+        --env "URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE}" \
+        --env "URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS}" \
+        --env "URBANOPT_RUN_TIMEOUT_S=${URBANOPT_RUN_TIMEOUT_S:-129600}" \
       --env "HPC_SHARED_STORAGE=${HPC_SHARED_STORAGE}" \
       --workdir /powertwin_data \
       "${SOLVER_SIF}" python -m app.direct_runner initialize-uo \
@@ -690,6 +712,9 @@ process_batches() {
         --env "POWERTWIN_STEP=parallel" \
         --env "POWERTWIN_KEEP_DIRS=${POWERTWIN_KEEP_DIRS}" \
         --env "URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}" \
+        --env "URBANOPT_RESAMPLE=${URBANOPT_RESAMPLE}" \
+        --env "URBANOPT_POSTPROCESS_TRANSLATIONS=${URBANOPT_POSTPROCESS_TRANSLATIONS}" \
+        --env "URBANOPT_RUN_TIMEOUT_S=${URBANOPT_RUN_TIMEOUT_S:-129600}" \
         --env "URBANOPT_REPORTING_FREQUENCY=${URBANOPT_REPORTING_FREQUENCY}" \
         --env "URBANOPT_DYNAMIC_DEFAULTS=${URBANOPT_DYNAMIC_DEFAULTS}" \
         --env "URBANOPT_STOCHASTIC_SAMPLING=${URBANOPT_STOCHASTIC_SAMPLING}" \

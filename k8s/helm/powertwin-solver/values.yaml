@@ -164,6 +164,7 @@ flask:
     resample: ""
     postprocessTranslations: "false"
     simulationYear: "2025"
+    stochasticSampling: "false"
     dynamicDefaults: "false"
     keepRunDir: "false"
     runTimeoutS: "129600"

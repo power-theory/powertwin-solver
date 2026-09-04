@@ -107,6 +107,8 @@ spec:
               value: {{ .Values.flask.urbanopt.simulationYear | quote }}
             - name: URBANOPT_DYNAMIC_DEFAULTS
               value: {{ .Values.flask.urbanopt.dynamicDefaults | quote }}
+            - name: URBANOPT_STOCHASTIC_SAMPLING
+              value: {{ .Values.flask.urbanopt.stochasticSampling | quote }}
             - name: URBANOPT_KEEP_RUN_DIR
               value: {{ .Values.flask.urbanopt.keepRunDir | quote }}
             - name: URBANOPT_RUN_TIMEOUT_S

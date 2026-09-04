@@ -70,6 +70,12 @@ RUN which uo && uo --version
 # Copy application code and set environment variables
 COPY . .
 
+# Q/A X-1: build provenance baked into the image so a cluster SIF's origin is checkable --
+# CI pushes to ECR by tag while the cluster consumes a hand-built flask.sif with no version
+# link; this file is the link. CI passes GIT_SHA; local builds record 'untracked-local'.
+ARG GIT_SHA=untracked-local
+RUN printf 'git_sha=%s\nbuilt_at=%s\n' "$GIT_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /solver/BUILD_INFO
+
 # request the E+ 23.2+/OS 3.9 renamed district meters (DistrictHeatingWater/Steam) in the reporting
 # measure, and fail the build if the VENDORED measure copy (which shadows the gem at runtime via
 # measure_paths precedence) has drifted from the patched gem -- a gem upgrade must be re-vendored

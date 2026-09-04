@@ -9,7 +9,7 @@ services:
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
       - PG_DB_TOKEN_ADMIN=${PG_DB_TOKEN_ADMIN}
     volumes:
-      - ./powertwin_data:/solver/powertwin-solver-pg
+      - ${DATA_DIR:-./powertwin_data}:/solver/powertwin-solver-pg
       - ./postgres_data:/var/lib/postgresql/data
     restart: always
     networks:
@@ -99,9 +99,9 @@ services:
       - URBANOPT_KEEP_RUN_DIR=${URBANOPT_KEEP_RUN_DIR:-false}
       - URBANOPT_RUN_TIMEOUT_S=${URBANOPT_RUN_TIMEOUT_S:-129600}
     volumes:
-      - ./powertwin_data:/solver/powertwin-solver-pg
+      - ${DATA_DIR:-./powertwin_data}:/solver/powertwin-solver-pg
     healthcheck:
-      test: exit 0
+      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"127.0.0.1\",8080),2)'"]
     tty: true
     restart: unless-stopped
     networks:
