@@ -23,3 +23,9 @@ postgres_data
 *.log
 .claude
 CLAUDE.md
+
+# CR campaign county reference tables: builder-generated binaries (16 files, ~9 MB gz).
+# Regenerate with tests/tools/build_county_*.py (needs /mnt/h ResStock/ComStock parquets).
+# They stay in solver/upload/reference_data/ because _load_ref and the docker image
+# COPY read from there; only git tracking is excluded.
+solver/upload/reference_data/*.json.gz
