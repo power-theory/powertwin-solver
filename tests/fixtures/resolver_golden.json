@@ -3,17 +3,104 @@
     "det": {
       "cooling_system_fuel_type": "electricity",
       "number_of_occupants": 1445,
-      "weekday_start_time": "08:00"
+      "weekday_start_time": "05:30"
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 351,
+        "15.0": 358,
+        "20.0": 318,
+        "25.0": 330,
+        "30.0": 237,
+        "35.0": 107,
+        "40.0": 50,
+        "45.0": 36,
+        "5.0": 108,
+        "50.0": 55,
+        "60.0": 29,
+        "75.0": 21
+      },
+      "com_cooling_adjustment_f": {
+        "-1.0": 47,
+        "-2.0": 419,
+        "-3.0": 909,
+        "-4.0": 469,
+        "-5.0": 130,
+        "-6.0": 26
+      },
+      "com_heating_adjustment_f": {
+        "-1.0": 177,
+        "-2.0": 1057,
+        "-3.0": 516,
+        "-4.0": 72,
+        "0.0": 158,
+        "1.0": 20
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 814,
-        "fuel oil": 34,
-        "natural gas": 1011,
-        "propane": 121,
-        "wood": 20
+        "electricity": 244,
+        "natural gas": 1756
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -21,15 +108,25 @@
         "Standard": 248
       },
       "roof_r_value": {
-        "6.0": 248,
         "21.0": 1663,
-        "26.0": 89
+        "26.0": 89,
+        "6.0": 248
       },
       "service_water_heating_fuel_type": {
-        "electricity": 983,
-        "fuel oil": 21,
-        "natural gas": 883,
-        "propane": 113
+        "electricity": 498,
+        "natural gas": 1502
+      },
+      "system_type": {
+        "DOAS with fan coil air-cooled chiller with boiler": 95,
+        "DOAS with water source heat pumps with ground source heat pump": 47,
+        "Fan coil chiller with boiler": 22,
+        "PSZ-AC with gas coil": 273,
+        "PSZ-HP": 55,
+        "PTHP": 43,
+        "PVAV with gas heat with electric reheat": 465,
+        "VAV air-cooled chiller with gas boiler reheat": 587,
+        "VAV chiller with PFP boxes": 54,
+        "VAV chiller with gas boiler reheat": 359
       },
       "wall_material": {
         "Insulated": 1398,
@@ -37,13 +134,13 @@
         "Super Insulated": 95
       },
       "wall_r_value": {
-        "6.0": 15,
-        "7.0": 492,
-        "8.0": 1332,
         "11.0": 19,
         "12.0": 47,
         "16.0": 70,
-        "17.0": 25
+        "17.0": 25,
+        "6.0": 15,
+        "7.0": 492,
+        "8.0": 1332
       },
       "water_heater_type": {
         "null": 2000
@@ -67,16 +164,108 @@
     "det": {
       "cooling_system_fuel_type": "electricity",
       "number_of_occupants": 1445,
-      "weekday_start_time": "08:00"
+      "weekday_start_time": "04:45"
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 214,
+        "15.0": 425,
+        "20.0": 279,
+        "25.0": 262,
+        "30.0": 123,
+        "35.0": 189,
+        "40.0": 94,
+        "45.0": 146,
+        "5.0": 51,
+        "50.0": 22,
+        "55.0": 57,
+        "60.0": 55,
+        "65.0": 32,
+        "70.0": 37,
+        "75.0": 14
+      },
+      "com_cooling_adjustment_f": {
+        "-1.0": 34,
+        "-2.0": 476,
+        "-3.0": 774,
+        "-4.0": 454,
+        "-5.0": 180,
+        "-6.0": 72,
+        "0.0": 10
+      },
+      "com_heating_adjustment_f": {
+        "-1.0": 189,
+        "-2.0": 1088,
+        "-3.0": 571,
+        "-4.0": 37,
+        "-5.0": 29,
+        "0.0": 48,
+        "1.0": 38
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 441,
-        "fuel oil": 50,
-        "natural gas": 1421,
-        "propane": 88
+        "natural gas": 2000
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -89,8 +278,15 @@
       },
       "service_water_heating_fuel_type": {
         "electricity": 606,
-        "natural gas": 1313,
-        "propane": 81
+        "natural gas": 1394
+      },
+      "system_type": {
+        "DOAS with fan coil air-cooled chiller with boiler": 16,
+        "PSZ-AC with gas coil": 174,
+        "PTAC with gas boiler": 21,
+        "PVAV with gas heat with electric reheat": 269,
+        "VAV air-cooled chiller with gas boiler reheat": 910,
+        "VAV chiller with gas boiler reheat": 610
       },
       "wall_material": {
         "Insulated": 2000
@@ -124,14 +320,88 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 368,
+        "15.0": 340,
+        "20.0": 454,
+        "25.0": 112,
+        "30.0": 291,
+        "35.0": 99,
+        "40.0": 216,
+        "5.0": 64,
+        "75.0": 56
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 840,
-        "fuel oil": 49,
-        "natural gas": 991,
-        "propane": 105,
-        "wood": 15
+        "electricity": 1940,
+        "natural gas": 60
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -139,15 +409,20 @@
         "Standard": 282
       },
       "roof_r_value": {
-        "6.0": 282,
         "21.0": 1628,
-        "26.0": 90
+        "26.0": 90,
+        "6.0": 282
       },
       "service_water_heating_fuel_type": {
-        "electricity": 972,
-        "fuel oil": 21,
-        "natural gas": 908,
-        "propane": 99
+        "electricity": 1242,
+        "fuel oil": 47,
+        "natural gas": 711
+      },
+      "system_type": {
+        "PSZ-HP": 258,
+        "PTAC with electric coil": 1260,
+        "PTAC with gas boiler": 58,
+        "PTHP": 424
       },
       "wall_material": {
         "Insulated": 1399,
@@ -155,13 +430,13 @@
         "Super Insulated": 96
       },
       "wall_r_value": {
-        "6.0": 3,
-        "7.0": 502,
-        "8.0": 1339,
         "11.0": 17,
         "12.0": 43,
         "16.0": 58,
-        "17.0": 38
+        "17.0": 38,
+        "6.0": 3,
+        "7.0": 502,
+        "8.0": 1339
       },
       "water_heater_type": {
         "null": 2000
@@ -189,13 +464,88 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 266,
+        "15.0": 780,
+        "25.0": 124,
+        "30.0": 141,
+        "35.0": 144,
+        "45.0": 130,
+        "5.0": 149,
+        "50.0": 135,
+        "60.0": 131
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 444,
-        "fuel oil": 41,
-        "natural gas": 1459,
-        "propane": 56
+        "electricity": 1728,
+        "natural gas": 272
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -207,9 +557,14 @@
         "19.0": 1649
       },
       "service_water_heating_fuel_type": {
-        "electricity": 578,
-        "natural gas": 1340,
-        "propane": 82
+        "electricity": 943,
+        "natural gas": 1057
+      },
+      "system_type": {
+        "PSZ-HP": 417,
+        "PTAC with electric coil": 1073,
+        "PTAC with gas boiler": 252,
+        "PTHP": 258
       },
       "wall_material": {
         "Insulated": 2000
@@ -241,17 +596,116 @@
     "det": {
       "cooling_system_fuel_type": "electricity",
       "number_of_occupants": 250,
-      "weekday_start_time": "08:00"
+      "weekday_start_time": "10:30"
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 272,
+        "15.0": 341,
+        "20.0": 370,
+        "25.0": 273,
+        "30.0": 197,
+        "35.0": 119,
+        "40.0": 134,
+        "45.0": 54,
+        "5.0": 40,
+        "55.0": 84,
+        "60.0": 67,
+        "65.0": 17,
+        "70.0": 13,
+        "75.0": 19
+      },
+      "com_cooling_adjustment_f": {
+        "-1.0": 282,
+        "-2.0": 456,
+        "-3.0": 111,
+        "-4.0": 127,
+        "-5.0": 78,
+        "0.0": 549,
+        "1.0": 256,
+        "2.0": 12,
+        "4.0": 27,
+        "5.0": 102
+      },
+      "com_heating_adjustment_f": {
+        "-1.0": 765,
+        "-2.0": 252,
+        "-3.0": 60,
+        "-4.0": 278,
+        "-5.0": 60,
+        "-6.0": 141,
+        "-7.0": 23,
+        "-9.0": 45,
+        "0.0": 215,
+        "1.0": 124,
+        "2.0": 37
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 835,
-        "fuel oil": 42,
-        "natural gas": 991,
-        "propane": 115,
-        "wood": 17
+        "district steam": 294,
+        "electricity": 1036,
+        "natural gas": 670
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -259,15 +713,31 @@
         "Standard": 300
       },
       "roof_r_value": {
-        "6.0": 300,
         "21.0": 1628,
-        "26.0": 72
+        "26.0": 72,
+        "6.0": 300
       },
       "service_water_heating_fuel_type": {
-        "electricity": 956,
-        "fuel oil": 16,
-        "natural gas": 906,
-        "propane": 122
+        "district steam": 127,
+        "electricity": 1239,
+        "natural gas": 634
+      },
+      "system_type": {
+        "DOAS with fan coil air-cooled chiller with boiler": 19,
+        "DOAS with fan coil district chilled water with baseboard electric": 12,
+        "Fan coil chiller with boiler": 229,
+        "PSZ-AC with baseboard electric": 134,
+        "PSZ-AC with district hot water": 81,
+        "PSZ-AC with gas coil": 174,
+        "PSZ-HP": 99,
+        "PVAV with PFP boxes": 207,
+        "PVAV with gas heat with electric reheat": 258,
+        "VAV air-cooled chiller with district hot water reheat": 56,
+        "VAV air-cooled chiller with gas boiler reheat": 67,
+        "VAV chiller with PFP boxes": 101,
+        "VAV chiller with gas boiler reheat": 164,
+        "VAV district chilled water with district hot water reheat": 105,
+        "null": 294
       },
       "wall_material": {
         "Insulated": 1445,
@@ -275,13 +745,13 @@
         "Super Insulated": 86
       },
       "wall_r_value": {
-        "6.0": 12,
-        "7.0": 457,
-        "8.0": 1380,
         "11.0": 23,
         "12.0": 42,
         "16.0": 56,
-        "17.0": 30
+        "17.0": 30,
+        "6.0": 12,
+        "7.0": 457,
+        "8.0": 1380
       },
       "water_heater_type": {
         "null": 2000
@@ -305,16 +775,112 @@
     "det": {
       "cooling_system_fuel_type": "electricity",
       "number_of_occupants": 250,
-      "weekday_start_time": "08:00"
+      "weekday_start_time": "11:15"
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 377,
+        "15.0": 426,
+        "20.0": 340,
+        "25.0": 246,
+        "30.0": 166,
+        "35.0": 93,
+        "40.0": 36,
+        "45.0": 22,
+        "5.0": 131,
+        "50.0": 63,
+        "55.0": 47,
+        "60.0": 36,
+        "65.0": 17
+      },
+      "com_cooling_adjustment_f": {
+        "-1.0": 333,
+        "-2.0": 314,
+        "-3.0": 195,
+        "-4.0": 81,
+        "-5.0": 86,
+        "0.0": 633,
+        "1.0": 226,
+        "2.0": 65,
+        "5.0": 67
+      },
+      "com_heating_adjustment_f": {
+        "-1.0": 640,
+        "-2.0": 345,
+        "-3.0": 23,
+        "-4.0": 297,
+        "-5.0": 145,
+        "-6.0": 80,
+        "-7.0": 20,
+        "-9.0": 174,
+        "0.0": 276
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 434,
-        "fuel oil": 43,
-        "natural gas": 1439,
-        "propane": 84
+        "district steam": 37,
+        "electricity": 594,
+        "natural gas": 1369
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -326,9 +892,20 @@
         "19.0": 1646
       },
       "service_water_heating_fuel_type": {
-        "electricity": 580,
-        "natural gas": 1343,
-        "propane": 77
+        "electricity": 942,
+        "natural gas": 1058
+      },
+      "system_type": {
+        "DOAS with fan coil air-cooled chiller with boiler": 129,
+        "Fan coil chiller with boiler": 54,
+        "PSZ-AC with gas coil": 738,
+        "PVAV with PFP boxes": 91,
+        "PVAV with gas heat with electric reheat": 351,
+        "VAV air-cooled chiller with gas boiler reheat": 104,
+        "VAV chiller with PFP boxes": 312,
+        "VAV chiller with gas boiler reheat": 122,
+        "VAV district chilled water with district hot water reheat": 62,
+        "null": 37
       },
       "wall_material": {
         "Insulated": 2000
@@ -359,17 +936,108 @@
     "det": {
       "cooling_system_fuel_type": "electricity",
       "number_of_occupants": 750,
-      "weekday_start_time": "09:00"
+      "weekday_start_time": "10:00"
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 241,
+        "15.0": 266,
+        "20.0": 378,
+        "25.0": 286,
+        "30.0": 204,
+        "35.0": 153,
+        "40.0": 113,
+        "45.0": 74,
+        "5.0": 84,
+        "50.0": 71,
+        "55.0": 60,
+        "60.0": 10,
+        "65.0": 11,
+        "70.0": 23,
+        "75.0": 26
+      },
+      "com_cooling_adjustment_f": {
+        "-1.0": 23,
+        "-2.0": 335,
+        "-3.0": 1033,
+        "-4.0": 487,
+        "-5.0": 84,
+        "0.0": 38
+      },
+      "com_heating_adjustment_f": {
+        "-1.0": 49,
+        "-2.0": 1148,
+        "-3.0": 686,
+        "-4.0": 50,
+        "-5.0": 16,
+        "0.0": 51
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 858,
-        "fuel oil": 34,
-        "natural gas": 985,
-        "propane": 102,
-        "wood": 21
+        "electricity": 1221,
+        "fuel oil": 6,
+        "natural gas": 773
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -377,15 +1045,22 @@
         "Standard": 294
       },
       "roof_r_value": {
-        "6.0": 294,
         "21.0": 1637,
-        "26.0": 69
+        "26.0": 69,
+        "6.0": 294
       },
       "service_water_heating_fuel_type": {
-        "electricity": 967,
-        "fuel oil": 24,
-        "natural gas": 878,
-        "propane": 131
+        "electricity": 1518,
+        "natural gas": 482
+      },
+      "system_type": {
+        "Direct evap coolers with forced air furnace": 44,
+        "PSZ-AC with baseboard electric": 497,
+        "PSZ-AC with gas coil": 662,
+        "PSZ-HP": 252,
+        "PTHP": 36,
+        "PVAV with PFP boxes": 109,
+        "PVAV with gas heat with electric reheat": 400
       },
       "wall_material": {
         "Insulated": 1436,
@@ -393,13 +1068,13 @@
         "Super Insulated": 88
       },
       "wall_r_value": {
-        "6.0": 11,
-        "7.0": 465,
-        "8.0": 1372,
         "11.0": 21,
         "12.0": 43,
         "16.0": 62,
-        "17.0": 26
+        "17.0": 26,
+        "6.0": 11,
+        "7.0": 465,
+        "8.0": 1372
       },
       "water_heater_type": {
         "null": 2000
@@ -423,16 +1098,106 @@
     "det": {
       "cooling_system_fuel_type": "electricity",
       "number_of_occupants": 750,
-      "weekday_start_time": "09:00"
+      "weekday_start_time": "10:00"
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 338,
+        "15.0": 297,
+        "20.0": 372,
+        "25.0": 292,
+        "30.0": 149,
+        "35.0": 148,
+        "40.0": 80,
+        "45.0": 80,
+        "5.0": 88,
+        "50.0": 64,
+        "55.0": 36,
+        "60.0": 16,
+        "65.0": 9,
+        "75.0": 31
+      },
+      "com_cooling_adjustment_f": {
+        "-1.0": 28,
+        "-2.0": 388,
+        "-3.0": 1027,
+        "-4.0": 461,
+        "-5.0": 78,
+        "0.0": 18
+      },
+      "com_heating_adjustment_f": {
+        "-1.0": 61,
+        "-2.0": 1171,
+        "-3.0": 634,
+        "-4.0": 17,
+        "-5.0": 38,
+        "0.0": 79
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 409,
-        "fuel oil": 49,
-        "natural gas": 1469,
-        "propane": 73
+        "electricity": 248,
+        "natural gas": 1752
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -444,9 +1209,17 @@
         "19.0": 1639
       },
       "service_water_heating_fuel_type": {
-        "electricity": 590,
-        "natural gas": 1329,
-        "propane": 81
+        "electricity": 1066,
+        "natural gas": 934
+      },
+      "system_type": {
+        "Baseboard electric": 6,
+        "PSZ-AC with baseboard electric": 86,
+        "PSZ-AC with gas coil": 1361,
+        "PSZ-HP": 15,
+        "PTAC with gas coil": 37,
+        "PVAV with PFP boxes": 90,
+        "PVAV with gas heat with electric reheat": 405
       },
       "wall_material": {
         "Insulated": 2000
@@ -477,17 +1250,97 @@
     "det": {
       "cooling_system_fuel_type": "electricity",
       "number_of_occupants": 15,
-      "weekday_start_time": "08:00"
+      "weekday_start_time": "07:45"
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 270,
+        "15.0": 340,
+        "20.0": 346,
+        "25.0": 251,
+        "30.0": 207,
+        "35.0": 138,
+        "40.0": 119,
+        "45.0": 67,
+        "5.0": 80,
+        "50.0": 49,
+        "55.0": 36,
+        "60.0": 25,
+        "65.0": 22,
+        "70.0": 17,
+        "75.0": 33
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 836,
-        "fuel oil": 40,
-        "natural gas": 1034,
-        "propane": 73,
-        "wood": 17
+        "electricity": 1185,
+        "natural gas": 815
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -495,15 +1348,26 @@
         "Standard": 287
       },
       "roof_r_value": {
-        "6.0": 287,
         "21.0": 1614,
-        "26.0": 99
+        "26.0": 99,
+        "6.0": 287
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1027,
-        "fuel oil": 14,
-        "natural gas": 840,
-        "propane": 119
+        "electricity": 1439,
+        "fuel oil": 6,
+        "natural gas": 555
+      },
+      "system_type": {
+        "Baseboard electric": 8,
+        "DOAS with VRF": 5,
+        "PSZ-AC with baseboard electric": 438,
+        "PSZ-AC with gas coil": 766,
+        "PSZ-HP": 222,
+        "PTAC with electric coil": 76,
+        "PTAC with gas coil": 56,
+        "PTHP": 18,
+        "PVAV with PFP boxes": 110,
+        "PVAV with gas heat with electric reheat": 301
       },
       "wall_material": {
         "Insulated": 1363,
@@ -511,13 +1375,13 @@
         "Super Insulated": 128
       },
       "wall_r_value": {
-        "6.0": 4,
-        "7.0": 505,
-        "8.0": 1284,
         "11.0": 30,
         "12.0": 49,
         "16.0": 85,
-        "17.0": 43
+        "17.0": 43,
+        "6.0": 4,
+        "7.0": 505,
+        "8.0": 1284
       },
       "water_heater_type": {
         "null": 2000
@@ -540,16 +1404,99 @@
     "det": {
       "cooling_system_fuel_type": "electricity",
       "number_of_occupants": 15,
-      "weekday_start_time": "08:00"
+      "weekday_start_time": "07:45"
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "10.0": 235,
+        "15.0": 368,
+        "20.0": 293,
+        "25.0": 260,
+        "30.0": 216,
+        "35.0": 149,
+        "40.0": 160,
+        "45.0": 91,
+        "5.0": 86,
+        "50.0": 42,
+        "55.0": 35,
+        "60.0": 4,
+        "65.0": 14,
+        "70.0": 21,
+        "75.0": 26
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
-        "electricity": 433,
-        "fuel oil": 42,
-        "natural gas": 1431,
-        "propane": 94
+        "district steam": 65,
+        "electricity": 71,
+        "fuel oil": 5,
+        "natural gas": 1859
       },
       "heating_system_type": {
+        "null": 2000
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
         "null": 2000
       },
       "roof_material": {
@@ -561,9 +1508,20 @@
         "19.0": 1628
       },
       "service_water_heating_fuel_type": {
-        "electricity": 590,
-        "natural gas": 1342,
-        "propane": 68
+        "district steam": 31,
+        "electricity": 972,
+        "fuel oil": 9,
+        "natural gas": 988
+      },
+      "system_type": {
+        "Baseboard electric": 14,
+        "DOAS with fan coil chiller with district hot water": 69,
+        "PSZ-AC with gas coil": 1183,
+        "PTAC with gas boiler": 72,
+        "PTAC with gas coil": 10,
+        "PVAV with gas heat with electric reheat": 532,
+        "VAV air-cooled chiller with gas boiler reheat": 55,
+        "null": 65
       },
       "wall_material": {
         "Insulated": 2000
@@ -592,56 +1550,190 @@
   "res|East North Central|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 2,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 53,
+        "2": 321,
+        "3": 937,
+        "4": 602,
+        "5": 87
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 725,
+        "natural gas": 651,
+        "none": 622,
+        "propane": 2
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 801,
+        "natural gas": 1195,
+        "none": 1,
+        "propane": 3
+      },
+      "cooling_fraction_served": {
+        "0.2": 206,
+        "0.4": 289,
+        "0.6": 166,
+        "0.8": 95,
+        "1.0": 1167,
+        "null": 77
+      },
+      "cooling_setpoint_f": {
+        "60.0": 118,
+        "62.0": 26,
+        "65.0": 159,
+        "67.0": 59,
+        "68.0": 268,
+        "70.0": 424,
+        "72.0": 381,
+        "75.0": 325,
+        "76.0": 87,
+        "78.0": 77,
+        "80.0": 76
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1244,
+        "none": 77,
+        "room air conditioner": 679
+      },
+      "duct_insulation_r": {
+        "0.0": 1688,
+        "4.0": 312
+      },
+      "duct_leakage_pct": {
+        "0.0": 991,
+        "10.0": 257,
+        "20.0": 465,
+        "30.0": 287
+      },
+      "duct_location": {
+        "attic": 227,
+        "basement - conditioned": 481,
+        "basement - unconditioned": 463,
+        "conditioned space": 537,
+        "crawlspace": 235,
+        "garage": 57
+      },
+      "foundation_type": {
+        "ambient": 22,
+        "basement - conditioned": 308,
+        "basement - unconditioned": 855,
+        "crawlspace - unvented": 37,
+        "crawlspace - vented": 340,
+        "slab": 438
+      },
+      "garage_cars": {
+        "0": 1606,
+        "1": 160,
+        "2": 208,
+        "3": 26
+      },
+      "heating_equipment_detail": {
+        "Boiler": 495,
+        "ElectricResistance": 100,
+        "Furnace": 1205,
+        "WallFurnace": 181,
+        "air-to-air": 12,
+        "mini-split": 7
+      },
+      "heating_has_ducts": {
+        "No": 649,
+        "Yes": 1351
+      },
+      "heating_setpoint_f": {
+        "60.0": 46,
+        "62.0": 30,
+        "65.0": 134,
+        "67.0": 160,
+        "68.0": 488,
+        "70.0": 553,
+        "72.0": 316,
+        "75.0": 190,
+        "76.0": 50,
+        "78.0": 21,
+        "80.0": 12
+      },
       "heating_system_fuel_type": {
-        "electricity": 306,
-        "natural gas": 1666,
-        "propane": 28
+        "electricity": 299,
+        "fuel oil": 2,
+        "natural gas": 1676,
+        "propane": 22,
+        "wood": 1
       },
       "heating_system_type": {
-        "boiler": 253,
-        "electric_resistance": 152,
-        "furnace": 1563,
-        "heat_pump": 32
+        "boiler": 495,
+        "electric_resistance": 100,
+        "furnace": 1386,
+        "heat_pump": 19
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1950,
+        "Yes": 50
+      },
+      "misc_gas_grill": {
+        "No": 1934,
+        "Yes": 66
+      },
+      "misc_gas_lighting": {
+        "No": 1960,
+        "Yes": 40
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
       },
       "roof_material": {
-        "Insulated": 888,
-        "Standard": 466,
-        "Super Insulated": 646
+        "Insulated": 875,
+        "Standard": 367,
+        "Super Insulated": 758
       },
       "roof_r_value": {
-        "1.0": 51,
-        "7.0": 136,
-        "13.0": 279,
-        "19.0": 454,
-        "30.0": 434,
-        "38.0": 444,
-        "49.0": 202
+        "0.0": 17,
+        "13.0": 267,
+        "19.0": 604,
+        "30.0": 271,
+        "38.0": 613,
+        "49.0": 145,
+        "7.0": 83
       },
       "service_water_heating_fuel_type": {
-        "electricity": 555,
-        "natural gas": 1424,
-        "propane": 21
+        "electricity": 546,
+        "fuel oil": 2,
+        "natural gas": 1447,
+        "propane": 3,
+        "wood": 2
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 204,
-        "Standard": 1680,
-        "Super Insulated": 116
+        "Standard": 2000
       },
       "wall_r_value": {
-        "1.0": 1337,
-        "7.0": 343,
-        "11.0": 204,
-        "15.0": 77,
-        "19.0": 39
+        "0.0": 994,
+        "7.0": 1006
       },
       "water_heater_type": {
-        "heat pump water heater": 7,
-        "instantaneous water heater": 75,
-        "storage water heater": 1918
+        "heat pump water heater": 4,
+        "instantaneous water heater": 60,
+        "storage water heater": 1936
       },
       "window_to_wall_ratio": {
         "0.06": 189,
@@ -652,9 +1744,9 @@
         "0.3": 89
       },
       "window_type": {
-        "Double Pane": 1259,
-        "Single Pane": 715,
-        "Triple Pane": 26
+        "Double Pane": 1284,
+        "Single Pane": 678,
+        "Triple Pane": 38
       }
     },
     "vacant": 165
@@ -666,6 +1758,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 297,
         "fuel oil": 33,
@@ -680,6 +1823,24 @@
         "heat_pump": 34,
         "wood_stove": 34
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 880,
         "Standard": 455,
@@ -687,12 +1848,12 @@
       },
       "roof_r_value": {
         "1.0": 47,
-        "7.0": 131,
         "13.0": 277,
         "19.0": 444,
         "30.0": 436,
         "38.0": 460,
-        "49.0": 205
+        "49.0": 205,
+        "7.0": 131
       },
       "service_water_heating_fuel_type": {
         "electricity": 588,
@@ -701,6 +1862,9 @@
         "propane": 71,
         "wood": 1
       },
+      "system_type": {
+        "null": 2000
+      },
       "wall_material": {
         "Insulated": 168,
         "Standard": 1731,
@@ -708,10 +1872,10 @@
       },
       "wall_r_value": {
         "1.0": 1352,
-        "7.0": 379,
         "11.0": 168,
         "15.0": 67,
-        "19.0": 34
+        "19.0": 34,
+        "7.0": 379
       },
       "water_heater_type": {
         "heat pump water heater": 3,
@@ -737,60 +1901,189 @@
   "res|East North Central|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 2,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 47,
+        "2": 313,
+        "3": 921,
+        "4": 629,
+        "5": 90
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 709,
+        "natural gas": 651,
+        "none": 639,
+        "propane": 1
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 838,
+        "natural gas": 1158,
+        "none": 1,
+        "propane": 3
+      },
+      "cooling_fraction_served": {
+        "0.2": 127,
+        "0.4": 184,
+        "0.6": 210,
+        "0.8": 132,
+        "1.0": 1319,
+        "null": 28
+      },
+      "cooling_setpoint_f": {
+        "60.0": 135,
+        "62.0": 36,
+        "65.0": 166,
+        "67.0": 39,
+        "68.0": 284,
+        "70.0": 397,
+        "72.0": 395,
+        "75.0": 300,
+        "76.0": 92,
+        "78.0": 81,
+        "80.0": 75
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1510,
+        "none": 28,
+        "room air conditioner": 462
+      },
+      "duct_insulation_r": {
+        "0.0": 1809,
+        "4.0": 191
+      },
+      "duct_leakage_pct": {
+        "0.0": 1020,
+        "10.0": 239,
+        "20.0": 477,
+        "30.0": 264
+      },
+      "duct_location": {
+        "attic": 128,
+        "basement - conditioned": 428,
+        "basement - unconditioned": 457,
+        "conditioned space": 633,
+        "crawlspace": 302,
+        "garage": 52
+      },
+      "foundation_type": {
+        "ambient": 26,
+        "basement - conditioned": 285,
+        "basement - unconditioned": 816,
+        "crawlspace - unvented": 41,
+        "crawlspace - vented": 367,
+        "slab": 465
+      },
+      "garage_cars": {
+        "0": 1662,
+        "1": 132,
+        "2": 186,
+        "3": 20
+      },
+      "heating_equipment_detail": {
+        "Boiler": 385,
+        "ElectricResistance": 77,
+        "Furnace": 1381,
+        "WallFurnace": 135,
+        "air-to-air": 22
+      },
+      "heating_has_ducts": {
+        "No": 502,
+        "Yes": 1498
+      },
+      "heating_setpoint_f": {
+        "60.0": 54,
+        "62.0": 32,
+        "65.0": 145,
+        "67.0": 135,
+        "68.0": 445,
+        "70.0": 587,
+        "72.0": 294,
+        "75.0": 232,
+        "76.0": 32,
+        "78.0": 20,
+        "80.0": 24
+      },
       "heating_system_fuel_type": {
-        "electricity": 328,
-        "fuel oil": 4,
-        "natural gas": 1629,
-        "propane": 38,
-        "wood": 1
+        "electricity": 295,
+        "natural gas": 1668,
+        "propane": 37
       },
       "heating_system_type": {
-        "boiler": 31,
-        "electric_resistance": 80,
-        "furnace": 1800,
-        "heat_pump": 88,
-        "wood_stove": 1
+        "boiler": 385,
+        "electric_resistance": 77,
+        "furnace": 1516,
+        "heat_pump": 22
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1940,
+        "Yes": 60
+      },
+      "misc_gas_grill": {
+        "No": 1934,
+        "Yes": 66
+      },
+      "misc_gas_lighting": {
+        "No": 1981,
+        "Yes": 19
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
       },
       "roof_material": {
-        "Insulated": 1043,
-        "Standard": 220,
-        "Super Insulated": 737
+        "Insulated": 1052,
+        "Standard": 91,
+        "Super Insulated": 857
       },
       "roof_r_value": {
-        "1.0": 31,
-        "7.0": 53,
-        "13.0": 136,
-        "19.0": 304,
-        "30.0": 739,
-        "38.0": 510,
-        "49.0": 227
+        "13.0": 91,
+        "19.0": 264,
+        "30.0": 788,
+        "38.0": 642,
+        "49.0": 215
       },
       "service_water_heating_fuel_type": {
-        "electricity": 572,
-        "fuel oil": 1,
-        "natural gas": 1405,
-        "propane": 22
+        "electricity": 600,
+        "natural gas": 1397,
+        "propane": 2,
+        "wood": 1
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 986,
-        "Standard": 21,
-        "Super Insulated": 993
+        "Insulated": 1215,
+        "Standard": 30,
+        "Super Insulated": 755
       },
       "wall_r_value": {
-        "1.0": 12,
-        "7.0": 9,
-        "11.0": 986,
-        "15.0": 438,
-        "19.0": 555
+        "0.0": 17,
+        "11.0": 1215,
+        "15.0": 478,
+        "19.0": 277,
+        "7.0": 13
       },
       "water_heater_type": {
-        "heat pump water heater": 4,
-        "instantaneous water heater": 64,
-        "storage water heater": 1932
+        "heat pump water heater": 2,
+        "instantaneous water heater": 54,
+        "storage water heater": 1944
       },
       "window_to_wall_ratio": {
         "0.06": 167,
@@ -801,9 +2094,9 @@
         "0.3": 76
       },
       "window_type": {
-        "Double Pane": 1428,
-        "Single Pane": 508,
-        "Triple Pane": 64
+        "Double Pane": 1377,
+        "Single Pane": 604,
+        "Triple Pane": 19
       }
     },
     "vacant": 165
@@ -815,6 +2108,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 440,
         "fuel oil": 26,
@@ -829,6 +2173,24 @@
         "heat_pump": 125,
         "wood_stove": 34
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1039,
         "Standard": 233,
@@ -836,18 +2198,21 @@
       },
       "roof_r_value": {
         "1.0": 25,
-        "7.0": 61,
         "13.0": 147,
         "19.0": 306,
         "30.0": 733,
         "38.0": 493,
-        "49.0": 235
+        "49.0": 235,
+        "7.0": 61
       },
       "service_water_heating_fuel_type": {
         "electricity": 731,
         "fuel oil": 14,
         "natural gas": 1156,
         "propane": 99
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 980,
@@ -884,53 +2249,185 @@
   "res|East North Central|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 2,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 45,
+        "2": 300,
+        "3": 997,
+        "4": 553,
+        "5": 105
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 703,
+        "natural gas": 602,
+        "none": 689,
+        "propane": 6
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 850,
+        "natural gas": 1144,
+        "none": 1,
+        "propane": 5
+      },
+      "cooling_fraction_served": {
+        "0.2": 85,
+        "0.4": 170,
+        "0.6": 183,
+        "0.8": 120,
+        "1.0": 1442
+      },
+      "cooling_setpoint_f": {
+        "60.0": 111,
+        "62.0": 32,
+        "65.0": 136,
+        "67.0": 44,
+        "68.0": 270,
+        "70.0": 430,
+        "72.0": 409,
+        "75.0": 310,
+        "76.0": 101,
+        "78.0": 82,
+        "80.0": 75
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1645,
+        "room air conditioner": 355
+      },
+      "duct_insulation_r": {
+        "0.0": 1379,
+        "6.0": 355,
+        "8.0": 266
+      },
+      "duct_leakage_pct": {
+        "0.0": 1379,
+        "10.0": 253,
+        "20.0": 285,
+        "30.0": 83
+      },
+      "duct_location": {
+        "attic": 146,
+        "basement - conditioned": 365,
+        "basement - unconditioned": 291,
+        "conditioned space": 986,
+        "crawlspace": 77,
+        "garage": 135
+      },
+      "foundation_type": {
+        "ambient": 30,
+        "basement - conditioned": 334,
+        "basement - unconditioned": 815,
+        "crawlspace - unvented": 25,
+        "crawlspace - vented": 348,
+        "slab": 448
+      },
+      "garage_cars": {
+        "0": 1656,
+        "1": 139,
+        "2": 185,
+        "3": 20
+      },
+      "heating_equipment_detail": {
+        "Boiler": 535,
+        "ElectricResistance": 66,
+        "Furnace": 1229,
+        "WallFurnace": 101,
+        "air-to-air": 35,
+        "mini-split": 34
+      },
+      "heating_has_ducts": {
+        "No": 638,
+        "Yes": 1362
+      },
+      "heating_setpoint_f": {
+        "60.0": 45,
+        "62.0": 30,
+        "65.0": 143,
+        "67.0": 128,
+        "68.0": 470,
+        "70.0": 577,
+        "72.0": 313,
+        "75.0": 213,
+        "76.0": 42,
+        "78.0": 24,
+        "80.0": 15
+      },
       "heating_system_fuel_type": {
-        "electricity": 315,
-        "fuel oil": 1,
-        "natural gas": 1657,
-        "propane": 27
+        "electricity": 311,
+        "natural gas": 1650,
+        "propane": 39
       },
       "heating_system_type": {
-        "electric_resistance": 82,
-        "furnace": 1807,
-        "heat_pump": 111
+        "boiler": 535,
+        "electric_resistance": 66,
+        "furnace": 1330,
+        "heat_pump": 69
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1945,
+        "Yes": 55
+      },
+      "misc_gas_grill": {
+        "No": 1945,
+        "Yes": 55
+      },
+      "misc_gas_lighting": {
+        "No": 1973,
+        "Yes": 27
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
       },
       "roof_material": {
-        "Insulated": 890,
-        "Standard": 183,
-        "Super Insulated": 927
+        "Insulated": 768,
+        "Super Insulated": 1232
       },
       "roof_r_value": {
-        "1.0": 40,
-        "7.0": 47,
-        "13.0": 96,
-        "19.0": 173,
-        "30.0": 717,
-        "38.0": 499,
-        "49.0": 428
+        "19.0": 75,
+        "30.0": 693,
+        "38.0": 588,
+        "49.0": 644
       },
       "service_water_heating_fuel_type": {
-        "electricity": 579,
-        "natural gas": 1398,
-        "propane": 23
+        "electricity": 575,
+        "fuel oil": 1,
+        "natural gas": 1418,
+        "propane": 3,
+        "wood": 3
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 625,
-        "Super Insulated": 1375
+        "Insulated": 828,
+        "Super Insulated": 1172
       },
       "wall_r_value": {
-        "11.0": 625,
-        "15.0": 385,
-        "19.0": 990
+        "11.0": 828,
+        "15.0": 601,
+        "19.0": 571
       },
       "water_heater_type": {
-        "heat pump water heater": 3,
-        "instantaneous water heater": 56,
-        "storage water heater": 1941
+        "heat pump water heater": 2,
+        "instantaneous water heater": 54,
+        "storage water heater": 1944
       },
       "window_to_wall_ratio": {
         "0.06": 168,
@@ -941,9 +2438,8 @@
         "0.3": 75
       },
       "window_type": {
-        "Double Pane": 1621,
-        "Single Pane": 351,
-        "Triple Pane": 28
+        "Double Pane": 1945,
+        "Triple Pane": 55
       }
     },
     "vacant": 165
@@ -955,6 +2451,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 645,
         "fuel oil": 24,
@@ -968,6 +2515,24 @@
         "heat_pump": 204,
         "wood_stove": 20
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 869,
         "Standard": 200,
@@ -975,18 +2540,21 @@
       },
       "roof_r_value": {
         "1.0": 34,
-        "7.0": 65,
         "13.0": 101,
         "19.0": 159,
         "30.0": 710,
         "38.0": 518,
-        "49.0": 413
+        "49.0": 413,
+        "7.0": 65
       },
       "service_water_heating_fuel_type": {
         "electricity": 864,
         "fuel oil": 9,
         "natural gas": 1045,
         "propane": 82
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 647,
@@ -1025,6 +2593,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 942,
         "fuel oil": 13,
@@ -1038,6 +2657,24 @@
         "heat_pump": 662,
         "wood_stove": 46
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 898,
         "Standard": 746,
@@ -1045,12 +2682,12 @@
       },
       "roof_r_value": {
         "1.0": 122,
-        "7.0": 228,
         "13.0": 396,
         "19.0": 370,
         "30.0": 528,
         "38.0": 305,
-        "49.0": 51
+        "49.0": 51,
+        "7.0": 228
       },
       "service_water_heating_fuel_type": {
         "electricity": 1070,
@@ -1058,6 +2695,9 @@
         "natural gas": 834,
         "propane": 84,
         "wood": 2
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
@@ -1094,6 +2734,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 1254,
         "natural gas": 607,
@@ -1106,6 +2797,24 @@
         "heat_pump": 739,
         "wood_stove": 24
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1302,
         "Standard": 342,
@@ -1113,18 +2822,21 @@
       },
       "roof_r_value": {
         "1.0": 28,
-        "7.0": 81,
         "13.0": 233,
         "19.0": 478,
         "30.0": 824,
         "38.0": 277,
-        "49.0": 79
+        "49.0": 79,
+        "7.0": 81
       },
       "service_water_heating_fuel_type": {
         "electricity": 1260,
         "fuel oil": 2,
         "natural gas": 652,
         "propane": 86
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 1389,
@@ -1133,10 +2845,10 @@
       },
       "wall_r_value": {
         "1.0": 32,
-        "7.0": 6,
         "11.0": 1389,
         "15.0": 338,
-        "19.0": 235
+        "19.0": 235,
+        "7.0": 6
       },
       "water_heater_type": {
         "heat pump water heater": 9,
@@ -1166,6 +2878,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 1443,
         "natural gas": 472,
@@ -1179,6 +2942,24 @@
         "heat_pump": 773,
         "wood_stove": 19
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1424,
         "Standard": 121,
@@ -1186,12 +2967,12 @@
       },
       "roof_r_value": {
         "1.0": 18,
-        "7.0": 26,
         "13.0": 77,
         "19.0": 294,
         "30.0": 1130,
         "38.0": 402,
-        "49.0": 53
+        "49.0": 53,
+        "7.0": 26
       },
       "service_water_heating_fuel_type": {
         "electricity": 1377,
@@ -1199,6 +2980,9 @@
         "natural gas": 562,
         "propane": 58,
         "wood": 1
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 1323,
@@ -1237,6 +3021,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 296,
         "fuel oil": 318,
@@ -1251,6 +3086,24 @@
         "heat_pump": 92,
         "wood_stove": 35
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 921,
         "Standard": 516,
@@ -1258,12 +3111,12 @@
       },
       "roof_r_value": {
         "1.0": 67,
-        "7.0": 177,
         "13.0": 272,
         "19.0": 507,
         "30.0": 414,
         "38.0": 445,
-        "49.0": 118
+        "49.0": 118,
+        "7.0": 177
       },
       "service_water_heating_fuel_type": {
         "electricity": 661,
@@ -1271,6 +3124,9 @@
         "natural gas": 1159,
         "propane": 49,
         "wood": 1
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
@@ -1306,6 +3162,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 479,
         "fuel oil": 146,
@@ -1320,6 +3227,24 @@
         "heat_pump": 133,
         "wood_stove": 69
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1200,
         "Standard": 261,
@@ -1327,12 +3252,12 @@
       },
       "roof_r_value": {
         "1.0": 29,
-        "7.0": 62,
         "13.0": 170,
         "19.0": 355,
         "30.0": 845,
         "38.0": 440,
-        "49.0": 99
+        "49.0": 99,
+        "7.0": 62
       },
       "service_water_heating_fuel_type": {
         "electricity": 794,
@@ -1341,6 +3266,9 @@
         "propane": 123,
         "wood": 4
       },
+      "system_type": {
+        "null": 2000
+      },
       "wall_material": {
         "Insulated": 1208,
         "Standard": 14,
@@ -1348,10 +3276,10 @@
       },
       "wall_r_value": {
         "1.0": 13,
-        "7.0": 1,
         "11.0": 1208,
         "15.0": 70,
-        "19.0": 708
+        "19.0": 708,
+        "7.0": 1
       },
       "water_heater_type": {
         "heat pump water heater": 1,
@@ -1381,6 +3309,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 781,
         "fuel oil": 27,
@@ -1395,6 +3374,24 @@
         "heat_pump": 346,
         "wood_stove": 21
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1104,
         "Standard": 165,
@@ -1402,12 +3399,12 @@
       },
       "roof_r_value": {
         "1.0": 29,
-        "7.0": 51,
         "13.0": 85,
         "19.0": 171,
         "30.0": 933,
         "38.0": 531,
-        "49.0": 200
+        "49.0": 200,
+        "7.0": 51
       },
       "service_water_heating_fuel_type": {
         "electricity": 987,
@@ -1415,6 +3412,9 @@
         "natural gas": 887,
         "propane": 108,
         "wood": 1
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 623,
@@ -1453,6 +3453,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 345,
         "natural gas": 1502,
@@ -1466,6 +3517,24 @@
         "heat_pump": 30,
         "wood_stove": 57
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 955,
         "Standard": 603,
@@ -1473,12 +3542,12 @@
       },
       "roof_r_value": {
         "1.0": 121,
-        "7.0": 151,
         "13.0": 331,
         "19.0": 361,
         "30.0": 594,
         "38.0": 354,
-        "49.0": 88
+        "49.0": 88,
+        "7.0": 151
       },
       "service_water_heating_fuel_type": {
         "electricity": 614,
@@ -1486,6 +3555,9 @@
         "natural gas": 1315,
         "propane": 64,
         "wood": 4
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
@@ -1522,6 +3594,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 348,
         "natural gas": 1477,
@@ -1535,6 +3658,24 @@
         "heat_pump": 36,
         "wood_stove": 71
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1147,
         "Standard": 369,
@@ -1542,18 +3683,21 @@
       },
       "roof_r_value": {
         "1.0": 35,
-        "7.0": 113,
         "13.0": 221,
         "19.0": 387,
         "30.0": 760,
         "38.0": 393,
-        "49.0": 91
+        "49.0": 91,
+        "7.0": 113
       },
       "service_water_heating_fuel_type": {
         "electricity": 670,
         "natural gas": 1263,
         "propane": 65,
         "wood": 2
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 1515,
@@ -1562,10 +3706,10 @@
       },
       "wall_r_value": {
         "1.0": 10,
-        "7.0": 37,
         "11.0": 1515,
         "15.0": 63,
-        "19.0": 375
+        "19.0": 375,
+        "7.0": 37
       },
       "water_heater_type": {
         "instantaneous water heater": 101,
@@ -1594,6 +3738,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 600,
         "natural gas": 1321,
@@ -1607,6 +3802,24 @@
         "heat_pump": 117,
         "wood_stove": 40
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 967,
         "Standard": 222,
@@ -1614,12 +3827,12 @@
       },
       "roof_r_value": {
         "1.0": 39,
-        "7.0": 63,
         "13.0": 120,
         "19.0": 210,
         "30.0": 757,
         "38.0": 630,
-        "49.0": 181
+        "49.0": 181,
+        "7.0": 63
       },
       "service_water_heating_fuel_type": {
         "electricity": 804,
@@ -1627,6 +3840,9 @@
         "natural gas": 1157,
         "propane": 37,
         "wood": 1
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 566,
@@ -1661,55 +3877,199 @@
   "res|Mountain South|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 1,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 13,
+        "2": 129,
+        "3": 979,
+        "4": 820,
+        "5": 59
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 1520,
+        "natural gas": 219,
+        "none": 248,
+        "propane": 13
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 1498,
+        "natural gas": 450,
+        "none": 7,
+        "propane": 45
+      },
+      "cooling_fraction_served": {
+        "0.2": 41,
+        "0.4": 61,
+        "0.6": 75,
+        "0.8": 10,
+        "1.0": 1554,
+        "null": 259
+      },
+      "cooling_setpoint_f": {
+        "60.0": 17,
+        "62.0": 9,
+        "65.0": 18,
+        "67.0": 10,
+        "68.0": 55,
+        "70.0": 112,
+        "72.0": 123,
+        "75.0": 494,
+        "76.0": 321,
+        "78.0": 467,
+        "80.0": 374
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1467,
+        "none": 259,
+        "room air conditioner": 274
+      },
+      "duct_insulation_r": {
+        "0.0": 1045,
+        "4.0": 955
+      },
+      "duct_leakage_pct": {
+        "0.0": 1018,
+        "10.0": 253,
+        "20.0": 485,
+        "30.0": 244
+      },
+      "duct_location": {
+        "attic": 519,
+        "basement - unconditioned": 17,
+        "conditioned space": 1024,
+        "crawlspace": 18,
+        "garage": 422
+      },
+      "foundation_type": {
+        "ambient": 143,
+        "basement - conditioned": 5,
+        "basement - unconditioned": 28,
+        "crawlspace - unvented": 9,
+        "crawlspace - vented": 62,
+        "slab": 1753
+      },
+      "garage_cars": {
+        "0": 1091,
+        "1": 206,
+        "2": 573,
+        "3": 130
+      },
+      "heating_equipment_detail": {
+        "Boiler": 156,
+        "ElectricResistance": 72,
+        "Furnace": 1038,
+        "WallFurnace": 46,
+        "air-to-air": 617,
+        "mini-split": 71
+      },
+      "heating_has_ducts": {
+        "No": 303,
+        "Yes": 1697
+      },
+      "heating_setpoint_f": {
+        "60.0": 28,
+        "62.0": 8,
+        "65.0": 124,
+        "67.0": 48,
+        "68.0": 190,
+        "70.0": 495,
+        "72.0": 359,
+        "75.0": 358,
+        "76.0": 170,
+        "78.0": 150,
+        "80.0": 70
+      },
       "heating_system_fuel_type": {
-        "electricity": 1405,
-        "fuel oil": 1,
-        "natural gas": 575,
-        "propane": 16,
-        "wood": 3
+        "electricity": 1375,
+        "natural gas": 604,
+        "propane": 19,
+        "wood": 2
       },
       "heating_system_type": {
-        "boiler": 17,
-        "electric_resistance": 189,
-        "furnace": 943,
-        "heat_pump": 848,
-        "wood_stove": 3
+        "boiler": 156,
+        "electric_resistance": 72,
+        "furnace": 1084,
+        "heat_pump": 688
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1944,
+        "Yes": 56
+      },
+      "misc_gas_grill": {
+        "No": 1949,
+        "Yes": 51
+      },
+      "misc_gas_lighting": {
+        "No": 1974,
+        "Yes": 26
+      },
+      "pv_azimuth_deg": {
+        "0.0": 2,
+        "135.0": 16,
+        "180.0": 20,
+        "225.0": 7,
+        "270.0": 5,
+        "315.0": 1,
+        "90.0": 13,
+        "null": 1936
+      },
+      "pv_system_kw": {
+        "11.0": 10,
+        "13.0": 5,
+        "3.0": 7,
+        "5.0": 12,
+        "7.0": 20,
+        "9.0": 10,
+        "null": 1936
       },
       "roof_material": {
-        "Insulated": 883,
-        "Standard": 659,
-        "Super Insulated": 458
+        "Insulated": 924,
+        "Standard": 879,
+        "Super Insulated": 197
       },
       "roof_r_value": {
-        "1.0": 105,
-        "7.0": 197,
-        "13.0": 357,
-        "19.0": 361,
-        "30.0": 522,
-        "38.0": 360,
-        "49.0": 98
+        "0.0": 129,
+        "13.0": 472,
+        "19.0": 377,
+        "30.0": 547,
+        "38.0": 197,
+        "7.0": 278
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1317,
-        "fuel oil": 1,
-        "natural gas": 635,
-        "propane": 47
+        "electricity": 1221,
+        "natural gas": 725,
+        "propane": 46,
+        "wood": 8
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
       },
       "wall_r_value": {
-        "1.0": 1688,
-        "7.0": 312
+        "0.0": 1351,
+        "7.0": 649
       },
       "water_heater_type": {
-        "heat pump water heater": 1,
-        "instantaneous water heater": 129,
-        "storage water heater": 1870
+        "heat pump water heater": 2,
+        "instantaneous water heater": 160,
+        "storage water heater": 1838
       },
       "window_to_wall_ratio": {
         "0.06": 138,
@@ -1720,9 +4080,9 @@
         "0.3": 79
       },
       "window_type": {
-        "Double Pane": 1159,
-        "Single Pane": 821,
-        "Triple Pane": 20
+        "Double Pane": 837,
+        "Single Pane": 1127,
+        "Triple Pane": 36
       }
     },
     "vacant": 106
@@ -1734,6 +4094,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 892,
         "natural gas": 1019,
@@ -1747,6 +4158,24 @@
         "heat_pump": 547,
         "wood_stove": 69
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 984,
         "Standard": 599,
@@ -1754,12 +4183,12 @@
       },
       "roof_r_value": {
         "1.0": 104,
-        "7.0": 175,
         "13.0": 320,
         "19.0": 383,
         "30.0": 601,
         "38.0": 323,
-        "49.0": 94
+        "49.0": 94,
+        "7.0": 175
       },
       "service_water_heating_fuel_type": {
         "electricity": 1027,
@@ -1767,6 +4196,9 @@
         "natural gas": 935,
         "propane": 32,
         "wood": 3
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
@@ -1799,58 +4231,204 @@
   "res|Mountain South|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 1,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 14,
+        "2": 118,
+        "3": 981,
+        "4": 831,
+        "5": 56
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 1573,
+        "natural gas": 210,
+        "none": 209,
+        "propane": 8
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 1510,
+        "natural gas": 447,
+        "none": 11,
+        "propane": 32
+      },
+      "cooling_fraction_served": {
+        "0.2": 22,
+        "0.4": 29,
+        "0.6": 54,
+        "0.8": 18,
+        "1.0": 1661,
+        "null": 216
+      },
+      "cooling_setpoint_f": {
+        "60.0": 13,
+        "62.0": 6,
+        "65.0": 12,
+        "67.0": 15,
+        "68.0": 43,
+        "70.0": 132,
+        "72.0": 115,
+        "75.0": 456,
+        "76.0": 314,
+        "78.0": 496,
+        "80.0": 398
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1657,
+        "none": 216,
+        "room air conditioner": 127
+      },
+      "duct_insulation_r": {
+        "0.0": 955,
+        "4.0": 1045
+      },
+      "duct_leakage_pct": {
+        "0.0": 870,
+        "10.0": 339,
+        "20.0": 486,
+        "30.0": 305
+      },
+      "duct_location": {
+        "attic": 528,
+        "basement - conditioned": 4,
+        "basement - unconditioned": 35,
+        "conditioned space": 920,
+        "crawlspace": 61,
+        "garage": 452
+      },
+      "foundation_type": {
+        "ambient": 126,
+        "basement - conditioned": 5,
+        "basement - unconditioned": 20,
+        "crawlspace - unvented": 4,
+        "crawlspace - vented": 53,
+        "slab": 1792
+      },
+      "garage_cars": {
+        "0": 1095,
+        "1": 201,
+        "2": 542,
+        "3": 162
+      },
+      "heating_equipment_detail": {
+        "Boiler": 125,
+        "ElectricResistance": 131,
+        "Furnace": 943,
+        "WallFurnace": 31,
+        "air-to-air": 767,
+        "mini-split": 3
+      },
+      "heating_has_ducts": {
+        "No": 200,
+        "Yes": 1800
+      },
+      "heating_setpoint_f": {
+        "60.0": 14,
+        "62.0": 10,
+        "65.0": 133,
+        "67.0": 42,
+        "68.0": 192,
+        "70.0": 512,
+        "72.0": 372,
+        "75.0": 367,
+        "76.0": 150,
+        "78.0": 131,
+        "80.0": 77
+      },
       "heating_system_fuel_type": {
-        "electricity": 1428,
-        "fuel oil": 2,
-        "natural gas": 545,
-        "propane": 25
+        "electricity": 1433,
+        "natural gas": 549,
+        "propane": 16,
+        "wood": 2
       },
       "heating_system_type": {
-        "boiler": 30,
-        "electric_resistance": 97,
-        "furnace": 1170,
-        "heat_pump": 703
+        "boiler": 125,
+        "electric_resistance": 131,
+        "furnace": 974,
+        "heat_pump": 770
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1955,
+        "Yes": 45
+      },
+      "misc_gas_grill": {
+        "No": 1937,
+        "Yes": 63
+      },
+      "misc_gas_lighting": {
+        "No": 1968,
+        "Yes": 32
+      },
+      "pv_azimuth_deg": {
+        "135.0": 9,
+        "180.0": 28,
+        "225.0": 4,
+        "270.0": 5,
+        "45.0": 4,
+        "90.0": 13,
+        "null": 1937
+      },
+      "pv_system_kw": {
+        "1.0": 2,
+        "11.0": 1,
+        "13.0": 3,
+        "3.0": 14,
+        "5.0": 14,
+        "7.0": 15,
+        "9.0": 14,
+        "null": 1937
       },
       "roof_material": {
-        "Insulated": 1126,
-        "Standard": 362,
-        "Super Insulated": 512
+        "Insulated": 1329,
+        "Standard": 358,
+        "Super Insulated": 313
       },
       "roof_r_value": {
-        "1.0": 43,
-        "7.0": 109,
-        "13.0": 210,
-        "19.0": 410,
-        "30.0": 716,
-        "38.0": 411,
-        "49.0": 101
+        "0.0": 17,
+        "13.0": 258,
+        "19.0": 525,
+        "30.0": 804,
+        "38.0": 313,
+        "7.0": 83
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1321,
-        "fuel oil": 1,
-        "natural gas": 634,
-        "propane": 44
+        "electricity": 1232,
+        "natural gas": 704,
+        "propane": 42,
+        "wood": 22
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 1496,
-        "Standard": 54,
-        "Super Insulated": 450
+        "Insulated": 1548,
+        "Standard": 92,
+        "Super Insulated": 360
       },
       "wall_r_value": {
-        "1.0": 13,
-        "7.0": 41,
-        "11.0": 1496,
-        "15.0": 64,
-        "19.0": 386
+        "0.0": 24,
+        "11.0": 1548,
+        "19.0": 360,
+        "7.0": 68
       },
       "water_heater_type": {
-        "heat pump water heater": 2,
-        "instantaneous water heater": 142,
-        "storage water heater": 1856
+        "heat pump water heater": 8,
+        "instantaneous water heater": 137,
+        "storage water heater": 1855
       },
       "window_to_wall_ratio": {
         "0.06": 174,
@@ -1861,9 +4439,9 @@
         "0.3": 80
       },
       "window_type": {
-        "Double Pane": 1276,
-        "Single Pane": 684,
-        "Triple Pane": 40
+        "Double Pane": 1072,
+        "Single Pane": 914,
+        "Triple Pane": 14
       }
     },
     "vacant": 106
@@ -1875,6 +4453,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 838,
         "fuel oil": 19,
@@ -1889,6 +4518,24 @@
         "heat_pump": 409,
         "wood_stove": 63
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1149,
         "Standard": 365,
@@ -1896,12 +4543,12 @@
       },
       "roof_r_value": {
         "1.0": 37,
-        "7.0": 110,
         "13.0": 218,
         "19.0": 417,
         "30.0": 732,
         "38.0": 396,
-        "49.0": 90
+        "49.0": 90,
+        "7.0": 110
       },
       "service_water_heating_fuel_type": {
         "electricity": 959,
@@ -1910,6 +4557,9 @@
         "propane": 63,
         "wood": 5
       },
+      "system_type": {
+        "null": 2000
+      },
       "wall_material": {
         "Insulated": 1539,
         "Standard": 43,
@@ -1917,10 +4567,10 @@
       },
       "wall_r_value": {
         "1.0": 15,
-        "7.0": 28,
         "11.0": 1539,
         "15.0": 66,
-        "19.0": 352
+        "19.0": 352,
+        "7.0": 28
       },
       "water_heater_type": {
         "heat pump water heater": 2,
@@ -1946,54 +4596,198 @@
   "res|Mountain South|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 1,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 13,
+        "2": 113,
+        "3": 993,
+        "4": 830,
+        "5": 51
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 1537,
+        "natural gas": 197,
+        "none": 256,
+        "propane": 10
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 1482,
+        "natural gas": 475,
+        "none": 8,
+        "propane": 35
+      },
+      "cooling_fraction_served": {
+        "0.2": 6,
+        "0.4": 16,
+        "0.6": 56,
+        "1.0": 1705,
+        "null": 217
+      },
+      "cooling_setpoint_f": {
+        "60.0": 17,
+        "62.0": 8,
+        "65.0": 11,
+        "67.0": 11,
+        "68.0": 53,
+        "70.0": 111,
+        "72.0": 87,
+        "75.0": 457,
+        "76.0": 360,
+        "78.0": 523,
+        "80.0": 362
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1634,
+        "none": 217,
+        "room air conditioner": 149
+      },
+      "duct_insulation_r": {
+        "0.0": 494,
+        "6.0": 65,
+        "8.0": 1441
+      },
+      "duct_leakage_pct": {
+        "0.0": 494,
+        "10.0": 391,
+        "20.0": 691,
+        "30.0": 424
+      },
+      "duct_location": {
+        "attic": 887,
+        "conditioned space": 501,
+        "crawlspace": 72,
+        "garage": 540
+      },
+      "foundation_type": {
+        "ambient": 132,
+        "basement - conditioned": 2,
+        "basement - unconditioned": 18,
+        "crawlspace - unvented": 7,
+        "crawlspace - vented": 57,
+        "slab": 1784
+      },
+      "garage_cars": {
+        "0": 1124,
+        "1": 207,
+        "2": 517,
+        "3": 152
+      },
+      "heating_equipment_detail": {
+        "Boiler": 186,
+        "ElectricResistance": 211,
+        "Furnace": 847,
+        "WallFurnace": 79,
+        "air-to-air": 657,
+        "mini-split": 20
+      },
+      "heating_has_ducts": {
+        "No": 394,
+        "Yes": 1606
+      },
+      "heating_setpoint_f": {
+        "60.0": 26,
+        "62.0": 8,
+        "65.0": 140,
+        "67.0": 43,
+        "68.0": 213,
+        "70.0": 484,
+        "72.0": 376,
+        "75.0": 337,
+        "76.0": 163,
+        "78.0": 141,
+        "80.0": 69
+      },
       "heating_system_fuel_type": {
-        "electricity": 1386,
-        "fuel oil": 2,
-        "natural gas": 582,
-        "propane": 25,
+        "electricity": 1397,
+        "natural gas": 575,
+        "propane": 23,
         "wood": 5
       },
       "heating_system_type": {
-        "furnace": 1043,
-        "heat_pump": 952,
-        "wood_stove": 5
+        "boiler": 186,
+        "electric_resistance": 211,
+        "furnace": 926,
+        "heat_pump": 677
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1941,
+        "Yes": 59
+      },
+      "misc_gas_grill": {
+        "No": 1937,
+        "Yes": 63
+      },
+      "misc_gas_lighting": {
+        "No": 1967,
+        "Yes": 33
+      },
+      "pv_azimuth_deg": {
+        "0.0": 1,
+        "135.0": 8,
+        "180.0": 20,
+        "225.0": 7,
+        "270.0": 6,
+        "45.0": 1,
+        "90.0": 15,
+        "null": 1942
+      },
+      "pv_system_kw": {
+        "1.0": 1,
+        "11.0": 6,
+        "13.0": 5,
+        "3.0": 10,
+        "5.0": 9,
+        "7.0": 16,
+        "9.0": 11,
+        "null": 1942
       },
       "roof_material": {
-        "Insulated": 941,
-        "Standard": 214,
-        "Super Insulated": 845
+        "Insulated": 1341,
+        "Super Insulated": 659
       },
       "roof_r_value": {
-        "1.0": 40,
-        "7.0": 60,
-        "13.0": 114,
-        "19.0": 210,
-        "30.0": 731,
-        "38.0": 645,
-        "49.0": 200
+        "19.0": 13,
+        "30.0": 1328,
+        "38.0": 600,
+        "49.0": 59
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1317,
-        "fuel oil": 1,
-        "natural gas": 635,
-        "propane": 47
+        "electricity": 1240,
+        "natural gas": 701,
+        "propane": 52,
+        "wood": 7
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 597,
-        "Super Insulated": 1403
+        "Insulated": 849,
+        "Super Insulated": 1151
       },
       "wall_r_value": {
-        "11.0": 597,
-        "15.0": 183,
-        "19.0": 1220
+        "11.0": 849,
+        "15.0": 405,
+        "19.0": 746
       },
       "water_heater_type": {
-        "instantaneous water heater": 129,
-        "storage water heater": 1871
+        "heat pump water heater": 8,
+        "instantaneous water heater": 144,
+        "storage water heater": 1848
       },
       "window_to_wall_ratio": {
         "0.06": 202,
@@ -2004,9 +4798,9 @@
         "0.3": 80
       },
       "window_type": {
-        "Double Pane": 1573,
-        "Single Pane": 368,
-        "Triple Pane": 59
+        "Double Pane": 1434,
+        "Single Pane": 458,
+        "Triple Pane": 108
       }
     },
     "vacant": 106
@@ -2018,6 +4812,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 663,
         "natural gas": 1324,
@@ -2028,6 +4873,24 @@
         "heat_pump": 465,
         "wood_stove": 13
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1016,
         "Standard": 190,
@@ -2035,18 +4898,21 @@
       },
       "roof_r_value": {
         "1.0": 36,
-        "7.0": 42,
         "13.0": 112,
         "19.0": 237,
         "30.0": 779,
         "38.0": 606,
-        "49.0": 188
+        "49.0": 188,
+        "7.0": 42
       },
       "service_water_heating_fuel_type": {
         "electricity": 792,
         "natural gas": 1194,
         "propane": 13,
         "wood": 1
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 526,
@@ -2080,55 +4946,187 @@
   "res|New England|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 3,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 147,
+        "2": 276,
+        "3": 926,
+        "4": 569,
+        "5": 82
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 1025,
+        "natural gas": 141,
+        "none": 834
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 1164,
+        "natural gas": 813,
+        "none": 9,
+        "propane": 14
+      },
+      "cooling_fraction_served": {
+        "0.1": 19,
+        "0.2": 343,
+        "0.4": 502,
+        "0.6": 210,
+        "0.8": 47,
+        "1.0": 667,
+        "null": 212
+      },
+      "cooling_setpoint_f": {
+        "60.0": 205,
+        "62.0": 70,
+        "65.0": 190,
+        "67.0": 62,
+        "68.0": 277,
+        "70.0": 354,
+        "72.0": 330,
+        "75.0": 271,
+        "76.0": 82,
+        "78.0": 59,
+        "80.0": 100
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 554,
+        "none": 212,
+        "room air conditioner": 1234
+      },
+      "duct_insulation_r": {
+        "0.0": 1786,
+        "4.0": 214
+      },
+      "duct_leakage_pct": {
+        "0.0": 1364,
+        "10.0": 139,
+        "20.0": 395,
+        "30.0": 102
+      },
+      "duct_location": {
+        "attic": 235,
+        "basement - conditioned": 382,
+        "basement - unconditioned": 78,
+        "conditioned space": 1002,
+        "crawlspace": 286,
+        "garage": 17
+      },
+      "foundation_type": {
+        "ambient": 12,
+        "basement - conditioned": 109,
+        "basement - unconditioned": 1008,
+        "crawlspace - unvented": 29,
+        "crawlspace - vented": 414,
+        "slab": 428
+      },
+      "garage_cars": {
+        "0": 1900,
+        "1": 68,
+        "2": 29,
+        "3": 3
+      },
+      "heating_equipment_detail": {
+        "Boiler": 863,
+        "ElectricResistance": 242,
+        "Furnace": 547,
+        "WallFurnace": 304,
+        "air-to-air": 44
+      },
+      "heating_has_ducts": {
+        "No": 1241,
+        "Yes": 759
+      },
+      "heating_setpoint_f": {
+        "60.0": 65,
+        "62.0": 11,
+        "65.0": 149,
+        "67.0": 137,
+        "68.0": 454,
+        "70.0": 602,
+        "72.0": 259,
+        "75.0": 212,
+        "76.0": 47,
+        "78.0": 28,
+        "80.0": 36
+      },
       "heating_system_fuel_type": {
-        "electricity": 587,
-        "fuel oil": 180,
-        "natural gas": 1176,
-        "propane": 54,
-        "wood": 3
+        "electricity": 554,
+        "fuel oil": 171,
+        "natural gas": 1230,
+        "propane": 44,
+        "wood": 1
       },
       "heating_system_type": {
-        "boiler": 621,
-        "electric_resistance": 313,
-        "furnace": 999,
-        "heat_pump": 64,
-        "wood_stove": 3
+        "boiler": 863,
+        "electric_resistance": 242,
+        "furnace": 851,
+        "heat_pump": 44
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1948,
+        "Yes": 52
+      },
+      "misc_gas_grill": {
+        "No": 1938,
+        "Yes": 62
+      },
+      "misc_gas_lighting": {
+        "No": 1968,
+        "Yes": 32
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
       },
       "roof_material": {
-        "Insulated": 934,
-        "Standard": 488,
-        "Super Insulated": 578
+        "Insulated": 672,
+        "Standard": 161,
+        "Super Insulated": 1167
       },
       "roof_r_value": {
-        "1.0": 55,
-        "7.0": 158,
-        "13.0": 275,
-        "19.0": 465,
-        "30.0": 469,
-        "38.0": 438,
-        "49.0": 140
+        "0.0": 161,
+        "19.0": 585,
+        "30.0": 87,
+        "38.0": 787,
+        "49.0": 380
       },
       "service_water_heating_fuel_type": {
-        "electricity": 822,
-        "fuel oil": 73,
-        "natural gas": 1050,
-        "propane": 55
+        "electricity": 630,
+        "fuel oil": 105,
+        "natural gas": 1207,
+        "propane": 47,
+        "wood": 11
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
       },
       "wall_r_value": {
-        "1.0": 1691,
-        "7.0": 309
+        "0.0": 1011,
+        "7.0": 989
       },
       "water_heater_type": {
-        "heat pump water heater": 7,
-        "instantaneous water heater": 172,
-        "storage water heater": 1821
+        "heat pump water heater": 6,
+        "instantaneous water heater": 189,
+        "storage water heater": 1805
       },
       "window_to_wall_ratio": {
         "0.06": 171,
@@ -2139,9 +5137,9 @@
         "0.3": 77
       },
       "window_type": {
-        "Double Pane": 1329,
-        "Single Pane": 636,
-        "Triple Pane": 35
+        "Double Pane": 1170,
+        "Single Pane": 817,
+        "Triple Pane": 13
       }
     },
     "vacant": 145
@@ -2153,6 +5151,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 301,
         "fuel oil": 747,
@@ -2167,6 +5216,24 @@
         "heat_pump": 29,
         "wood_stove": 35
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 874,
         "Standard": 525,
@@ -2174,18 +5241,21 @@
       },
       "roof_r_value": {
         "1.0": 62,
-        "7.0": 171,
         "13.0": 292,
         "19.0": 456,
         "30.0": 418,
         "38.0": 483,
-        "49.0": 118
+        "49.0": 118,
+        "7.0": 171
       },
       "service_water_heating_fuel_type": {
         "electricity": 759,
         "fuel oil": 356,
         "natural gas": 820,
         "propane": 65
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
@@ -2218,60 +5288,187 @@
   "res|New England|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 3,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 150,
+        "2": 330,
+        "3": 836,
+        "4": 592,
+        "5": 92
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 983,
+        "natural gas": 145,
+        "none": 871,
+        "propane": 1
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 1176,
+        "natural gas": 788,
+        "none": 15,
+        "propane": 21
+      },
+      "cooling_fraction_served": {
+        "0.2": 332,
+        "0.4": 431,
+        "0.6": 312,
+        "0.8": 64,
+        "1.0": 483,
+        "null": 378
+      },
+      "cooling_setpoint_f": {
+        "60.0": 195,
+        "62.0": 70,
+        "65.0": 198,
+        "67.0": 48,
+        "68.0": 316,
+        "70.0": 381,
+        "72.0": 291,
+        "75.0": 241,
+        "76.0": 87,
+        "78.0": 72,
+        "80.0": 101
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 439,
+        "none": 378,
+        "room air conditioner": 1183
+      },
+      "duct_insulation_r": {
+        "0.0": 1827,
+        "4.0": 173
+      },
+      "duct_leakage_pct": {
+        "0.0": 1039,
+        "10.0": 238,
+        "20.0": 359,
+        "30.0": 364
+      },
+      "duct_location": {
+        "attic": 162,
+        "basement - conditioned": 423,
+        "basement - unconditioned": 352,
+        "conditioned space": 636,
+        "crawlspace": 427
+      },
+      "foundation_type": {
+        "ambient": 5,
+        "basement - conditioned": 122,
+        "basement - unconditioned": 991,
+        "crawlspace - unvented": 40,
+        "crawlspace - vented": 392,
+        "slab": 450
+      },
+      "garage_cars": {
+        "0": 1888,
+        "1": 82,
+        "2": 28,
+        "3": 2
+      },
+      "heating_equipment_detail": {
+        "Boiler": 794,
+        "ElectricResistance": 194,
+        "Furnace": 722,
+        "WallFurnace": 240,
+        "air-to-air": 50
+      },
+      "heating_has_ducts": {
+        "No": 1164,
+        "Yes": 836
+      },
+      "heating_setpoint_f": {
+        "60.0": 55,
+        "62.0": 22,
+        "65.0": 115,
+        "67.0": 165,
+        "68.0": 434,
+        "70.0": 636,
+        "72.0": 250,
+        "75.0": 213,
+        "76.0": 42,
+        "78.0": 31,
+        "80.0": 37
+      },
       "heating_system_fuel_type": {
-        "electricity": 579,
-        "fuel oil": 185,
-        "natural gas": 1167,
-        "propane": 68,
-        "wood": 1
+        "electricity": 604,
+        "fuel oil": 167,
+        "natural gas": 1229
       },
       "heating_system_type": {
-        "boiler": 487,
-        "electric_resistance": 326,
-        "furnace": 1073,
-        "heat_pump": 113,
-        "wood_stove": 1
+        "boiler": 794,
+        "electric_resistance": 194,
+        "furnace": 962,
+        "heat_pump": 50
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1939,
+        "Yes": 61
+      },
+      "misc_gas_grill": {
+        "No": 1946,
+        "Yes": 54
+      },
+      "misc_gas_lighting": {
+        "No": 1974,
+        "Yes": 26
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
       },
       "roof_material": {
-        "Insulated": 1184,
-        "Standard": 255,
-        "Super Insulated": 561
+        "Insulated": 926,
+        "Standard": 216,
+        "Super Insulated": 858
       },
       "roof_r_value": {
-        "1.0": 31,
-        "7.0": 61,
-        "13.0": 163,
-        "19.0": 385,
-        "30.0": 799,
-        "38.0": 454,
-        "49.0": 107
+        "13.0": 216,
+        "19.0": 107,
+        "30.0": 819,
+        "38.0": 754,
+        "49.0": 104
       },
       "service_water_heating_fuel_type": {
-        "electricity": 798,
-        "fuel oil": 83,
-        "natural gas": 1073,
-        "propane": 46
+        "electricity": 642,
+        "fuel oil": 89,
+        "natural gas": 1222,
+        "propane": 38,
+        "wood": 9
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 1204,
-        "Standard": 29,
-        "Super Insulated": 767
+        "Insulated": 945,
+        "Standard": 16,
+        "Super Insulated": 1039
       },
       "wall_r_value": {
-        "1.0": 22,
-        "7.0": 7,
-        "11.0": 1204,
-        "15.0": 76,
-        "19.0": 691
+        "0.0": 16,
+        "11.0": 945,
+        "15.0": 31,
+        "19.0": 1008
       },
       "water_heater_type": {
-        "heat pump water heater": 20,
-        "instantaneous water heater": 164,
-        "storage water heater": 1816
+        "instantaneous water heater": 185,
+        "storage water heater": 1815
       },
       "window_to_wall_ratio": {
         "0.06": 201,
@@ -2282,9 +5479,8 @@
         "0.3": 72
       },
       "window_type": {
-        "Double Pane": 1448,
-        "Single Pane": 530,
-        "Triple Pane": 22
+        "Double Pane": 1278,
+        "Single Pane": 722
       }
     },
     "vacant": 145
@@ -2296,6 +5492,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 366,
         "fuel oil": 634,
@@ -2310,6 +5557,24 @@
         "heat_pump": 65,
         "wood_stove": 118
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1138,
         "Standard": 280,
@@ -2317,12 +5582,12 @@
       },
       "roof_r_value": {
         "1.0": 25,
-        "7.0": 68,
         "13.0": 187,
         "19.0": 363,
         "30.0": 775,
         "38.0": 478,
-        "49.0": 104
+        "49.0": 104,
+        "7.0": 68
       },
       "service_water_heating_fuel_type": {
         "electricity": 871,
@@ -2331,6 +5596,9 @@
         "propane": 145,
         "wood": 4
       },
+      "system_type": {
+        "null": 2000
+      },
       "wall_material": {
         "Insulated": 1226,
         "Standard": 17,
@@ -2338,10 +5606,10 @@
       },
       "wall_r_value": {
         "1.0": 12,
-        "7.0": 5,
         "11.0": 1226,
         "15.0": 58,
-        "19.0": 699
+        "19.0": 699,
+        "7.0": 5
       },
       "water_heater_type": {
         "heat pump water heater": 14,
@@ -2367,57 +5635,180 @@
   "res|New England|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 3,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 153,
+        "2": 294,
+        "3": 884,
+        "4": 581,
+        "5": 88
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 1005,
+        "natural gas": 175,
+        "none": 818,
+        "propane": 2
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 1161,
+        "natural gas": 809,
+        "none": 6,
+        "propane": 24
+      },
+      "cooling_fraction_served": {
+        "0.2": 192,
+        "0.4": 148,
+        "0.6": 41,
+        "1.0": 1495,
+        "null": 124
+      },
+      "cooling_setpoint_f": {
+        "60.0": 199,
+        "62.0": 52,
+        "65.0": 196,
+        "67.0": 68,
+        "68.0": 294,
+        "70.0": 434,
+        "72.0": 300,
+        "75.0": 235,
+        "76.0": 67,
+        "78.0": 66,
+        "80.0": 89
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1429,
+        "none": 124,
+        "room air conditioner": 447
+      },
+      "duct_insulation_r": {
+        "0.0": 1583,
+        "6.0": 303,
+        "8.0": 114
+      },
+      "duct_leakage_pct": {
+        "0.0": 1583,
+        "10.0": 101,
+        "20.0": 267,
+        "30.0": 49
+      },
+      "duct_location": {
+        "attic": 111,
+        "basement - conditioned": 53,
+        "basement - unconditioned": 315,
+        "conditioned space": 1521
+      },
+      "foundation_type": {
+        "ambient": 14,
+        "basement - conditioned": 101,
+        "basement - unconditioned": 1019,
+        "crawlspace - unvented": 33,
+        "crawlspace - vented": 396,
+        "slab": 437
+      },
+      "garage_cars": {
+        "0": 1896,
+        "1": 70,
+        "2": 30,
+        "3": 4
+      },
+      "heating_equipment_detail": {
+        "Boiler": 672,
+        "ElectricResistance": 216,
+        "Furnace": 933,
+        "air-to-air": 135,
+        "mini-split": 44
+      },
+      "heating_has_ducts": {
+        "No": 629,
+        "Yes": 1371
+      },
+      "heating_setpoint_f": {
+        "60.0": 61,
+        "62.0": 21,
+        "65.0": 152,
+        "67.0": 124,
+        "68.0": 444,
+        "70.0": 623,
+        "72.0": 234,
+        "75.0": 217,
+        "76.0": 61,
+        "78.0": 32,
+        "80.0": 31
+      },
       "heating_system_fuel_type": {
-        "electricity": 569,
-        "fuel oil": 174,
-        "natural gas": 1202,
-        "propane": 52,
-        "wood": 3
+        "electricity": 629,
+        "natural gas": 1371
       },
       "heating_system_type": {
-        "boiler": 167,
-        "electric_resistance": 310,
-        "furnace": 1357,
-        "heat_pump": 163,
-        "wood_stove": 3
+        "boiler": 672,
+        "electric_resistance": 216,
+        "furnace": 933,
+        "heat_pump": 179
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1950,
+        "Yes": 50
+      },
+      "misc_gas_grill": {
+        "No": 1943,
+        "Yes": 57
+      },
+      "misc_gas_lighting": {
+        "No": 1982,
+        "Yes": 18
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
       },
       "roof_material": {
-        "Insulated": 1124,
-        "Standard": 157,
-        "Super Insulated": 719
+        "Insulated": 630,
+        "Super Insulated": 1370
       },
       "roof_r_value": {
-        "1.0": 31,
-        "7.0": 34,
-        "13.0": 92,
-        "19.0": 200,
-        "30.0": 924,
-        "38.0": 558,
-        "49.0": 161
+        "30.0": 630,
+        "38.0": 1370
       },
       "service_water_heating_fuel_type": {
-        "electricity": 820,
-        "fuel oil": 74,
-        "natural gas": 1067,
-        "propane": 39
+        "electricity": 546,
+        "fuel oil": 82,
+        "natural gas": 1328,
+        "propane": 35,
+        "wood": 9
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 695,
-        "Super Insulated": 1305
+        "Insulated": 536,
+        "Super Insulated": 1464
       },
       "wall_r_value": {
-        "11.0": 695,
-        "15.0": 77,
-        "19.0": 1228
+        "11.0": 536,
+        "15.0": 44,
+        "19.0": 1420
       },
       "water_heater_type": {
-        "heat pump water heater": 7,
-        "instantaneous water heater": 233,
-        "storage water heater": 1760
+        "heat pump water heater": 1,
+        "instantaneous water heater": 206,
+        "storage water heater": 1793
       },
       "window_to_wall_ratio": {
         "0.06": 183,
@@ -2428,9 +5819,7 @@
         "0.3": 71
       },
       "window_type": {
-        "Double Pane": 1442,
-        "Single Pane": 443,
-        "Triple Pane": 115
+        "Double Pane": 2000
       }
     },
     "vacant": 145
@@ -2442,6 +5831,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 483,
         "fuel oil": 78,
@@ -2456,6 +5896,24 @@
         "heat_pump": 139,
         "wood_stove": 101
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1103,
         "Standard": 142,
@@ -2463,12 +5921,12 @@
       },
       "roof_r_value": {
         "1.0": 16,
-        "7.0": 51,
         "13.0": 75,
         "19.0": 217,
         "30.0": 886,
         "38.0": 598,
-        "49.0": 157
+        "49.0": 157,
+        "7.0": 51
       },
       "service_water_heating_fuel_type": {
         "electricity": 914,
@@ -2476,6 +5934,9 @@
         "natural gas": 812,
         "propane": 238,
         "wood": 1
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 619,
@@ -2510,55 +5971,198 @@
   "res|Pacific|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 2,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 10,
+        "2": 159,
+        "3": 969,
+        "4": 736,
+        "5": 126
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 665,
+        "natural gas": 618,
+        "none": 707,
+        "propane": 10
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 810,
+        "natural gas": 1156,
+        "propane": 34
+      },
+      "cooling_fraction_served": {
+        "0.2": 77,
+        "0.4": 96,
+        "0.6": 124,
+        "0.8": 38,
+        "1.0": 1102,
+        "null": 563
+      },
+      "cooling_setpoint_f": {
+        "60.0": 39,
+        "62.0": 16,
+        "65.0": 40,
+        "67.0": 25,
+        "68.0": 163,
+        "70.0": 254,
+        "72.0": 285,
+        "75.0": 409,
+        "76.0": 194,
+        "78.0": 312,
+        "80.0": 263
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 885,
+        "none": 563,
+        "room air conditioner": 552
+      },
+      "duct_insulation_r": {
+        "0.0": 1368,
+        "4.0": 632
+      },
+      "duct_leakage_pct": {
+        "0.0": 957,
+        "10.0": 306,
+        "20.0": 440,
+        "30.0": 297
+      },
+      "duct_location": {
+        "attic": 437,
+        "basement - unconditioned": 33,
+        "conditioned space": 952,
+        "crawlspace": 393,
+        "garage": 185
+      },
+      "foundation_type": {
+        "ambient": 86,
+        "basement - conditioned": 4,
+        "basement - unconditioned": 60,
+        "crawlspace - unvented": 4,
+        "crawlspace - vented": 655,
+        "slab": 1191
+      },
+      "garage_cars": {
+        "0": 1536,
+        "1": 244,
+        "2": 190,
+        "3": 30
+      },
+      "heating_equipment_detail": {
+        "Boiler": 564,
+        "ElectricResistance": 165,
+        "Furnace": 1011,
+        "WallFurnace": 154,
+        "air-to-air": 100,
+        "mini-split": 6
+      },
+      "heating_has_ducts": {
+        "No": 783,
+        "Yes": 1217
+      },
+      "heating_setpoint_f": {
+        "60.0": 106,
+        "62.0": 34,
+        "65.0": 146,
+        "67.0": 88,
+        "68.0": 394,
+        "70.0": 446,
+        "72.0": 304,
+        "75.0": 244,
+        "76.0": 67,
+        "78.0": 89,
+        "80.0": 82
+      },
       "heating_system_fuel_type": {
-        "electricity": 553,
-        "fuel oil": 1,
-        "natural gas": 1406,
-        "propane": 34,
-        "wood": 6
+        "electricity": 579,
+        "fuel oil": 2,
+        "natural gas": 1365,
+        "propane": 49,
+        "wood": 5
       },
       "heating_system_type": {
-        "boiler": 19,
-        "electric_resistance": 265,
-        "furnace": 1606,
-        "heat_pump": 104,
-        "wood_stove": 6
+        "boiler": 564,
+        "electric_resistance": 165,
+        "furnace": 1165,
+        "heat_pump": 106
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1943,
+        "Yes": 57
+      },
+      "misc_gas_grill": {
+        "No": 1947,
+        "Yes": 53
+      },
+      "misc_gas_lighting": {
+        "No": 1976,
+        "Yes": 24
+      },
+      "pv_azimuth_deg": {
+        "135.0": 9,
+        "180.0": 17,
+        "225.0": 5,
+        "270.0": 3,
+        "315.0": 1,
+        "90.0": 6,
+        "null": 1959
+      },
+      "pv_system_kw": {
+        "1.0": 1,
+        "11.0": 2,
+        "3.0": 16,
+        "5.0": 12,
+        "7.0": 8,
+        "9.0": 2,
+        "null": 1959
       },
       "roof_material": {
-        "Insulated": 970,
-        "Standard": 610,
-        "Super Insulated": 420
+        "Insulated": 796,
+        "Standard": 1065,
+        "Super Insulated": 139
       },
       "roof_r_value": {
-        "1.0": 106,
-        "7.0": 146,
-        "13.0": 358,
-        "19.0": 363,
-        "30.0": 607,
-        "38.0": 348,
-        "49.0": 72
+        "0.0": 94,
+        "13.0": 640,
+        "19.0": 230,
+        "30.0": 566,
+        "38.0": 139,
+        "7.0": 331
       },
       "service_water_heating_fuel_type": {
-        "electricity": 723,
-        "fuel oil": 1,
-        "natural gas": 1242,
-        "propane": 34
+        "electricity": 396,
+        "natural gas": 1575,
+        "propane": 27,
+        "wood": 2
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
       },
       "wall_r_value": {
-        "1.0": 1664,
-        "7.0": 336
+        "0.0": 1466,
+        "7.0": 534
       },
       "water_heater_type": {
-        "heat pump water heater": 7,
-        "instantaneous water heater": 180,
-        "storage water heater": 1813
+        "heat pump water heater": 1,
+        "instantaneous water heater": 233,
+        "storage water heater": 1766
       },
       "window_to_wall_ratio": {
         "0.06": 202,
@@ -2569,9 +6173,9 @@
         "0.3": 85
       },
       "window_type": {
-        "Double Pane": 1148,
-        "Single Pane": 822,
-        "Triple Pane": 30
+        "Double Pane": 894,
+        "Single Pane": 1072,
+        "Triple Pane": 34
       }
     },
     "vacant": 110
@@ -2583,6 +6187,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 600,
         "fuel oil": 18,
@@ -2597,6 +6252,24 @@
         "heat_pump": 128,
         "wood_stove": 73
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 891,
         "Standard": 674,
@@ -2604,18 +6277,21 @@
       },
       "roof_r_value": {
         "1.0": 116,
-        "7.0": 181,
         "13.0": 377,
         "19.0": 354,
         "30.0": 537,
         "38.0": 329,
-        "49.0": 106
+        "49.0": 106,
+        "7.0": 181
       },
       "service_water_heating_fuel_type": {
         "electricity": 844,
         "fuel oil": 13,
         "natural gas": 1107,
         "propane": 36
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
@@ -2648,59 +6324,198 @@
   "res|Pacific|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 2,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 19,
+        "2": 167,
+        "3": 898,
+        "4": 788,
+        "5": 128
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 676,
+        "natural gas": 656,
+        "none": 658,
+        "propane": 10
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 762,
+        "natural gas": 1202,
+        "propane": 36
+      },
+      "cooling_fraction_served": {
+        "0.2": 55,
+        "0.4": 41,
+        "0.6": 100,
+        "0.8": 51,
+        "1.0": 1231,
+        "null": 522
+      },
+      "cooling_setpoint_f": {
+        "60.0": 43,
+        "62.0": 5,
+        "65.0": 53,
+        "67.0": 25,
+        "68.0": 190,
+        "70.0": 261,
+        "72.0": 227,
+        "75.0": 384,
+        "76.0": 196,
+        "78.0": 344,
+        "80.0": 272
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1243,
+        "none": 522,
+        "room air conditioner": 235
+      },
+      "duct_insulation_r": {
+        "0.0": 1231,
+        "4.0": 769
+      },
+      "duct_leakage_pct": {
+        "0.0": 936,
+        "10.0": 280,
+        "20.0": 492,
+        "30.0": 292
+      },
+      "duct_location": {
+        "attic": 506,
+        "conditioned space": 937,
+        "crawlspace": 293,
+        "garage": 264
+      },
+      "foundation_type": {
+        "ambient": 72,
+        "basement - conditioned": 7,
+        "basement - unconditioned": 66,
+        "crawlspace - unvented": 4,
+        "crawlspace - vented": 690,
+        "slab": 1161
+      },
+      "garage_cars": {
+        "0": 1498,
+        "1": 272,
+        "2": 203,
+        "3": 27
+      },
+      "heating_equipment_detail": {
+        "Boiler": 405,
+        "ElectricResistance": 162,
+        "Furnace": 1146,
+        "WallFurnace": 143,
+        "air-to-air": 104,
+        "mini-split": 40
+      },
+      "heating_has_ducts": {
+        "No": 608,
+        "Yes": 1392
+      },
+      "heating_setpoint_f": {
+        "60.0": 108,
+        "62.0": 30,
+        "65.0": 125,
+        "67.0": 81,
+        "68.0": 394,
+        "70.0": 444,
+        "72.0": 330,
+        "75.0": 254,
+        "76.0": 62,
+        "78.0": 95,
+        "80.0": 77
+      },
       "heating_system_fuel_type": {
-        "electricity": 576,
-        "natural gas": 1388,
-        "propane": 33,
+        "electricity": 605,
+        "natural gas": 1357,
+        "propane": 35,
         "wood": 3
       },
       "heating_system_type": {
-        "boiler": 17,
-        "electric_resistance": 257,
-        "furnace": 1542,
-        "heat_pump": 181,
-        "wood_stove": 3
+        "boiler": 405,
+        "electric_resistance": 162,
+        "furnace": 1289,
+        "heat_pump": 144
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1926,
+        "Yes": 74
+      },
+      "misc_gas_grill": {
+        "No": 1941,
+        "Yes": 59
+      },
+      "misc_gas_lighting": {
+        "No": 1966,
+        "Yes": 34
+      },
+      "pv_azimuth_deg": {
+        "180.0": 11,
+        "225.0": 5,
+        "270.0": 6,
+        "90.0": 4,
+        "null": 1974
+      },
+      "pv_system_kw": {
+        "1.0": 1,
+        "3.0": 5,
+        "5.0": 11,
+        "7.0": 7,
+        "9.0": 2,
+        "null": 1974
       },
       "roof_material": {
-        "Insulated": 1163,
-        "Standard": 340,
-        "Super Insulated": 497
+        "Insulated": 1454,
+        "Standard": 441,
+        "Super Insulated": 105
       },
       "roof_r_value": {
-        "1.0": 42,
-        "7.0": 93,
-        "13.0": 205,
-        "19.0": 401,
-        "30.0": 762,
-        "38.0": 426,
-        "49.0": 71
+        "0.0": 6,
+        "13.0": 348,
+        "19.0": 636,
+        "30.0": 818,
+        "38.0": 105,
+        "7.0": 87
       },
       "service_water_heating_fuel_type": {
-        "electricity": 766,
-        "natural gas": 1204,
-        "propane": 29,
-        "wood": 1
+        "electricity": 413,
+        "natural gas": 1562,
+        "propane": 20,
+        "wood": 5
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 1499,
-        "Standard": 55,
-        "Super Insulated": 446
+        "Insulated": 1632,
+        "Standard": 46,
+        "Super Insulated": 322
       },
       "wall_r_value": {
-        "1.0": 16,
-        "7.0": 39,
-        "11.0": 1499,
-        "15.0": 55,
-        "19.0": 391
+        "0.0": 14,
+        "11.0": 1632,
+        "15.0": 56,
+        "19.0": 266,
+        "7.0": 32
       },
       "water_heater_type": {
-        "heat pump water heater": 18,
-        "instantaneous water heater": 169,
-        "storage water heater": 1813
+        "heat pump water heater": 2,
+        "instantaneous water heater": 186,
+        "storage water heater": 1812
       },
       "window_to_wall_ratio": {
         "0.06": 185,
@@ -2711,9 +6526,9 @@
         "0.3": 77
       },
       "window_type": {
-        "Double Pane": 1300,
-        "Single Pane": 661,
-        "Triple Pane": 39
+        "Double Pane": 1093,
+        "Single Pane": 862,
+        "Triple Pane": 45
       }
     },
     "vacant": 110
@@ -2725,6 +6540,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 627,
         "natural gas": 1264,
@@ -2738,6 +6604,24 @@
         "heat_pump": 193,
         "wood_stove": 62
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1157,
         "Standard": 336,
@@ -2745,12 +6629,12 @@
       },
       "roof_r_value": {
         "1.0": 40,
-        "7.0": 92,
         "13.0": 204,
         "19.0": 437,
         "30.0": 720,
         "38.0": 419,
-        "49.0": 88
+        "49.0": 88,
+        "7.0": 92
       },
       "service_water_heating_fuel_type": {
         "electricity": 823,
@@ -2759,6 +6643,9 @@
         "propane": 52,
         "wood": 1
       },
+      "system_type": {
+        "null": 2000
+      },
       "wall_material": {
         "Insulated": 1504,
         "Standard": 54,
@@ -2766,10 +6653,10 @@
       },
       "wall_r_value": {
         "1.0": 10,
-        "7.0": 44,
         "11.0": 1504,
         "15.0": 56,
-        "19.0": 386
+        "19.0": 386,
+        "7.0": 44
       },
       "water_heater_type": {
         "heat pump water heater": 17,
@@ -2795,56 +6682,195 @@
   "res|Pacific|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 2,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 21,
+        "2": 144,
+        "3": 966,
+        "4": 758,
+        "5": 111
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 674,
+        "natural gas": 608,
+        "none": 700,
+        "propane": 18
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 791,
+        "natural gas": 1176,
+        "propane": 33
+      },
+      "cooling_fraction_served": {
+        "0.2": 58,
+        "0.4": 78,
+        "0.6": 130,
+        "0.8": 33,
+        "1.0": 1180,
+        "null": 521
+      },
+      "cooling_setpoint_f": {
+        "60.0": 33,
+        "62.0": 12,
+        "65.0": 34,
+        "67.0": 21,
+        "68.0": 184,
+        "70.0": 263,
+        "72.0": 259,
+        "75.0": 396,
+        "76.0": 198,
+        "78.0": 352,
+        "80.0": 248
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1097,
+        "none": 521,
+        "room air conditioner": 382
+      },
+      "duct_insulation_r": {
+        "0.0": 1003,
+        "6.0": 188,
+        "8.0": 809
+      },
+      "duct_leakage_pct": {
+        "0.0": 1003,
+        "10.0": 329,
+        "20.0": 506,
+        "30.0": 162
+      },
+      "duct_location": {
+        "attic": 480,
+        "basement - unconditioned": 17,
+        "conditioned space": 1007,
+        "crawlspace": 158,
+        "garage": 338
+      },
+      "foundation_type": {
+        "ambient": 62,
+        "basement - conditioned": 4,
+        "basement - unconditioned": 79,
+        "crawlspace - unvented": 9,
+        "crawlspace - vented": 688,
+        "slab": 1158
+      },
+      "garage_cars": {
+        "0": 1536,
+        "1": 245,
+        "2": 192,
+        "3": 27
+      },
+      "heating_equipment_detail": {
+        "Boiler": 353,
+        "ElectricResistance": 236,
+        "Furnace": 1124,
+        "WallFurnace": 162,
+        "air-to-air": 80,
+        "mini-split": 45
+      },
+      "heating_has_ducts": {
+        "No": 722,
+        "Yes": 1278
+      },
+      "heating_setpoint_f": {
+        "60.0": 113,
+        "62.0": 41,
+        "65.0": 124,
+        "67.0": 79,
+        "68.0": 397,
+        "70.0": 455,
+        "72.0": 321,
+        "75.0": 241,
+        "76.0": 58,
+        "78.0": 94,
+        "80.0": 77
+      },
       "heating_system_fuel_type": {
-        "electricity": 614,
-        "fuel oil": 3,
-        "natural gas": 1342,
-        "propane": 39,
-        "wood": 2
+        "electricity": 590,
+        "natural gas": 1373,
+        "propane": 30,
+        "wood": 7
       },
       "heating_system_type": {
-        "boiler": 21,
-        "electric_resistance": 241,
-        "furnace": 1526,
-        "heat_pump": 210,
-        "wood_stove": 2
+        "boiler": 353,
+        "electric_resistance": 236,
+        "furnace": 1286,
+        "heat_pump": 125
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1945,
+        "Yes": 55
+      },
+      "misc_gas_grill": {
+        "No": 1944,
+        "Yes": 56
+      },
+      "misc_gas_lighting": {
+        "No": 1979,
+        "Yes": 21
+      },
+      "pv_azimuth_deg": {
+        "135.0": 3,
+        "180.0": 20,
+        "225.0": 3,
+        "270.0": 3,
+        "90.0": 9,
+        "null": 1962
+      },
+      "pv_system_kw": {
+        "11.0": 1,
+        "3.0": 7,
+        "5.0": 15,
+        "7.0": 11,
+        "9.0": 4,
+        "null": 1962
       },
       "roof_material": {
-        "Insulated": 971,
-        "Standard": 216,
-        "Super Insulated": 813
+        "Insulated": 1445,
+        "Super Insulated": 555
       },
       "roof_r_value": {
-        "1.0": 37,
-        "7.0": 50,
-        "13.0": 129,
-        "19.0": 251,
-        "30.0": 720,
-        "38.0": 646,
-        "49.0": 167
+        "19.0": 199,
+        "30.0": 1246,
+        "38.0": 449,
+        "49.0": 106
       },
       "service_water_heating_fuel_type": {
-        "electricity": 787,
-        "natural gas": 1182,
-        "propane": 31
+        "electricity": 424,
+        "natural gas": 1554,
+        "propane": 20,
+        "wood": 2
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 553,
-        "Super Insulated": 1447
+        "Insulated": 881,
+        "Super Insulated": 1119
       },
       "wall_r_value": {
-        "11.0": 553,
-        "15.0": 190,
-        "19.0": 1257
+        "11.0": 881,
+        "15.0": 26,
+        "19.0": 1093
       },
       "water_heater_type": {
-        "heat pump water heater": 15,
-        "instantaneous water heater": 174,
-        "storage water heater": 1811
+        "heat pump water heater": 1,
+        "instantaneous water heater": 200,
+        "storage water heater": 1799
       },
       "window_to_wall_ratio": {
         "0.06": 180,
@@ -2855,9 +6881,8 @@
         "0.3": 98
       },
       "window_type": {
-        "Double Pane": 1535,
-        "Single Pane": 385,
-        "Triple Pane": 80
+        "Double Pane": 1682,
+        "Triple Pane": 318
       }
     },
     "vacant": 110
@@ -2869,6 +6894,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 875,
         "natural gas": 1041,
@@ -2882,6 +6958,24 @@
         "heat_pump": 282,
         "wood_stove": 42
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1016,
         "Standard": 216,
@@ -2889,12 +6983,12 @@
       },
       "roof_r_value": {
         "1.0": 49,
-        "7.0": 57,
         "13.0": 110,
         "19.0": 243,
         "30.0": 773,
         "38.0": 574,
-        "49.0": 194
+        "49.0": 194,
+        "7.0": 57
       },
       "service_water_heating_fuel_type": {
         "electricity": 1005,
@@ -2902,6 +6996,9 @@
         "natural gas": 949,
         "propane": 43,
         "wood": 2
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 604,
@@ -2940,6 +7037,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 1064,
         "fuel oil": 83,
@@ -2954,6 +7102,24 @@
         "heat_pump": 681,
         "wood_stove": 48
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 913,
         "Standard": 729,
@@ -2961,18 +7127,21 @@
       },
       "roof_r_value": {
         "1.0": 105,
-        "7.0": 211,
         "13.0": 413,
         "19.0": 378,
         "30.0": 535,
         "38.0": 284,
-        "49.0": 74
+        "49.0": 74,
+        "7.0": 211
       },
       "service_water_heating_fuel_type": {
         "electricity": 1161,
         "fuel oil": 48,
         "natural gas": 707,
         "propane": 84
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
@@ -3009,6 +7178,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 1378,
         "fuel oil": 13,
@@ -3023,6 +7243,24 @@
         "heat_pump": 830,
         "wood_stove": 33
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1343,
         "Standard": 354,
@@ -3030,18 +7268,21 @@
       },
       "roof_r_value": {
         "1.0": 31,
-        "7.0": 90,
         "13.0": 233,
         "19.0": 495,
         "30.0": 848,
         "38.0": 251,
-        "49.0": 52
+        "49.0": 52,
+        "7.0": 90
       },
       "service_water_heating_fuel_type": {
         "electricity": 1342,
         "fuel oil": 8,
         "natural gas": 589,
         "propane": 61
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 1422,
@@ -3050,10 +7291,10 @@
       },
       "wall_r_value": {
         "1.0": 40,
-        "7.0": 8,
         "11.0": 1422,
         "15.0": 282,
-        "19.0": 248
+        "19.0": 248,
+        "7.0": 8
       },
       "water_heater_type": {
         "heat pump water heater": 5,
@@ -3083,6 +7324,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 1403,
         "natural gas": 561,
@@ -3095,6 +7387,24 @@
         "heat_pump": 725,
         "wood_stove": 19
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1443,
         "Standard": 121,
@@ -3102,12 +7412,12 @@
       },
       "roof_r_value": {
         "1.0": 16,
-        "7.0": 35,
         "13.0": 70,
         "19.0": 275,
         "30.0": 1168,
         "38.0": 374,
-        "49.0": 62
+        "49.0": 62,
+        "7.0": 35
       },
       "service_water_heating_fuel_type": {
         "electricity": 1310,
@@ -3115,6 +7425,9 @@
         "natural gas": 628,
         "propane": 59,
         "wood": 2
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 1351,
@@ -3153,6 +7466,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 308,
         "fuel oil": 15,
@@ -3167,6 +7531,24 @@
         "heat_pump": 97,
         "wood_stove": 36
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 895,
         "Standard": 462,
@@ -3174,12 +7556,12 @@
       },
       "roof_r_value": {
         "1.0": 56,
-        "7.0": 145,
         "13.0": 261,
         "19.0": 453,
         "30.0": 442,
         "38.0": 456,
-        "49.0": 187
+        "49.0": 187,
+        "7.0": 145
       },
       "service_water_heating_fuel_type": {
         "electricity": 650,
@@ -3188,6 +7570,9 @@
         "propane": 88,
         "wood": 1
       },
+      "system_type": {
+        "null": 2000
+      },
       "wall_material": {
         "Insulated": 220,
         "Standard": 1694,
@@ -3195,10 +7580,10 @@
       },
       "wall_r_value": {
         "1.0": 1354,
-        "7.0": 340,
         "11.0": 220,
         "15.0": 57,
-        "19.0": 29
+        "19.0": 29,
+        "7.0": 340
       },
       "water_heater_type": {
         "heat pump water heater": 3,
@@ -3228,6 +7613,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 581,
         "natural gas": 1255,
@@ -3241,6 +7677,24 @@
         "heat_pump": 176,
         "wood_stove": 14
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1045,
         "Standard": 226,
@@ -3248,17 +7702,20 @@
       },
       "roof_r_value": {
         "1.0": 24,
-        "7.0": 77,
         "13.0": 125,
         "19.0": 290,
         "30.0": 755,
         "38.0": 469,
-        "49.0": 260
+        "49.0": 260,
+        "7.0": 77
       },
       "service_water_heating_fuel_type": {
         "electricity": 822,
         "natural gas": 1102,
         "propane": 76
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 973,
@@ -3267,10 +7724,10 @@
       },
       "wall_r_value": {
         "1.0": 15,
-        "7.0": 10,
         "11.0": 973,
         "15.0": 455,
-        "19.0": 547
+        "19.0": 547,
+        "7.0": 10
       },
       "water_heater_type": {
         "heat pump water heater": 2,
@@ -3300,6 +7757,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 785,
         "natural gas": 1011,
@@ -3313,6 +7821,24 @@
         "heat_pump": 217,
         "wood_stove": 36
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 852,
         "Standard": 201,
@@ -3320,18 +7846,21 @@
       },
       "roof_r_value": {
         "1.0": 37,
-        "7.0": 64,
         "13.0": 100,
         "19.0": 181,
         "30.0": 671,
         "38.0": 528,
-        "49.0": 419
+        "49.0": 419,
+        "7.0": 64
       },
       "service_water_heating_fuel_type": {
         "electricity": 992,
         "natural gas": 912,
         "propane": 95,
         "wood": 1
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 622,
@@ -3366,55 +7895,183 @@
   "res|West South Central|1965|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 1,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 22,
+        "2": 127,
+        "3": 956,
+        "4": 783,
+        "5": 112
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 1410,
+        "natural gas": 227,
+        "none": 357,
+        "propane": 6
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 1319,
+        "natural gas": 643,
+        "propane": 38
+      },
+      "cooling_fraction_served": {
+        "0.2": 48,
+        "0.4": 22,
+        "0.6": 41,
+        "0.8": 64,
+        "1.0": 1634,
+        "null": 191
+      },
+      "cooling_setpoint_f": {
+        "60.0": 18,
+        "62.0": 10,
+        "65.0": 34,
+        "67.0": 8,
+        "68.0": 133,
+        "70.0": 286,
+        "72.0": 415,
+        "75.0": 495,
+        "76.0": 306,
+        "78.0": 204,
+        "80.0": 91
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1651,
+        "none": 191,
+        "room air conditioner": 158
+      },
+      "duct_insulation_r": {
+        "0.0": 1107,
+        "4.0": 893
+      },
+      "duct_leakage_pct": {
+        "0.0": 904,
+        "10.0": 286,
+        "20.0": 539,
+        "30.0": 271
+      },
+      "duct_location": {
+        "attic": 805,
+        "conditioned space": 935,
+        "crawlspace": 181,
+        "garage": 79
+      },
+      "foundation_type": {
+        "ambient": 192,
+        "crawlspace - unvented": 7,
+        "crawlspace - vented": 255,
+        "slab": 1546
+      },
+      "garage_cars": {
+        "0": 1415,
+        "1": 132,
+        "2": 391,
+        "3": 62
+      },
+      "heating_equipment_detail": {
+        "Boiler": 226,
+        "ElectricResistance": 183,
+        "Furnace": 1047,
+        "WallFurnace": 56,
+        "air-to-air": 451,
+        "mini-split": 37
+      },
+      "heating_has_ducts": {
+        "No": 308,
+        "Yes": 1692
+      },
+      "heating_setpoint_f": {
+        "60.0": 46,
+        "62.0": 6,
+        "65.0": 55,
+        "67.0": 74,
+        "68.0": 238,
+        "70.0": 529,
+        "72.0": 437,
+        "75.0": 364,
+        "76.0": 140,
+        "78.0": 76,
+        "80.0": 35
+      },
       "heating_system_fuel_type": {
-        "electricity": 1170,
-        "fuel oil": 2,
-        "natural gas": 810,
+        "electricity": 1110,
+        "fuel oil": 4,
+        "natural gas": 866,
         "propane": 17,
-        "wood": 1
+        "wood": 3
       },
       "heating_system_type": {
-        "boiler": 25,
-        "electric_resistance": 218,
-        "furnace": 1139,
-        "heat_pump": 617,
-        "wood_stove": 1
+        "boiler": 226,
+        "electric_resistance": 183,
+        "furnace": 1103,
+        "heat_pump": 488
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1924,
+        "Yes": 76
+      },
+      "misc_gas_grill": {
+        "No": 1946,
+        "Yes": 54
+      },
+      "misc_gas_lighting": {
+        "No": 1977,
+        "Yes": 23
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
       },
       "roof_material": {
-        "Insulated": 920,
-        "Standard": 701,
-        "Super Insulated": 379
+        "Insulated": 870,
+        "Standard": 969,
+        "Super Insulated": 161
       },
       "roof_r_value": {
-        "1.0": 109,
-        "7.0": 221,
-        "13.0": 371,
-        "19.0": 363,
-        "30.0": 557,
-        "38.0": 315,
-        "49.0": 64
+        "0.0": 107,
+        "13.0": 590,
+        "19.0": 309,
+        "30.0": 561,
+        "38.0": 161,
+        "7.0": 272
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1162,
-        "fuel oil": 1,
-        "natural gas": 800,
-        "propane": 37
+        "electricity": 1085,
+        "fuel oil": 4,
+        "natural gas": 885,
+        "propane": 26
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
       },
       "wall_r_value": {
-        "1.0": 1699,
-        "7.0": 301
+        "0.0": 1367,
+        "7.0": 633
       },
       "water_heater_type": {
-        "heat pump water heater": 5,
-        "instantaneous water heater": 126,
-        "storage water heater": 1869
+        "heat pump water heater": 8,
+        "instantaneous water heater": 115,
+        "storage water heater": 1877
       },
       "window_to_wall_ratio": {
         "0.06": 169,
@@ -3425,9 +8082,9 @@
         "0.3": 78
       },
       "window_type": {
-        "Double Pane": 949,
-        "Single Pane": 1004,
-        "Triple Pane": 47
+        "Double Pane": 659,
+        "Single Pane": 1304,
+        "Triple Pane": 37
       }
     },
     "vacant": 158
@@ -3439,6 +8096,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 820,
         "natural gas": 1105,
@@ -3452,6 +8160,24 @@
         "heat_pump": 425,
         "wood_stove": 20
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 903,
         "Standard": 694,
@@ -3459,18 +8185,21 @@
       },
       "roof_r_value": {
         "1.0": 137,
-        "7.0": 197,
         "13.0": 360,
         "19.0": 352,
         "30.0": 551,
         "38.0": 330,
-        "49.0": 73
+        "49.0": 73,
+        "7.0": 197
       },
       "service_water_heating_fuel_type": {
         "electricity": 961,
         "natural gas": 990,
         "propane": 48,
         "wood": 1
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Standard": 2000
@@ -3503,57 +8232,187 @@
   "res|West South Central|1990|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 1,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 19,
+        "2": 149,
+        "3": 959,
+        "4": 749,
+        "5": 124
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 1419,
+        "natural gas": 225,
+        "none": 347,
+        "propane": 9
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 1319,
+        "natural gas": 647,
+        "propane": 34
+      },
+      "cooling_fraction_served": {
+        "0.2": 26,
+        "0.4": 28,
+        "0.6": 44,
+        "0.8": 39,
+        "1.0": 1784,
+        "null": 79
+      },
+      "cooling_setpoint_f": {
+        "60.0": 7,
+        "62.0": 10,
+        "65.0": 34,
+        "67.0": 7,
+        "68.0": 123,
+        "70.0": 316,
+        "72.0": 382,
+        "75.0": 490,
+        "76.0": 319,
+        "78.0": 237,
+        "80.0": 75
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1745,
+        "none": 79,
+        "room air conditioner": 176
+      },
+      "duct_insulation_r": {
+        "0.0": 1058,
+        "4.0": 942
+      },
+      "duct_leakage_pct": {
+        "0.0": 943,
+        "10.0": 283,
+        "20.0": 495,
+        "30.0": 279
+      },
+      "duct_location": {
+        "attic": 806,
+        "conditioned space": 986,
+        "crawlspace": 97,
+        "garage": 111
+      },
+      "foundation_type": {
+        "ambient": 168,
+        "basement - unconditioned": 5,
+        "crawlspace - unvented": 6,
+        "crawlspace - vented": 241,
+        "slab": 1580
+      },
+      "garage_cars": {
+        "0": 1412,
+        "1": 138,
+        "2": 396,
+        "3": 54
+      },
+      "heating_equipment_detail": {
+        "Boiler": 156,
+        "ElectricResistance": 173,
+        "Furnace": 1125,
+        "WallFurnace": 55,
+        "air-to-air": 481,
+        "mini-split": 10
+      },
+      "heating_has_ducts": {
+        "No": 230,
+        "Yes": 1770
+      },
+      "heating_setpoint_f": {
+        "60.0": 48,
+        "62.0": 15,
+        "65.0": 56,
+        "67.0": 70,
+        "68.0": 230,
+        "70.0": 557,
+        "72.0": 429,
+        "75.0": 358,
+        "76.0": 132,
+        "78.0": 81,
+        "80.0": 24
+      },
       "heating_system_fuel_type": {
-        "electricity": 1115,
-        "fuel oil": 1,
-        "natural gas": 859,
-        "propane": 25
+        "electricity": 1131,
+        "natural gas": 843,
+        "propane": 26
       },
       "heating_system_type": {
-        "boiler": 16,
-        "electric_resistance": 104,
-        "furnace": 1250,
-        "heat_pump": 630
+        "boiler": 156,
+        "electric_resistance": 173,
+        "furnace": 1180,
+        "heat_pump": 491
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1939,
+        "Yes": 61
+      },
+      "misc_gas_grill": {
+        "No": 1931,
+        "Yes": 69
+      },
+      "misc_gas_lighting": {
+        "No": 1981,
+        "Yes": 19
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
       },
       "roof_material": {
-        "Insulated": 1295,
-        "Standard": 363,
-        "Super Insulated": 342
+        "Insulated": 1485,
+        "Standard": 405,
+        "Super Insulated": 110
       },
       "roof_r_value": {
-        "1.0": 35,
-        "7.0": 96,
-        "13.0": 232,
-        "19.0": 531,
-        "30.0": 764,
-        "38.0": 268,
-        "49.0": 74
+        "0.0": 17,
+        "13.0": 305,
+        "19.0": 676,
+        "30.0": 809,
+        "38.0": 110,
+        "7.0": 83
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1127,
-        "natural gas": 849,
-        "propane": 24
+        "electricity": 1117,
+        "fuel oil": 3,
+        "natural gas": 846,
+        "propane": 34
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 1403,
-        "Standard": 44,
-        "Super Insulated": 553
+        "Insulated": 1466,
+        "Standard": 54,
+        "Super Insulated": 480
       },
       "wall_r_value": {
-        "1.0": 38,
-        "7.0": 6,
-        "11.0": 1403,
-        "15.0": 293,
-        "19.0": 260
+        "0.0": 44,
+        "11.0": 1466,
+        "15.0": 259,
+        "19.0": 221,
+        "7.0": 10
       },
       "water_heater_type": {
-        "heat pump water heater": 5,
-        "instantaneous water heater": 105,
-        "storage water heater": 1890
+        "heat pump water heater": 8,
+        "instantaneous water heater": 110,
+        "storage water heater": 1882
       },
       "window_to_wall_ratio": {
         "0.06": 170,
@@ -3564,9 +8423,9 @@
         "0.3": 86
       },
       "window_type": {
-        "Double Pane": 1170,
-        "Single Pane": 798,
-        "Triple Pane": 32
+        "Double Pane": 837,
+        "Single Pane": 1118,
+        "Triple Pane": 45
       }
     },
     "vacant": 158
@@ -3578,6 +8437,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 1269,
         "natural gas": 685,
@@ -3591,6 +8501,24 @@
         "heat_pump": 739,
         "wood_stove": 17
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1314,
         "Standard": 397,
@@ -3598,12 +8526,12 @@
       },
       "roof_r_value": {
         "1.0": 33,
-        "7.0": 111,
         "13.0": 253,
         "19.0": 525,
         "30.0": 789,
         "38.0": 213,
-        "49.0": 76
+        "49.0": 76,
+        "7.0": 111
       },
       "service_water_heating_fuel_type": {
         "electricity": 1241,
@@ -3612,6 +8540,9 @@
         "propane": 49,
         "wood": 2
       },
+      "system_type": {
+        "null": 2000
+      },
       "wall_material": {
         "Insulated": 1444,
         "Standard": 37,
@@ -3619,10 +8550,10 @@
       },
       "wall_r_value": {
         "1.0": 33,
-        "7.0": 4,
         "11.0": 1444,
         "15.0": 287,
-        "19.0": 232
+        "19.0": 232,
+        "7.0": 4
       },
       "water_heater_type": {
         "heat pump water heater": 3,
@@ -3648,52 +8579,180 @@
   "res|West South Central|2015|county": {
     "det": {
       "cooling_system_fuel_type": "electricity",
-      "number_of_occupants": 4,
+      "number_of_occupants": 1,
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "1": 18,
+        "2": 161,
+        "3": 936,
+        "4": 779,
+        "5": 106
+      },
+      "clothes_dryer_fuel": {
+        "electricity": 1433,
+        "natural gas": 201,
+        "none": 359,
+        "propane": 7
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "electricity": 1316,
+        "natural gas": 656,
+        "propane": 28
+      },
+      "cooling_fraction_served": {
+        "0.4": 6,
+        "0.6": 35,
+        "0.8": 38,
+        "1.0": 1895,
+        "null": 26
+      },
+      "cooling_setpoint_f": {
+        "60.0": 10,
+        "62.0": 16,
+        "65.0": 27,
+        "67.0": 5,
+        "68.0": 125,
+        "70.0": 288,
+        "72.0": 416,
+        "75.0": 488,
+        "76.0": 280,
+        "78.0": 251,
+        "80.0": 94
+      },
+      "cooling_type_detail": {
+        "central air conditioner": 1962,
+        "none": 26,
+        "room air conditioner": 12
+      },
+      "duct_insulation_r": {
+        "0.0": 748,
+        "6.0": 96,
+        "8.0": 1156
+      },
+      "duct_leakage_pct": {
+        "0.0": 748,
+        "10.0": 351,
+        "20.0": 567,
+        "30.0": 334
+      },
+      "duct_location": {
+        "attic": 1040,
+        "conditioned space": 750,
+        "crawlspace": 92,
+        "garage": 118
+      },
+      "foundation_type": {
+        "ambient": 180,
+        "basement - unconditioned": 6,
+        "crawlspace - unvented": 8,
+        "crawlspace - vented": 260,
+        "slab": 1546
+      },
+      "garage_cars": {
+        "0": 1430,
+        "1": 129,
+        "2": 390,
+        "3": 51
+      },
+      "heating_equipment_detail": {
+        "Boiler": 190,
+        "ElectricResistance": 156,
+        "Furnace": 1150,
+        "WallFurnace": 48,
+        "air-to-air": 426,
+        "mini-split": 30
+      },
+      "heating_has_ducts": {
+        "No": 246,
+        "Yes": 1754
+      },
+      "heating_setpoint_f": {
+        "60.0": 37,
+        "62.0": 14,
+        "65.0": 60,
+        "67.0": 54,
+        "68.0": 243,
+        "70.0": 530,
+        "72.0": 454,
+        "75.0": 340,
+        "76.0": 163,
+        "78.0": 73,
+        "80.0": 32
+      },
       "heating_system_fuel_type": {
-        "electricity": 1151,
-        "natural gas": 829,
-        "propane": 20
+        "electricity": 1157,
+        "natural gas": 820,
+        "propane": 23
       },
       "heating_system_type": {
-        "electric_resistance": 109,
-        "furnace": 1436,
-        "heat_pump": 455
+        "boiler": 190,
+        "electric_resistance": 156,
+        "furnace": 1198,
+        "heat_pump": 456
+      },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "No": 1942,
+        "Yes": 58
+      },
+      "misc_gas_grill": {
+        "No": 1947,
+        "Yes": 53
+      },
+      "misc_gas_lighting": {
+        "No": 1977,
+        "Yes": 23
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
       },
       "roof_material": {
-        "Insulated": 1396,
-        "Standard": 138,
-        "Super Insulated": 466
+        "Insulated": 1623,
+        "Super Insulated": 377
       },
       "roof_r_value": {
-        "1.0": 21,
-        "7.0": 46,
-        "13.0": 71,
-        "19.0": 251,
-        "30.0": 1145,
-        "38.0": 406,
-        "49.0": 60
+        "19.0": 256,
+        "30.0": 1367,
+        "38.0": 361,
+        "49.0": 16
       },
       "service_water_heating_fuel_type": {
-        "electricity": 1133,
-        "natural gas": 824,
-        "propane": 43
+        "electricity": 1101,
+        "natural gas": 864,
+        "propane": 35
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
-        "Insulated": 1301,
-        "Super Insulated": 699
+        "Insulated": 1250,
+        "Super Insulated": 750
       },
       "wall_r_value": {
-        "11.0": 1301,
-        "15.0": 343,
-        "19.0": 356
+        "11.0": 1250,
+        "15.0": 349,
+        "19.0": 401
       },
       "water_heater_type": {
-        "heat pump water heater": 4,
-        "instantaneous water heater": 94,
-        "storage water heater": 1902
+        "heat pump water heater": 7,
+        "instantaneous water heater": 97,
+        "storage water heater": 1896
       },
       "window_to_wall_ratio": {
         "0.06": 193,
@@ -3704,9 +8763,9 @@
         "0.3": 85
       },
       "window_type": {
-        "Double Pane": 1504,
-        "Single Pane": 471,
-        "Triple Pane": 25
+        "Double Pane": 1306,
+        "Single Pane": 666,
+        "Triple Pane": 28
       }
     },
     "vacant": 158
@@ -3718,6 +8777,57 @@
       "weekday_start_time": null
     },
     "stoch": {
+      "bedrooms_per_unit": {
+        "null": 2000
+      },
+      "clothes_dryer_fuel": {
+        "null": 2000
+      },
+      "com_airtightness_75pa": {
+        "null": 2000
+      },
+      "com_cooling_adjustment_f": {
+        "null": 2000
+      },
+      "com_heating_adjustment_f": {
+        "null": 2000
+      },
+      "cooking_range_fuel": {
+        "null": 2000
+      },
+      "cooling_fraction_served": {
+        "null": 2000
+      },
+      "cooling_setpoint_f": {
+        "null": 2000
+      },
+      "cooling_type_detail": {
+        "null": 2000
+      },
+      "duct_insulation_r": {
+        "null": 2000
+      },
+      "duct_leakage_pct": {
+        "null": 2000
+      },
+      "duct_location": {
+        "null": 2000
+      },
+      "foundation_type": {
+        "null": 2000
+      },
+      "garage_cars": {
+        "null": 2000
+      },
+      "heating_equipment_detail": {
+        "null": 2000
+      },
+      "heating_has_ducts": {
+        "null": 2000
+      },
+      "heating_setpoint_f": {
+        "null": 2000
+      },
       "heating_system_fuel_type": {
         "electricity": 1134,
         "natural gas": 788,
@@ -3730,6 +8840,24 @@
         "heat_pump": 443,
         "wood_stove": 17
       },
+      "infiltration_ach50": {
+        "null": 2000
+      },
+      "misc_gas_fireplace": {
+        "null": 2000
+      },
+      "misc_gas_grill": {
+        "null": 2000
+      },
+      "misc_gas_lighting": {
+        "null": 2000
+      },
+      "pv_azimuth_deg": {
+        "null": 2000
+      },
+      "pv_system_kw": {
+        "null": 2000
+      },
       "roof_material": {
         "Insulated": 1406,
         "Standard": 127,
@@ -3737,12 +8865,12 @@
       },
       "roof_r_value": {
         "1.0": 9,
-        "7.0": 38,
         "13.0": 80,
         "19.0": 261,
         "30.0": 1145,
         "38.0": 403,
-        "49.0": 64
+        "49.0": 64,
+        "7.0": 38
       },
       "service_water_heating_fuel_type": {
         "electricity": 1205,
@@ -3750,6 +8878,9 @@
         "natural gas": 745,
         "propane": 47,
         "wood": 2
+      },
+      "system_type": {
+        "null": 2000
       },
       "wall_material": {
         "Insulated": 1266,

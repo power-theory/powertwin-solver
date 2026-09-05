@@ -65,6 +65,118 @@ sources:
     file: recs2020_fuel_by_system_type.json
     origin: "RECS 2020 microdata v7, FUELHEAT | EQUIPM (furnace, boiler)"
     notes: ["combustion split conditional on system type", "excludes FUELHEAT -2/10/99"]
+  RESSTOCK2024_county_ducts:
+    file: resstock2024_county_ducts.json.gz
+    origin: "NREL ResStock 2024.2 metadata (OEDI baseline.parquet), in.duct_location + in.duct_leakage_and_insulation conditioned on in.hvac_has_ducts == Yes; leakage split supply 2/3 / return 1/3 cited to resstock options_lookup.tsv v3.3.0"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_ducts.py
+    notes: ["CR WP-R1: county-first with precomputed puma-union and division tiers; floors res 30 (owner-ratified 2026-09-04)", "vintage bins pre-1960/1960-79/1980-99/2000-09/2010+ plus all"]
+
+  RESSTOCK2024_county_heating:
+    file: resstock2024_county_heating.json.gz
+    origin: "NREL ResStock 2024.2 metadata: JOINT donors of (in.hvac_heating_type_and_fuel, in.hvac_has_ducts, in.hvac_heating_efficiency) per county x vintage; raked at resolve time to the ACS county fuel marginal (renormalized; unservable mass redistributed proportionally - owner-ratified 2026-09-04)"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_heating.py
+    notes: ["CR WP-R2: replaces the RECS division reconciliation for county-served residential buildings; division/RECS path remains the fallback", "shared-tier dedup schema (puma/division cells stored once, referenced)"]
+
+  RESSTOCK2024_county_setpoints:
+    file: resstock2024_county_setpoints.json.gz
+    origin: "NREL ResStock 2024.2 metadata: JOINT donors of (in.heating_setpoint, in.cooling_setpoint), OCCUPIED stock only (55F heating setpoint is exactly the Vacant flag, 66,373/66,373 verified; the pipeline's own vacancy channel owns vacant setbacks)"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_setpoints.py
+    notes: ["CR WP-R3: vintage-agnostic (occupant behavior, not construction era)", "offsets deferred to WP-R3b (24-hour schedule strings)"]
+
+  RESSTOCK2024_county_infiltration:
+    file: resstock2024_county_infiltration.json.gz
+    origin: "NREL ResStock 2024.2 metadata, in.infiltration ('N ACH50', whole-dwelling ACH at 50 Pa); pass-through to HPXML air_leakage_units='ACH' at pressure 50, no unit conversion (Phase-1 Q4 semantics check)"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_infiltration.py
+    notes: ["CR WP-R3: vintage-binned like ducts (construction-era property)"]
+
+  COMSTOCK2024_county_system:
+    file: comstock2024_county_system.json.gz
+    origin: "NREL ComStock 2024 R1 metadata, in.hvac_system_type shares keyed comstock_building_type per tier (type n >= 5); resolved values pass through COMSTOCK_HVAC_KEY onto the urbanopt system_type enum"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_system.py
+    notes: ["CR WP-C1: county -> division only (no PUMA tier)", "floors com 10 (owner-ratified)"]
+
+  RESSTOCK2024_county_waterheater:
+    file: resstock2024_county_waterheater.json.gz
+    origin: "NREL ResStock 2024.2 metadata: in.water_heater_efficiency donors [whe] - one label carries SWH fuel AND heater type ('Natural Gas Tankless' -> gas + instantaneous); keyed gas_arm = gas iff in.heating_fuel == Natural Gas, so P(gas SWH | gas heat) survives with no resolver cycle"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_waterheater.py
+    notes: ["CR WP-R4: county-first for water_heater_type AND service_water_heating_fuel_type from the SAME donor; RECS division tables remain the fallback", "floors res 30 (owner-ratified)"]
+
+  RESSTOCK2024_county_appliances:
+    file: resstock2024_county_appliances.json.gz
+    origin: "NREL ResStock 2024.2 metadata: JOINT donors of clothes_dryer [dr], cooking_range [rg], misc_gas_grill [gr], misc_gas_lighting [gl], misc_gas_fireplace [gf], keyed gas_arm = gas iff heating OR SWH fuel is Natural Gas (measured coupling: P(gas dryer|gas home)=0.249 vs 0.022; P(gas range|gas)=0.530 vs 0.099)"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_appliances.py
+    notes: ["CR WP-R4: five appliance channels from one donor (mutually coherent and gas-line coherent)", "floors res 30 (owner-ratified)"]
+
+  RESSTOCK2024_county_cooling:
+    file: resstock2024_county_cooling.json.gz
+    origin: "NREL ResStock 2024.2 metadata: JOINT donors of (in.hvac_cooling_type [ct], in.hvac_cooling_partial_space_conditioning [pf]), heat-pump rows EXCLUDED (ResStock ties HP cooling to HP heating deterministically - the WP-R2 heating donor owns that); 'None' = no mechanical cooling (10.1% national, 27% of Teton)"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_cooling.py
+    notes: ["CR WP-R5: county cooling saturation for non-heat-pump homes; partial conditioning rides the same donor", "cooling efficiency labels deferred with the WP-R2b efficiency channel", "floors res 30"]
+
+  RESSTOCK2024_county_insulation:
+    file: resstock2024_county_insulation.json.gz
+    origin: "NREL ResStock 2024.2 metadata: nominal R shares parsed from in.insulation_wall (Uninsulated -> 0, material prefix dropped) and in.insulation_ceiling ('None' = no attic, EXCLUDED - shares conditional on an attic existing), county x vintage bin"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_insulation.py
+    notes: ["CR WP-R5: re-keys residential wall_r_value/roof_r_value county-first; material tier stays derived from the same R draw (ledger invariant preserved)", "five other surfaces are WP-R5b (new channels, not re-keys)", "floors res 30"]
+
+  RESSTOCK2024_county_windows:
+    file: resstock2024_county_windows.json.gz
+    origin: "NREL ResStock 2024.2 metadata: in.windows collapsed to pane class (Single/Double/Triple Pane) shares, county x vintage bin"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_windows.py
+    notes: ["CR WP-R5: re-keys window_type residential from region x vintage to county-first; same enum, same salt, same U/SHGC mapping downstream", "floors res 30"]
+
+  RESSTOCK2024_county_geometry:
+    file: resstock2024_county_geometry.json.gz
+    origin: "NREL ResStock 2024.2 metadata: JOINT donors of (in.geometry_foundation_type [fnd], in.geometry_garage [gar]); one home's geometry, so the foundation feeding the WP-R1 duct remap and the garage stay coherent"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_geometry.py
+    notes: ["CR WP-R5: replaces region-modal foundation + garage_rate hash where a tier serves; garage sized 12 ft per car with the F-01 unit-width clamp in the mapper", "floors res 30"]
+
+  RESSTOCK2024_county_household:
+    file: resstock2024_county_household.json.gz
+    origin: "NREL ResStock 2024.2 metadata: JOINT donors of (in.bedrooms [br], in.occupants [oc]) keyed by in.geometry_floor_area bin, OCCUPIED stock (in.occupants '0' is exactly the Vacant flag; '10+' stored as 10)"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_household.py
+    notes: ["CR WP-R5: replaces the area/700 bedrooms formula and bedrooms+1 occupants heuristic where a tier serves; explicit metadata bedrooms still outrank the donor", "floors res 30"]
+
+  RESSTOCK2024_county_pv:
+    file: resstock2024_county_pv.json.gz
+    origin: "NREL ResStock 2024.2 metadata: in.has_pv shares plus JOINT donors of (in.pv_system_size [sz], in.pv_orientation [orient]) among PV owners (national Yes ~0.9%)"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_pv.py
+    notes: ["CR WP-R6: retires the phantom-renewables register row - PV becomes physically modeled (pv_system_present + max power W + azimuth)", "floors res 30"]
+
+  COMSTOCK2024_county_tstat:
+    file: comstock2024_county_tstat.json.gz
+    origin: "NREL ComStock 2024 R1 metadata: tstat = JOINT donors of (in.tstat_htg_sp_f [th], in.tstat_clg_sp_f [tc]) sentinel-filtered (999 = no mechanical setpoint; keep th 40-90, tc 60-95); air = in.airtightness shares, m3/(h*m2) AT 75 Pa (the column suffix says m3_per_m2_s but values 5-75 step 5 are the standard commercial pressurization metric)"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_com_tstat.py
+    notes: ["CR WP-C2: tstat delivered as DELTAS vs the DOE prototype 70F htg / 75F clg occupied baseline via AdjustThermostatSetpointsByDegrees; airtightness passed VERBATIM to set_nist_infiltration_correlations at airtightness_pressure=75 (its native units - zero conversion by design)", "county -> division only; floors com 10"]
+
+  COMSTOCK2024_county_fuels:
+    file: comstock2024_county_fuels.json.gz
+    origin: "NREL ComStock 2024 R1 metadata: JOINT donors of (heating fuel [hf], SWH fuel [wf]) keyed comstock_building_type per tier (type n >= 5); the joint draw preserves P(SWH fuel | heating fuel) - the WP-R2 decorrelation lesson applied at design time; DistrictHeating maps to 'district steam'"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_com_fuels.py
+    notes: ["CR WP-C1: county -> division only (no PUMA tier); CBECS division keying remains the terminal fallback in _resolve_fuel", "floors com 10 (owner-ratified)"]
+
+  COMSTOCK2024_county_hours:
+    file: comstock2024_county_hours.json.gz
+    origin: "NREL ComStock 2024 R1 metadata: JOINT donors of (weekday/weekend opening time + operating hours, decimal hr) keyed comstock_building_type inside each tier (type needs n >= 5 rows); actual open-to-close windows, so restaurants ARE servable county-first while SmallHotel/LargeHotel/Hospital stay suppressed (their ComStock hours are a ~12h/~9h front-of-house window, not the 24/7 occupancy period)"
+    extracted: 2026-09-04
+    regen: tests/tools/build_county_hours.py
+    notes: ["CR WP-C1: county -> division only (no PUMA tier: hours are type-driven with weak sub-state geography and the puma block tripled the table)", "zero-duration day -> both fields for that day omitted (template default), never a 00:00 window", "floors com 10 (owner-ratified)"]
+
   RECS2020_swh_fuel_by_heating_fuel:
     file: recs2020_swh_fuel_by_heating_fuel.json
     origin: "RECS 2020 microdata v7, FUELH2O | FUELHEAT (water-heater fuel conditioned on the building's HEATING fuel)"
@@ -328,8 +440,8 @@ fields:
     type: enum
     values: [Single Pane, Double Pane, Triple Pane]
     flat_default: Double Pane   # L-009: RECS 2020 TYPEGLASS national mode (63.1% double / 35.2% single / 1.7% triple, NWEIGHT-weighted; recomputed 2026-09)
-    resolver: "_resolve_window_type"
-    source_assumption: {both: "per (region x vintage) glazing DISTRIBUTION transcribed from RECS 2020 TYPEGLASS (res) / CBECS 2018 WINTYP (com); share-weighted per building by id-hash (mode when stochastic off); separate res/com tables"}
+    resolver: "_resolve_window_type (residential county-first via RESSTOCK2024_county_windows, CR WP-R5)"
+    source_assumption: {residential: "RESSTOCK2024_county_windows pane shares county x vintage bin, falling back to the RECS 2020 TYPEGLASS region x vintage table", commercial: "CBECS 2018 WINTYP region x vintage distribution; share-weighted per building by id-hash (mode when stochastic off)"}
     physical_mapping: "tier -> U/SHGC: residential CZ_WINDOW_RES (IECC2015) or physical glazing bounds; commercial CZ_WINDOW x TIER_FACTOR (ASHRAE 90.1)"
     invariants: ["per-cell resolved distribution matches reference shares within tolerance (no modal collapse)", "shares sum to 1", "triple-pane <5% in all pre-2010 cells (retrofit only); commercial has no triple (WINTYP single/double)", "residential U held tighter than commercial 90.1"]
     oracle:
@@ -358,7 +470,7 @@ fields:
   wall_r_value:
     workflow: both
     type: numeric
-    range: [1.0, 80.0]   # L-014: sanity clamp, not physics -- R-1 ~ uninsulated assembly film resistance floor; R-80 above any realized-stock wall (ResStock max cavity ~R-40ish, Passive-House walls ~R-40-60); clamp exists to reject unit errors
+    range: [0.0, 80.0]   # 0.0 = Uninsulated (county insulation draws, review fix)   # L-014: sanity clamp, not physics -- R-1 ~ uninsulated assembly film resistance floor; R-80 above any realized-stock wall (ResStock max cavity ~R-40ish, Passive-House walls ~R-40-60); clamp exists to reject unit errors
     units: "hr-ft2-F/Btu (CAVITY-only for residential)"
     flat_default: 13.0   # L-012 adjudicated 2026-09: post-1980 stock-weighted mean cavity R from repo recs2020_envelope.json = 13.07; reviewer's 14.59 matches neither weighting -- 13.0 stands
     resolver: "_resolve_envelope"
@@ -374,7 +486,7 @@ fields:
   roof_r_value:
     workflow: both
     type: numeric
-    range: [1.0, 80.0]
+    range: [0.0, 80.0]   # 0.0 = Uninsulated
     units: "hr-ft2-F/Btu (CEILING insulation for residential)"
     flat_default: 30.0
     resolver: "_resolve_envelope"
@@ -423,10 +535,10 @@ fields:
     workflow: both
     type: "time string HH:MM (00:00-23:59); empty -> omit"
     fields: [weekday_start_time, weekday_duration, weekend_start_time, weekend_duration]
-    resolver: "_resolve_operating_schedule"
-    source_assumption: {both: "OS_operating_schedules occupancy-peak window by DOE prototype"}
-    suppression: "SUPPRESSED (emit nothing -> keep prototype native schedule) for 24/7 & bimodal: SmallHotel, LargeHotel, Hospital, Midrise/HighriseApartment, FullService/QuickServiceRestaurant"
-    invariants: ["single daytime-peak types emit a window; 24/7+bimodal types emit nothing", "24:00 rejected"]
+    resolver: "_resolve_operating_schedule (county-first via _hours_donor, WP-C1; DOE prototype table fallback)"
+    source_assumption: {both: "COMSTOCK2024_county_hours joint donor (actual open-to-close) county-first; OS_operating_schedules occupancy-peak window by DOE prototype as fallback"}
+    suppression: "county branch: SmallHotel/LargeHotel/Hospital suppressed (ComStock hours are a front-of-house window, not the 24/7 occupancy period); restaurants served. DOE fallback keeps the full 24/7+bimodal suppression: SmallHotel, LargeHotel, Hospital, Midrise/HighriseApartment, FullService/QuickServiceRestaurant"
+    invariants: ["county draw is one joint donor per building (salt hours_donor)", "zero-duration day omits both of that day's fields", "24:00 rejected"]
     oracle:
       resolver: [test_resolvers::Operating_schedule, test_regression_guards::H1]
       integration: []   # PENDING re-verify: container run of synthetic leaf set (was proven by the now-removed e2e)
@@ -438,9 +550,13 @@ fields:
     type: enum
     values: "95 urbanopt building_properties.json values + 'Inferred' sentinel"
     flat_default: Inferred
-    resolver: none
-    source_assumption: {both: "urbanopt DOE prototype template default ('Inferred' = omit from feature.json)"}
-    oracle: {status: STATIC}   # never produced by resolver
+    resolver: "_resolve_system_type (CR WP-C1, commercial county-first) -> COMSTOCK_HVAC_KEY map; residential and unmapped draws fall through to template default"
+    source_assumption: {commercial: "COMSTOCK2024_county_system shares by county x building type; ComStock labels mapped fuel-first onto the urbanopt enum (24/42 exact, remaps documented inline)", residential: "urbanopt DOE prototype template default ('Inferred' = omit from feature.json)"}
+    invariants: ["explicit metadata system outranks the county draw (full 85-value enum stays the metadata gate)", "every mapping target inside the enum and every emitted label mapped (test_comstock_hvac_key_closed_over_enum)"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden, test_regression_guards::test_comstock_hvac_key_closed_over_enum]
+      integration: []   # WP-C1 exit gate: container e2e commercial slice
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
 
   floor_height:
     workflow: both
@@ -452,15 +568,282 @@ fields:
     source_assumption: {both: "DOE commercial prototype / 90.1 Appendix G baseline floor-to-floor height"}
     oracle: {status: STATIC}
 
+  heating_equipment_detail:
+    workflow: residential_only
+    type: enum
+    values: [Furnace, WallFurnace, Boiler, ElectricResistance, air-to-air, mini-split]
+    flat_default: ""   # empty -> coarse heating_system_type stands alone (division fallback)
+    resolver: "_heating_donor -> _parse_heating_donor_label (county joint, ACS-raked)"
+    source_assumption: {residential: "RESSTOCK2024_county_heating donor's native equipment class; WallFurnace is DUCTLESS and 25% of Teton's electric heat - collapsing it to Furnace recreates the D-60 duct penalty; Shared Heating approximated as Boiler (dominant real config for MF shared heat)"}
+    invariants: ["same donor drives heating_system_type, heating_system_fuel_type, heating_has_ducts (one salt, deterministic)", "raked fuel marginal equals renormalized served ACS (verified to 4 decimals on Teton)"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden]
+      integration: []   # WP-R2 exit gate: e2e + Teton arm
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+    design_notes: ["donor efficiency label (in.hvac_heating_efficiency) carried in the table but NOT yet applied - vintage-based turnover stays authoritative; scoped as WP-R2b", "WallFurnace skips the Furnace AFUE turnover (HPXML default efficiency applies) - noted limitation"]
+
+  heating_has_ducts:
+    workflow: residential_only
+    type: enum
+    values: ["Yes", "No"]
+    flat_default: ""
+    resolver: "_heating_donor (same donor as heating_equipment_detail)"
+    source_assumption: {residential: "RESSTOCK2024_county_heating donor's in.hvac_has_ducts - WHOLE-HOME duct truth (cooling ducts count: 31% of wall-furnace homes are ducted), drives the mapper's duct-args guard in place of the type-based guess"}
+    invariants: ["joint-consistent with the equipment draw by construction"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden]
+      integration: []
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+
+  duct_location:
+    workflow: residential_only
+    type: enum
+    values: [conditioned space, attic, crawlspace, basement - conditioned, basement - unconditioned, garage]
+    flat_default: ""   # empty -> omit; HPXML defaults apply (dynamic-OFF unchanged)
+    resolver: "_resolve_ducts -> _county_prior('resstock2024_county_ducts')"
+    source_assumption: {residential: "RESSTOCK2024_county_ducts location shares, county-first (puma/division fallback), vintage-binned; ResStock labels mapped to HPXML location literals"}
+    invariants: ["only applied by the mapper to systems built as ducted (Furnace / air-to-air heat pump)", "shares sum to 1 per cell", "county tier requires n >= 30 (ledger floor)"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden, test_county_prior::test_tier_walk_and_floor_boundaries]
+      integration: []   # e2e HPXML duct assertion pending (WP-R1 exit gate)
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+
+  duct_leakage_pct:
+    workflow: residential_only
+    type: numeric
+    range: [0.0, 50.0]
+    units: "percent leakage to outside, TOTAL (mapper splits supply 2/3 / return 1/3 per resstock options_lookup v3.3.0)"
+    flat_default: ""
+    resolver: "_resolve_ducts"
+    source_assumption: {residential: "RESSTOCK2024_county_ducts leakage-label shares; label parsed to (pct, R)"}
+    invariants: ["drawn from the same leakage-label draw as duct_insulation_r (one salt, deterministic per building)"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden]
+      integration: []
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+
+  duct_insulation_r:
+    workflow: residential_only
+    type: numeric
+    range: [0.0, 20.0]
+    units: "hr-ft2-F/Btu, applied to both supply and return"
+    flat_default: ""
+    resolver: "_resolve_ducts"
+    source_assumption: {residential: "RESSTOCK2024_county_ducts leakage-label shares (R component of the same label)"}
+    invariants: ["same-label consistency with duct_leakage_pct"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden]
+      integration: []
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+
+  clothes_dryer_fuel:
+    workflow: residential_only
+    type: enum
+    values: [electricity, natural gas, propane, none]
+    flat_default: ""   # empty -> omit; HPXML defaults apply
+    resolver: "_resolve_appliance -> _appliance_donor('resstock2024_county_appliances')"
+    source_assumption: {residential: "RESSTOCK2024_county_appliances joint donor, gas-arm keyed; 'none' = no dryer (clothes_dryer_present=false)"}
+    invariants: ["same donor as cooking_range_fuel and the three misc gas channels (salt appliance_donor)", "arm chosen from the resolved heating/SWH fuels (gas-line coherence)"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden]
+      integration: []
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+
+  cooking_range_fuel:
+    workflow: residential_only
+    type: enum
+    values: [electricity, natural gas, propane, none]
+    flat_default: ""
+    resolver: "_resolve_appliance"
+    source_assumption: {residential: "RESSTOCK2024_county_appliances joint donor (Electric Resistance/Induction -> electricity)"}
+    invariants: ["same-donor consistency with clothes_dryer_fuel"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden]
+      integration: []
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+
+  misc_gas_grill:
+    workflow: residential_only
+    type: enum
+    values: ['Yes', 'No']
+    flat_default: ""
+    resolver: "_resolve_appliance"
+    source_assumption: {residential: "RESSTOCK2024_county_appliances joint donor; Yes -> misc_fuel_loads_grill_present with natural gas fuel"}
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  misc_gas_lighting:
+    workflow: residential_only
+    type: enum
+    values: ['Yes', 'No']
+    flat_default: ""
+    resolver: "_resolve_appliance"
+    source_assumption: {residential: "RESSTOCK2024_county_appliances joint donor"}
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  misc_gas_fireplace:
+    workflow: residential_only
+    type: enum
+    values: ['Yes', 'No']
+    flat_default: ""
+    resolver: "_resolve_appliance"
+    source_assumption: {residential: "RESSTOCK2024_county_appliances joint donor"}
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  cooling_type_detail:
+    workflow: residential_only
+    type: enum
+    values: [central air conditioner, room air conditioner, none]
+    flat_default: ""   # empty -> legacy fuel-driven central AC
+    resolver: "_resolve_cooling -> _cooling_donor('resstock2024_county_cooling')"
+    source_assumption: {residential: "RESSTOCK2024_county_cooling joint donor; applies only when the home is NOT a heat pump (mapper guard sys_type != heat_pump; HPXML literals via HVACType constants)"}
+    invariants: ["same donor as cooling_fraction_served (salt cooling_donor)", "heat-pump homes keep the WP-R2 donor's cooling", "room AC carries EER 10.7 (ResStock 2024.2 weighted modal label) - HPXML rejects SEER-typed efficiency for room AC (r5a e2e catch)"]
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  cooling_fraction_served:
+    workflow: residential_only
+    type: numeric
+    range: [0.0, 1.0]
+    units: "fraction of cool load served (ResStock 'N% Conditioned' / 100), cooling_system_fraction_cool_load_served"
+    flat_default: ""
+    resolver: "_resolve_cooling"
+    source_assumption: {residential: "RESSTOCK2024_county_cooling joint donor partial-conditioning label"}
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  foundation_type:
+    workflow: residential_only
+    type: enum
+    values: [slab, crawlspace - vented, crawlspace - unvented, crawlspace - conditioned, basement - unconditioned, basement - conditioned, ambient]
+    flat_default: ""   # empty -> region-modal legacy path in emission
+    resolver: "_resolve_geometry -> _geometry_donor('resstock2024_county_geometry')"
+    source_assumption: {residential: "RESSTOCK2024_county_geometry joint donor (labels mapped onto the vendored util.rb feature vocabulary); supersedes the CZ<=3-slab heuristic where a tier serves (county data reflects its own climate)"}
+    invariants: ["explicit metadata foundation outranks the donor", "same donor as garage_cars (salt geometry_donor)", "multifamily stays forced slab in emission"]
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  garage_cars:
+    workflow: residential_only
+    type: numeric
+    range: [0.0, 3.0]
+    units: "attached-garage car count; mapper sizes 12 ft per car, clamps below the estimated unit width (F-01), 0 = none"
+    flat_default: ""   # empty -> RECS garage_rate hash legacy path
+    resolver: "_resolve_geometry"
+    source_assumption: {residential: "RESSTOCK2024_county_geometry joint donor"}
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  bedrooms_per_unit:
+    workflow: residential_only
+    type: numeric
+    range: [1.0, 10.0]
+    units: "bedrooms per dwelling unit; emission multiplies by units for HPXML number_of_bedrooms"
+    flat_default: ""   # empty -> area/700 formula stands
+    resolver: "_household_donor('resstock2024_county_household') via the bedrooms_per_unit dispatch branch"
+    source_assumption: {residential: "RESSTOCK2024_county_household joint donor; occupants come from the SAME donor inside _resolve_occupants (salt household_donor)"}
+    invariants: ["explicit metadata bedrooms outrank the donor (both here and in _resolve_occupants)", "occupants-bedrooms coherence: one donor, one salt"]
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  pv_system_kw:
+    workflow: residential_only
+    type: numeric
+    range: [0.5, 50.0]
+    units: "kWDC nameplate; mapper passes watts to pv_system_max_power_output"
+    flat_default: ""   # empty -> no PV (the overwhelming majority)
+    resolver: "_resolve_pv -> _county_prior('resstock2024_county_pv')"
+    source_assumption: {residential: "RESSTOCK2024_county_pv has_pv share (salt pv_present) then joint (size, orientation) donor (salt pv_donor)"}
+    invariants: ["same donor as pv_azimuth_deg", "stochastic-off mode is No nearly everywhere (modal rule)"]
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  pv_azimuth_deg:
+    workflow: residential_only
+    type: numeric
+    range: [0.0, 359.0]
+    units: "degrees clockwise from north (ResStock orientation label mapped: South=180 etc.)"
+    flat_default: ""
+    resolver: "_resolve_pv"
+    source_assumption: {residential: "RESSTOCK2024_county_pv joint donor orientation"}
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  com_heating_adjustment_f:
+    workflow: commercial_only
+    type: numeric
+    range: [-30.0, 20.0]
+    units: "deg F DELTA vs the DOE prototype 70F occupied heating baseline (AdjustThermostatSetpointsByDegrees heating_adjustment)"
+    flat_default: ""
+    resolver: "_resolve_com_tstat -> _com_tstat_cell('comstock2024_county_tstat')"
+    source_assumption: {commercial: "COMSTOCK2024_county_tstat joint donor; delta = donor th - 70"}
+    invariants: ["same donor as com_cooling_adjustment_f (salt com_tstat_donor)", "70/75 baseline is a documented approximation of the openstudio-standards prototype occupied setpoints"]
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  com_cooling_adjustment_f:
+    workflow: commercial_only
+    type: numeric
+    range: [-15.0, 20.0]
+    units: "deg F DELTA vs the DOE prototype 75F occupied cooling baseline"
+    flat_default: ""
+    resolver: "_resolve_com_tstat"
+    source_assumption: {commercial: "COMSTOCK2024_county_tstat joint donor; delta = donor tc - 75"}
+    invariants: ["same-donor consistency with com_heating_adjustment_f"]
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  com_airtightness_75pa:
+    workflow: commercial_only
+    type: numeric
+    range: [1.0, 100.0]
+    units: "m3/(h*m2) at 75 Pa, verbatim into set_nist_infiltration_correlations airtightness_value"
+    flat_default: ""
+    resolver: "_resolve_com_airtightness"
+    source_assumption: {commercial: "COMSTOCK2024_county_tstat air shares (NIST-correlation delivery, no unit conversion)"}
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+
+  heating_setpoint_f:
+    workflow: residential_only
+    type: numeric
+    range: [45.0, 85.0]
+    units: "deg F, occupied heating setpoint (weekday == weekend; the vacant overwrite in the mapper stays downstream and wins)"
+    flat_default: ""
+    resolver: "_resolve_setpoints -> _setpoint_donor('resstock2024_county_setpoints')"
+    source_assumption: {residential: "RESSTOCK2024_county_setpoints joint donors, occupied stock only"}
+    invariants: ["drawn jointly with cooling_setpoint_f (one donor, salt setpoint_donor)", "county tier requires n >= 30"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden]
+      integration: []
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+
+  cooling_setpoint_f:
+    workflow: residential_only
+    type: numeric
+    range: [60.0, 90.0]
+    units: "deg F, occupied cooling setpoint (replaces the RECS-median 72F literal when resolved)"
+    flat_default: ""
+    resolver: "_resolve_setpoints -> _setpoint_donor('resstock2024_county_setpoints')"
+    source_assumption: {residential: "RESSTOCK2024_county_setpoints joint donors, occupied stock only"}
+    invariants: ["same-donor consistency with heating_setpoint_f"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden]
+      integration: []
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+
+  infiltration_ach50:
+    workflow: residential_only
+    type: numeric
+    range: [0.5, 75.0]
+    units: "whole-dwelling ACH at 50 Pa, passed to HPXML air_leakage_value with units ACH at house pressure 50 (no conversion)"
+    flat_default: ""
+    resolver: "_resolve_infiltration (HELD DISABLED via INFILTRATION_PRIOR_ENABLED=False, WP-R3b owner-ratified 2026-09-04: single-knob ablation showed +45 pts res elec NMBE / +87 gas from this prior alone; values verified correct, stack root-cause pending)"
+    source_assumption: {residential: "RESSTOCK2024_county_infiltration shares, vintage-binned"}
+    invariants: ["shares sum to 1 per cell", "county tier requires n >= 30"]
+    oracle:
+      resolver: [test_resolvers::resolver_golden]
+      integration: []
+      status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
+
 # =============================================================================
 # DERIVED FIELDS -- programmable feature.json params NOT in SIM_PARAM_DEFAULTS
 # (set by generateFeatureFile.py logic / metadata, not the resolve_default resolver),
 # documented here rather than in `fields:` (which mirrors SIM_PARAM_DEFAULTS exactly).
 # =============================================================================
 derived_fields:
-  foundation_type:
+  foundation_type_legacy_path:
     workflow: residential
-    source_assumption: "recs2020_envelope.foundation_type modal per census region (RECS HC10.1); CZ1-3 forces slab; multifamily always slab. Set in generateFeatureFile.process_feature."
+    source_assumption: "LEGACY FALLBACK ONLY since CR WP-R5 (foundation_type is now a resolver field with a county donor): recs2020_envelope.foundation_type modal per census region (RECS HC10.1); CZ1-3 forces slab; multifamily always slab. Fires in generateFeatureFile.process_feature when the resolver returns empty."
     invariants: ["SFD/SFA only; MF -> slab", "CZ1-3 -> slab regardless of region"]
     verified_by: [test_resolvers::reference_data]   # reference-data presence; no per-cell sim oracle yet
     note: "design-choice (modal foundation); not share-weighted"

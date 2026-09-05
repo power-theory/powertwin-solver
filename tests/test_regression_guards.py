@@ -56,6 +56,17 @@ DYNAMIC_FIELDS = [
     "heating_system_type", "water_heater_type",
     "window_type",
     "wall_material", "roof_material",
+    "duct_location", "duct_leakage_pct", "duct_insulation_r",
+    "heating_setpoint_f", "cooling_setpoint_f", "infiltration_ach50",
+    "system_type",
+    "com_heating_adjustment_f", "com_cooling_adjustment_f", "com_airtightness_75pa",
+    "pv_system_kw", "pv_azimuth_deg",
+    "bedrooms_per_unit",
+    "foundation_type", "garage_cars",
+    "cooling_type_detail", "cooling_fraction_served",
+    "clothes_dryer_fuel", "cooking_range_fuel",
+    "misc_gas_grill", "misc_gas_lighting", "misc_gas_fireplace",
+    "heating_equipment_detail", "heating_has_ducts",
     "wall_r_value", "roof_r_value", "window_to_wall_ratio",
     "weekday_start_time", "weekday_duration",
     "weekend_start_time", "weekend_duration",
@@ -309,6 +320,32 @@ def test_h9_residential_window_table():
     assert h9_residential_window_table().status.startswith("OK")
 def test_h10_mapper_deploy_copies_refs():
     assert h10_mapper_deploy_copies_refs().status.startswith("OK")
+
+
+def test_comstock_hvac_key_closed_over_enum():
+    """CR WP-C1: every ComStock hvac label maps to a REAL urbanopt system_type
+    enum member (a typo here silently falls the building to template default),
+    and the mapping covers every label the county system table can emit."""
+    import gzip, json, os
+    targets = set(sps.COMSTOCK_HVAC_KEY.values())
+    bad = targets - set(sps.ENUM_VALUES["system_type"])
+    assert not bad, f"COMSTOCK_HVAC_KEY targets outside the system_type enum: {sorted(bad)}"
+    ref = os.path.join(os.path.dirname(__file__), "..", "solver", "upload",
+                       "reference_data", "comstock2024_county_system.json.gz")
+    table = json.loads(gzip.open(ref).read())
+    labels = set()
+    def walk(cell):
+        for bt, sub in cell.items():
+            if bt.startswith("_"):
+                continue
+            labels.update(sub.get("shares", {}))
+    for entry in table.get("counties", {}).values():
+        if "county" in entry:
+            walk(entry["county"])
+    for cell in table.get("_divisions", {}).values():
+        walk(cell)
+    unmapped = labels - set(sps.COMSTOCK_HVAC_KEY)
+    assert not unmapped, f"county system table emits unmapped ComStock labels: {sorted(unmapped)}"
 
 
 def main():

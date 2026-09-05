@@ -409,10 +409,20 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 
     # "Inferred" means "let urbanopt's template pick", so omit the field from
     # feature.json. urbanopt's building_properties.json enum doesn't include
-    # "Inferred" and will reject the whole feature otherwise.
-    sys_type = get_param(asset_metadata, 'system_type')
+    # "Inferred" and will reject the whole feature otherwise. CR WP-C1: ctx is
+    # passed now, so the county ComStock system draw (mapped via
+    # COMSTOCK_HVAC_KEY) fires for commercial buildings when metadata is silent.
+    sys_type = get_param(asset_metadata, 'system_type', ctx)
     if sys_type and sys_type != 'Inferred':
         new_properties["system_type"] = sys_type
+
+    # CR WP-C2: commercial thermostat deltas + airtightness (resolver returns
+    # nothing for residential buildings; empty = omit, measures stay skipped).
+    for f in ('com_heating_adjustment_f', 'com_cooling_adjustment_f',
+              'com_airtightness_75pa'):
+        v = get_param(asset_metadata, f, ctx)
+        if v not in (None, ''):
+            new_properties[f] = v
 
     # Operating hours: only emit when both start and duration are set AND duration
     # isn't 24:00 (which collides with the implicit end-of-day Time(24:00:00) in
@@ -490,23 +500,35 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         try:
             bedrooms_per_unit = max(1, round(int(supplied_bedrooms) / units))
         except (TypeError, ValueError):
-            bedrooms_per_unit = max(1, round(floor_area / SQFT_PER_BEDROOM / units))
+            # CR WP-R5: county household donor (joint with the occupants the
+            # resolver draws from the SAME donor) before the area/700 formula.
+            county_br = get_param(asset_metadata, 'bedrooms_per_unit', ctx)
+            try:
+                bedrooms_per_unit = max(1, int(float(county_br)))
+            except (TypeError, ValueError):
+                bedrooms_per_unit = max(1, round(floor_area / SQFT_PER_BEDROOM / units))
         if building_type == "Multifamily":
             foundation = "slab"
         else:
-            try:
-                foundation_ref = _load_ref('recs2020_envelope').get('foundation_type', {})
-            except Exception:
-                foundation_ref = {}
-            cz_num = None
-            try:
-                cz_num = int(str(ctx.get('climate_zone', '') or '')[:1])
-            except (ValueError, IndexError):
-                pass
-            region = ctx.get('region')
-            foundation = foundation_ref.get(region, 'slab')
-            if cz_num and cz_num <= 3:
-                foundation = 'slab'
+            # CR WP-R5: county geometry donor first (realized local foundation mix;
+            # supersedes the region-modal + CZ<=3-slab heuristics where a tier
+            # serves - the county data already reflects its own climate). Legacy
+            # region-modal path stands when the donor is absent.
+            foundation = get_param(asset_metadata, 'foundation_type', ctx)
+            if foundation in (None, ''):
+                try:
+                    foundation_ref = _load_ref('recs2020_envelope').get('foundation_type', {})
+                except Exception:
+                    foundation_ref = {}
+                cz_num = None
+                try:
+                    cz_num = int(str(ctx.get('climate_zone', '') or '')[:1])
+                except (ValueError, IndexError):
+                    pass
+                region = ctx.get('region')
+                foundation = foundation_ref.get(region, 'slab')
+                if cz_num and cz_num <= 3:
+                    foundation = 'slab'
         new_properties.update({
             "number_of_stories_above_ground": floor_count,
             "foundation_type": foundation,
@@ -514,6 +536,49 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             "number_of_residential_units": units,
             "number_of_bedrooms": bedrooms_per_unit * units,
         })
+        # CR WP-R5: garage car count from the same geometry donor (0 = none);
+        # the mapper sizes 12 ft per car and clamps to the unit footprint.
+        g_cars = get_param(asset_metadata, 'garage_cars', ctx)
+        if g_cars not in (None, ''):
+            new_properties["garage_cars"] = int(float(g_cars))
+
+        # CR WP-R2: heating equipment detail channel (native HPXML class + duct truth
+        # from the same county donor; empty when the division fallback served).
+        eq_detail = get_param(asset_metadata, 'heating_equipment_detail', ctx)
+        if eq_detail not in (None, ''):
+            new_properties["heating_equipment_detail"] = eq_detail
+        hd_flag = get_param(asset_metadata, 'heating_has_ducts', ctx)
+        if hd_flag not in (None, ''):
+            new_properties["heating_has_ducts"] = hd_flag
+
+        # CR WP-R1: county-resolved duct priors. Emitted only when resolved (empty
+        # flat default = omit, so the dynamic-OFF arm keeps HPXML's own defaults).
+        # The mapper applies them only to systems it builds as ducted.
+        duct_loc = get_param(asset_metadata, 'duct_location', ctx)
+        if duct_loc not in (None, ''):
+            d_leak = get_param(asset_metadata, 'duct_leakage_pct', ctx)
+            d_ins = get_param(asset_metadata, 'duct_insulation_r', ctx)
+            # Emit the trio only when leakage ALSO resolved: an explicit metadata
+            # location with unresolved leakage used to emit '' and build perfectly
+            # sealed R-0 ducts via Ruby ''.to_f (review finding 7).
+            if d_leak not in (None, ''):
+                new_properties.update({
+                    "duct_location": duct_loc,
+                    "duct_leakage_pct": d_leak,
+                    "duct_insulation_r": d_ins if d_ins not in (None, '') else 0.0,
+                })
+
+        # CR WP-R3: occupied-stock setpoints (joint donor) + envelope ACH50.
+        # CR WP-R4: appliance fuels + misc gas loads (one gas-line-coherent donor).
+        # Empty = omit; the mapper keeps its cited literals / HPXML defaults.
+        for f in ('heating_setpoint_f', 'cooling_setpoint_f', 'infiltration_ach50',
+                  'clothes_dryer_fuel', 'cooking_range_fuel',
+                  'misc_gas_grill', 'misc_gas_lighting', 'misc_gas_fireplace',
+                  'pv_system_kw', 'pv_azimuth_deg',
+                  'cooling_type_detail', 'cooling_fraction_served'):
+            v = get_param(asset_metadata, f, ctx)
+            if v not in (None, ''):
+                new_properties[f] = v
 
     # Remove useless properties
     new_properties.pop('height', None)

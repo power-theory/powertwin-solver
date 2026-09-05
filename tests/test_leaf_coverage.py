@@ -16,6 +16,8 @@ import json
 import os
 import subprocess
 import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'solver', 'app'))
+import sys
 
 import pytest
 
@@ -77,9 +79,11 @@ def test_every_building_resolves(rows):
     spec = importlib.util.spec_from_file_location("sps_leaf", SPEC)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
-    # physical fields that MUST resolve for every building (schedule fields are
-    # legitimately empty for residential + suppressed commercial types).
-    must = [f for f in m.SIM_PARAM_DEFAULTS if f not in m.TIME_FIELDS and f != "number_of_occupants"]
+    # physical fields that MUST resolve for every building. Fields whose flat
+    # default is '' are omit-class by design (time fields, occupants, and the CR
+    # county-prior fields, which legitimately omit when a building carries no
+    # county) -- optional here, pinned by their own suites instead.
+    must = [f for f, d in m.SIM_PARAM_DEFAULTS.items() if d != ""]
     errors, unresolved = [], []
     for r in rows:
         md = r["metadata"]

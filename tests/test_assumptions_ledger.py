@@ -136,10 +136,15 @@ def test_reference_files_documented_and_present():
     # ledger source files must exist on disk
     for f in documented:
         assert os.path.exists(os.path.join(REF_DIR, f)), f"ledger source file missing on disk: {f}"
-    # every _load_ref('x') in the resolver must have an <x>.json ledger source
+    # every reference the resolver loads must have a ledger source. County tables
+    # reach _load_ref through _county_prior/_county_prior_tiers with a literal
+    # name, so match those call sites too (the _load_ref-only regex silently
+    # missed every county table - found during WP-C1), and accept the gz variant.
     src = open(SPEC_PATH).read()
     used = set(re.findall(r"_load_ref\(['\"]([a-z0-9_]+)['\"]\)", src))
-    undocumented = {u for u in used if f"{u}.json" not in documented}
+    used |= set(re.findall(r"_county_prior(?:_tiers)?\(\s*['\"]([a-z0-9_]+)['\"]", src))
+    undocumented = {u for u in used
+                    if f"{u}.json" not in documented and f"{u}.json.gz" not in documented}
     assert not undocumented, f"reference files used by resolver but NOT in ledger sources: {sorted(undocumented)}"
 
 

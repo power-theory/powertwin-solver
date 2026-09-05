@@ -21,8 +21,11 @@ COUNTY = {'AZ': '04013', 'IL': '17031', 'MA': '25025', 'TX': '48201', 'CA': '060
 
 
 def _null_norm(rec):
+    # Match test_resolvers._norm exactly: json keys are strings, so stringify
+    # numeric resolved values too (a mixed None/float key set otherwise breaks
+    # sort_keys - hit when WP-R6 PV made None the majority key of a numeric field).
     for f, dist in rec["stoch"].items():
-        rec["stoch"][f] = {("null" if k is None else k): v for k, v in dist.items()}
+        rec["stoch"][f] = {("null" if k is None else str(k)): v for k, v in dist.items()}
     return rec
 
 

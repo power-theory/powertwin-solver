@@ -54,6 +54,17 @@ COMMERCIAL_TYPES = ["Office", "Education", "Lodging", "Warehouse",
                     "Food service", "Outpatient health care", "Laboratory"]
 
 ALL_DYNAMIC_FIELDS = [
+    "duct_location", "duct_leakage_pct", "duct_insulation_r",
+    "heating_setpoint_f", "cooling_setpoint_f", "infiltration_ach50",
+    "system_type",
+    "com_heating_adjustment_f", "com_cooling_adjustment_f", "com_airtightness_75pa",
+    "pv_system_kw", "pv_azimuth_deg",
+    "bedrooms_per_unit",
+    "foundation_type", "garage_cars",
+    "cooling_type_detail", "cooling_fraction_served",
+    "clothes_dryer_fuel", "cooking_range_fuel",
+    "misc_gas_grill", "misc_gas_lighting", "misc_gas_fireplace",
+    "heating_equipment_detail", "heating_has_ducts",
     "window_type",
     "heating_system_type",
     "water_heater_type",
@@ -73,7 +84,6 @@ ALL_DYNAMIC_FIELDS = [
 ]
 
 NON_DYNAMIC_FIELDS = [
-    "system_type",
     "floor_height",
 ]
 
@@ -1038,7 +1048,8 @@ def test_county_fuel():
         check("county combustion fuel resolves at county_acs", level, "county_acs", section)
     else:
         check_in("county electric fuel level", level,
-                 {'building_type_only', 'division_vintage'}, section)
+                 {'building_type_only', 'division_vintage',
+                  'county_county', 'county_puma', 'county_division'}, section)
     check_in("county fuel valid enum", val, ENUM_VALUES["heating_system_fuel_type"], section)
 
     # Without building_id, should fall back to mode of county shares
@@ -1070,7 +1081,7 @@ def test_county_fuel():
     check_in("SWH valid enum", swh_val,
              ENUM_VALUES["service_water_heating_fuel_type"], section)
     check_in("SWH level tracks heating fuel or HPWH", swh_level,
-             {hf_level, 'building_type_only'}, section)
+             {hf_level, 'building_type_only', 'county_acs'}, section)
 
     # County fuel should produce a distribution with building_ids
     ct = Counter()
@@ -1083,6 +1094,33 @@ def test_county_fuel():
         val, _ = resolve_default("heating_system_fuel_type", ctx)
         ct[val] += 1
     check("county dist has multiple fuels", len(ct) >= 2, True, section)
+
+    # SWH-heating fuel COHERENCE under the county donor path (tetonr1 sim-gate
+    # catch 2026-09-04): SWH fuel must condition on the SAME heating fuel the
+    # heating channel emits. When the two draws decorrelate (SWH conditioning on
+    # an independent legacy draw), gas-heated and electric-heated homes show the
+    # same gas-SWH rate and the county gas-anything union inflates (28% -> 41%
+    # on Teton). RECS P(gas SWH | gas heat) ~ 0.84 vs P(gas SWH | electric
+    # heat) well below half that, so the split must be visible over 400 draws.
+    swh_by_heat = {"natural gas": Counter(), "electricity": Counter()}
+    for i in range(400):
+        ctx = build_asset_ctx(
+            {"state": "WY", "year_built": 1995, "area": 2200, "county_fips": "56039"},
+            building_type="Single-Family Detached", building_id=f"swhcoh{i:05d}",
+        )
+        hf, _ = resolve_default("heating_system_fuel_type", ctx)
+        sf, _ = resolve_default("service_water_heating_fuel_type", ctx)
+        if hf in swh_by_heat and sf:
+            swh_by_heat[hf][sf] += 1
+    gas_n = sum(swh_by_heat["natural gas"].values())
+    ele_n = sum(swh_by_heat["electricity"].values())
+    check("coherence sample has both heating fuels", gas_n >= 20 and ele_n >= 20,
+          True, section)
+    if gas_n >= 20 and ele_n >= 20:
+        p_gas_given_gas = swh_by_heat["natural gas"]["natural gas"] / gas_n
+        p_gas_given_ele = swh_by_heat["electricity"]["natural gas"] / ele_n
+        check("gas SWH tracks gas heat (correlation restored)",
+              p_gas_given_gas > p_gas_given_ele + 0.25, True, section)
 
     # Without county_fips, should fall back to division level
     ctx_no_fips = build_asset_ctx(
@@ -1392,8 +1430,13 @@ def test_boiler_county_fuel():
                 fuel_val, fuel_level = resolve_default("heating_system_fuel_type", ctx)
                 ct[fuel_val] += 1
                 if len(ct) == 1:
-                    check("boiler county fuel level", fuel_level, "county_acs", section)
-                    check_in("boiler fuel valid", fuel_val, boiler_fuels, section)
+                    # CR WP-R2: county-served buildings resolve via the ACS-raked donor
+                    # (county_* levels); electricity is legitimate for boilers (R-035).
+                    check_in("boiler county fuel level", fuel_level,
+                             {'county_acs', 'county_county', 'county_puma', 'county_division'},
+                             section)
+                    check_in("boiler fuel valid", fuel_val,
+                             set(boiler_fuels) | {'electricity'}, section)
 
         check("found boiler buildings in MA", boiler_found, True, section)
         if ct:
@@ -1773,7 +1816,16 @@ def test_county_electric_marginal():
 _GOLDEN_STOCH = ['heating_system_type', 'heating_system_fuel_type',
                  'service_water_heating_fuel_type', 'water_heater_type', 'window_type',
                  'wall_material', 'roof_material', 'wall_r_value', 'roof_r_value',
-                 'window_to_wall_ratio']
+                 'window_to_wall_ratio',
+                 'duct_location', 'duct_leakage_pct', 'duct_insulation_r',
+                 'heating_equipment_detail', 'heating_has_ducts',
+                 'heating_setpoint_f', 'cooling_setpoint_f', 'infiltration_ach50',
+                 'system_type', 'clothes_dryer_fuel', 'cooking_range_fuel',
+                 'misc_gas_grill', 'misc_gas_lighting', 'misc_gas_fireplace',
+                 'com_heating_adjustment_f', 'com_cooling_adjustment_f',
+                 'com_airtightness_75pa', 'pv_system_kw', 'pv_azimuth_deg',
+                 'bedrooms_per_unit', 'foundation_type', 'garage_cars',
+                 'cooling_type_detail', 'cooling_fraction_served']
 _GOLDEN_DET = ['cooling_system_fuel_type', 'number_of_occupants', 'weekday_start_time']
 _GOLDEN_N = 2000
 

@@ -51,6 +51,31 @@ CONTAINER = os.environ.get("QA_CONTAINER", "powertwin-solver-flask")
 # ----------------------------------------------------------------------------
 FIELDS = (
     "system_type",
+    "heating_system_type",
+    "water_heater_type",
+    "duct_location",
+    "duct_leakage_pct",
+    "duct_insulation_r",
+    "heating_setpoint_f",
+    "cooling_setpoint_f",
+    "infiltration_ach50",
+    "clothes_dryer_fuel",
+    "cooking_range_fuel",
+    "misc_gas_grill",
+    "misc_gas_lighting",
+    "misc_gas_fireplace",
+    "com_heating_adjustment_f",
+    "com_cooling_adjustment_f",
+    "com_airtightness_75pa",
+    "pv_system_kw",
+    "pv_azimuth_deg",
+    "bedrooms_per_unit",
+    "foundation_type",
+    "garage_cars",
+    "cooling_type_detail",
+    "cooling_fraction_served",
+    "heating_equipment_detail",
+    "heating_has_ducts",
     "heating_system_fuel_type",
     "cooling_system_fuel_type",
     "service_water_heating_fuel_type",
@@ -73,6 +98,31 @@ FIELDS = (
 # these as explicit metadata.
 OVERRIDE = {
     "system_type":                    "PSZ-AC with gas coil",
+    "heating_system_type":            "boiler",
+    "water_heater_type":              "heat pump water heater",
+    "duct_location":                  "garage",
+    "heating_equipment_detail":       "Boiler",         # coherent with heating_system_type boiler override
+    "heating_has_ducts":              "Yes",              # ducts must emit for the duct-arg audit
+    "duct_leakage_pct":               33.0,
+    "duct_insulation_r":              7.0,
+    "heating_setpoint_f":             64.0,
+    "cooling_setpoint_f":             77.0,
+    "infiltration_ach50":             23.0,
+    "clothes_dryer_fuel":             "propane",
+    "cooking_range_fuel":             "propane",
+    "misc_gas_grill":                 "Yes",
+    "misc_gas_lighting":              "Yes",
+    "misc_gas_fireplace":             "Yes",
+    "com_heating_adjustment_f":       -4.0,
+    "com_cooling_adjustment_f":       -3.0,
+    "com_airtightness_75pa":          35.0,
+    "pv_system_kw":                   6.0,
+    "pv_azimuth_deg":                 225.0,
+    "bedrooms_per_unit":              6.0,
+    "foundation_type":                "crawlspace - vented",
+    "garage_cars":                    3.0,
+    "cooling_type_detail":            "room air conditioner",
+    "cooling_fraction_served":        0.4,
     "heating_system_fuel_type":       "propane",
     "cooling_system_fuel_type":       "electricity",   # only valid cooling
     "service_water_heating_fuel_type":"fuel oil",
@@ -95,6 +145,31 @@ OVERRIDE = {
 # to template default).
 FLAT = {
     "system_type":                    "Inferred",         # omitted; template picks
+    "heating_system_type":            "furnace",
+    "water_heater_type":              "storage water heater",
+    "duct_location":                  "",                  # omitted; HPXML defaults
+    "heating_equipment_detail":       "",                  # omitted
+    "heating_has_ducts":              "",                  # omitted
+    "duct_leakage_pct":               "",                  # omitted
+    "duct_insulation_r":              "",                  # omitted
+    "heating_setpoint_f":             "",                  # omitted
+    "cooling_setpoint_f":             "",                  # omitted
+    "infiltration_ach50":             "",                  # omitted
+    "clothes_dryer_fuel":             "",                  # omitted
+    "cooking_range_fuel":             "",                  # omitted
+    "misc_gas_grill":                 "",                  # omitted
+    "misc_gas_lighting":              "",                  # omitted
+    "misc_gas_fireplace":             "",                  # omitted
+    "com_heating_adjustment_f":       "",                  # omitted
+    "com_cooling_adjustment_f":       "",                  # omitted
+    "com_airtightness_75pa":          "",                  # omitted
+    "pv_system_kw":                   "",                  # omitted
+    "pv_azimuth_deg":                 "",                  # omitted
+    "bedrooms_per_unit":              "",                  # omitted
+    "foundation_type":                "",                  # omitted -> region-modal legacy
+    "garage_cars":                    "",                  # omitted -> garage_rate hash
+    "cooling_type_detail":            "",                  # omitted -> legacy fuel-driven AC
+    "cooling_fraction_served":        "",                  # omitted
     "heating_system_fuel_type":       "natural gas",
     "cooling_system_fuel_type":       "electricity",
     "service_water_heating_fuel_type":"natural gas",
@@ -123,6 +198,31 @@ FLAT = {
 # 'create_typical_building_from_model 2', not the first instance).
 MEASURE = {
     "system_type":                    ("create_typical_building_from_model 2", "system_type"),
+    "heating_system_type":            ("BuildResidentialModel", "heating_system_type"),   # residential path
+    "water_heater_type":              ("BuildResidentialModel", "water_heater_type"),     # residential path
+    "duct_location":                  ("BuildResidentialModel", "ducts_supply_location"), # residential path (CR WP-R1)
+    "heating_equipment_detail":       ("BuildResidentialModel", "heating_system_type"),   # WallFurnace class (CR WP-R2)
+    "heating_has_ducts":              None,                                               # guard input, no direct arg
+    "duct_leakage_pct":               ("BuildResidentialModel", "ducts_supply_leakage_to_outside_value"),  # total*2/3
+    "duct_insulation_r":              ("BuildResidentialModel", "ducts_supply_insulation_r"),
+    "heating_setpoint_f":             ("BuildResidentialModel", "hvac_control_heating_weekday_setpoint"),  # CR WP-R3
+    "cooling_setpoint_f":             ("BuildResidentialModel", "hvac_control_cooling_weekday_setpoint"),  # CR WP-R3
+    "infiltration_ach50":             ("BuildResidentialModel", "air_leakage_value"),                      # CR WP-R3
+    "clothes_dryer_fuel":             ("BuildResidentialModel", "clothes_dryer_fuel_type"),               # CR WP-R4
+    "cooking_range_fuel":             ("BuildResidentialModel", "cooking_range_oven_fuel_type"),          # CR WP-R4
+    "misc_gas_grill":                 ("BuildResidentialModel", "misc_fuel_loads_grill_present"),         # CR WP-R4
+    "misc_gas_lighting":              ("BuildResidentialModel", "misc_fuel_loads_lighting_present"),      # CR WP-R4
+    "misc_gas_fireplace":             ("BuildResidentialModel", "misc_fuel_loads_fireplace_present"),     # CR WP-R4
+    "com_heating_adjustment_f":       ("AdjustThermostatSetpointsByDegrees", "heating_adjustment"),        # CR WP-C2
+    "com_cooling_adjustment_f":       ("AdjustThermostatSetpointsByDegrees", "cooling_adjustment"),        # CR WP-C2
+    "com_airtightness_75pa":          ("set_nist_infiltration_correlations", "airtightness_value"),        # CR WP-C2
+    "pv_system_kw":                   ("BuildResidentialModel", "pv_system_max_power_output"),             # CR WP-R6
+    "pv_azimuth_deg":                 ("BuildResidentialModel", "pv_system_array_azimuth"),                # CR WP-R6
+    "bedrooms_per_unit":              ("BuildResidentialModel", "geometry_unit_num_bedrooms"),             # CR WP-R5 (via number_of_bedrooms property)
+    "foundation_type":                ("BuildResidentialModel", "geometry_foundation_type"),               # CR WP-R5 (via feature foundation_type)
+    "garage_cars":                    ("BuildResidentialModel", "geometry_garage_width"),                  # CR WP-R5 (12 ft per car, F-01 clamp)
+    "cooling_type_detail":            ("BuildResidentialModel", "cooling_system_type"),                    # CR WP-R5
+    "cooling_fraction_served":        ("BuildResidentialModel", "cooling_system_fraction_cool_load_served"), # CR WP-R5
     "heating_system_fuel_type":       ("create_typical_building_from_model 1", "htg_src"),
     "cooling_system_fuel_type":       ("create_typical_building_from_model 1", "clg_src"),
     "service_water_heating_fuel_type":("create_typical_building_from_model 1", "swh_src"),  # NG/E only
@@ -216,6 +316,33 @@ FEATURE_KEY = {
     "weekday_duration":               ("weekday_duration",),
     "weekend_start_time":             ("weekend_start_time",),
     "weekend_duration":               ("weekend_duration",),
+    # CR fields (review finding 12: these were missing, so the L2 layer compared
+    # expected '' against absent keys and mis-audited real emissions)
+    "heating_system_type":            ("heating_system_type",),
+    "water_heater_type":              ("water_heater_type",),
+    "duct_location":                  ("duct_location",),
+    "duct_leakage_pct":               ("duct_leakage_pct",),
+    "duct_insulation_r":              ("duct_insulation_r",),
+    "heating_equipment_detail":       ("heating_equipment_detail",),
+    "heating_has_ducts":              ("heating_has_ducts",),
+    "heating_setpoint_f":             ("heating_setpoint_f",),
+    "cooling_setpoint_f":             ("cooling_setpoint_f",),
+    "infiltration_ach50":             ("infiltration_ach50",),
+    "clothes_dryer_fuel":             ("clothes_dryer_fuel",),
+    "cooking_range_fuel":             ("cooking_range_fuel",),
+    "misc_gas_grill":                 ("misc_gas_grill",),
+    "misc_gas_lighting":              ("misc_gas_lighting",),
+    "misc_gas_fireplace":             ("misc_gas_fireplace",),
+    "com_heating_adjustment_f":       ("com_heating_adjustment_f",),
+    "com_cooling_adjustment_f":       ("com_cooling_adjustment_f",),
+    "com_airtightness_75pa":          ("com_airtightness_75pa",),
+    "pv_system_kw":                   ("pv_system_kw",),
+    "pv_azimuth_deg":                 ("pv_azimuth_deg",),
+    "cooling_type_detail":            ("cooling_type_detail",),
+    "cooling_fraction_served":        ("cooling_fraction_served",),
+    "foundation_type":                ("foundation_type",),
+    "garage_cars":                    ("garage_cars",),
+    "bedrooms_per_unit":              ("number_of_bedrooms",),  # emitted as per_unit * units
 }
 
 # wall_material/roof_material get appended " Wall"/" Roof" by
@@ -316,6 +443,12 @@ def hpxml_window_u(r):
 # Field -> HPXML extractor. None = no direct HPXML mapping (e.g. system_type,
 # weekday/weekend times, WWR, wall_material, roof_material). For these the
 # residential L3 row still degrades to L2-only.
+# KNOWN LIMITATION (review finding 12, partially addressed): the CR-era
+# residential fields have no HPXML extractors here yet, so their MEASURE
+# entries are audited at the OSW-args layer only, not in the built HPXML.
+# The container e2e suite (test_sim_e2e) carries the HPXML-level assertions
+# for ducts, setpoints, and ACH50; extending this matrix's extractors to the
+# remaining CR fields is tracked as follow-up work.
 HPXML_EXTRACT = {
     "system_type":                    None,
     "heating_system_fuel_type":       hpxml_heating_fuel,
@@ -589,9 +722,19 @@ def resolve_expected(metadata: dict[str, Any], building_type: str) -> dict[str, 
         "build_asset_ctx, resolve_default; "
         "p=json.loads(sys.stdin.read()); "
         "ctx=build_asset_ctx(p['metadata'], building_type=p['building_type']); "
-        "fields=('system_type','heating_system_fuel_type','cooling_system_fuel_type',"
+        "fields=('system_type','heating_system_type','water_heater_type',"
+        "'heating_system_fuel_type','cooling_system_fuel_type',"
         "'service_water_heating_fuel_type','window_type','wall_material','roof_material',"
         "'wall_r_value','roof_r_value','window_to_wall_ratio','floor_height',"
+        "'duct_location','duct_leakage_pct','duct_insulation_r',"
+        "'heating_setpoint_f','cooling_setpoint_f','infiltration_ach50',"
+        "'clothes_dryer_fuel','cooking_range_fuel','misc_gas_grill',"
+        "'misc_gas_lighting','misc_gas_fireplace','system_type',"
+        "'com_heating_adjustment_f','com_cooling_adjustment_f','com_airtightness_75pa',"
+        "'pv_system_kw','pv_azimuth_deg','bedrooms_per_unit',"
+        "'foundation_type','garage_cars','cooling_type_detail','cooling_fraction_served',"
+        "'heating_equipment_detail','heating_has_ducts',"
+        ""
         "'number_of_occupants','weekday_start_time','weekday_duration',"
         "'weekend_start_time','weekend_duration'); "
         "out={'ctx':ctx,'resolved':{},'levels':{}}; "

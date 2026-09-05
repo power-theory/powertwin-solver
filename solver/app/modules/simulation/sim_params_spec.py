@@ -34,18 +34,108 @@ log = logging.getLogger('Generate Feature Files')
 # Bump when resolver logic or reference data changes.
 # Stamped into feature.json so results are traceable to the model that produced them.
 # push.sh syncs this to the README header automatically.
-RESOLVER_VERSION = '1.6'
+RESOLVER_VERSION = '3.0'  # CR review fixes: commercial keying, explicit-override honoring, delivery guards
 
 _REF_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'upload', 'reference_data'
 )
 _REF_CACHE = {}
 def _load_ref(name: str) -> dict:
-    """Lazy-load a reference JSON. `name` is the filename without extension."""
+    """Lazy-load a reference JSON. `name` is the filename without extension.
+    County-keyed tables (CR campaign) ship gzipped as `{name}.json.gz`; the plain
+    `.json` form is preferred when both exist so a hand-inspected override wins."""
     if name not in _REF_CACHE:
-        with open(os.path.join(_REF_DATA_DIR, f'{name}.json'), 'r') as f:
-            _REF_CACHE[name] = json.load(f)
+        plain = os.path.join(_REF_DATA_DIR, f'{name}.json')
+        if os.path.exists(plain):
+            with open(plain, 'r') as f:
+                _REF_CACHE[name] = json.load(f)
+        else:
+            import gzip
+            with gzip.open(os.path.join(_REF_DATA_DIR, f'{name}.json.gz'), 'rt') as f:
+                _REF_CACHE[name] = json.load(f)
     return _REF_CACHE[name]
+
+
+def _county_prior(ref_name: str, county_fips):
+    """CR campaign (WP-00): three-tier county prior lookup with sample-floor fallback.
+
+    Tables built by tests/tools/build_county_priors.py carry, PER COUNTY, three
+    precomputed cells (county / puma-union / division) plus their raw sample sizes,
+    and a `_floors` block set by the builder (owner-ratified: residential 30,
+    commercial 10; division always serves). County->PUMA is many-to-many, so the
+    puma cell is the union of rows in every PUMA intersecting the county,
+    precomputed at build time - no geographic mapping ships to the resolver.
+
+    Returns (cell_dict, tier_name) where tier_name is 'county' | 'puma' |
+    'division', or (None, None) when the county is unknown to the table.
+    """
+    for cell, tier in _county_prior_tiers(ref_name, county_fips):
+        return (cell, tier)
+    return (None, None)
+
+
+def _county_prior_tiers(ref_name: str, county_fips):
+    """Yield every (cell, tier) meeting its floor, county -> puma -> division.
+    Consumers whose cells are sub-keyed (e.g. commercial hours keyed by building
+    type inside each tier, WP-C1) walk this until a tier actually carries their
+    sub-key; plain consumers take the first yield via _county_prior."""
+    if not county_fips:
+        return
+    table = _load_ref(ref_name)
+    entry = table.get('counties', {}).get(str(county_fips))
+    if not entry:
+        return
+    floors = table.get('_floors', {})
+    cell = entry.get('county')
+    if cell and cell.get('_n', 0) >= floors.get('county', 1):
+        yield (cell, 'county')
+    # PUMA tier: shared cells stored once, referenced by name (or a union key for
+    # counties spanning several PUMAs) - the dedup schema that keeps county tables
+    # loadable (the first joint table was 239 MB raw with inline duplication).
+    if 'puma_union_ref' in entry:
+        cell = table.get('_puma_unions', {}).get(entry['puma_union_ref'])
+    elif 'puma_ref' in entry:
+        cell = table.get('_pumas', {}).get(entry['puma_ref'])
+    else:
+        cell = None
+    if cell and cell.get('_n', 0) >= floors.get('puma', 1):
+        yield (cell, 'puma')
+    cell = table.get('_divisions', {}).get(entry.get('division_ref', ''))
+    if cell and cell.get('_n', 0) >= floors.get('division', 1):
+        yield (cell, 'division')
+
+# CR review fix (finding 2): the county tables are gitignored builder outputs;
+# an image built from a fresh clone would silently lose every county channel
+# (resolve_default swallows the per-field FileNotFoundError). Check presence
+# ONCE at import and shout - loud log, not a crash, so prod degrades visibly.
+_COUNTY_TABLES = (
+    'resstock2024_county_ducts', 'resstock2024_county_heating',
+    'resstock2024_county_setpoints', 'resstock2024_county_infiltration',
+    'resstock2024_county_appliances', 'resstock2024_county_waterheater',
+    'resstock2024_county_household', 'resstock2024_county_geometry',
+    'resstock2024_county_windows', 'resstock2024_county_insulation',
+    'resstock2024_county_cooling', 'resstock2024_county_pv',
+    'comstock2024_county_hours', 'comstock2024_county_system',
+    'comstock2024_county_fuels', 'comstock2024_county_tstat',
+)
+
+
+def _county_tables_missing():
+    ref_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           '..', '..', '..', 'upload', 'reference_data')
+    return [t for t in _COUNTY_TABLES
+            if not (os.path.exists(os.path.join(ref_dir, f'{t}.json.gz'))
+                    or os.path.exists(os.path.join(ref_dir, f'{t}.json')))]
+
+
+_missing_county_tables = _county_tables_missing()
+if _missing_county_tables:
+    log.error(
+        f"COUNTY REFERENCE TABLES MISSING ({len(_missing_county_tables)}/16): "
+        f"{_missing_county_tables} - these are gitignored builder outputs "
+        f"(tests/tools/build_county_*.py, see reference_data/README_county_tables.md); "
+        f"every county-resolved field will silently fall back to division/RECS "
+        f"behavior while stamping RESOLVER_VERSION {RESOLVER_VERSION}.")
 
 # Master switch for the national-stock dynamic-default resolver. Read at call
 # time (not module-import time) so a per-request override mutating
@@ -85,6 +175,14 @@ def is_stochastic_sampling_enabled() -> bool:
 # 24h HH:MM (00:00 to 23:59). 24:00 is rejected because it collides with
 # OpenStudio's implicit end-of-day Time(24:00:00) and trips BOOST_ASSERT.
 _TIME_RE = re.compile(r'^([01]\d|2[0-3]):[0-5]\d$')
+# HPXML duct-location literals (BuildResidentialHPXML choice list); the resolver maps
+# ResStock's six location labels onto these at draw time (CR WP-R1).
+HEATING_EQUIPMENT_DETAILS = ('Furnace', 'WallFurnace', 'Boiler', 'ElectricResistance',
+                             'air-to-air', 'mini-split')
+
+DUCT_LOCATIONS = ('conditioned space', 'attic', 'crawlspace',
+                  'basement - conditioned', 'basement - unconditioned', 'garage')
+
 TIME_FIELDS = ('weekday_start_time', 'weekday_duration',
                'weekend_start_time', 'weekend_duration')
 
@@ -109,6 +207,59 @@ SIM_PARAM_DEFAULTS = {
     'floor_height': 9.0,             # ASHRAE 90.1 commercial baseline
     'number_of_occupants': '',
 
+    # Heating equipment detail channel (CR WP-R2): the county donor carries the
+    # native HPXML equipment class and the home's duct truth; empty means the
+    # coarse enum + type-based duct guess stand alone (division fallback path).
+    'heating_equipment_detail': '',
+    'heating_has_ducts': '',
+
+    # Duct priors (CR WP-R1): empty means omit so HPXML's own defaults apply when
+    # dynamic defaults are off; resolved values come from resstock2024_county_ducts.
+    'duct_location': '',
+    'duct_leakage_pct': '',
+    'duct_insulation_r': '',
+
+    # Appliance fuels + misc gas loads (CR WP-R4): empty means omit (HPXML
+    # defaults apply). Drawn from ONE county donor keyed by gas availability.
+    'clothes_dryer_fuel': '',
+    'cooking_range_fuel': '',
+    'misc_gas_grill': '',
+    'misc_gas_lighting': '',
+    'misc_gas_fireplace': '',
+
+    # Cooling saturation (CR WP-R5): empty means legacy behavior (fuel-driven
+    # central AC). Applies only to non-heat-pump homes (donor excludes HP rows).
+    'cooling_type_detail': '',
+    'cooling_fraction_served': '',
+
+    # Geometry (CR WP-R5): foundation vocabulary matches the vendored util.rb
+    # feature values; garage_cars 0 = no garage. Empty = legacy paths stand
+    # (region-modal foundation, garage_rate hash).
+    'foundation_type': '',
+    'garage_cars': '',
+
+    # Household size (CR WP-R5): per-unit bedrooms from the county household
+    # donor (joint with occupants). Empty means the area/700 formula stands.
+    'bedrooms_per_unit': '',
+
+    # Rooftop PV (CR WP-R6): empty means no PV (the overwhelming majority).
+    'pv_system_kw': '',
+    'pv_azimuth_deg': '',
+
+    # Commercial thermostat deltas + airtightness (CR WP-C2): empty means omit
+    # (measures stay __SKIP__). Deltas vs DOE prototype 70/75 occupied baseline;
+    # airtightness m3/(h*m2) at 75 Pa verbatim for set_nist_infiltration_correlations.
+    'com_heating_adjustment_f': '',
+    'com_cooling_adjustment_f': '',
+    'com_airtightness_75pa': '',
+
+    # Setpoints + infiltration (CR WP-R3): empty means omit (mapper falls back to
+    # its cited literals / HPXML defaults). Occupied-stock setpoints drawn jointly;
+    # infiltration is whole-dwelling ACH at 50 Pa, passed through unconverted.
+    'heating_setpoint_f': '',
+    'cooling_setpoint_f': '',
+    'infiltration_ach50': '',
+
     # Time strings (empty means omit from feature.json so template default applies)
     'weekday_start_time': '',
     'weekday_duration': '',
@@ -119,9 +270,22 @@ SIM_PARAM_DEFAULTS = {
 # Range bounds for numeric fields. Out-of-range values are clamped and a warning
 # logged. Keep ranges in sync with the corresponding entries in the Node spec.
 NUMERIC_RANGES = {
+    'duct_leakage_pct': (0.0, 50.0),
+    'duct_insulation_r': (0.0, 20.0),
+    'cooling_fraction_served': (0.0, 1.0),
+    'garage_cars': (0.0, 3.0),
+    'bedrooms_per_unit': (1.0, 10.0),
+    'pv_system_kw': (0.5, 50.0),
+    'pv_azimuth_deg': (0.0, 359.0),
+    'com_heating_adjustment_f': (-30.0, 20.0),
+    'com_cooling_adjustment_f': (-15.0, 20.0),
+    'com_airtightness_75pa': (1.0, 100.0),
+    'heating_setpoint_f': (45.0, 85.0),
+    'cooling_setpoint_f': (60.0, 90.0),
+    'infiltration_ach50': (0.5, 75.0),
     'window_to_wall_ratio': (0.0, 0.8),
-    'wall_r_value':         (1.0, 80.0),
-    'roof_r_value':         (1.0, 80.0),
+    'wall_r_value':         (0.0, 80.0),   # 0.0 = Uninsulated (county insulation draws)
+    'roof_r_value':         (0.0, 80.0),
     'floor_height':         (6.0, 20.0),
     'number_of_occupants':  (0, 100000),
 }
@@ -206,6 +370,8 @@ ENUM_VALUES = {
         # heating_system_type/fuel via the HPXML path instead.
     },
     'heating_system_type':             {'heat_pump', 'furnace', 'boiler', 'electric_resistance', 'wood_stove'},
+    'heating_equipment_detail':        {'Furnace', 'WallFurnace', 'Boiler', 'ElectricResistance', 'air-to-air', 'mini-split'},
+    'heating_has_ducts':               {'Yes', 'No'},
     'water_heater_type':               {'storage water heater', 'instantaneous water heater', 'heat pump water heater'},
     # urbanopt's heating_system_fuel_type enum (5 values). cooling_* and SWH_*
     # are NOT in urbanopt's schema so they bypass schema validation; we share
@@ -229,13 +395,81 @@ ENUM_VALUES = {
 # Anything outside this set is resolver/reference-data drift (e.g. an unmapped
 # fuel like 'solar'); get_param logs it and falls back to SIM_PARAM_DEFAULTS so
 # it can never silently reach the feature JSON and vanish in the Ruby fuel_map.
+# CR WP-R4 appliance channels accept explicit metadata too
+ENUM_VALUES['cooling_type_detail'] = {'central air conditioner', 'room air conditioner', 'none'}
+# duct_location metadata gate (review finding 7: it previously passed unvalidated)
+ENUM_VALUES['duct_location'] = set(DUCT_LOCATIONS)
+ENUM_VALUES['foundation_type'] = {'slab', 'crawlspace - vented', 'crawlspace - unvented',
+                                  'crawlspace - conditioned', 'basement - unconditioned',
+                                  'basement - conditioned', 'ambient'}
+ENUM_VALUES['clothes_dryer_fuel'] = {'electricity', 'natural gas', 'propane', 'none'}
+ENUM_VALUES['cooking_range_fuel'] = {'electricity', 'natural gas', 'propane', 'none'}
+ENUM_VALUES['misc_gas_grill'] = {'Yes', 'No'}
+ENUM_VALUES['misc_gas_lighting'] = {'Yes', 'No'}
+ENUM_VALUES['misc_gas_fireplace'] = {'Yes', 'No'}
+
 RESOLVER_ENUM_VALUES = {key: set(vals) for key, vals in ENUM_VALUES.items()}
 RESOLVER_ENUM_VALUES['heating_system_fuel_type'] |= {'district steam'}
 RESOLVER_ENUM_VALUES['service_water_heating_fuel_type'] |= {'district steam'}
 RESOLVER_ENUM_VALUES['cooling_system_fuel_type'] |= {'none'}
-# system_type is template-driven, never produced by the dynamic resolver; drop
-# it so its 100-value enum doesn't gate anything.
-RESOLVER_ENUM_VALUES.pop('system_type', None)
+# CR WP-C1: ComStock in.hvac_system_type labels -> urbanopt's system_type enum.
+# 24 of 42 labels are exact enum members; the rest map to the nearest enum member
+# PRESERVING HEATING FUEL first (gas/electric/district), then plant class. Every
+# ComStock label is mapped and every target is asserted inside ENUM_VALUES
+# ['system_type'] by test_regression_guards. Weights cited in tmp/cr notes.
+COMSTOCK_HVAC_KEY = {
+    # exact enum members (pass-through)
+    'PSZ-AC with gas coil': 'PSZ-AC with gas coil',
+    'PSZ-HP': 'PSZ-HP',
+    'PTHP': 'PTHP',
+    'PVAV with gas heat with electric reheat': 'PVAV with gas heat with electric reheat',
+    'PVAV with PFP boxes': 'PVAV with PFP boxes',
+    'PTAC with electric coil': 'PTAC with electric coil',
+    'PTAC with gas coil': 'PTAC with gas coil',
+    'PTAC with gas boiler': 'PTAC with gas boiler',
+    'VAV chiller with gas boiler reheat': 'VAV chiller with gas boiler reheat',
+    'VAV air-cooled chiller with gas boiler reheat': 'VAV air-cooled chiller with gas boiler reheat',
+    'VAV chiller with PFP boxes': 'VAV chiller with PFP boxes',
+    'DOAS with VRF': 'DOAS with VRF',
+    'VAV district chilled water with district hot water reheat': 'VAV district chilled water with district hot water reheat',
+    'DOAS with fan coil air-cooled chiller with boiler': 'DOAS with fan coil air-cooled chiller with boiler',
+    'DOAS with water source heat pumps with ground source heat pump': 'DOAS with water source heat pumps with ground source heat pump',
+    'Direct evap coolers with forced air furnace': 'Direct evap coolers with forced air furnace',
+    'PSZ-AC with district hot water': 'PSZ-AC with district hot water',
+    'Gas unit heaters': 'Gas unit heaters',
+    'DOAS with fan coil chiller with district hot water': 'DOAS with fan coil chiller with district hot water',
+    'VAV air-cooled chiller with district hot water reheat': 'VAV air-cooled chiller with district hot water reheat',
+    'DOAS with fan coil district chilled water with district hot water': 'DOAS with fan coil district chilled water with district hot water',
+    'DOAS with fan coil district chilled water with baseboard electric': 'DOAS with fan coil district chilled water with baseboard electric',
+    'VAV district chilled water with gas boiler reheat': 'VAV district chilled water with gas boiler reheat',
+    'Baseboard electric': 'Baseboard electric',
+    'Direct evap coolers with baseboard gas boiler': 'Direct evap coolers with baseboard gas boiler',
+    'DOAS with fan coil air-cooled chiller with district hot water': 'DOAS with fan coil air-cooled chiller with district hot water',
+    'Direct evap coolers with baseboard electric': 'Direct evap coolers with baseboard electric',
+    # nearest-member remaps (fuel preserved; comments give the delta accepted)
+    'PSZ-AC with electric coil': 'PSZ-AC with baseboard electric',        # electric resistance heat, zone vs coil
+    'Residential AC with residential forced air furnace': 'PSZ-AC with gas coil',  # DX cooling + gas furnace, rooftop analog
+    'PSZ-AC with gas boiler': 'PSZ-AC with gas coil',                     # gas heat kept; hydronic -> coil
+    'PVAV with gas boiler reheat': 'PVAV with gas heat with electric reheat',  # gas primary kept; reheat electrified
+    'PSZ-AC district chilled water with electric coil': 'PSZ-AC with baseboard electric',  # electric heat kept; district CHW dropped
+    'Residential forced air furnace': 'Forced air furnace',               # heat-only furnace
+    'VAV air-cooled chiller with PFP boxes': 'VAV chiller with PFP boxes',  # electric reheat kept; chiller condenser type
+    'VAV district chilled water with PFP boxes': 'VAV chiller with PFP boxes',  # electric reheat kept; district CHW dropped
+    'VAV chiller with district hot water reheat': 'VAV chiller with gas boiler reheat',  # chiller kept; district -> gas hydronic
+    'DOAS with fan coil chiller with boiler': 'Fan coil chiller with boiler',  # plants kept; DOAS dropped
+    'DOAS with water source heat pumps cooling tower with boiler': 'Fan coil chiller with boiler',  # electric cooling + gas boiler kept
+    'DOAS with fan coil chiller with baseboard electric': 'DOAS with fan coil district chilled water with baseboard electric',  # electric heat + DOAS kept
+    'DOAS with fan coil air-cooled chiller with baseboard electric': 'DOAS with fan coil district chilled water with baseboard electric',
+    'PVAV with district hot water reheat': 'PVAV with gas heat with electric reheat',  # air side kept; district -> gas
+    'DOAS with fan coil district chilled water with boiler': 'DOAS with fan coil district chilled water and boiler',  # enum spells 'and'
+}
+
+# CR WP-C1: system_type IS resolver-produced now (county ComStock shares mapped
+# through COMSTOCK_HVAC_KEY). The gate is the FULL enum: this dict also gates
+# EXPLICIT metadata (get_param's D-26 path), so narrowing it to the mapped
+# subset would reject legitimate user-set enum values. Mapping targets living
+# inside the enum is pinned by its own regression guard instead.
+RESOLVER_ENUM_VALUES['system_type'] = set(ENUM_VALUES['system_type'])
 
 
 # Default number_of_occupants per occupancy_type, used as a flat last-resort
@@ -463,6 +697,7 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
         'state': state,
         'region': region,
         'division': division,
+        'year_built': metadata.get('year_built'),  # raw year for CR county tables (WP-R1+)
         'vintage': _vintage_bin(metadata.get('year_built')),
         'decade_vintage': _decade_vintage_bin(metadata.get('year_built')),
         'area': metadata.get('area') or metadata.get('floor_area'),
@@ -476,6 +711,12 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
         # what the user actually chose instead of a redraw (Q/A R-037). Enum-validated at use.
         'heating_system_type': metadata.get('heating_system_type'),
         'water_heater_type': metadata.get('water_heater_type'),
+        # CR review fix (finding 10): the CR-era guards read these ctx keys; without
+        # forwarding they were dead code and donor arms redrew fuels the user pinned.
+        'heating_system_fuel_type': metadata.get('heating_system_fuel_type'),
+        'cooling_system_fuel_type': metadata.get('cooling_system_fuel_type'),
+        'foundation_type': metadata.get('foundation_type'),
+        'system_type': metadata.get('system_type'),
     }
 
 
@@ -493,7 +734,7 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
 #   flat_default       - resolver returned None; caller will use
 #                        SIM_PARAM_DEFAULTS[field]. Emitted by the preview
 #                        endpoint, not by the internal resolvers.
-FALLBACK_LEVELS = ('county_acs', 'division_vintage', 'division_all', 'vintage_specific', 'region_all', 'building_type_only', 'flat_default')
+FALLBACK_LEVELS = ('county_acs', 'county_county', 'county_puma', 'county_division', 'division_vintage', 'division_all', 'vintage_specific', 'region_all', 'building_type_only', 'flat_default')
 
 
 def _doe_ref_name(building_type: str | None, ctx: dict | None = None) -> str | None:
@@ -540,6 +781,116 @@ def _office_size_class(ctx: dict) -> str:
 # old value of 800 under-counted bedrooms (and so occupants) by ~15%.
 SQFT_PER_BEDROOM = 700
 
+_RESSTOCK_COOLING_MAP = {'Central AC': 'central air conditioner',
+                         'Room AC': 'room air conditioner', 'None': 'none'}
+
+
+def _cooling_donor(ctx):
+    """County cooling donor (WP-R5), NON-heat-pump homes only (ResStock ties HP
+    cooling to HP heating deterministically; the WP-R2 heating donor owns that).
+    Joint (type, partial-conditioning) per building, salt cooling_donor."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    for cell, tier in _county_prior_tiers('resstock2024_county_cooling', ctx.get('county_fips')):
+        vb = _duct_vintage_bin(ctx.get('year_built')) or 'all'
+        sub = cell.get(vb) or cell.get('all')
+        if not sub or not sub.get('donors'):
+            continue
+        donors = [(d, float(d.get('w', 0))) for d in sub['donors']]
+        return (_draw_donor(donors, ctx, 'cooling_donor'), tier)
+    return (None, None)
+
+
+def _resolve_cooling(field, ctx):
+    # CR review fix (finding 3): an explicit no-cooling lever must not be
+    # overridden by the county donor (the mapper's guard runs BEFORE the donor
+    # block, so without this the donor re-enabled AC on de-cooled homes).
+    if str(ctx.get('cooling_system_fuel_type') or '').lower() == 'none':
+        return (None, None)
+    donor, tier = _cooling_donor(ctx)
+    if not donor:
+        return (None, None)
+    level = f'county_{tier}'
+    if field == 'cooling_type_detail':
+        mapped = _RESSTOCK_COOLING_MAP.get(str(donor.get('ct')))
+        return ((mapped, level) if mapped else (None, None))
+    pf = str(donor.get('pf'))
+    m = re.match(r'^\s*(\d+)% Conditioned', pf)
+    if m:
+        return (round(float(m.group(1)) / 100.0, 2), level)
+    if pf.startswith('<10%'):
+        # ResStock's smallest partial-conditioning band; without this the room-AC
+        # donor emitted a type but no fraction and HPXML defaulted to 100% served.
+        return (0.1, level)
+    return (None, None)  # 'None' partial label rides with cooling none
+
+
+_RESSTOCK_FOUNDATION_MAP = {
+    'Slab': 'slab', 'Vented Crawlspace': 'crawlspace - vented',
+    'Unvented Crawlspace': 'crawlspace - unvented',
+    'Unheated Basement': 'basement - unconditioned',
+    'Heated Basement': 'basement - conditioned', 'Ambient': 'ambient'}
+_RESSTOCK_GARAGE_CARS = {'None': 0, '1 Car': 1, '2 Car': 2, '3 Car': 3}
+
+
+def _geometry_donor(ctx):
+    """County (foundation, garage) donor (WP-R5): one home's geometry, so the
+    foundation feeding the WP-R1 duct remap and the garage stay coherent."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    for cell, tier in _county_prior_tiers('resstock2024_county_geometry', ctx.get('county_fips')):
+        sub = cell.get('all')
+        if not sub or not sub.get('donors'):
+            continue
+        donors = [(d, float(d.get('w', 0))) for d in sub['donors']]
+        return (_draw_donor(donors, ctx, 'geometry_donor'), tier)
+    return (None, None)
+
+
+def _resolve_geometry(field, ctx):
+    donor, tier = _geometry_donor(ctx)
+    if not donor:
+        return (None, None)
+    level = f'county_{tier}'
+    if field == 'foundation_type':
+        mapped = _RESSTOCK_FOUNDATION_MAP.get(str(donor.get('fnd')))
+        return ((mapped, level) if mapped else (None, None))
+    cars = _RESSTOCK_GARAGE_CARS.get(str(donor.get('gar')))
+    return ((cars, level) if cars is not None else (None, None))
+
+
+_AREA_BINS = ((500, '0-499'), (750, '500-749'), (1000, '750-999'), (1500, '1000-1499'),
+              (2000, '1500-1999'), (2500, '2000-2499'), (3000, '2500-2999'),
+              (4000, '3000-3999'))
+
+
+def _area_bin(unit_area):
+    for edge, label in _AREA_BINS:
+        if unit_area < edge:
+            return label
+    return '4000+'
+
+
+def _household_donor(ctx):
+    """County household donor (WP-R5): joint (bedrooms, occupants) conditioned on
+    the DWELLING-UNIT area bin, occupied stock only. Replaces the area/700
+    bedrooms formula and bedrooms+1 occupants heuristic when a tier serves."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    area = ctx.get('area')
+    if not area:
+        return (None, None)
+    units = max(1, ctx.get('units') or 1)
+    ab = _area_bin(float(area) / units)
+    for cell, tier in _county_prior_tiers('resstock2024_county_household', ctx.get('county_fips')):
+        sub = cell.get(ab)
+        if not sub or not sub.get('donors'):
+            continue
+        donors = [(d, float(d.get('w', 0))) for d in sub['donors']]
+        return (_draw_donor(donors, ctx, 'household_donor'), tier)
+    return (None, None)
+
+
 def _resolve_occupants(ctx: dict) -> int | None:
     """Composite occupants resolver:
         residential: HPXML/Manual J convention -> bedrooms + 1, PER dwelling unit
@@ -560,6 +911,15 @@ def _resolve_occupants(ctx: dict) -> int | None:
         units = max(1, ctx.get('units') or 1)
         bedrooms = ctx.get('bedrooms')
         if bedrooms in (None, ''):
+            # CR WP-R5: county household donor first - realized OCCUPANTS directly
+            # (joint with bedrooms), not the bedrooms+1 convention, which overstates
+            # small households (RECS: 1-2 person homes dominate every bedroom count).
+            donor, _tier = _household_donor(ctx)
+            if donor:
+                try:
+                    return max(1, int(float(donor.get('oc'))))
+                except (TypeError, ValueError):
+                    pass
             area = ctx.get('area')
             if area:
                 bedrooms = max(1, round(float(area) / units / SQFT_PER_BEDROOM))
@@ -782,6 +1142,130 @@ def _resolve_heating_fuel(ctx, sys_type):
     return _fuel_by_system(ctx, 'heating_system_fuel_type', sys_type, combustion_only=True)
 
 
+# --- CR WP-R4: county water-heater + appliance donors (gas-line coherent) ---
+
+def _parse_wh_label(label):
+    """ResStock in.water_heater_efficiency -> (swh fuel, water_heater_type).
+    One label carries both ('Natural Gas Tankless' -> gas + instantaneous)."""
+    s = str(label)
+    if s.startswith('Electric Heat Pump'):
+        return ('electricity', 'heat pump water heater')
+    if s == 'FIXME Fuel Oil Indirect':
+        return ('fuel oil', 'storage water heater')
+    if s == 'Other Fuel':
+        return ('wood', 'storage water heater')
+    for prefix, fuel in (('Natural Gas', 'natural gas'), ('Electric', 'electricity'),
+                         ('Propane', 'propane'), ('Fuel Oil', 'fuel oil')):
+        if s.startswith(prefix):
+            rest = s[len(prefix):].strip()
+            wtype = ('instantaneous water heater' if rest == 'Tankless'
+                     else 'storage water heater')
+            return (fuel, wtype)
+    return (None, None)
+
+
+def _legacy_sys_type(ctx):
+    """Coarse heating system for conditioning: explicit metadata else legacy draw."""
+    explicit_sys = ctx.get('heating_system_type')
+    if explicit_sys in ENUM_VALUES.get('heating_system_type', set()):
+        return explicit_sys
+    return _resolve_heating_system_type(ctx)[0]
+
+
+def _draw_donor(donors, ctx, salt):
+    """Shared cumulative hash draw over [(donor, w)]; modal when stochastic off."""
+    if not is_stochastic_sampling_enabled() or not ctx.get('building_id'):
+        return max(donors, key=lambda t: t[1])[0]
+    frac = _building_id_hash_fraction(ctx, salt=salt)
+    acc = 0.0
+    for d, w in donors:
+        acc += w
+        if frac <= acc:
+            return d
+    return donors[-1][0]
+
+
+def _wh_donor(ctx):
+    """County water-heater donor, keyed by the home's HEATING gas arm so
+    P(gas SWH | gas heat) survives without a resolver cycle."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    hf, _ = _effective_heating_fuel(ctx, _legacy_sys_type(ctx))
+    arm = 'gas' if hf == 'natural gas' else 'nogas'
+    for cell, tier in _county_prior_tiers('resstock2024_county_waterheater', ctx.get('county_fips')):
+        sub = cell.get(arm)
+        if not sub or not sub.get('donors'):
+            continue
+        donors = [(d, float(d.get('w', 0))) for d in sub['donors']]
+        return (_draw_donor(donors, ctx, 'wh_donor'), tier)
+    return (None, None)
+
+
+_APPLIANCE_FUEL_MAP = {'Electric': 'electricity', 'Electric Resistance': 'electricity',
+                       'Electric Induction': 'electricity', 'Gas': 'natural gas',
+                       'Propane': 'propane', 'None': 'none'}
+_APPLIANCE_KEYS = {'clothes_dryer_fuel': 'dr', 'cooking_range_fuel': 'rg',
+                   'misc_gas_grill': 'gr', 'misc_gas_lighting': 'gl',
+                   'misc_gas_fireplace': 'gf'}
+
+
+def _appliance_donor(ctx):
+    """County appliance donor (dryer/range/grill/lighting/fireplace from ONE
+    building), keyed by gas availability (heating OR SWH fuel natural gas) -
+    the measured coupling is 10x (gas dryer 24.9% vs 2.2%)."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    sys_type = _legacy_sys_type(ctx)
+    hf, _ = _effective_heating_fuel(ctx, sys_type)
+    sf, _ = _resolve_swh_fuel(ctx, sys_type)
+    arm = 'gas' if 'natural gas' in (hf, sf) else 'nogas'
+    for cell, tier in _county_prior_tiers('resstock2024_county_appliances', ctx.get('county_fips')):
+        sub = cell.get(arm)
+        if not sub or not sub.get('donors'):
+            continue
+        donors = [(d, float(d.get('w', 0))) for d in sub['donors']]
+        return (_draw_donor(donors, ctx, 'appliance_donor'), tier)
+    return (None, None)
+
+
+def _resolve_appliance(field, ctx):
+    donor, tier = _appliance_donor(ctx)
+    if not donor:
+        return (None, None)
+    raw = donor.get(_APPLIANCE_KEYS[field])
+    level = f'county_{tier}'
+    if field in ('clothes_dryer_fuel', 'cooking_range_fuel'):
+        mapped = _APPLIANCE_FUEL_MAP.get(str(raw))
+        return (mapped, level) if mapped else (None, None)
+    # misc gas channels: ResStock stores 'None' or the named load ('Gas Grill')
+    return ('No' if str(raw) == 'None' else 'Yes', level)
+
+
+def _effective_heating_fuel(ctx, sys_type):
+    """The fuel this home is ACTUALLY heated with: county donor first (identical
+    precedence to resolve_default's heating_system_fuel_type route, explicit
+    metadata system outranking the donor), legacy reconciliation fallback.
+    Exists so DOWNSTREAM conditioning (SWH fuel) sees the same fuel the heating
+    channel emits -- conditioning on an independent legacy draw decorrelates the
+    two gas assignments and inflated Teton's gas-anything union 28% -> 41%
+    (caught by the tetonr1 sim gate 2026-09-04)."""
+    explicit_fuel = ctx.get('heating_system_fuel_type')
+    if explicit_fuel in ENUM_VALUES.get('heating_system_fuel_type', set()):
+        # CR review fix (finding 10): a metadata-pinned fuel outranks any redraw -
+        # the donor arms (SWH/water-heater/appliances) key on THIS fuel, and
+        # redrawing it re-created the decorrelation class this campaign fixed.
+        return (explicit_fuel, 'building_type_only')
+    explicit_sys = ctx.get('heating_system_type')
+    if explicit_sys not in ENUM_VALUES.get('heating_system_type', set()):
+        hd = _heating_donor(ctx)
+        if hd:
+            parsed = _parse_heating_donor_label(
+                hd['donor'].get('in.hvac_heating_type_and_fuel'))
+            if parsed:
+                return (parsed[0], f"county_{hd['tier']}")
+    return _resolve_heating_fuel(ctx, sys_type)
+
+
 def _resolve_swh_fuel(ctx, sys_type):
     """Service-water-heating fuel, conditioned on the building's resolved HEATING FUEL via
     RECS P(FUELH2O | FUELHEAT) -- so a gas-heated home gets gas SWH at the observed ~84%
@@ -793,14 +1277,54 @@ def _resolve_swh_fuel(ctx, sys_type):
     if explicit_wh in ENUM_VALUES.get('water_heater_type', set()):
         wh_type = explicit_wh  # explicit override drives the fuel conditioning (Q/A R-037)
     else:
+        # CR WP-R4: county-first, and fuel + type come from the SAME donor label
+        # (the draw _resolve_water_heater_type makes), so the pair is coherent
+        # by construction; RECS conditional below stays the fallback.
+        donor, tier = _wh_donor(ctx)
+        if donor:
+            fuel, _wtype = _parse_wh_label(donor.get('whe'))
+            if fuel:
+                return (fuel, f'county_{tier}')
         wh_type, _ = _resolve_water_heater_type(ctx)
     if wh_type == 'heat pump water heater':
         return ('electricity', 'building_type_only')
-    heating_fuel, hlevel = _resolve_heating_fuel(ctx, sys_type)
+    heating_fuel, hlevel = _effective_heating_fuel(ctx, sys_type)
     if heating_fuel:
         record = _load_ref('recs2020_swh_fuel_by_heating_fuel').get(heating_fuel)
         if record:
             return (_select_fuel_by_share(record, ctx, salt='service_water_heating_fuel_type'), hlevel)
+    return (None, None)
+
+
+_COMSTOCK_FUEL_MAP = {'NaturalGas': 'natural gas', 'Electricity': 'electricity',
+                      'FuelOil': 'fuel oil', 'Propane': 'propane',
+                      'DistrictHeating': 'district steam'}
+
+
+def _com_fuel_donor(ctx):
+    """County commercial fuel donor (WP-C1): heating + SWH fuel drawn JOINTLY
+    per building (the WP-R2 decorrelation lesson - independent draws inflate
+    the gas-anything union). Walks county -> division; CBECS stays below."""
+    bt = ctx.get('building_type')
+    if not bt or bt in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    cs_type = _comstock_type(ctx)
+    if not cs_type:
+        return (None, None)
+    for cell, tier in _county_prior_tiers('comstock2024_county_fuels', ctx.get('county_fips')):
+        sub = cell.get(cs_type)
+        if not sub or not sub.get('donors'):
+            continue
+        donors = [(d, float(d.get('w', 0))) for d in sub['donors']]
+        if not is_stochastic_sampling_enabled() or not ctx.get('building_id'):
+            return (max(donors, key=lambda t: t[1])[0], tier)
+        frac = _building_id_hash_fraction(ctx, salt='com_fuel_donor')
+        acc = 0.0
+        for d, w in donors:
+            acc += w
+            if frac <= acc:
+                return (d, tier)
+        return (donors[-1][0], tier)
     return (None, None)
 
 
@@ -813,6 +1337,17 @@ def _resolve_fuel(field: str, ctx: dict):
     for residential buildings to avoid impossible combinations."""
     bt = ctx.get('building_type')
     is_residential = bt in RESIDENTIAL_BUILDING_TYPES
+    # CR WP-C1: commercial heating/SWH fuel county-first from the ComStock joint
+    # donor (heating + SWH from ONE building, preserving their correlation);
+    # CBECS division keying below stays the terminal fallback.
+    if not is_residential and field in ('heating_system_fuel_type',
+                                        'service_water_heating_fuel_type'):
+        donor, tier = _com_fuel_donor(ctx)
+        if donor:
+            key = 'hf' if field == 'heating_system_fuel_type' else 'wf'
+            mapped = _COMSTOCK_FUEL_MAP.get(donor.get(key))
+            if mapped:
+                return (mapped, f'county_{tier}')
     survey = _load_ref('recs2020_residential_fuel_mix' if is_residential
                        else 'cbecs2018_commercial_fuel_mix')
     section = survey.get(field)
@@ -971,11 +1506,17 @@ def _reconciled_system_shares(ctx):
 
 
 def _resolve_water_heater_type(ctx: dict):
-    """Share-weighted water heater type from RECS 2020 by division + vintage.
-    Residential only."""
+    """Water heater type: county-first from the WP-R4 water-heater donor (one
+    label carries fuel AND type, so this stays coherent with the SWH fuel drawn
+    from the same donor), RECS 2020 division + vintage as fallback."""
     bt = ctx.get('building_type')
     if bt not in RESIDENTIAL_BUILDING_TYPES:
         return (None, None)
+    donor, tier = _wh_donor(ctx)
+    if donor:
+        _fuel, wtype = _parse_wh_label(donor.get('whe'))
+        if wtype:
+            return (wtype, f'county_{tier}')
     survey = _load_ref('recs2020_water_heater_type')
     division_table = survey.get('_division')
     if not division_table:
@@ -1007,6 +1548,16 @@ def _resolve_window_type(ctx: dict):
     instead of collapsing every building to the mode."""
     bt = ctx.get('building_type')
     is_residential = bt in RESIDENTIAL_BUILDING_TYPES
+    if is_residential:
+        # CR WP-R5: county-first pane shares (same enum, same salt - only the
+        # keying moves from region x vintage to county x vintage bin).
+        cell, tier = _county_prior('resstock2024_county_windows', ctx.get('county_fips'))
+        if cell is not None:
+            vb = _duct_vintage_bin(ctx.get('year_built')) or 'all'
+            sub = cell.get(vb) or cell.get('all')
+            if sub:
+                return (_select_fuel_by_share(sub, ctx, salt='window_type'),
+                        f'county_{tier}')
     table = _load_ref('window_type_by_vintage')
     section = table.get('residential' if is_residential else 'commercial')
     if not section:
@@ -1017,17 +1568,213 @@ def _resolve_window_type(ctx: dict):
     return (_select_fuel_by_share(record, ctx, salt='window_type'), level)
 
 
+def _decimal_hr_to_hhmm(v):
+    """8.75 -> '08:45' (ComStock decimal hours -> create_typical HH:MM strings)."""
+    h = int(v)
+    m = int(round((float(v) - h) * 60))
+    if m == 60:
+        h, m = h + 1, 0
+    return f'{h:02d}:{m:02d}'
+
+
+_HOURS_DONOR_KEYS = {'weekday_start_time': 'wo', 'weekday_duration': 'wh',
+                     'weekend_start_time': 'eo', 'weekend_duration': 'eh'}
+
+
+def _hours_donor(ctx, cs_type):
+    """County operating-window donor (WP-C1): one real ComStock building's joint
+    weekday/weekend window for this building type. Tiers are walked until one
+    carries the type (county cells only hold types with n >= 5)."""
+    if not cs_type:
+        return (None, None)
+    for cell, tier in _county_prior_tiers('comstock2024_county_hours', ctx.get('county_fips')):
+        sub = cell.get(cs_type)
+        if not sub or not sub.get('donors'):
+            continue
+        donors = [(d, float(d.get('w', 0))) for d in sub['donors']]
+        if not is_stochastic_sampling_enabled() or not ctx.get('building_id'):
+            return (max(donors, key=lambda t: t[1])[0], tier)
+        frac = _building_id_hash_fraction(ctx, salt='hours_donor')
+        acc = 0.0
+        for d, w in donors:
+            acc += w
+            if frac <= acc:
+                return (d, tier)
+        return (donors[-1][0], tier)
+    return (None, None)
+
+
+_PV_ORIENT_TO_AZIMUTH = {'North': 0, 'Northeast': 45, 'East': 90, 'Southeast': 135,
+                         'South': 180, 'Southwest': 225, 'West': 270, 'Northwest': 315}
+
+
+def _resolve_pv(field, ctx):
+    """County rooftop PV (WP-R6): has_pv share draw (salt pv_present; ~0.9% of
+    national stock), then one JOINT (size, orientation) donor among PV owners,
+    walking tiers because thin county cells rarely carry PV donors."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    cell, _tier = _county_prior('resstock2024_county_pv', ctx.get('county_fips'))
+    if cell is None or not cell.get('has_pv'):
+        return (None, None)
+    if _select_fuel_by_share(cell['has_pv'], ctx, salt='pv_present') != 'Yes':
+        return (None, None)
+    for c2, t2 in _county_prior_tiers('resstock2024_county_pv', ctx.get('county_fips')):
+        sys_cell = c2.get('sys')
+        if not sys_cell or not sys_cell.get('donors'):
+            continue
+        donors = [(d, float(d.get('w', 0))) for d in sys_cell['donors']]
+        donor = _draw_donor(donors, ctx, 'pv_donor')
+        if field == 'pv_system_kw':
+            m = re.match(r'^\s*(\d+(?:\.\d+)?)\s*kWDC\s*$', str(donor.get('sz')))
+            return ((float(m.group(1)), f'county_{t2}') if m else (None, None))
+        az = _PV_ORIENT_TO_AZIMUTH.get(str(donor.get('orient')))
+        return ((float(az), f'county_{t2}') if az is not None else (None, None))
+    return (None, None)
+
+
+# CR review fix (finding 1): the comstock2024_* tables are keyed by RAW
+# in.comstock_building_type names; keying lookups on _doe_ref_name silently
+# missed offices/retail/malls (verified: 'Office' in a served county drew ZERO
+# county levels). This map is the single translation; None = no ComStock analog
+# (SuperMarket, Laboratory, ...) and the legacy CBECS/DOE fallback serves.
+_DOE_TO_COMSTOCK = {
+    'Retail': 'RetailStandalone', 'StripMall': 'RetailStripmall',
+    'Strip shopping center': 'RetailStripmall',
+    'FullServiceRestaurant': 'FullServiceRestaurant',
+    'QuickServiceRestaurant': 'QuickServiceRestaurant',
+    'Warehouse': 'Warehouse', 'PrimarySchool': 'PrimarySchool',
+    'SecondarySchool': 'SecondarySchool', 'SmallHotel': 'SmallHotel',
+    'LargeHotel': 'LargeHotel', 'Outpatient': 'Outpatient', 'Hospital': 'Hospital',
+    'SmallOffice': 'SmallOffice', 'MediumOffice': 'MediumOffice',
+    'LargeOffice': 'LargeOffice',
+}
+
+
+def _comstock_type(ctx):
+    """ComStock table key for this commercial building, or None (legacy path)."""
+    doe = _doe_ref_name(ctx.get('building_type'), ctx)
+    if doe == 'Office':
+        doe = _office_size_class(ctx)  # Small/Medium/LargeOffice ('Office' when area missing)
+    return _DOE_TO_COMSTOCK.get(doe)
+
+
+_COM_TSTAT_BASE_HTG = 70.0  # DOE prototype occupied heating setpoint (deg F)
+_COM_TSTAT_BASE_CLG = 75.0  # DOE prototype occupied cooling setpoint (deg F)
+
+
+def _com_tstat_cell(ctx, part):
+    """Walk tiers of the WP-C2 table until one carries THIS part ('tstat' or
+    'air') for the building type - a county whose entry is air-only (sentinel-
+    filtered setpoints) must fall through to a deeper tier for thermostats."""
+    bt = ctx.get('building_type')
+    if not bt or bt in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    cs_type = _comstock_type(ctx)
+    if not cs_type:
+        return (None, None)
+    for cell, tier in _county_prior_tiers('comstock2024_county_tstat', ctx.get('county_fips')):
+        sub = cell.get(cs_type)
+        if sub and sub.get(part):
+            return (sub, tier)
+    return (None, None)
+
+
+def _resolve_com_tstat(field, ctx):
+    """Commercial thermostat DELTAS vs the DOE prototype 70/75 occupied baseline
+    (WP-C2): one joint donor per building (salt com_tstat_donor) so heating and
+    cooling shift together, delivered via AdjustThermostatSetpointsByDegrees."""
+    sub, tier = _com_tstat_cell(ctx, 'tstat')
+    if not sub or not sub.get('tstat', {}).get('donors'):
+        return (None, None)
+    donors = [(d, float(d.get('w', 0))) for d in sub['tstat']['donors']]
+    donor = _draw_donor(donors, ctx, 'com_tstat_donor')
+    try:
+        if field == 'com_heating_adjustment_f':
+            return (round(float(donor['th']) - _COM_TSTAT_BASE_HTG, 1), f'county_{tier}')
+        return (round(float(donor['tc']) - _COM_TSTAT_BASE_CLG, 1), f'county_{tier}')
+    except (KeyError, TypeError, ValueError):
+        return (None, None)
+
+
+def _resolve_com_airtightness(ctx):
+    """Commercial envelope airtightness, m3/(h*m2) at 75 Pa, passed VERBATIM to
+    set_nist_infiltration_correlations (its native units - zero conversion)."""
+    sub, tier = _com_tstat_cell(ctx, 'air')
+    if not sub or not sub.get('air'):
+        return (None, None)
+    label = _select_fuel_by_share(sub['air'], ctx, salt='com_airtightness')
+    try:
+        return (float(label), f'county_{tier}')
+    except (TypeError, ValueError):
+        return (None, None)
+
+
+def _resolve_system_type(ctx):
+    """County-first commercial HVAC system (WP-C1): ComStock share draw for this
+    county x building type, mapped onto urbanopt's enum via COMSTOCK_HVAC_KEY.
+    Residential buildings and unmapped draws fall through (template default)."""
+    bt = ctx.get('building_type')
+    if not bt or bt in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    # District-steam coherence (unmasked by the keying fix): an explicit or
+    # donor-drawn district-steam heating fuel needs the template path, which
+    # honors htg_src and builds the district plant - a county system like
+    # 'PSZ-AC with gas coil' would silently drop the steam stream (pinned by
+    # the district-steam container e2e).
+    if str(ctx.get('heating_system_fuel_type') or '').lower() == 'district steam':
+        return (None, None)
+    donor, _t = _com_fuel_donor(ctx)
+    if donor and donor.get('hf') == 'DistrictHeating':
+        return (None, None)
+    cs_type = _comstock_type(ctx)
+    if not cs_type:
+        return (None, None)
+    for cell, tier in _county_prior_tiers('comstock2024_county_system', ctx.get('county_fips')):
+        sub = cell.get(cs_type)
+        if not sub:
+            continue
+        raw = _select_fuel_by_share(sub, ctx, salt='system_type')
+        mapped = COMSTOCK_HVAC_KEY.get(raw)
+        if mapped:
+            return (mapped, f'county_{tier}')
+        return (None, None)
+    return (None, None)
+
+
 def _resolve_operating_schedule(field: str, ctx: dict):
-    """Per-building-type weekday/weekend operating window pulled from the
-    DOE Reference Building prototype occupancy schedules in
-    openstudio_standards_operating_schedules.json. Provenance is always
-    'building_type_only' (no region/vintage axis). An empty string in the
-    table (e.g. School weekends) preserves the URBANopt template default
-    by passing through to flat fallback at the caller."""
+    """Weekday/weekend operating window. County-first (WP-C1): ComStock actual
+    open-to-close windows via a per-building joint donor - real hours, so ALL
+    types are servable, including the 24/7 and bimodal types the DOE-prototype
+    fallback must suppress (its window is an occupancy-PEAK artifact). Fallback
+    is the DOE Reference Building prototype table at 'building_type_only'. An
+    empty string in the DOE table (e.g. School weekends) preserves the URBANopt
+    template default by passing through to flat fallback at the caller."""
     bt = ctx.get('building_type')
     if not bt:
         return (None, None)
     doe_ref = _doe_ref_name(bt, ctx)
+    # 24/7 stock stays suppressed even county-first: ComStock's operating-hours
+    # field for hotels (~12 h mean) and hospitals (~9.4 h) is a front-of-house
+    # window, NOT the whole-building occupancy period - forcing it through
+    # create_typical's op-hours lever would set back a 24/7 building overnight.
+    # Restaurants ARE served county-first (their open-to-close is real; only the
+    # DOE prototype's bimodal occupancy-peak window was the artifact).
+    COUNTY_HOURS_SUPPRESS = {'SmallHotel', 'LargeHotel', 'Hospital'}
+    if bt not in RESIDENTIAL_BUILDING_TYPES and doe_ref not in COUNTY_HOURS_SUPPRESS:
+        donor, tier = _hours_donor(ctx, _comstock_type(ctx))
+        if donor:
+            key = _HOURS_DONOR_KEYS[field]
+            try:
+                dur = float(donor.get('wh' if key in ('wo', 'wh') else 'eh'))
+                val = float(donor.get(key))
+            except (TypeError, ValueError):
+                dur, val = 0.0, 0.0
+            if dur > 0:
+                return (_decimal_hr_to_hhmm(val), f'county_{tier}')
+            # zero-duration day (e.g. closed weekends): omit both fields for that
+            # day so create_typical is not handed a 00:00 window.
+            return (None, None)
     # The table window is the occupancy-peak run (longest contiguous hours with
     # occupancy >= 50% of the day peak). For prototypes that are effectively 24/7
     # or overnight/bimodal, that window is NOT the building's operating period --
@@ -1122,6 +1869,24 @@ def _resolve_envelope(field: str, ctx: dict):
     # All envelope R cells are {mode, shares} distributions now; the resolved R is
     # share-weighted by the building_id hash and the material tier is derived from it.
     surface = 'wall' if field.startswith('wall') else 'roof'
+    # CR WP-R5: residential wall/ceiling R county-first (nominal R parsed from
+    # ResStock insulation labels; ceiling shares conditional on an attic
+    # existing). Material tier stays DERIVED from the same R draw (invariant).
+    if is_residential:
+        part = 'wall' if surface == 'wall' else 'ceiling'
+        vb = _duct_vintage_bin(ctx.get('year_built')) or 'all'
+        # Walk tiers PER SURFACE: a vintage bin holding only 'wall' must not
+        # block the same cell's 'all' bucket or a deeper tier's ceiling data
+        # (review finding: 186 wall-only gap cells sent roof R to the national
+        # table while county ceiling data existed).
+        for cell, tier in _county_prior_tiers('resstock2024_county_insulation', ctx.get('county_fips')):
+            sub = ((cell.get(vb) or {}).get(part)) or ((cell.get('all') or {}).get(part))
+            if not sub:
+                continue
+            r = float(_select_fuel_by_share(sub, ctx, salt=f'{surface}_r_value'))
+            if field.endswith('material'):
+                return (_r_to_tier(r, surface), f'county_{tier}')
+            return (r, f'county_{tier}')
     rec = _envelope_R_cell(survey.get(f'{surface}_r_value'), ctx)
     if not isinstance(rec, dict):
         return (None, None)
@@ -1129,6 +1894,258 @@ def _resolve_envelope(field: str, ctx: dict):
     if field.endswith('material'):
         return (_r_to_tier(r, surface), 'vintage_specific')
     return (r, 'vintage_specific')
+
+
+
+# --- CR WP-R1: county-resolved duct priors -----------------------------------
+
+_RESSTOCK_DUCT_LOC_TO_HPXML = {
+    'Living Space': 'conditioned space',
+    'Attic': 'attic',
+    'Crawlspace': 'crawlspace',
+    'Heated Basement': 'basement - conditioned',
+    'Unheated Basement': 'basement - unconditioned',
+    'Garage': 'garage',
+}
+
+# resolver-ctx year -> the duct table's vintage bins (builder: build_county_ducts.py)
+def _duct_vintage_bin(year_built):
+    try:
+        y = int(year_built)
+    except (TypeError, ValueError):
+        return None
+    if y < 1960: return 'pre-1960'
+    if y < 1980: return '1960-79'
+    if y < 2000: return '1980-99'
+    if y < 2010: return '2000-09'
+    return '2010+'
+
+
+def _parse_duct_leakage_label(label):
+    """'20% Leakage to Outside, R-4' -> (20.0, 4.0); 'Uninsulated' -> R 0.
+    Split semantics (supply 2/3, return 1/3) are applied in the MAPPER, cited to
+    ResStock options_lookup v3.3.0; here we carry the total and the R."""
+    m = re.match(r'\s*(\d+(?:\.\d+)?)% Leakage to Outside,\s*(.+)$', str(label))
+    if not m:
+        return (None, None)
+    pct = float(m.group(1))
+    ins = m.group(2).strip()
+    if ins.lower() == 'uninsulated':
+        r = 0.0
+    else:
+        rm = re.match(r'R-(\d+(?:\.\d+)?)', ins)
+        r = float(rm.group(1)) if rm else 0.0
+    return (pct, r)
+
+
+def _resolve_ducts(field, ctx):
+    """County-first duct priors (WP-R1). Applies only to homes the mapper builds as
+    DUCTED (the mapper guards on system type); which homes are ducted at all remains
+    the heating-equipment joint's job (WP-R2). Deterministic per building: location
+    and leakage are separate ResStock parameters, drawn on their own salts."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    cell, tier = _county_prior('resstock2024_county_ducts', ctx.get('county_fips'))
+    if cell is None:
+        return (None, None)
+    vb = _duct_vintage_bin(ctx.get('year_built')) or 'all'
+    sub = cell.get(vb) or cell.get('all')
+    if not sub:
+        return (None, None)
+    level = f'county_{tier}'
+    if field == 'duct_location':
+        raw = _select_fuel_by_share(sub['location'], ctx, salt='duct_location')
+        mapped = _RESSTOCK_DUCT_LOC_TO_HPXML.get(raw)
+        return (mapped, level) if mapped else (None, None)
+    label = _select_fuel_by_share(sub['leakage'], ctx, salt='duct_leakage')
+    pct, r = _parse_duct_leakage_label(label)
+    if pct is None:
+        return (None, None)
+    if field == 'duct_leakage_pct':
+        return (pct, level)
+    if field == 'duct_insulation_r':
+        return (r, level)
+    return (None, None)
+
+
+
+# --- CR WP-R2: county-resolved heating-equipment JOINT (donor draw + ACS raking) ---
+
+# donor label -> (coarse enum value, HPXML detail, heat pump subtype or None)
+_DONOR_EQUIPMENT_MAP = {
+    'Fuel Furnace': ('furnace', 'Furnace', None),
+    'Electric Furnace': ('furnace', 'Furnace', None),
+    'Fuel Wall/Floor Furnace': ('furnace', 'WallFurnace', None),
+    'Electric Wall Furnace': ('furnace', 'WallFurnace', None),
+    'Fuel Boiler': ('boiler', 'Boiler', None),
+    'Electric Boiler': ('boiler', 'Boiler', None),
+    'Baseboard': ('electric_resistance', 'ElectricResistance', None),
+    'ASHP': ('heat_pump', None, 'air-to-air'),
+    'MSHP': ('heat_pump', None, 'mini-split'),
+    'Ducted Heat Pump': ('heat_pump', None, 'air-to-air'),
+    'Non-Ducted Heat Pump': ('heat_pump', None, 'mini-split'),
+    # Shared (MF central) systems approximated as boilers - the dominant real
+    # configuration for shared heat; noted in the ledger row.
+    'Shared Heating': ('boiler', 'Boiler', None),
+}
+_DONOR_FUEL_PREFIX = {'Electricity': 'electricity', 'Natural Gas': 'natural gas',
+                      'Propane': 'propane', 'Fuel Oil': 'fuel oil', 'Other Fuel': 'wood'}
+
+
+def _parse_heating_donor_label(label):
+    """'Natural Gas Fuel Furnace' -> (fuel, coarse, hpxml_detail, hp_subtype) or None."""
+    label = str(label)
+    for pref, fuel in _DONOR_FUEL_PREFIX.items():
+        if label.startswith(pref + ' '):
+            rest = label[len(pref) + 1:]
+            m = _DONOR_EQUIPMENT_MAP.get(rest)
+            if m:
+                return (fuel, m[0], m[1], m[2])
+            return None
+    return None
+
+
+def _rake_donors_to_acs(donors, county_fips):
+    """Reweight donor list so the implied FUEL marginal matches the ACS county
+    marginal (census marginals win where they exist - owner-ratified), with the two
+    correction rules verified in scoping: (1) renormalize the ACS shares (they can
+    sum to ~0.997); (2) an ACS fuel with zero donors is unservable - drop it and
+    renormalize the remaining targets so no mass silently vanishes. Returns a new
+    list of (donor, weight) with weights summing to 1, or None when no ACS row."""
+    acs = _load_ref('acs2022_county_fuel').get('fuel_share', {}).get(str(county_fips))
+    if not acs:
+        return None
+    parsed = []
+    for d in donors:
+        pl = _parse_heating_donor_label(d.get('in.hvac_heating_type_and_fuel'))
+        if pl:
+            parsed.append((d, pl))
+    if not parsed:
+        return None
+    group_w = {}
+    for d, (fuel, *_rest) in parsed:
+        group_w[fuel] = group_w.get(fuel, 0.0) + float(d.get('w', 0))
+    targets = {f: v for f, v in acs.items() if v > 0 and group_w.get(f, 0) > 0}
+    t_tot = sum(targets.values())
+    if t_tot <= 0:
+        return None
+    targets = {f: v / t_tot for f, v in targets.items()}
+    out = []
+    for d, (fuel, *_rest) in parsed:
+        tgt = targets.get(fuel)
+        if tgt is None:
+            continue  # donor fuel absent from ACS entirely: excluded, renormalized below
+        out.append((d, float(d.get('w', 0)) * tgt / group_w[fuel]))
+    w_tot = sum(w for _, w in out)
+    if w_tot <= 0:
+        return None
+    return [(d, w / w_tot) for d, w in out]
+
+
+def _heating_donor(ctx):
+    """Deterministic county heating donor for this building, raked to ACS.
+    Returns the donor dict or None (division/RECS fallback then applies)."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return None
+    cell, tier = _county_prior('resstock2024_county_heating', ctx.get('county_fips'))
+    if cell is None:
+        return None
+    vb = _duct_vintage_bin(ctx.get('year_built')) or 'all'
+    sub = cell.get(vb) or cell.get('all')
+    if not sub or not sub.get('donors'):
+        return None
+    raked = _rake_donors_to_acs(sub['donors'], ctx.get('county_fips'))
+    if not raked:
+        return None
+    if not is_stochastic_sampling_enabled() or not ctx.get('building_id'):
+        # stochastic off (or no id): deterministic MODE, matching _select_fuel_by_share
+        best = max(raked, key=lambda t: t[1])
+        return {'donor': best[0], 'tier': tier}
+    # cumulative hash draw (same id-hash discipline as _select_fuel_by_share)
+    frac = _building_id_hash_fraction(ctx, salt="heating_donor")
+    acc = 0.0
+    for d, w in raked:
+        acc += w
+        if frac <= acc:
+            return {'donor': d, 'tier': tier}
+    return {'donor': raked[-1][0], 'tier': tier}
+
+
+# --- CR WP-R3: county-resolved thermostat setpoints + envelope infiltration ---
+
+def _setpoint_donor(ctx):
+    """Deterministic county setpoint donor (WP-R3): heating and cooling setpoints
+    drawn JOINTLY (same-household setback behavior correlates across seasons).
+    Occupied stock only by construction of the table; the pipeline's own vacancy
+    channel owns vacant setbacks. No raking (no census setpoint marginal exists)."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return None
+    cell, tier = _county_prior('resstock2024_county_setpoints', ctx.get('county_fips'))
+    if cell is None:
+        return None
+    sub = cell.get('all')
+    if not sub or not sub.get('donors'):
+        return None
+    donors = [(d, float(d.get('w', 0))) for d in sub['donors']]
+    if not is_stochastic_sampling_enabled() or not ctx.get('building_id'):
+        best = max(donors, key=lambda t: t[1])
+        return {'donor': best[0], 'tier': tier}
+    frac = _building_id_hash_fraction(ctx, salt='setpoint_donor')
+    acc = 0.0
+    for d, w in donors:
+        acc += w
+        if frac <= acc:
+            return {'donor': d, 'tier': tier}
+    return {'donor': donors[-1][0], 'tier': tier}
+
+
+def _parse_f_label(label):
+    """'70F' -> 70.0; anything else -> None."""
+    m = re.match(r'^\s*(\d+(?:\.\d+)?)F\s*$', str(label))
+    return float(m.group(1)) if m else None
+
+
+def _resolve_setpoints(field, ctx):
+    sd = _setpoint_donor(ctx)
+    if not sd:
+        return (None, None)
+    key = 'in.heating_setpoint' if field == 'heating_setpoint_f' else 'in.cooling_setpoint'
+    val = _parse_f_label(sd['donor'].get(key))
+    if val is None:
+        return (None, None)
+    return (val, f"county_{sd['tier']}")
+
+
+# WP-R3b HOLD (owner-ratified 2026-09-04): the county infiltration prior is
+# faithfully transcribed and delivered correctly, but the single-knob ablation
+# (tetonall vs tetonabl1) showed it ALONE adds +45 pts residential electricity
+# NMBE / +87 gas on Teton - the bias lives elsewhere in the stack (candidates:
+# HPXML AIM-2 weather-driven basis vs ResStock's, real-metadata geometry x
+# leakage interaction). Disabled until WP-R3b root-causes that; table, tests,
+# and wiring stay in place so re-enabling is this one constant.
+INFILTRATION_PRIOR_ENABLED = False
+
+
+def _resolve_infiltration(ctx):
+    """County ACH50 (WP-R3, HELD by WP-R3b - see INFILTRATION_PRIOR_ENABLED).
+    Labels are 'N ACH50', whole-dwelling at 50 Pa; the mapper passes N straight
+    to HPXML (air_leakage_units='ACH', pressure 50) with no conversion."""
+    if not INFILTRATION_PRIOR_ENABLED:
+        return (None, None)
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    cell, tier = _county_prior('resstock2024_county_infiltration', ctx.get('county_fips'))
+    if cell is None:
+        return (None, None)
+    vb = _duct_vintage_bin(ctx.get('year_built')) or 'all'
+    sub = cell.get(vb) or cell.get('all')
+    if not sub:
+        return (None, None)
+    label = _select_fuel_by_share(sub, ctx, salt='infiltration')
+    m = re.match(r'^\s*(\d+(?:\.\d+)?)\s*ACH50\s*$', str(label))
+    if not m:
+        return (None, None)
+    return (float(m.group(1)), f'county_{tier}')
 
 
 def resolve_default(field: str, ctx: dict):
@@ -1145,12 +2162,60 @@ def resolve_default(field: str, ctx: dict):
     try:
         if field == 'number_of_occupants':
             val = _resolve_occupants(ctx)
-            return (val, 'building_type_only' if val is not None else None)
+            if val is None:
+                return (None, None)
+            # Report county provenance when the WP-R5 household donor served
+            # (same deterministic draw, so this re-check names the actual source).
+            if (ctx.get('building_type') in RESIDENTIAL_BUILDING_TYPES
+                    and ctx.get('bedrooms') in (None, '')):
+                donor, tier = _household_donor(ctx)
+                if donor:
+                    return (val, f'county_{tier}')
+            return (val, 'building_type_only')
         if field == 'heating_system_type':
+            if ctx.get('heating_system_type') in ENUM_VALUES.get('heating_system_type', set()):
+                return _resolve_heating_system_type(ctx)
+            hd = _heating_donor(ctx)
+            if hd:
+                fuel, coarse, detail, hp = _parse_heating_donor_label(
+                    hd['donor'].get('in.hvac_heating_type_and_fuel'))
+                return (coarse, f"county_{hd['tier']}")
             return _resolve_heating_system_type(ctx)
+        if field == 'heating_equipment_detail':
+            if ctx.get('heating_system_type') in ENUM_VALUES.get('heating_system_type', set()):
+                return (None, None)  # explicit system: no donor detail channel
+            hd = _heating_donor(ctx)
+            if hd:
+                fuel, coarse, detail, hp = _parse_heating_donor_label(
+                    hd['donor'].get('in.hvac_heating_type_and_fuel'))
+                return (detail or hp, f"county_{hd['tier']}")
+            return (None, None)
+        if field == 'heating_has_ducts':
+            if ctx.get('heating_system_type') in ENUM_VALUES.get('heating_system_type', set()):
+                return (None, None)
+            hd = _heating_donor(ctx)
+            if hd:
+                return (hd['donor'].get('in.hvac_has_ducts'), f"county_{hd['tier']}")
+            return (None, None)
         if field == 'water_heater_type':
             return _resolve_water_heater_type(ctx)
-        if field in ('heating_system_fuel_type', 'cooling_system_fuel_type',
+        if field == 'heating_system_fuel_type':
+            # An EXPLICIT metadata system type outranks the county donor: fuel must
+            # condition on the system the user pinned (WP-03 contract, re-caught by
+            # test_override_coherence when the donor path bypassed it). The donor-vs-
+            # legacy precedence lives in _effective_heating_fuel so the SWH fuel
+            # conditioning consumes the SAME fuel this channel emits.
+            explicit_sys = ctx.get('heating_system_type')
+            if explicit_sys in ENUM_VALUES.get('heating_system_type', set()):
+                return _resolve_fuel(field, ctx)
+            hd = _heating_donor(ctx)
+            if hd:
+                parsed = _parse_heating_donor_label(
+                    hd['donor'].get('in.hvac_heating_type_and_fuel'))
+                if parsed:
+                    return (parsed[0], f"county_{hd['tier']}")
+            return _resolve_fuel(field, ctx)
+        if field in ('cooling_system_fuel_type',
                      'service_water_heating_fuel_type'):
             return _resolve_fuel(field, ctx)
         if field == 'window_type':
@@ -1161,6 +2226,40 @@ def resolve_default(field: str, ctx: dict):
         if field in ('weekday_start_time', 'weekday_duration',
                      'weekend_start_time', 'weekend_duration'):
             return _resolve_operating_schedule(field, ctx)
+        if field in ('duct_location', 'duct_leakage_pct', 'duct_insulation_r'):
+            return _resolve_ducts(field, ctx)
+        if field in ('heating_setpoint_f', 'cooling_setpoint_f'):
+            return _resolve_setpoints(field, ctx)
+        if field == 'infiltration_ach50':
+            return _resolve_infiltration(ctx)
+        if field in _APPLIANCE_KEYS:
+            return _resolve_appliance(field, ctx)
+        if field in ('cooling_type_detail', 'cooling_fraction_served'):
+            return _resolve_cooling(field, ctx)
+        if field in ('foundation_type', 'garage_cars'):
+            if field == 'foundation_type' and ctx.get('foundation_type') in ENUM_VALUES['foundation_type']:
+                return (None, None)  # explicit metadata foundation stands
+            return _resolve_geometry(field, ctx)
+        if field == 'bedrooms_per_unit':
+            if ctx.get('bedrooms') not in (None, ''):
+                return (None, None)  # explicit metadata bedrooms stand
+            donor, tier = _household_donor(ctx)
+            if donor:
+                try:
+                    return (int(donor['br']), f'county_{tier}')
+                except (KeyError, TypeError, ValueError):
+                    return (None, None)
+            return (None, None)
+        if field in ('pv_system_kw', 'pv_azimuth_deg'):
+            return _resolve_pv(field, ctx)
+        if field in ('com_heating_adjustment_f', 'com_cooling_adjustment_f'):
+            return _resolve_com_tstat(field, ctx)
+        if field == 'com_airtightness_75pa':
+            return _resolve_com_airtightness(ctx)
+        if field == 'system_type':
+            if ctx.get('system_type') in ENUM_VALUES.get('system_type', set()):
+                return (None, None)  # explicit metadata system stands (WP-03 contract)
+            return _resolve_system_type(ctx)
     except (KeyError, IndexError, ValueError, TypeError, OSError) as exc:
         # OSError covers FileNotFoundError (missing reference JSON); ValueError
         # already covers JSONDecodeError. resolver must always degrade -- never
