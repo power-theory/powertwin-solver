@@ -697,7 +697,9 @@ module URBANopt
               sys_type = res_props[:heating_system_type].to_s.downcase
               case sys_type
               when 'heat_pump'
-                args[:heat_pump_type] = 'air-to-air'
+                # CR WP-R2: the county donor distinguishes air-to-air from mini-split.
+                hp_detail = res_props[:heating_equipment_detail].to_s
+                args[:heat_pump_type] = hp_detail == 'mini-split' ? 'mini-split' : 'air-to-air'
                 args[:heating_system_type] = 'none'
                 args[:cooling_system_type] = 'none'
                 args[:heat_pump_backup_type] = 'integrated'
@@ -720,7 +722,11 @@ module URBANopt
                 args[:heating_system_type] = 'Stove'
                 args[:heating_system_fuel] = 'wood'
               else
-                args[:heating_system_type] = 'Furnace'
+                # CR WP-R2: the county donor's native class - a WallFurnace is a real,
+                # DUCTLESS HPXML type (25% of Teton's electric heat); collapsing it to
+                # Furnace re-creates the D-60 duct penalty for that stock.
+                args[:heating_system_type] =
+                  res_props[:heating_equipment_detail].to_s == 'WallFurnace' ? 'WallFurnace' : 'Furnace'
                 if PowerTwinRefs.present?(res_props[:heating_system_fuel_type])
                   args[:heating_system_fuel] = res_props[:heating_system_fuel_type].to_s.downcase
                 end
@@ -731,25 +737,196 @@ module URBANopt
                   args[:heating_system_heating_efficiency] = 1.0
                 end
               end
+
+              # Must precede the duct guard below: the guard reads the FINAL cooling
+              # type, and this override can turn a central AC into none.
               if sys_type != 'heat_pump' && res_props[:cooling_system_fuel_type].to_s.downcase == 'none'
                 args[:cooling_system_type] = 'none'
               end
+              # CR WP-R5: county cooling saturation outranks the legacy fuel-driven
+              # default for NON-heat-pump homes (Room AC and no-AC are real stock:
+              # 27% of Teton has no mechanical cooling). Partial conditioning rides
+              # the same donor.
+              explicit_no_cool = res_props[:cooling_system_fuel_type].to_s.downcase == 'none'
+              if sys_type != 'heat_pump' && !explicit_no_cool && PowerTwinRefs.present?(res_props[:cooling_type_detail])
+                args[:cooling_system_type] = res_props[:cooling_type_detail].to_s
+                if args[:cooling_system_type] == 'room air conditioner'
+                  # HPXML requires EER/CEER for room AC (SEER-typed defaults fail
+                  # the build - caught by the r5a e2e). 10.7 = ResStock 2024.2
+                  # weighted modal 'Room AC, EER 10.7'.
+                  args[:cooling_system_cooling_efficiency_type] = 'EER'
+                  args[:cooling_system_cooling_efficiency] = 10.7
+                end
+                if args[:cooling_system_type] != 'none' && PowerTwinRefs.present?(res_props[:cooling_fraction_served])
+                  args[:cooling_system_fraction_cool_load_served] = res_props[:cooling_fraction_served].to_f
+                end
+              end
+              # CR WP-R1: county-resolved duct priors, applied ONLY to systems this
+              # mapper builds as ducted. The leakage label is a ResStock TOTAL; split
+              # supply 2/3 / return 1/3 per options_lookup v3.3.0, insulation R on
+              # both sides. Ductless systems (baseboard/boiler/stove without central
+              # AC) must not receive duct args.
+              heating_ducted = if PowerTwinRefs.present?(res_props[:heating_has_ducts])
+                                 # CR WP-R2: the donor's whole-home duct truth (drawn
+                                 # jointly with the equipment) overrides the type guess.
+                                 res_props[:heating_has_ducts].to_s == 'Yes'
+                               else
+                                 %w[Furnace].include?(args[:heating_system_type].to_s) ||
+                                   args[:heat_pump_type].to_s == 'air-to-air'
+                               end
+              # A central AC is inherently ducted: HPXML builds an AirDistribution for
+              # it with worst-case default leakage even when the heating side is
+              # hydronic (the Q1 finding - 30% of ductless-heat homes have cooling
+              # ducts), so the county prior must reach that distribution too.
+              cooling_ducted = args[:cooling_system_type].to_s == 'central air conditioner'
+              ducted = heating_ducted || cooling_ducted
+              # (Duct args are applied AFTER the garage block below, so the garage
+              # coherence check sees the geometry the model is really built with.)
               # RECS 2020 median cooling setpoint is 72F; HPXML default is 78F (ANSI 301 rating).
               # BuildResidentialHPXML setpoint args are STRING-typed (they accept
               # comma-separated hourly schedules), so pass strings, not Integers.
+              # CR WP-R3: the county setpoint donor (occupied stock, joint
+              # heating/cooling draw) outranks the national literal; the VACANT
+              # overwrite further below MUST stay after this block (55/99 wins).
               args[:hvac_control_cooling_weekday_setpoint] = '72'
               args[:hvac_control_cooling_weekend_setpoint] = '72'
+              if PowerTwinRefs.present?(res_props[:cooling_setpoint_f])
+                csp = res_props[:cooling_setpoint_f].to_f.round.to_s
+                args[:hvac_control_cooling_weekday_setpoint] = csp
+                args[:hvac_control_cooling_weekend_setpoint] = csp
+              end
+              if PowerTwinRefs.present?(res_props[:heating_setpoint_f])
+                hsp = res_props[:heating_setpoint_f].to_f.round.to_s
+                args[:hvac_control_heating_weekday_setpoint] = hsp
+                args[:hvac_control_heating_weekend_setpoint] = hsp
+              end
+              # CR WP-R3: whole-dwelling envelope leakage, ACH at 50 Pa, passed
+              # through unconverted (ResStock label basis == HPXML 'ACH' units).
+              if PowerTwinRefs.present?(res_props[:infiltration_ach50])
+                args[:air_leakage_units] = 'ACH'
+                args[:air_leakage_house_pressure] = 50
+                args[:air_leakage_value] = res_props[:infiltration_ach50].to_f
+              end
+              # CR WP-R4: appliance fuels + misc gas loads from the county donor
+              # (gas-line coherent: same draw carries dryer/range/grill/lighting/
+              # fireplace). 'none' = the home has no such appliance.
+              if PowerTwinRefs.present?(res_props[:clothes_dryer_fuel])
+                if res_props[:clothes_dryer_fuel].to_s == 'none'
+                  args[:clothes_dryer_present] = false
+                else
+                  args[:clothes_dryer_fuel_type] = res_props[:clothes_dryer_fuel].to_s
+                end
+              end
+              if PowerTwinRefs.present?(res_props[:cooking_range_fuel])
+                if res_props[:cooking_range_fuel].to_s == 'none'
+                  args[:cooking_range_oven_present] = false
+                else
+                  args[:cooking_range_oven_fuel_type] = res_props[:cooking_range_fuel].to_s
+                end
+              end
+              { misc_gas_grill: :grill, misc_gas_lighting: :lighting,
+                misc_gas_fireplace: :fireplace }.each do |prop, load|
+                next unless res_props[prop].to_s == 'Yes'
+                args[:"misc_fuel_loads_#{load}_present"] = true
+                args[:"misc_fuel_loads_#{load}_fuel_type"] = 'natural gas'
+              end
+              # CR WP-R6: county rooftop PV (size kWDC -> watts; orientation -> azimuth).
+              # SFD ONLY: BuildResidentialModel replicates args per dwelling unit, so a
+              # 40-unit MF drawing one 6 kW donor would build 240 kW (review finding 4).
+              if building_type == 'Single-Family Detached' && PowerTwinRefs.present?(res_props[:pv_system_kw])
+                args[:pv_system_present] = true
+                args[:pv_system_max_power_output] = res_props[:pv_system_kw].to_f * 1000.0
+                if PowerTwinRefs.present?(res_props[:pv_azimuth_deg])
+                  args[:pv_system_array_azimuth] = res_props[:pv_azimuth_deg].to_f
+                end
+              end
               # RECS 2020: 58-73% of SFD homes have attached garages (region-dependent).
               # With building_id: hash-based probabilistic assignment.
               # Without building_id (single-building sim): majority rule (prevalence > 0.5 = add garage).
               if building_type == 'Single-Family Detached'
-                garage_rate = PowerTwinRefs.garage_rate(res_props[:region])
-                stochastic = %w[1 true yes on].include?(ENV.fetch('URBANOPT_STOCHASTIC_SAMPLING', 'false').strip.downcase)
-                add_garage = PowerTwinRefs.garage_attached?(garage_rate, feature_id, stochastic)
-                if add_garage
-                  args[:geometry_garage_width] = 24
-                  args[:geometry_garage_depth] = 20
-                  args[:geometry_garage_protrusion] = 1
+                # CR WP-R5: county geometry donor's car count outranks the RECS
+                # garage_rate hash; 12 ft per car. F-01 clamp: the garage must be
+                # NARROWER than the unit or HPXML fails the build ("Garage is as
+                # wide as the unit") - approximate unit width as sqrt(area/stories)
+                # (a lower bound; aspect ratio >= 1 widens the true footprint) and
+                # shrink the car count until it fits, dropping the garage if even
+                # one car cannot.
+                if PowerTwinRefs.present?(res_props[:garage_cars])
+                  cars = res_props[:garage_cars].to_i
+                  # F-01 clamp, donor path only (the legacy path below keeps its
+                  # historical unclamped 24 ft so no-donor stock is unchanged -
+                  # review finding 11). Vendored geometry compares garage width to
+                  # unit LENGTH = sqrt(footprint * aspect), default aspect 2.0.
+                  stories = [feature.number_of_stories_above_ground.to_i, 1].max rescue 1
+                  unit_len_est = Math.sqrt(2.0 * [feature.floor_area.to_f, 144.0].max / stories)
+                  cars -= 1 while cars.positive? && (12 * cars) >= (unit_len_est - 2)
+                  if cars.positive?
+                    args[:geometry_garage_width] = 12 * cars
+                    args[:geometry_garage_depth] = 20
+                    args[:geometry_garage_protrusion] = 1
+                  end
+                else
+                  garage_rate = PowerTwinRefs.garage_rate(res_props[:region])
+                  stochastic = %w[1 true yes on].include?(ENV.fetch('URBANOPT_STOCHASTIC_SAMPLING', 'false').strip.downcase)
+                  if PowerTwinRefs.garage_attached?(garage_rate, feature_id, stochastic)
+                    args[:geometry_garage_width] = 24
+                    args[:geometry_garage_depth] = 20
+                    args[:geometry_garage_protrusion] = 1
+                  end
+                end
+              end
+              if ducted && PowerTwinRefs.present?(res_props[:duct_location])
+                # SPACE COHERENCE (CR WP-R1, caught by the e2e gate): a duct location
+                # must be a space this home actually has, or HPXML crashes the build
+                # (or silently coerces it). This is the one place that knows the drawn
+                # location AND the foundation/attic/garage the model is being built
+                # with, so the remap lives here, deterministically:
+                #   basement <-> the basement variant that exists; crawlspace falls to
+                #   a basement, then attic; garage falls to attic; final fallback is
+                #   attic when present else conditioned space.
+                loc = res_props[:duct_location].to_s
+                foundation = res_props[:foundation_type].to_s
+                has_attic = res_props[:attic_type].to_s.include?('attic')
+                has_garage = PowerTwinRefs.present?(args[:geometry_garage_width])
+                allowed = ['conditioned space']
+                if args[:geometry_unit_type].to_s == 'apartment unit'
+                  # These duct args apply to EVERY unit BuildResidentialModel builds,
+                  # and middle apartment units get BelowApartment/AboveApartment
+                  # adjacency - an attic or basement location hard-fails their HPXML
+                  # (get_location: "Specified 'attic' but attic type is
+                  # 'BelowApartment'"). Only conditioned space is safe for all units.
+                else
+                  allowed << 'attic' if has_attic
+                  allowed << 'crawlspace' if foundation.include?('crawlspace')
+                  allowed << 'basement - conditioned' if foundation == 'basement - conditioned'
+                  allowed << 'basement - unconditioned' if foundation == 'basement - unconditioned'
+                  allowed << 'garage' if has_garage
+                end
+                unless allowed.include?(loc)
+                  loc = if loc.start_with?('basement') && foundation.start_with?('basement') &&
+                           allowed.include?(foundation)
+                          foundation
+                        elsif allowed.include?('attic')
+                          'attic'
+                        else
+                          'conditioned space'
+                        end
+                end
+                # HPXML 'Percent' units take a FRACTION (options_lookup: 10% -> 0.067
+                # supply / 0.033 return). Whole-percent values crash or default the
+                # build (caught by the e2e gate). duct_leakage_pct is 0-50 percent.
+                if PowerTwinRefs.present?(res_props[:duct_leakage_pct])
+                  total_frac = res_props[:duct_leakage_pct].to_f / 100.0
+                  args[:ducts_leakage_units] = 'Percent'
+                  args[:ducts_supply_leakage_to_outside_value] = (total_frac * 2.0 / 3.0).round(3)
+                  args[:ducts_return_leakage_to_outside_value] = (total_frac / 3.0).round(3)
+                end
+                args[:ducts_supply_location] = loc
+                args[:ducts_return_location] = loc
+                if PowerTwinRefs.present?(res_props[:duct_insulation_r])
+                  r_val = res_props[:duct_insulation_r].to_f
+                  args[:ducts_supply_insulation_r] = r_val
+                  args[:ducts_return_insulation_r] = r_val
                 end
               end
               if PowerTwinRefs.present?(res_props[:service_water_heating_fuel_type])
@@ -783,7 +960,12 @@ module URBANopt
                   end
                 end
                 southern = res_props[:region].to_s == 'South'
-                if args[:cooling_system_type].to_s != 'none'
+                # SEER turnover applies to anything EXCEPT explicit none and room
+                # AC (EER-rated; HPXML rejects SEER for it - r5b e2e catch). An
+                # UNSET type means BuildResidentialHPXML defaults to central AC,
+                # which must still get the vintage SEER (review finding 6).
+                clg = args[:cooling_system_type].to_s
+                if clg != 'none' && clg != 'room air conditioner'
                   args[:cooling_system_cooling_efficiency] = PowerTwinRefs.ac_seer(eff_hvac_year, southern)
                   args[:cooling_system_cooling_efficiency_type] = 'SEER'
                 end
@@ -1278,6 +1460,26 @@ module URBANopt
                 OpenStudio::Extension.set_measure_argument(osw, inc_m, '__SKIP__', false)
                 OpenStudio::Extension.set_measure_argument(osw, inc_m, 'r_value', r)
                 OpenStudio::Extension.set_measure_argument(osw, inc_m, 'allow_reduction', true)
+              end
+
+              # CR WP-C2: county thermostat deltas (vs the DOE prototype 70/75
+              # occupied baseline) + NIST envelope airtightness (m3/h-m2 @75 Pa,
+              # the measure's native units - verbatim, no conversion).
+              htg_adj = props[:com_heating_adjustment_f]
+              clg_adj = props[:com_cooling_adjustment_f]
+              if PowerTwinRefs.present?(htg_adj) || PowerTwinRefs.present?(clg_adj)
+                OpenStudio::Extension.set_measure_argument(osw, 'AdjustThermostatSetpointsByDegrees', '__SKIP__', false)
+                if PowerTwinRefs.present?(htg_adj)
+                  OpenStudio::Extension.set_measure_argument(osw, 'AdjustThermostatSetpointsByDegrees', 'heating_adjustment', htg_adj.to_f)
+                end
+                if PowerTwinRefs.present?(clg_adj)
+                  OpenStudio::Extension.set_measure_argument(osw, 'AdjustThermostatSetpointsByDegrees', 'cooling_adjustment', clg_adj.to_f)
+                end
+              end
+              if PowerTwinRefs.present?(props[:com_airtightness_75pa])
+                OpenStudio::Extension.set_measure_argument(osw, 'set_nist_infiltration_correlations', '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_nist_infiltration_correlations', 'airtightness_value', props[:com_airtightness_75pa].to_f)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_nist_infiltration_correlations', 'airtightness_pressure', 75.0)
               end
 
               # Window: tier + climate_zone -> (U-factor, SHGC).

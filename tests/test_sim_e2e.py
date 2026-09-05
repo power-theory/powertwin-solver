@@ -180,16 +180,33 @@ def _hpxml_envelope(path):
 
     root = ET.parse(path).getroot()
     walls, horiz, win_u, occ, heat = [], [], [], None, None
+    duct_locs, duct_leak = [], []
+    ach50, cool_sp = None, None
     for e in root.iter():
         t = ln(e)
+        if t == "Ducts":
+            for c in e.iter():
+                if ln(c) == "DuctLocation" and c.text:
+                    duct_locs.append(c.text)
+        elif t == "DuctLeakageMeasurement":
+            for c in e.iter():
+                if ln(c) == "Value" and c.text:
+                    duct_leak.append(float(c.text))
         if t == "Wall":
             r = assembly_r(e)
             if r is not None:
                 walls.append(r)
         elif t in ("Roof", "Ceiling", "Floor", "FrameFloor"):
-            r = assembly_r(e)
-            if r is not None:
-                horiz.append(r)
+            # Only ATTIC-adjacent surfaces carry the resolved roof/ceiling R.
+            # WP-R5 county foundations create floors over basements/ambient with
+            # their own (higher) assemblies - a bare max() over all horizontal
+            # surfaces grabbed those instead (r5c e2e catch).
+            adj = " ".join((c.text or "") for c in e.iter()
+                           if ln(c) in ("InteriorAdjacentTo", "ExteriorAdjacentTo"))
+            if t == "Roof" or "attic" in adj:
+                r = assembly_r(e)
+                if r is not None:
+                    horiz.append(r)
         elif t == "Window":
             for c in e.iter():
                 if ln(c) == "UFactor" and c.text:
@@ -198,10 +215,24 @@ def _hpxml_envelope(path):
             occ = float(e.text)
         elif t in ("SetpointTempHeatingSeason", "HeatingSetpointTemp") and e.text:
             heat = float(e.text)
+        elif t in ("SetpointTempCoolingSeason", "CoolingSetpointTemp") and e.text:
+            cool_sp = float(e.text)
+        elif t == "AirInfiltrationMeasurement":
+            # CR WP-R3: whole-dwelling ACH50 (BuildingAirLeakage under HousePressure 50)
+            hp, val = None, None
+            for c in e.iter():
+                if ln(c) == "HousePressure" and c.text:
+                    hp = float(c.text)
+                elif ln(c) == "AirLeakage" and c.text:
+                    val = float(c.text)
+            if hp == 50.0 and val is not None:
+                ach50 = val
     # PowerTwin models a VACANT building with a 55F pipe-freeze heating setback + 0 occupants
     # (+ cooling off). That heating setpoint is the reliable vacancy signature in the built model.
     return {"walls": walls, "ceiling_max": max(horiz) if horiz else None, "win_u": win_u,
-            "occupants": occ, "vacant": heat is not None and abs(heat - 55.0) < 1.0}
+            "occupants": occ, "vacant": heat is not None and abs(heat - 55.0) < 1.0,
+            "duct_locations": duct_locs, "duct_leakage_values": duct_leak,
+            "heat_setpoint": heat, "cool_setpoint": cool_sp, "ach50": ach50}
 
 
 # resolved window type -> physically-correct HPXML U-factor band (IP, Btu/hr-ft2-F)
@@ -386,6 +417,7 @@ def test_resolved_envelope_values_in_hpxml(sim_outputs):
     os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = "true"      # the HPXML being read is the dynamic-ON build
     os.environ["URBANOPT_STOCHASTIC_SAMPLING"] = "true"   # match the pipeline run's sampling
     checked = 0
+    duct_loc_pairs = []
     for a in want_ids:
         hp = _hpxml_for(local_dir, a)
         if hp is None:
@@ -426,7 +458,60 @@ def test_resolved_envelope_values_in_hpxml(sim_outputs):
         for u in hv["win_u"]:
             assert lo <= u <= hi, f"{a}: resolved window '{r_win}' but HPXML U {u} outside band [{lo}, {hi}]"
         checked += 1
+        # CR WP-R1: resolved duct priors must land in the built HPXML for DUCTED
+        # systems (the resolver draw is id-hash-deterministic, so re-resolving here
+        # reproduces the pipeline values exactly).
+        d_loc = sps.get_param(row["metadata"], "duct_location", ctx)
+        if d_loc not in (None, "") and hv.get("duct_locations"):
+            # The mapper remaps a drawn location to a space the home actually has,
+            # and HPXML CONCRETIZES bare locations (attic -> 'attic - unvented',
+            # crawlspace -> vented/unvented variants) - review finding 13: bare
+            # names in the coherent set could never match and any collapse to
+            # conditioned space passed unnoticed.
+            def _concrete(loc):
+                if loc == "attic":
+                    return {"attic - vented", "attic - unvented"}
+                if loc == "crawlspace":
+                    return {"crawlspace - vented", "crawlspace - unvented", "crawlspace"}
+                return {loc}
+            coherent = _concrete(d_loc) | {"conditioned space"}
+            for base in ("attic", "crawlspace", "basement - conditioned",
+                         "basement - unconditioned", "garage"):
+                coherent |= _concrete(base)
+            for built in hv["duct_locations"]:
+                assert built in coherent, (
+                    f"{a}: HPXML DuctLocation {built!r} is neither the resolved "
+                    f"{d_loc!r} nor a coherent remap")
+            duct_loc_pairs.append((d_loc, set(hv["duct_locations"])))
+            d_pct = float(sps.get_param(row["metadata"], "duct_leakage_pct", ctx))
+            # HPXML stores FRACTIONS under Percent units (options_lookup convention)
+            expect = {round(d_pct / 100 * 2 / 3, 3), round(d_pct / 100 / 3, 3)}
+            got = {round(v, 3) for v in hv.get("duct_leakage_values", [])}
+            assert (expect & got) or (d_pct == 0.0 and (not got or got == {0.0})), (
+                f"{a}: leakage split {sorted(expect)} not found in HPXML {sorted(got)}")
+        # CR WP-R3: occupied setpoints + ACH50 must land in the built HPXML.
+        # The vacant overwrite (55/99) legitimately outranks resolved setpoints,
+        # so setpoint checks apply to occupied homes only.
+        r_ach = sps.get_param(row["metadata"], "infiltration_ach50", ctx)
+        if r_ach not in (None, "") and hv.get("ach50") is not None:
+            assert abs(float(r_ach) - hv["ach50"]) < 0.01, (
+                f"{a}: resolved ACH50 {r_ach} but HPXML has {hv['ach50']}")
+        if not hv.get("vacant"):
+            r_hsp = sps.get_param(row["metadata"], "heating_setpoint_f", ctx)
+            if r_hsp not in (None, "") and hv.get("heat_setpoint") is not None:
+                assert abs(round(float(r_hsp)) - hv["heat_setpoint"]) < 0.51, (
+                    f"{a}: resolved heating setpoint {r_hsp} but HPXML has {hv['heat_setpoint']}")
+            r_csp = sps.get_param(row["metadata"], "cooling_setpoint_f", ctx)
+            if r_csp not in (None, "") and hv.get("cool_setpoint") is not None:
+                assert abs(round(float(r_csp)) - hv["cool_setpoint"]) < 0.51, (
+                    f"{a}: resolved cooling setpoint {r_csp} but HPXML has {hv['cool_setpoint']}")
     assert checked >= 2, f"expected >=2 residential buildings with HPXML to value-check, got {checked}"
+    noncond = [(r, b) for r, b in duct_loc_pairs if r != "conditioned space"]
+    if len(noncond) >= 3:
+        survived = any(b - {"conditioned space"} for _r, b in noncond)
+        assert survived, (
+            f"all {len(noncond)} non-conditioned resolved duct locations collapsed to "
+            f"'conditioned space' in HPXML - the mapper is likely ignoring duct_location")
 
 
 def _effective_subtype(sid):

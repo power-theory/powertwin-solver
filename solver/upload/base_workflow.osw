@@ -154,6 +154,23 @@
       }
     },
     {
+      "measure_dir_name": "AdjustThermostatSetpointsByDegrees",
+      "arguments": {
+        "__SKIP__": true,
+        "cooling_adjustment": 0.0,
+        "heating_adjustment": 0.0,
+        "alter_design_days": false
+      }
+    },
+    {
+      "measure_dir_name": "set_nist_infiltration_correlations",
+      "arguments": {
+        "__SKIP__": true,
+        "airtightness_value": 13.8,
+        "airtightness_pressure": 75.0
+      }
+    },
+    {
       "measure_dir_name": "AdjustThermostatSetpointsByDegreesForPeakHours",
       "arguments": {
         "__SKIP__": true,
