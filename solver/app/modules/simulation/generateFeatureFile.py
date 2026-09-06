@@ -529,8 +529,11 @@ def process_feature(feature, building_area_list, building_type_list, building_na
                 foundation = foundation_ref.get(region, 'slab')
                 if cz_num and cz_num <= 3:
                     foundation = 'slab'
+        # BuildResidentialHPXML rejects >6 above-grade floors outright (22 tall
+        # structures classified residential crashed in one stock's gml arm); clamp with the
+        # real floor count preserved in metadata for area/occupant math upstream.
         new_properties.update({
-            "number_of_stories_above_ground": floor_count,
+            "number_of_stories_above_ground": min(int(floor_count or 1), 6),
             "foundation_type": foundation,
             "attic_type": "attic - unvented",
             "number_of_residential_units": units,

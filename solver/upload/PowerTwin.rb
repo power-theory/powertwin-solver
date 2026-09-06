@@ -851,28 +851,47 @@ module URBANopt
                 # (a lower bound; aspect ratio >= 1 widens the true footprint) and
                 # shrink the car count until it fits, dropping the garage if even
                 # one car cannot.
-                if PowerTwinRefs.present?(res_props[:garage_cars])
-                  cars = res_props[:garage_cars].to_i
-                  # F-01 clamp, donor path only (the legacy path below keeps its
-                  # historical unclamped 24 ft so no-donor stock is unchanged -
-                  # review finding 11). Vendored geometry compares garage width to
-                  # unit LENGTH = sqrt(footprint * aspect), default aspect 2.0.
-                  stories = [feature.number_of_stories_above_ground.to_i, 1].max rescue 1
-                  unit_len_est = Math.sqrt(2.0 * [feature.floor_area.to_f, 144.0].max / stories)
-                  cars -= 1 while cars.positive? && (12 * cars) >= (unit_len_est - 2)
-                  if cars.positive?
-                    args[:geometry_garage_width] = 12 * cars
-                    args[:geometry_garage_depth] = 20
-                    args[:geometry_garage_protrusion] = 1
-                  end
-                else
-                  garage_rate = PowerTwinRefs.garage_rate(res_props[:region])
-                  stochastic = %w[1 true yes on].include?(ENV.fetch('URBANOPT_STOCHASTIC_SAMPLING', 'false').strip.downcase)
-                  if PowerTwinRefs.garage_attached?(garage_rate, feature_id, stochastic)
-                    args[:geometry_garage_width] = 24
-                    args[:geometry_garage_depth] = 20
-                    args[:geometry_garage_protrusion] = 1
-                  end
+                # EXACT replica of the vendored BuildResidentialHPXML geometry
+                # acceptance (geometry.rb): with protrusion 1.0 the garage area is
+                # bonus area ABOVE the footprint, shrinking it; conditioned
+                # basements change the divisor; fail iff garage_width >= length =
+                # sqrt(footprint * aspect). The old sqrt estimates disagreed with
+                # this in BOTH directions and caused 98% of one stock's gml arm
+                # failures (dangling garage refs + hard rejects). An identical
+                # predicate can only prevent guaranteed crashes, so it applies to
+                # BOTH the donor and legacy paths.
+                garage_fits = lambda do |cars_n|
+                  gw = 12.0 * cars_n
+                  gd = 20.0
+                  protrusion = 1.0
+                  cfa = [feature.floor_area.to_f, 144.0].max
+                  nf = [feature.number_of_stories_above_ground.to_i, 1].max rescue 1
+                  aspect = 2.0
+                  ga = gw * gd
+                  inside = ga * (1.0 - protrusion)
+                  bonus = ga * protrusion
+                  fp = if res_props[:foundation_type].to_s == 'basement - conditioned'
+                         (cfa + 2 * inside - (nf - 1) * bonus) / (nf + 1)
+                       else
+                         (cfa + inside - (nf - 1) * bonus) / nf
+                       end
+                  next false if fp <= 0
+                  length = Math.sqrt(fp * aspect)
+                  width = fp / length
+                  gw < length && ((1.0 - protrusion) * gd) < width
+                end
+                cars = if PowerTwinRefs.present?(res_props[:garage_cars])
+                         res_props[:garage_cars].to_i
+                       else
+                         garage_rate = PowerTwinRefs.garage_rate(res_props[:region])
+                         stochastic = %w[1 true yes on].include?(ENV.fetch('URBANOPT_STOCHASTIC_SAMPLING', 'false').strip.downcase)
+                         PowerTwinRefs.garage_attached?(garage_rate, feature_id, stochastic) ? 2 : 0
+                       end
+                cars -= 1 while cars.positive? && !garage_fits.call(cars)
+                if cars.positive?
+                  args[:geometry_garage_width] = 12 * cars
+                  args[:geometry_garage_depth] = 20
+                  args[:geometry_garage_protrusion] = 1
                 end
               end
               if ducted && PowerTwinRefs.present?(res_props[:duct_location])
@@ -936,6 +955,14 @@ module URBANopt
                 wh_type = res_props[:water_heater_type].to_s.downcase
                 if %w[storage\ water\ heater instantaneous\ water\ heater heat\ pump\ water\ heater].include?(wh_type)
                   args[:water_heater_type] = wh_type
+                  if wh_type == 'heat pump water heater'
+                    # HPXML requires EnergyFactor/UEF > 1 for HPWH and the SEER-era
+                    # defaults fail the build (26 failures in one stock's gml arm). 3.45 UEF =
+                    # ResStock 2024.2's sole HPWH label ('Electric Heat Pump, 50
+                    # gal, 3.45 UEF').
+                    args[:water_heater_efficiency_type] = 'UniformEnergyFactor'
+                    args[:water_heater_efficiency] = 3.45
+                  end
                 end
               end
 
