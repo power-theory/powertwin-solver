@@ -93,13 +93,26 @@ def _package_url(base, proj, version, name):
     return f"{base}/projects/{proj}/packages/generic/{PACKAGE}/{version}/{name}"
 
 
+def _ssl_context():
+    """GitLab Runner exposes the server CA to jobs as CI_SERVER_TLS_CA_FILE when the
+    instance certificate is not in the job image's trust store (it is not in
+    python:*-slim); the git checkout trusts it through the same file."""
+    import ssl
+    cafile = os.environ.get("CI_SERVER_TLS_CA_FILE")
+    return ssl.create_default_context(cafile=cafile if cafile and os.path.exists(cafile) else None)
+
+
 def _request(url, headers, data=None, method="GET"):
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=120, context=_ssl_context()) as resp:
             return resp.status, resp.read()
     except urllib.error.HTTPError as e:
         sys.exit(f"{method} {PACKAGE} {os.path.basename(url)} -> HTTP {e.code}")
+    except urllib.error.URLError as e:
+        hint = ("" if os.environ.get("CI_SERVER_TLS_CA_FILE") else
+                " (CI_SERVER_TLS_CA_FILE is unset; the runner must expose the GitLab CA via tls-ca-file)")
+        sys.exit(f"{method} {PACKAGE} {os.path.basename(url)} -> {e.reason}{hint}")
 
 
 def verify(quiet=False):
