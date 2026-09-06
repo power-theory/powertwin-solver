@@ -33,6 +33,10 @@ test_resolvers:
     # mpi4py (in solver/requirements) has no slim-image wheel; build it against a real MPI toolchain
     - apt-get update && apt-get install -y --no-install-recommends gcc libopenmpi-dev
     - pip install -r solver/requirements.txt pytest --quiet
+    # Install the app package too, so the test env matches the container (Dockerfile
+    # runs `pip install -e ./app`): its setup.py is the single source of truth for
+    # app-level deps like requests, which modules.utils imports at collection time.
+    - pip install -e solver/app --quiet
     - python -m pytest tests/ -m "not requires_container" -q
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^(dev|main)$/
