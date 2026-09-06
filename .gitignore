@@ -16,6 +16,12 @@ data/
 !surrogate/app/modules/data/**
 # ...except its compiled bytecode, which the negation above would otherwise re-track
 surrogate/app/modules/data/**/__pycache__/
+# ...and the synthetic leaf-dataset generator the test suite runs (its out/ stays
+# ignored via tests/data/.gitignore); the blanket data/ rule had hidden it from CI
+!tests/data/
+!tests/data/**
+tests/data/**/__pycache__/
+*.egg-info/
 powertwin_data
 postgres_data
 .github/instructions
@@ -24,8 +30,10 @@ postgres_data
 .claude
 CLAUDE.md
 
-# CR campaign county reference tables: builder-generated binaries (16 files, ~9 MB gz).
-# Regenerate with tests/tools/build_county_*.py (needs /mnt/h ResStock/ComStock parquets).
-# They stay in solver/upload/reference_data/ because _load_ref and the docker image
-# COPY read from there; only git tracking is excluded.
+# CR campaign county reference tables: builder-generated binaries (16 files, ~11 MB gz).
+# Regenerate with tests/tools/build_county_*.py (needs /mnt/h ResStock/ComStock parquets),
+# then publish with tests/tools/county_tables_registry.py; fresh checkouts and CI fetch
+# them from the GitLab package registry pinned by the tracked county_tables.sha256 and
+# county_tables.version. They stay in solver/upload/reference_data/ because _load_ref
+# and the docker image COPY read from there; only git tracking is excluded.
 solver/upload/reference_data/*.json.gz

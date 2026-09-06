@@ -37,7 +37,21 @@ test_resolvers:
     # runs `pip install -e ./app`): its setup.py is the single source of truth for
     # app-level deps like requests, which modules.utils imports at collection time.
     - pip install -e solver/app --quiet
+    # The sixteen county reference tables are gitignored builder outputs; a checkout
+    # gets them from this project's generic package registry, pinned by the tracked
+    # county_tables.sha256 / .version files (see reference_data/README_county_tables.md).
+    - python tests/tools/county_tables_registry.py fetch
+    # tests/data/gen_leaf_stock.py templates its geometries from the LFS-tracked ASU
+    # demo file; a checkout that left the LFS pointer in place would fail deep inside
+    # json.load, so say so here instead.
+    - if grep -q "git-lfs.github.com/spec" solver/upload/demo_data/asu_asset_geometries.geojson; then echo "solver/upload/demo_data is an unhydrated Git LFS pointer; the runner checkout did not fetch LFS objects"; exit 1; fi
     - python -m pytest tests/ -m "not requires_container" -q
+  # Hand the fetched tables to the build jobs (needs: implies artifacts), so the
+  # docker COPY ships them; build_flask re-verifies the checksums before building.
+  artifacts:
+    paths:
+      - solver/upload/reference_data/*.json.gz
+    expire_in: 1 day
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^(dev|main)$/
 
@@ -67,6 +81,9 @@ test_resolvers:
 build_flask:
   extends: .build_template
   script:
+    # Refuse to build an image without the county tables (the resolver would silently
+    # fall back to division-level priors while still stamping the county resolver version).
+    - (cd solver/upload/reference_data && sha256sum -c county_tables.sha256)
     - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask:${IMAGE_TAG} --build-arg GIT_SHA=${CI_COMMIT_SHA}
         -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask:${CI_COMMIT_BRANCH}
         -f ./solver/Dockerfile ./solver
