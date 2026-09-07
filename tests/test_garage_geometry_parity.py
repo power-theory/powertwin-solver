@@ -37,10 +37,11 @@ def measure_accepts(cfa, nf, cars, conditioned_basement, gd=20.0, protrusion=1.0
 
 
 def mapper_accepts(cfa, nf, cars, conditioned_basement):
-    """Transcription of the garage_fits lambda in PowerTwin.rb."""
+    """Transcription of the garage_fits lambda in PowerTwin.rb (raw cfa, as
+    residential/util.rb passes feature floor_area straight through for a
+    detached unit)."""
     gw = 12.0 * cars
     gd, protrusion, aspect = 20.0, 1.0, 2.0
-    cfa = max(cfa, 144.0)
     nf = max(nf, 1)
     ga = gw * gd
     inside = ga * (1.0 - protrusion)
@@ -58,7 +59,10 @@ def mapper_accepts(cfa, nf, cars, conditioned_basement):
 
 def test_mapper_predicate_matches_measure_exactly():
     mismatches = []
-    for cfa in range(300, 6001, 50):
+    # 50 sqft up: one stock's fix arm still hard-rejected 19 tiny footprints
+    # (down to 58 sqft) because the lambda floored cfa at 144 while the measure
+    # saw the raw value.
+    for cfa in range(50, 6001, 25):
         for nf in (1, 2, 3):
             for cars in (1, 2, 3):
                 for cb in (False, True):
@@ -80,13 +84,41 @@ def test_gml_arm_failure_class_now_rejected():
     assert mapper_accepts(2200, 2, 2, False)
 
 
+def test_tiny_footprint_rejected_like_the_measure():
+    # 58 sqft one-story (a real reject in that arm): footprint 58 -> length 10.8 ft,
+    # a 12 ft one-car garage is wider than the unit.
+    assert not measure_accepts(58, 1, 1, False)
+    assert not mapper_accepts(58, 1, 1, False)
+
+
 def test_ruby_lambda_still_transcribes_this_formula():
     """Anchor the Ruby side: the constants and structure this test transcribes
     must still exist in PowerTwin.rb (assignment-anchored, not comment-anchored)."""
     src = open(os.path.join(REPO, "solver", "upload", "PowerTwin.rb")).read()
     for needle in ("garage_fits = lambda",
+                   "cfa = feature.floor_area.to_f",
                    "(cfa + 2 * inside - (nf - 1) * bonus) / (nf + 1)",
                    "(cfa + inside - (nf - 1) * bonus) / nf",
                    "Math.sqrt(fp * aspect)",
                    "gw < length"):
         assert needle in src, f"PowerTwin.rb garage predicate drifted: missing {needle!r}"
+    assert "144.0].max" not in src.split("garage_fits = lambda")[1].split("cars = if")[0], \
+        "the cfa floor is back inside garage_fits; the measure uses the raw floor area"
+
+
+def test_dropped_garage_leaves_no_width_and_no_garage_location():
+    """The residual failures of one stock's fix arm: residential/util.rb seeds
+    geometry_garage_width = 0.0 before the mapper block, the block only
+    overwrote it when a garage was kept, and the duct space-coherence check used
+    PowerTwinRefs.present?(0.0) == true to admit 'garage' as a duct location on
+    a home with no garage surfaces. Both halves are anchored on their
+    assignment lines."""
+    src = open(os.path.join(REPO, "solver", "upload", "PowerTwin.rb")).read()
+    block = src.split("garage_fits = lambda")[1].split("if ducted && ")[0]
+    assert "args[:geometry_garage_width] = 0.0" in block, \
+        "a dropped garage must explicitly zero geometry_garage_width"
+    coherence = src.split("if ducted && ")[1].split("allowed << 'garage'")[0]
+    assert "has_garage = args[:geometry_garage_width].to_f * args[:geometry_garage_depth].to_f > 0" in coherence, \
+        "has_garage must test positivity (measure.rb: width * depth > 0), not presence"
+    assert "PowerTwinRefs.present?(args[:geometry_garage_width])" not in src, \
+        "presence test on the garage width is the dangling-garage-reference bug"

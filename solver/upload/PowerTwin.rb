@@ -864,7 +864,10 @@ module URBANopt
                   gw = 12.0 * cars_n
                   gd = 20.0
                   protrusion = 1.0
-                  cfa = [feature.floor_area.to_f, 144.0].max
+                  # Raw floor area, exactly what residential/util.rb hands the
+                  # measure as geometry_unit_cfa for a detached unit; a 144 sqft
+                  # floor here let tiny footprints pass that the measure rejected.
+                  cfa = feature.floor_area.to_f
                   nf = [feature.number_of_stories_above_ground.to_i, 1].max rescue 1
                   aspect = 2.0
                   ga = gw * gd
@@ -892,6 +895,10 @@ module URBANopt
                   args[:geometry_garage_width] = 12 * cars
                   args[:geometry_garage_depth] = 20
                   args[:geometry_garage_protrusion] = 1
+                else
+                  # residential/util.rb seeds the width from onsite parking before
+                  # this block; a dropped garage must leave no width behind.
+                  args[:geometry_garage_width] = 0.0
                 end
               end
               if ducted && PowerTwinRefs.present?(res_props[:duct_location])
@@ -906,7 +913,12 @@ module URBANopt
                 loc = res_props[:duct_location].to_s
                 foundation = res_props[:foundation_type].to_s
                 has_attic = res_props[:attic_type].to_s.include?('attic')
-                has_garage = PowerTwinRefs.present?(args[:geometry_garage_width])
+                # Positivity, not presence: the measure only builds a garage when
+                # width * depth > 0 (BuildResidentialHPXML measure.rb has_garage),
+                # and a dropped garage leaves width 0.0 in args, which present?
+                # accepts. Every residual failure of one stock's fix arm was a 0.0-width
+                # home with garage-located ducts and no garage surfaces.
+                has_garage = args[:geometry_garage_width].to_f * args[:geometry_garage_depth].to_f > 0
                 allowed = ['conditioned space']
                 if args[:geometry_unit_type].to_s == 'apartment unit'
                   # These duct args apply to EVERY unit BuildResidentialModel builds,
