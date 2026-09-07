@@ -802,6 +802,10 @@ module URBANopt
               end
               # CR WP-R3: whole-dwelling envelope leakage, ACH at 50 Pa, passed
               # through unconverted (ResStock label basis == HPXML 'ACH' units).
+              # The WP-R3b domain gate lives in the resolver: infiltration_ach50
+              # only arrives here for units inside the donor population's floor
+              # area support (the table's _domain stamp), so out-of-domain
+              # buildings keep the HPXML leakiness-average default.
               if PowerTwinRefs.present?(res_props[:infiltration_ach50])
                 args[:air_leakage_units] = 'ACH'
                 args[:air_leakage_house_pressure] = 50

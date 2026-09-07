@@ -827,9 +827,9 @@ fields:
     range: [0.5, 75.0]
     units: "whole-dwelling ACH at 50 Pa, passed to HPXML air_leakage_value with units ACH at house pressure 50 (no conversion)"
     flat_default: ""
-    resolver: "_resolve_infiltration (HELD DISABLED via INFILTRATION_PRIOR_ENABLED=False, WP-R3b owner-ratified 2026-09-04: single-knob ablation showed +45 pts res elec NMBE / +87 gas from this prior alone; values verified correct, stack root-cause pending)"
+    resolver: "_resolve_infiltration (HELD DISABLED via INFILTRATION_PRIOR_ENABLED=False; WP-R3b root-caused 2026-09-07: values and delivery correct, the +45-pt regression came from applying home-scale ACH50 to buildings outside the donor floor-area support (lodges/condo complexes classed residential); _infiltration_in_domain now gates on the table's builder-computed _domain.max_unit_sqft stamp, and the gated two-territory measurement (tetonr3 and a second stock's r3 vs revision 3) plus EIA-861 2024 class sales showed the in-domain prior still worsens the residential class on both territories, so the hold is an owner decision, not an open bug)"
     source_assumption: {residential: "RESSTOCK2024_county_infiltration shares, vintage-binned"}
-    invariants: ["shares sum to 1 per cell", "county tier requires n >= 30"]
+    invariants: ["shares sum to 1 per cell", "county tier requires n >= 30", "served only within _domain.max_unit_sqft per building type (unknown area excluded)"]
     oracle:
       resolver: [test_resolvers::resolver_golden]
       integration: []

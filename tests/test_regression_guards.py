@@ -367,3 +367,39 @@ def main():
 
 
 # Run via `pytest tests/test_regression_guards.py` (each H is a test_h* pytest fn).
+
+
+def test_h11_infiltration_domain_gate():
+    """WP-R3b: the county ACH50 prior only applies inside the donor
+    population's floor-area support. Real metadata classes 13k-193k sqft
+    lodges and condo complexes as residential; a home-scale whole-dwelling
+    ACH50 on such a volume is extrapolation with energy scaling as value x
+    volume (355 such Teton buildings held 77% of the flow the prior added and
+    drove the +45 NMBE-pt tetonall regression), while the HPXML
+    leakiness-average default handles size explicitly. The bounds live in the
+    table's _domain stamp, COMPUTED by the builder from the donor rows -- this
+    test reads them from the real table rather than repeating any number."""
+    spec = sps
+    table = spec._load_ref('resstock2024_county_infiltration')
+    bounds = table.get('_domain', {}).get('max_unit_sqft', {})
+    assert bounds.get('_overall'), "infiltration table lacks the _domain.max_unit_sqft stamp (rerun build_county_infiltration.py)"
+    sfd = bounds['Single-Family Detached']
+    orig = spec.INFILTRATION_PRIOR_ENABLED
+    spec.INFILTRATION_PRIOR_ENABLED = True
+    try:
+        base = {'building_type': 'Single-Family Detached', 'county_fips': '56039',
+                'year_built': 1975, 'building_id': '424242', 'units': 1}
+        inside = spec._resolve_infiltration({**base, 'area': sfd - 1})
+        just_out = spec._resolve_infiltration({**base, 'area': sfd + 1})
+        lodge = spec._resolve_infiltration({**base, 'area': 90000})
+        no_area = spec._resolve_infiltration({**base})
+        mf = spec._resolve_infiltration({'building_type': 'Multifamily', 'county_fips': '56039',
+                                         'year_built': 1980, 'building_id': '424242',
+                                         'area': 40000, 'units': 20})
+    finally:
+        spec.INFILTRATION_PRIOR_ENABLED = orig
+    assert inside[0] is not None, "in-domain SFD must draw a county ACH50"
+    assert just_out == (None, None), "an SFD one sqft past the largest donor must fall back to the HPXML default"
+    assert lodge == (None, None), "a lodge-scale 'SFD' must fall back to the HPXML default"
+    assert no_area == (None, None), "unknown floor area is out of domain"
+    assert mf[0] is not None, "per-UNIT area governs: a 40k sqft 20-unit building is in domain"

@@ -2126,13 +2126,52 @@ def _resolve_setpoints(field, ctx):
 INFILTRATION_PRIOR_ENABLED = False
 
 
+# The domain gate maps our building-type names onto the donor-population
+# geometry classes whose observed floor-area support the table's _domain block
+# carries (in.geometry_building_type_recs; Multifamily uses the 5+ class, whose
+# support equals the 2-4 class in ResStock 2024.2).
+_INFILTRATION_DOMAIN_TYPE = {
+    'Single-Family Detached': 'Single-Family Detached',
+    'Single-Family Attached': 'Single-Family Attached',
+    'Multifamily': 'Multi-Family with 5+ Units',
+}
+
+
+def _infiltration_in_domain(ctx):
+    """WP-R3b: serve the county ACH50 only for units inside the donor
+    population's floor-area support. ResStock's labels are whole-dwelling
+    values whose energy effect scales with value x volume; on real-metadata
+    buildings far larger than any donor (lodges and condo complexes classed
+    residential, up to 193k sqft in Teton) they are extrapolation, and the
+    single-knob ablation showed that slice alone carried the +45 NMBE-pt
+    regression. The bounds are computed by the builder from the donor rows
+    (table _domain.max_unit_sqft) - nothing here chooses a number. Unknown
+    floor area is out of domain (the fallback default handles it)."""
+    try:
+        area = float(ctx.get('area'))
+    except (TypeError, ValueError):
+        return False
+    units = ctx.get('units') or 1
+    unit_cfa = area / max(int(units), 1)
+    table = _load_ref('resstock2024_county_infiltration')
+    bounds = (table.get('_domain') or {}).get('max_unit_sqft') or {}
+    key = _INFILTRATION_DOMAIN_TYPE.get(ctx.get('building_type'))
+    bound = bounds.get(key) or bounds.get('_overall')
+    if not bound:
+        return False
+    return unit_cfa <= float(bound)
+
+
 def _resolve_infiltration(ctx):
     """County ACH50 (WP-R3, HELD by WP-R3b - see INFILTRATION_PRIOR_ENABLED).
     Labels are 'N ACH50', whole-dwelling at 50 Pa; the mapper passes N straight
-    to HPXML (air_leakage_units='ACH', pressure 50) with no conversion."""
+    to HPXML (air_leakage_units='ACH', pressure 50) with no conversion. Only
+    served inside the donor floor-area domain (_infiltration_in_domain)."""
     if not INFILTRATION_PRIOR_ENABLED:
         return (None, None)
     if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    if not _infiltration_in_domain(ctx):
         return (None, None)
     cell, tier = _county_prior('resstock2024_county_infiltration', ctx.get('county_fips'))
     if cell is None:

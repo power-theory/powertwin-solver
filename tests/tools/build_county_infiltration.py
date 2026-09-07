@@ -43,10 +43,21 @@ def infiltration_cell(sub):
 
 def main():
     cols = ["in.county", "in.puma", "in.census_division_recs", "in.vintage",
-            "in.infiltration", "weight"]
+            "in.infiltration", "in.sqft", "in.geometry_building_type_recs", "weight"]
     df = pd.read_parquet(PARQUET, columns=cols)
     df = df[df["in.infiltration"].notna()].copy()
     df["vbin"] = df["in.vintage"].map(VBIN).fillna("2010+")
+
+    # Domain stamp (WP-R3b): the ACH50 labels are only defined on the unit floor
+    # areas ResStock actually modeled. Whole-dwelling ACH50 on a larger volume is
+    # an extrapolation with energy scaling as value x volume (the tetonall
+    # regression: lodges classed SFD drew home-scale ACH50). The resolver refuses
+    # to serve a unit larger than the largest donor of its building type; the
+    # bounds are COMPUTED from the donor rows here, never hand-chosen.
+    sqft = pd.to_numeric(df["in.sqft"], errors="coerce")
+    domain = {"max_unit_sqft": {str(bt): int(v) for bt, v in
+                                sqft.groupby(df["in.geometry_building_type_recs"]).max().items()}}
+    domain["max_unit_sqft"]["_overall"] = int(sqft.max())
     tiers = build_three_tier(
         df, infiltration_cell,
         county_col="in.county", puma_col="in.puma",
@@ -60,10 +71,15 @@ def main():
         "unit_rule": ("pass-through: HPXML air_leakage_units='ACH' at "
                       "air_leakage_house_pressure=50; no conversion (Phase-1 Q4)"),
         "keying": "county fips x vintage bin; precomputed puma-union and division tiers",
+        "domain_rule": ("_domain.max_unit_sqft holds the LARGEST donor unit floor "
+                        "area per in.geometry_building_type_recs (computed from "
+                        "in.sqft, WP-R3b); the resolver only serves units within it"),
         "extracted": "2026-09-04",
         "regen": "tests/tools/build_county_infiltration.py",
     }
+    tiers["_domain"] = domain
     raw, gz = emit(OUT, source, RES_FLOORS, tiers)
+    print("domain:", domain["max_unit_sqft"])
     counties = tiers["counties"]
     print(f"counties: {len(counties)}; raw {raw/1e6:.1f} MB, gz {gz/1e6:.2f} MB")
     t = counties.get("56039", {})
