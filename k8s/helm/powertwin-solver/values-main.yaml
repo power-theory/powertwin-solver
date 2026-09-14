@@ -60,8 +60,12 @@ flask:
       cpu: "1"
       memory: 2Gi
     limits:
-      cpu: "2"
-      memory: 4Gi
+      # Measured on dev 2026-09-14 with the same image: 3 concurrent sims peak at 4235Mi and
+      # 4 concurrent at 5803Mi, so a 4Gi ceiling OOMs even at 3. Throughput is flat between 3
+      # and 4 (both ~60 sims/hour, the 4th just contends), so the listener runs at 3 and this
+      # is sized for that peak plus headroom. Live had already drifted to 4 cpu / 5Gi.
+      cpu: "4"
+      memory: 6Gi
   terminationGracePeriodSeconds: 14400
   # KEDA queue-based scaling for prod (scales 0..1 on queued sims, true scale-to-
   keda:
@@ -69,7 +73,7 @@ flask:
   hpa:
     enabled: true
     minReplicas: 1
-    maxReplicas: 1  # capped at 1: the sim listener is concurrency-1, so extra flask pods add no throughput and break the async protocol -- flask keeps sim state on pod-local emptyDir and the Service has no session affinity, so status/results polls round-robin to pods without the data (404) and jobs jam behind the single slot. Raise only alongside shared /solver/data + a higher listener concurrency.
+    maxReplicas: 1  # capped at 1: parallelism is N sims inside ONE pod (listener concurrency, verified 4-way on dev 2026-09-14), so extra flask pods add no throughput and break the async protocol -- flask keeps sim state on pod-local emptyDir and the Service has no session affinity, so status/results polls round-robin to pods without the data (404) and jobs jam behind the single slot. Raise only alongside shared /solver/data + a higher listener concurrency.
     targetCPUUtilization: 80
   urbanopt:
     simulationYear: "2026"
