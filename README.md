@@ -52,6 +52,27 @@ docker top <container_id>
 5. Allocate however many cores, does not have to be the same amount
 6. Start the recovery
 
+## Exporting a Simulation's Sensor Logs (local docker path)
+
+Each simulated building leaves its per-sensor series under
+`${DATA_DIR}/user_files/<simulation_name>/cleaned_reports/<building_id>/cleaned_predicted_*.csv`.
+To turn a finished simulation into the single sensor-logs CSV that the powertwin-db seed,
+the utility-actuals scorers and the surrogate collector consume, run
+
+```sh
+bash run_consolidate.sh <simulation_name> <collection_id> [RESAMPLE] [WORKERS]
+# e.g. bash run_consolidate.sh tetonr5local 7 M
+```
+
+It runs `modules/utils/consolidate_sensor_logs.py` inside the running flask container (the
+same module `apptainer/consolidate-state.sh` runs on the cluster, so both paths emit the
+canonical `sensor_id,collection_id,ts,value,metadata` layout, deduplicated on the triple) and
+writes `${DATA_DIR}/exports/<simulation_name>_sensor_logs.csv`. `RESAMPLE` is `M` (monthly,
+the seed and scorer grain, default), `H` (hourly, for surrogate datasets) or empty (native
+rows). `URBANOPT_REPORTING_FREQUENCY` must be `Timestep` on both paths: `Hourly` zeroes every
+electricity-emissions column in URBANopt's report, so the CO2 sensor would carry only the
+gas and propane terms (see the vault Gotchas, 2026-09-12).
+
 ## Command Line Interface
 
 Access the PowerTwin Solver CLI by opening a new terminal session in your container:

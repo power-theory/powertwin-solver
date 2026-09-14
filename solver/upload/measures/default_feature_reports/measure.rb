@@ -1071,10 +1071,15 @@ class DefaultFeatureReports < OpenStudio::Measure::ReportingMeasure
       runner.registerInfo("TIMESERIES: #{timeseries_name}")
 
       # get all the key values that this timeseries can be reported for (e.g. if PMV is requested for each zone)
-      if timeseries_name.include?('OtherFuels')
-        key_values = sql_file.availableKeyValues('RUN PERIOD 1', 'Zone Timestep', timeseries_name.upcase)
-      else
-        key_values = sql_file.availableKeyValues('RUN PERIOD 1', 'Zone Timestep', timeseries_name)
+      # PowerTwin patch (patch_district_meters.py): ask at the configured reporting frequency,
+      # falling back to 'Zone Timestep'. Hardcoding 'Zone Timestep' emptied every series stored
+      # only at the configured frequency (the EMS electricity-emissions series under Hourly).
+      key_freqs = [reporting_frequency == 'Timestep' ? 'Zone Timestep' : reporting_frequency.to_s, 'Zone Timestep'].uniq
+      lookup_name = timeseries_name.include?('OtherFuels') ? timeseries_name.upcase : timeseries_name
+      key_values = []
+      key_freqs.each do |kf|
+        key_values = sql_file.availableKeyValues('RUN PERIOD 1', kf, lookup_name)
+        break unless key_values.empty?
       end
       runner.registerInfo("KEY VALUES: #{key_values}")
       if key_values.empty?

@@ -270,7 +270,9 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     floor_count = asset_metadata.get('floor_count') or properties.get('floor_count')
     try:
         floor_count = int(float(floor_count))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
+        # OverflowError: int(float('inf')). One non-finite floor_count in a
+        # national collection must not kill the whole feature-generation job.
         floor_count = 1
     if floor_count < 1:
         floor_count = 1
