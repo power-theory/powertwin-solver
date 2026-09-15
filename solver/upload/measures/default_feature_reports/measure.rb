@@ -1074,11 +1074,15 @@ class DefaultFeatureReports < OpenStudio::Measure::ReportingMeasure
       # PowerTwin patch (patch_district_meters.py): ask at the configured reporting frequency,
       # falling back to 'Zone Timestep'. Hardcoding 'Zone Timestep' emptied every series stored
       # only at the configured frequency (the EMS electricity-emissions series under Hourly).
+      # The environment period is the detected annual run period, not the literal 'RUN PERIOD 1':
+      # URBANopt's merged multifamily models carry the unit prefix ('UNIT1_RUN_PERIOD_1'), so the
+      # literal found no keys, the EMS series fell back to key '' and every multifamily building
+      # reported zero electricity emissions.
       key_freqs = [reporting_frequency == 'Timestep' ? 'Zone Timestep' : reporting_frequency.to_s, 'Zone Timestep'].uniq
       lookup_name = timeseries_name.include?('OtherFuels') ? timeseries_name.upcase : timeseries_name
       key_values = []
       key_freqs.each do |kf|
-        key_values = sql_file.availableKeyValues('RUN PERIOD 1', kf, lookup_name)
+        key_values = sql_file.availableKeyValues(ann_env_pd.to_s, kf, lookup_name)
         break unless key_values.empty?
       end
       runner.registerInfo("KEY VALUES: #{key_values}")
