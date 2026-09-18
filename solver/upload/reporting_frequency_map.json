@@ -15,27 +15,27 @@
     "Monthly": "monthly",
     "Runperiod": "yearly"
   },
-  "aggregations": {
-    "hourly": {
+  "datelevels": {
+    "hour": {
       "reporting_frequency": "Timestep",
       "resample": "H",
       "datelevel": "hour"
     },
-    "daily": {
+    "day": {
       "reporting_frequency": "Timestep",
       "resample": "D",
       "datelevel": "day"
     },
-    "monthly": {
+    "month": {
       "reporting_frequency": "Timestep",
       "resample": "M",
       "datelevel": "month"
     },
-    "yearly": {
+    "year": {
       "reporting_frequency": "Timestep",
       "resample": "Y",
       "datelevel": "year"
     }
   },
-  "default_aggregation": "monthly"
+  "default_datelevel": "month"
 }

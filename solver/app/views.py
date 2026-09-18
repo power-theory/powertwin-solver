@@ -65,21 +65,21 @@ def _resolve_reporting_frequency(user_value):
     return native
 
 
-def _resolve_aggregation(user_value):
-    """Translate a user-facing output aggregation (hourly/daily/monthly/yearly) to the
-    reporting frequency and resample period it runs at, from the aggregations table in
-    reporting_frequency_map.json. Returns None when unset (= caller keeps the defaults).
-    Raises ValueError on an unknown label."""
+def _resolve_datelevel(user_value):
+    """Translate a requested datelevel (hour/day/month/year, the sensor_logs_pred
+    vocabulary) to the reporting frequency and resample period it runs at, from the
+    datelevels table in reporting_frequency_map.json. Returns None when unset
+    (= caller keeps the defaults). Raises ValueError on an unknown label."""
     if user_value is None:
         return None
     label = str(user_value).strip().lower()
     if not label:
         return None
-    table = _load_reporting_freq_map().get('aggregations', {})
+    table = _load_reporting_freq_map().get('datelevels', {})
     entry = table.get(label)
     if not entry:
         valid = ', '.join(sorted(table.keys()))
-        raise ValueError(f"unknown aggregation '{label}' (valid: {valid})")
+        raise ValueError(f"unknown datelevel '{label}' (valid: {valid})")
     return entry
 LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 
@@ -316,18 +316,18 @@ def process_asset_update():
         except ValueError as ve:
             return jsonify({'error': str(ve)}), 400
 
-        # Optional per-request output aggregation: hourly | daily | monthly | yearly.
-        # One label sets both the reporting frequency and the post-process resample
-        # from the aggregations table, so the server-wide URBANOPT_RESAMPLE no longer
-        # decides what a request gets back. Unset keeps both defaults.
+        # Optional per-request datelevel: hour | day | month | year. One label sets
+        # both the reporting frequency and the post-process resample from the
+        # datelevels table, so the server-wide URBANOPT_RESAMPLE no longer decides
+        # what a request gets back. Unset keeps both defaults.
         request_resample = None
         try:
-            aggregation = _resolve_aggregation(request_data.get('aggregation'))
+            datelevel_entry = _resolve_datelevel(request_data.get('datelevel'))
         except ValueError as ve:
             return jsonify({'error': str(ve)}), 400
-        if aggregation:
-            request_reporting_frequency = aggregation['reporting_frequency']
-            request_resample = aggregation['resample']
+        if datelevel_entry:
+            request_reporting_frequency = datelevel_entry['reporting_frequency']
+            request_resample = datelevel_entry['resample']
 
         # Optional per-request URBANOPT_DYNAMIC_DEFAULTS override on the async
         # path. Mirrors the start_simulation parsing: 'true' / 'false'
@@ -452,7 +452,7 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
             runtime_seconds = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds()
             # URBANOPT_RESAMPLE: 'H' | 'D' | 'W' | 'M' | 'Y' | '' (native passthrough).
             # Same convention as the HPC consolidate-state.sh RESAMPLE arg; the request's
-            # aggregation overrides the server-wide value through the thread-local flag.
+            # datelevel overrides the server-wide value through the thread-local flag.
             resample = get_sim_flag('URBANOPT_RESAMPLE')
             if resample is None:
                 resample = os.environ.get('URBANOPT_RESAMPLE', '')
@@ -1201,19 +1201,19 @@ def get_simulation_results(simulation_name):
 
 
 ############################################################################################################
-# Name: def simulation_aggregations()
-# Description: The output aggregation table (label -> reporting frequency, resample,
+# Name: def simulation_datelevels()
+# Description: The datelevel table (label -> reporting frequency, resample,
 # datelevel) and its default, read from upload/reporting_frequency_map.json. The db api
-# and the frontend build their aggregation options from this instead of a copy.
+# and the frontend build their datelevel options from this instead of a copy.
 ############################################################################################################
-def simulation_aggregations():
+def simulation_datelevels():
     auth_err = _check_api_token()
     if auth_err is not None:
         return auth_err
     fmap = _load_reporting_freq_map()
     return jsonify({
-        'aggregations': fmap.get('aggregations', {}),
-        'default': fmap.get('default_aggregation'),
+        'datelevels': fmap.get('datelevels', {}),
+        'default': fmap.get('default_datelevel'),
     })
 
 

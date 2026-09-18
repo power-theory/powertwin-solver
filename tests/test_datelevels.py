@@ -1,4 +1,4 @@
-"""The output aggregation table in solver/upload/reporting_frequency_map.json is what
+"""The datelevel table in solver/upload/reporting_frequency_map.json is what
 process_asset_update runs a request at (reporting frequency plus resample) and what
 pack_results labels the rows with, so the three must agree with each other."""
 import json
@@ -16,18 +16,18 @@ def _table():
         return json.load(f)
 
 
-def test_aggregations_agree_with_pack_results_and_urbanopt_natives():
+def test_datelevels_agree_with_pack_results_and_urbanopt_natives():
     from modules.utils.pack_results import _RESAMPLE_TO_DATELEVEL
 
     fmap = _table()
-    table = fmap["aggregations"]
+    table = fmap["datelevels"]
     natives = set(fmap["urbanopt_to_user"].keys())
-    assert set(table) == {"hourly", "daily", "monthly", "yearly"}
+    assert set(table) == {"hour", "day", "month", "year"}
     for label, entry in table.items():
         assert entry["reporting_frequency"] in natives, label
         assert entry["resample"] in _RESAMPLE_TO_DATELEVEL, label
-        assert _RESAMPLE_TO_DATELEVEL[entry["resample"]] == entry["datelevel"], label
-    assert fmap["default_aggregation"] in table
+        assert _RESAMPLE_TO_DATELEVEL[entry["resample"]] == entry["datelevel"] == label, label
+    assert fmap["default_datelevel"] in table
 
 
 def test_resample_flag_is_thread_scoped():
