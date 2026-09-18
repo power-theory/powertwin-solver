@@ -511,34 +511,57 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
 # Description: Converts JSON metadata array to CSV format matching expected structure
 ############################################################################################################
 def convert_metadata_to_csv(metadata_json):
-    """Convert the per-sensor JSON rows the API sends into the metadata CSV the pipeline reads:
-    one row per building with a `sensors` {sensor_type_id: sensor_id} column (flow's shape
-    since 2026-09-17; the asset's metadata used to be repeated on every sensor row)."""
+    """Convert JSON metadata to CSV format."""
     if not metadata_json:
         return ""
-    headers = ['asset_id', 'asset_name', 'asset_subtype_id', 'sensors', 'asset_metadata', 'asset_geometries_properties']
-    by_asset = {}
+    
+    # CSV headers matching expected format
+    headers = [
+        'sensor_id', 'sensor_type_id', 'asset_id', 'asset_name',
+        'asset_subtype_id', 'asset_metadata', 'asset_geometries_properties'
+    ]
+
+    # Build CSV content
+    csv_lines = []
+    csv_lines.append(','.join(headers))
+
     for row in metadata_json:
-        aid = str(row.get('asset_id', ''))
-        entry = by_asset.setdefault(aid, {'row': row, 'sensors': {}})
-        st, sid = row.get('sensor_type_id'), row.get('sensor_id')
-        if st not in (None, '') and sid not in (None, ''):
-            entry['sensors'][str(st)] = sid
+        # Extract values with defaults
+        sensor_id = str(row.get('sensor_id', ''))
+        sensor_type_id = str(row.get('sensor_type_id', ''))
+        asset_id = str(row.get('asset_id', ''))
+        raw_name = str(row.get("asset_name", "")).replace('"', '""')
+        asset_name = f'"{raw_name}"'
+        asset_subtype_id = str(row.get('asset_subtype_id', ''))
 
-    def q(v):
-        return '"' + str(v).replace('"', '""') + '"'
+        # Handle JSON fields - escape quotes and wrap in quotes
+        asset_metadata = row.get('asset_metadata', {})
+        if isinstance(asset_metadata, str):
+            escaped_metadata = asset_metadata.replace('"', '""')
+            asset_metadata_str = f'"{escaped_metadata}"'
+        else:
+            metadata_json_str = json.dumps(asset_metadata)
+            escaped_metadata = metadata_json_str.replace('"', '""')
+            asset_metadata_str = f'"{escaped_metadata}"'
 
-    def js(v):
-        return q(v if isinstance(v, str) else json.dumps(v))
+        asset_geom_props = row.get('asset_geometries_properties', {})
+        if isinstance(asset_geom_props, str):
+            escaped_geom = asset_geom_props.replace('"', '""')
+            asset_geom_props_str = f'"{escaped_geom}"'
+        else:
+            geom_json_str = json.dumps(asset_geom_props)
+            escaped_geom = geom_json_str.replace('"', '""')
+            asset_geom_props_str = f'"{escaped_geom}"'
 
-    csv_lines = [','.join(headers)]
-    for aid, entry in by_asset.items():
-        row = entry['row']
-        csv_lines.append(','.join([
-            aid, q(row.get('asset_name', '')), str(row.get('asset_subtype_id', '')),
-            js(entry['sensors']), js(row.get('asset_metadata', {})), js(row.get('asset_geometries_properties', {})),
-        ]))
+        # Build CSV row
+        csv_row = ','.join([
+            sensor_id, sensor_type_id, asset_id, asset_name,
+            asset_subtype_id, asset_metadata_str, asset_geom_props_str
+        ])
+        csv_lines.append(csv_row)
+    
     return '\n'.join(csv_lines)
+
 ############################################################################################################
 # Name: def convert_geometry_to_geojson(geojson_array)
 # Description: Converts geometry array to proper GeoJSON FeatureCollection
