@@ -21,7 +21,7 @@ from modules.utils import (
     pack_simulation_results, atomic_write_json, write_status,
 )
 from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
-from modules.utils.sim_flags import set_sim_flags, clear_sim_flags
+from modules.utils.sim_flags import set_sim_flags, clear_sim_flags, get_sim_flag
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Views', external_log_dir)
@@ -63,6 +63,24 @@ def _resolve_reporting_frequency(user_value):
         valid = ', '.join(sorted(fmap.keys()))
         raise ValueError(f"unknown reporting_frequency '{label}' (valid: {valid})")
     return native
+
+
+def _resolve_aggregation(user_value):
+    """Translate a user-facing output aggregation (hourly/daily/monthly/yearly) to the
+    reporting frequency and resample period it runs at, from the aggregations table in
+    reporting_frequency_map.json. Returns None when unset (= caller keeps the defaults).
+    Raises ValueError on an unknown label."""
+    if user_value is None:
+        return None
+    label = str(user_value).strip().lower()
+    if not label:
+        return None
+    table = _load_reporting_freq_map().get('aggregations', {})
+    entry = table.get(label)
+    if not entry:
+        valid = ', '.join(sorted(table.keys()))
+        raise ValueError(f"unknown aggregation '{label}' (valid: {valid})")
+    return entry
 LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 
 # Per-request URBANOPT env overrides (DYNAMIC_DEFAULTS / STOCHASTIC_SAMPLING /
@@ -75,17 +93,18 @@ LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
 # overrides have always assumed but never enforced.
 @contextlib.contextmanager
 def _sim_env_override(dynamic_defaults=None, stochastic=None, reporting_frequency=None,
-                      keep_dirs=None):
+                      keep_dirs=None, resample=None):
     """Scope per-request URBANOPT flags to THIS thread (the async sim runs on its
     own daemon thread). The flags go into thread-local state, read by the Python
     resolver (sim_params_spec) and injected into the uo subprocess env
     (command_timer.run_command). No shared os.environ mutation and no global lock,
     so concurrent sims on one gunicorn worker run in parallel with correctly
     isolated flags. A value of None means 'no override for this var'."""
-    set_sim_flags(dynamic_defaults, stochastic, reporting_frequency, keep_dirs)
+    set_sim_flags(dynamic_defaults, stochastic, reporting_frequency, keep_dirs, resample)
     for name, val in (('URBANOPT_DYNAMIC_DEFAULTS', dynamic_defaults),
                       ('URBANOPT_STOCHASTIC_SAMPLING', stochastic),
-                      ('URBANOPT_REPORTING_FREQUENCY', reporting_frequency)):
+                      ('URBANOPT_REPORTING_FREQUENCY', reporting_frequency),
+                      ('URBANOPT_RESAMPLE', resample)):
         if val is not None:
             logger.info(f"{name} override: {val}")
     try:
@@ -297,6 +316,19 @@ def process_asset_update():
         except ValueError as ve:
             return jsonify({'error': str(ve)}), 400
 
+        # Optional per-request output aggregation: hourly | daily | monthly | yearly.
+        # One label sets both the reporting frequency and the post-process resample
+        # from the aggregations table, so the server-wide URBANOPT_RESAMPLE no longer
+        # decides what a request gets back. Unset keeps both defaults.
+        request_resample = None
+        try:
+            aggregation = _resolve_aggregation(request_data.get('aggregation'))
+        except ValueError as ve:
+            return jsonify({'error': str(ve)}), 400
+        if aggregation:
+            request_reporting_frequency = aggregation['reporting_frequency']
+            request_resample = aggregation['resample']
+
         # Optional per-request URBANOPT_DYNAMIC_DEFAULTS override on the async
         # path. Mirrors the start_simulation parsing: 'true' / 'false'
         # (case-insensitive); anything else (including missing) leaves the
@@ -365,7 +397,7 @@ def process_asset_update():
                   asset_geojson_path, metadata_csv_path,
                   started_at, request_start_date_time, request_end_date_time,
                   request_reporting_frequency, request_dynamic_defaults,
-                  request_stochastic),
+                  request_stochastic, request_resample),
             daemon=True,
         )
         thread.start()
@@ -387,7 +419,8 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
                                  request_end_date_time=None,
                                  request_reporting_frequency=None,
                                  request_dynamic_defaults=None,
-                                 request_stochastic=None):
+                                 request_stochastic=None,
+                                 request_resample=None):
     """Background worker. Runs without a Flask request context -- do not reference `request`."""
     # Per-request URBANOPT env overrides (reporting_frequency / dynamic_defaults
     # / stochastic_sampling). The resolver and the uo subprocess read these at
@@ -395,7 +428,7 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
     # os.environ), so concurrent async sims on the same worker can't observe
     # each other's flags.
     with _sim_env_override(request_dynamic_defaults, request_stochastic,
-                           request_reporting_frequency):
+                           request_reporting_frequency, resample=request_resample):
         try:
             num_cores = 1
             create_table()
@@ -418,8 +451,12 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
 
             runtime_seconds = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds()
             # URBANOPT_RESAMPLE: 'H' | 'D' | 'W' | 'M' | 'Y' | '' (native passthrough).
-            # Same convention as the HPC consolidate-state.sh RESAMPLE arg.
-            resample = os.environ.get('URBANOPT_RESAMPLE', '').strip() or None
+            # Same convention as the HPC consolidate-state.sh RESAMPLE arg; the request's
+            # aggregation overrides the server-wide value through the thread-local flag.
+            resample = get_sim_flag('URBANOPT_RESAMPLE')
+            if resample is None:
+                resample = os.environ.get('URBANOPT_RESAMPLE', '')
+            resample = resample.strip() or None
             results_payload = pack_simulation_results(
                 sim_local_dir,
                 runtime_seconds=runtime_seconds,
@@ -474,57 +511,34 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
 # Description: Converts JSON metadata array to CSV format matching expected structure
 ############################################################################################################
 def convert_metadata_to_csv(metadata_json):
-    """Convert JSON metadata to CSV format."""
+    """Convert the per-sensor JSON rows the API sends into the metadata CSV the pipeline reads:
+    one row per building with a `sensors` {sensor_type_id: sensor_id} column (flow's shape
+    since 2026-09-17; the asset's metadata used to be repeated on every sensor row)."""
     if not metadata_json:
         return ""
-    
-    # CSV headers matching expected format
-    headers = [
-        'sensor_id', 'sensor_type_id', 'asset_id', 'asset_name',
-        'asset_subtype_id', 'asset_metadata', 'asset_geometries_properties'
-    ]
-
-    # Build CSV content
-    csv_lines = []
-    csv_lines.append(','.join(headers))
-
+    headers = ['asset_id', 'asset_name', 'asset_subtype_id', 'sensors', 'asset_metadata', 'asset_geometries_properties']
+    by_asset = {}
     for row in metadata_json:
-        # Extract values with defaults
-        sensor_id = str(row.get('sensor_id', ''))
-        sensor_type_id = str(row.get('sensor_type_id', ''))
-        asset_id = str(row.get('asset_id', ''))
-        raw_name = str(row.get("asset_name", "")).replace('"', '""')
-        asset_name = f'"{raw_name}"'
-        asset_subtype_id = str(row.get('asset_subtype_id', ''))
+        aid = str(row.get('asset_id', ''))
+        entry = by_asset.setdefault(aid, {'row': row, 'sensors': {}})
+        st, sid = row.get('sensor_type_id'), row.get('sensor_id')
+        if st not in (None, '') and sid not in (None, ''):
+            entry['sensors'][str(st)] = sid
 
-        # Handle JSON fields - escape quotes and wrap in quotes
-        asset_metadata = row.get('asset_metadata', {})
-        if isinstance(asset_metadata, str):
-            escaped_metadata = asset_metadata.replace('"', '""')
-            asset_metadata_str = f'"{escaped_metadata}"'
-        else:
-            metadata_json_str = json.dumps(asset_metadata)
-            escaped_metadata = metadata_json_str.replace('"', '""')
-            asset_metadata_str = f'"{escaped_metadata}"'
+    def q(v):
+        return '"' + str(v).replace('"', '""') + '"'
 
-        asset_geom_props = row.get('asset_geometries_properties', {})
-        if isinstance(asset_geom_props, str):
-            escaped_geom = asset_geom_props.replace('"', '""')
-            asset_geom_props_str = f'"{escaped_geom}"'
-        else:
-            geom_json_str = json.dumps(asset_geom_props)
-            escaped_geom = geom_json_str.replace('"', '""')
-            asset_geom_props_str = f'"{escaped_geom}"'
+    def js(v):
+        return q(v if isinstance(v, str) else json.dumps(v))
 
-        # Build CSV row
-        csv_row = ','.join([
-            sensor_id, sensor_type_id, asset_id, asset_name,
-            asset_subtype_id, asset_metadata_str, asset_geom_props_str
-        ])
-        csv_lines.append(csv_row)
-    
+    csv_lines = [','.join(headers)]
+    for aid, entry in by_asset.items():
+        row = entry['row']
+        csv_lines.append(','.join([
+            aid, q(row.get('asset_name', '')), str(row.get('asset_subtype_id', '')),
+            js(entry['sensors']), js(row.get('asset_metadata', {})), js(row.get('asset_geometries_properties', {})),
+        ]))
     return '\n'.join(csv_lines)
-
 ############################################################################################################
 # Name: def convert_geometry_to_geojson(geojson_array)
 # Description: Converts geometry array to proper GeoJSON FeatureCollection
@@ -1161,6 +1175,23 @@ def get_simulation_results(simulation_name):
         logger.error(f"Failed to read results.json for {simulation_name}: {e}")
         send_error_to_mss('get_simulation_results', str(e))
         return jsonify({'error': str(e)}), 500
+
+
+############################################################################################################
+# Name: def simulation_aggregations()
+# Description: The output aggregation table (label -> reporting frequency, resample,
+# datelevel) and its default, read from upload/reporting_frequency_map.json. The db api
+# and the frontend build their aggregation options from this instead of a copy.
+############################################################################################################
+def simulation_aggregations():
+    auth_err = _check_api_token()
+    if auth_err is not None:
+        return auth_err
+    fmap = _load_reporting_freq_map()
+    return jsonify({
+        'aggregations': fmap.get('aggregations', {}),
+        'default': fmap.get('default_aggregation'),
+    })
 
 
 ############################################################################################################

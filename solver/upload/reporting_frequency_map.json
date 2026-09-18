@@ -1,18 +1,41 @@
 {
   "user_to_urbanopt": {
     "minutely": "Detailed",
-    "hourly":   "Hourly",
-    "daily":    "Daily",
-    "monthly":  "Monthly",
-    "yearly":   "Runperiod"
+    "hourly": "Hourly",
+    "daily": "Daily",
+    "monthly": "Monthly",
+    "yearly": "Runperiod"
   },
   "urbanopt_to_user": {
-    "Detailed":      "minutely",
-    "Timestep":      "hourly",
-    "Hourly":        "hourly",
-    "Daily":         "daily",
+    "Detailed": "minutely",
+    "Timestep": "hourly",
+    "Hourly": "hourly",
+    "Daily": "daily",
     "BillingPeriod": "monthly",
-    "Monthly":       "monthly",
-    "Runperiod":     "yearly"
-  }
+    "Monthly": "monthly",
+    "Runperiod": "yearly"
+  },
+  "aggregations": {
+    "hourly": {
+      "reporting_frequency": "Timestep",
+      "resample": "H",
+      "datelevel": "hour"
+    },
+    "daily": {
+      "reporting_frequency": "Timestep",
+      "resample": "D",
+      "datelevel": "day"
+    },
+    "monthly": {
+      "reporting_frequency": "Timestep",
+      "resample": "M",
+      "datelevel": "month"
+    },
+    "yearly": {
+      "reporting_frequency": "Timestep",
+      "resample": "Y",
+      "datelevel": "year"
+    }
+  },
+  "default_aggregation": "monthly"
 }

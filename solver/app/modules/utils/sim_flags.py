@@ -15,12 +15,13 @@ _FLAG_ENV = (
     'URBANOPT_DYNAMIC_DEFAULTS',
     'URBANOPT_STOCHASTIC_SAMPLING',
     'URBANOPT_REPORTING_FREQUENCY',
+    'URBANOPT_RESAMPLE',
     'POWERTWIN_KEEP_DIRS',
 )
 
 
 def set_sim_flags(dynamic_defaults=None, stochastic=None,
-                  reporting_frequency=None, keep_dirs=None):
+                  reporting_frequency=None, keep_dirs=None, resample=None):
     """Set per-simulation flag overrides for the CURRENT thread. None means 'no
     override' (readers fall back to os.environ). keep_dirs is a bool mapped to
     the POWERTWIN_KEEP_DIRS '1'/'' convention."""
@@ -29,6 +30,7 @@ def set_sim_flags(dynamic_defaults=None, stochastic=None,
         'URBANOPT_DYNAMIC_DEFAULTS': dynamic_defaults,
         'URBANOPT_STOCHASTIC_SAMPLING': stochastic,
         'URBANOPT_REPORTING_FREQUENCY': reporting_frequency,
+        'URBANOPT_RESAMPLE': resample,
         'POWERTWIN_KEEP_DIRS': keep_val,
     }
 
