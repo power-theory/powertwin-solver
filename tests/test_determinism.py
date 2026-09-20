@@ -72,3 +72,19 @@ def test_distribution_is_reproducible():
         return c
 
     assert sweep() == sweep()
+
+
+def test_stochastic_seed_id_shares_draws_across_geometry_ids():
+    """Scenario fan-out (2026-09-19): variants of one base building carry new geometry ids but
+    declare `stochastic_seed_id` = the base id; every share-weighted draw must then match the
+    base's, so the only difference between variant and base is the lever that was set. Without
+    the key, distinct ids draw independently (the pre-existing behavior)."""
+    m = _load()
+    md = {"state": "TX", "year_built": 1990, "area": 2400}
+    base = _resolve_all(m, dict(md), "base0001")
+    variants = [_resolve_all(m, {**md, "stochastic_seed_id": "base0001"}, f"var{i:04d}") for i in range(30)]
+    assert all(v == base for v in variants)
+    # the seed wins over an explicit geometry id; an empty seed is absent, not ''
+    assert _resolve_all(m, {**md, "stochastic_seed_id": ""}, "base0001") == base
+    independent = {tuple(sorted(_resolve_all(m, dict(md), f"var{i:04d}").items())) for i in range(30)}
+    assert len(independent) > 1, "distinct ids without a seed should not all draw alike"

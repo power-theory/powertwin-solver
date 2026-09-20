@@ -691,7 +691,16 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
     division = refs.get('state_to_division', {}).get(state) if state else None
     bt = building_type if building_type is not None else metadata.get('building_type')
     cz = climate_zone if climate_zone is not None else metadata.get('climate_zone')
-    bid = building_id if building_id is not None else metadata.get('building_id')
+    # Scenario fan-out and version-matched A/B (2026-09-19): a metadata `stochastic_seed_id`
+    # declares whose draws this asset shares. Every share-weighted draw hashes on the ctx
+    # building_id, so a variant minted under a new geometry id would otherwise redraw fuel,
+    # system, vacancy and envelope and the lever effect would be buried under new draws. The
+    # declared seed wins over the geometry id; absent, behavior is unchanged.
+    seed = metadata.get('stochastic_seed_id')
+    if seed not in (None, ''):
+        bid = str(seed)
+    else:
+        bid = building_id if building_id is not None else metadata.get('building_id')
     return {
         'building_type': bt,
         'state': state,
