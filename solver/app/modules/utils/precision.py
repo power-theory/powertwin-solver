@@ -52,13 +52,19 @@ def sig(x, n: int | None = None):
         v = float(x)
     except (TypeError, ValueError):
         return x
-    if v == 0.0 or not math.isfinite(v):
+    if v == 0.0 or not math.isfinite(v) or abs(v) < 1e-300:
         return v
-    # same algorithm as round_series (scale, round half to even on the scaled float, unscale) so
-    # the scalar and the vectorised helper agree bit for bit, ties included
+    # same algorithm as round_series (round half to even on the scaled float) so the scalar and
+    # the vectorised helper agree bit for bit, ties included. digits >= 0 scales UP by an exact
+    # integer power; digits < 0 divides by the exact positive power instead of multiplying by
+    # its inexact reciprocal, which left 12th-digit noise (711700000.0000001) and made the two
+    # helpers disagree in the 10**(n+4) decade (review 2026-09-20)
     digits = n - 1 - int(math.floor(math.log10(abs(v))))
-    scale = 10.0 ** digits
-    return float(np.round(v * scale) / scale)
+    if digits >= 0:
+        scale = 10.0 ** digits
+        return float(np.round(v * scale) / scale)
+    p = 10.0 ** (-digits)
+    return float(np.round(v / p) * p)
 
 
 def sig4(x):
@@ -73,9 +79,19 @@ def round_series(series, n: int | None = None):
     if n == 0:
         return series
     vals = series.to_numpy(dtype=float, copy=True)
-    nz = np.isfinite(vals) & (vals != 0.0)
+    nz = np.isfinite(vals) & (vals != 0.0) & (np.abs(vals) >= 1e-300)
     if nz.any():
-        mag = np.floor(np.log10(np.abs(vals[nz])))
-        scale = np.power(10.0, n - 1 - mag)
-        vals[nz] = np.round(vals[nz] * scale) / scale
+        vals[nz] = _round_sig_array(vals[nz], n)
     return series.__class__(vals, index=series.index, name=series.name)
+
+
+def _round_sig_array(v, n):
+    """Vectorised body shared with sig(): exact integer powers on both branches."""
+    digits = n - 1 - np.floor(np.log10(np.abs(v)))
+    up = digits >= 0
+    out = np.empty_like(v)
+    scale = np.power(10.0, digits[up])
+    out[up] = np.round(v[up] * scale) / scale
+    p = np.power(10.0, -digits[~up])
+    out[~up] = np.round(v[~up] / p) * p
+    return out

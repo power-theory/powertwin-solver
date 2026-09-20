@@ -10,23 +10,37 @@ import pandas as pd
 
 try:  # inside the solver package
     from modules.utils.precision import round_series
-except ImportError:  # standalone on the cluster (~/consolidate_sensor_logs.py): identical fallback
-    import numpy as _np
+except ImportError:
+    try:  # standalone on the cluster with precision.py deployed beside this file
+        from precision import round_series
+    except ImportError:  # last resort: an inline copy that must match precision.round_series
+        import numpy as _np
 
-    def round_series(series, n=None):
-        import os as _os
-        raw = (_os.environ.get("POWERTWIN_SIG_FIGS") or "").strip().lower()
-        if n is None:
-            n = 4 if raw == "" else (0 if raw in ("0", "off", "false", "none", "no") else int(raw))
-        if n == 0:
-            return series
-        vals = series.to_numpy(dtype=float, copy=True)
-        nz = _np.isfinite(vals) & (vals != 0.0)
-        if nz.any():
-            mag = _np.floor(_np.log10(_np.abs(vals[nz])))
-            scale = _np.power(10.0, n - 1 - mag)
-            vals[nz] = _np.round(vals[nz] * scale) / scale
-        return series.__class__(vals, index=series.index, name=series.name)
+        def round_series(series, n=None):
+            import os as _os
+            raw = (_os.environ.get("POWERTWIN_SIG_FIGS") or "").strip().lower()
+            if n is None:
+                if raw == "":
+                    n = 4
+                elif raw in ("0", "off", "false", "none", "no"):
+                    n = 0
+                else:
+                    n = max(0, int(raw))  # a negative setting is off, as in the package
+            if n == 0:
+                return series
+            vals = series.to_numpy(dtype=float, copy=True)
+            nz = _np.isfinite(vals) & (vals != 0.0) & (_np.abs(vals) >= 1e-300)
+            if nz.any():
+                v = vals[nz]
+                digits = n - 1 - _np.floor(_np.log10(_np.abs(v)))
+                up = digits >= 0
+                out = _np.empty_like(v)
+                scale = _np.power(10.0, digits[up])
+                out[up] = _np.round(v[up] * scale) / scale
+                p = _np.power(10.0, -digits[~up])
+                out[~up] = _np.round(v[~up] / p) * p
+                vals[nz] = out
+            return series.__class__(vals, index=series.index, name=series.name)
 
 # Keep in sync with pack_results.py: normalize operator-supplied period codes
 # ('A'/'ANNUAL' -> 'Y') and map to a pandas>=3.0-accepted to_period frequency

@@ -69,23 +69,54 @@ def test_env_switch_turns_the_rule_off_and_sets_the_figure_count(monkeypatch):
         P.sig_figs_setting()
 
 
-def test_consolidation_fallback_matches_the_package_helper():
-    """The cluster runs consolidate_sensor_logs.py standalone; its inline fallback must equal the
-    package function bit for bit."""
+def _standalone_consolidate(monkeypatch):
+    """Load consolidate_sensor_logs.py the way the cluster runs it: as a file, with neither the
+    package nor a sibling precision.py importable, so the inline fallback is what executes."""
     import importlib.util
     path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "solver", "app", "modules", "utils", "consolidate_sensor_logs.py")
-    src = open(path).read()
-    start = src.index("except ImportError:")
-    fallback_src = src[start:src.index("\n\n\n", start)]
-    ns = {}
-    exec("import numpy as _np\n" + "\n".join(l[4:] if l.startswith("    ") else l for l in fallback_src.splitlines()[1:]), ns)
-    s = pd.Series([87.6885603185128, 0.0, 0.000123456, 244123.456])
-    assert list(ns["round_series"](s)) == list(round_series(s))
-    os.environ["POWERTWIN_SIG_FIGS"] = "off"
-    try:
-        assert list(ns["round_series"](s)) == list(s) == list(round_series(s))
-    finally:
-        del os.environ["POWERTWIN_SIG_FIGS"]
+    monkeypatch.setitem(sys.modules, "modules.utils.precision", None)
+    monkeypatch.setitem(sys.modules, "precision", None)
+    spec = importlib.util.spec_from_file_location("consolidate_standalone", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+SWEEP = np.concatenate([np.logspace(-6, 12, 3000) * 1.234567891, np.logspace(-6, 12, 3000) * 7.117110254539254,
+                        [711711025.4539254, 123456789.0, 13012615.63, 99995.0, 2.5e-4, 0.12345]])
+
+
+def test_consolidation_fallback_matches_the_package_helper(monkeypatch):
+    """The cluster runs consolidate_sensor_logs.py standalone; its inline fallback must equal the
+    package function bit for bit, including the off switch and a negative setting (review
+    2026-09-20: the old copy zeroed every value for -1 while the package passed them through)."""
+    mod = _standalone_consolidate(monkeypatch)
+    s = pd.Series(np.r_[SWEEP, [0.0, np.nan, 87.6885603185128]])
+    for setting in (None, "3", "6", "off", "-1", "0"):
+        if setting is None:
+            monkeypatch.delenv("POWERTWIN_SIG_FIGS", raising=False)
+        else:
+            monkeypatch.setenv("POWERTWIN_SIG_FIGS", setting)
+        a, b = mod.round_series(s).to_numpy(), round_series(s).to_numpy()
+        assert np.array_equal(a, b, equal_nan=True), f"fallback diverges at POWERTWIN_SIG_FIGS={setting}"
+    monkeypatch.setenv("POWERTWIN_SIG_FIGS", "-1")
+    assert np.array_equal(mod.round_series(s).to_numpy(), s.to_numpy(), equal_nan=True)
+
+
+def test_sig_and_round_series_are_bit_identical_and_noise_free():
+    """Review 2026-09-20: np.power(10.0, -5.0) is not 1e-05, so the old helpers left binary noise
+    (711711025.45 -> 711700000.0000001) and disagreed in the 10**(n+4) decade. Both now round on
+    exact powers: the repr of every result carries at most n significant digits."""
+    for n in (3, 4, 6):
+        scalar = np.array([sig(v, n) for v in SWEEP])
+        vector = round_series(pd.Series(SWEEP), n).to_numpy()
+        assert np.array_equal(scalar, vector), f"scalar/vector mismatch at n={n}"
+        for v in vector.tolist():
+            mant = repr(v).split("e")[0].replace("-", "").replace(".", "").lstrip("0").rstrip("0")
+            assert len(mant) <= n, f"{v!r} carries more than {n} significant digits"
+    assert sig(711711025.4539254) == 711700000.0 and repr(sig(711711025.4539254)) == "711700000.0"
+    assert sig(123456789.0) == 123500000.0
+    assert sig(1e-310) == 1e-310  # below the log10 floor: passed through, no OverflowError
 
 
 def test_scalar_and_vector_agree_on_ties():
