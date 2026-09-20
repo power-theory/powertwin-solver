@@ -74,7 +74,13 @@ test_resolvers:
     - apk add --no-cache -u aws-cli expat
     - *ecr_login
   after_script:
+    # The daemon is the shared runner host's, so every per-commit image a job pushed stayed
+    # behind until someone pruned by hand. Drop this job's own tags (the buildkit cache keeps
+    # the layers for the next build), the dangling images, and bound the cache instead of
+    # emptying it after every job; the keep-storage prune skips records another job is using.
+    - docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -E "\.amazonaws\.com/${CI_PROJECT_NAME}-[a-z]+:(${IMAGE_TAG}|${CI_COMMIT_BRANCH})$" | xargs -r docker image rm -f || true
     - docker image prune -f
+    - docker builder prune -f --keep-storage 20G
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^(dev|main)$/
 
