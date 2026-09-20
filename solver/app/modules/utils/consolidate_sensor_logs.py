@@ -8,6 +8,26 @@ from multiprocessing import Pool, cpu_count
 from pathlib import Path
 import pandas as pd
 
+try:  # inside the solver package
+    from modules.utils.precision import round_series
+except ImportError:  # standalone on the cluster (~/consolidate_sensor_logs.py): identical fallback
+    import numpy as _np
+
+    def round_series(series, n=None):
+        import os as _os
+        raw = (_os.environ.get("POWERTWIN_SIG_FIGS") or "").strip().lower()
+        if n is None:
+            n = 4 if raw == "" else (0 if raw in ("0", "off", "false", "none", "no") else int(raw))
+        if n == 0:
+            return series
+        vals = series.to_numpy(dtype=float, copy=True)
+        nz = _np.isfinite(vals) & (vals != 0.0)
+        if nz.any():
+            mag = _np.floor(_np.log10(_np.abs(vals[nz])))
+            scale = _np.power(10.0, n - 1 - mag)
+            vals[nz] = _np.round(vals[nz] * scale) / scale
+        return series.__class__(vals, index=series.index, name=series.name)
+
 # Keep in sync with pack_results.py: normalize operator-supplied period codes
 # ('A'/'ANNUAL' -> 'Y') and map to a pandas>=3.0-accepted to_period frequency
 # ('H' -> 'h'). Without this, resample='H' or 'A' crashes under pandas 3.0.
@@ -83,6 +103,7 @@ def process_worker(args):
                 if local_tz is not None:
                     df['ts'] = df['ts'].dt.tz_localize(local_tz).dt.tz_convert('UTC').dt.tz_localize(None)
 
+                df['value'] = round_series(df['value'])  # precision contract: 4 significant figures after the sum
                 df['sensor_id'] = sensor_id
                 df['collection_id'] = collection_id
                 df['metadata'] = '{}'

@@ -9,6 +9,7 @@
 
 
 import pandas as pd
+from modules.utils.precision import round_series
 import json
 import csv
 import os
@@ -267,7 +268,9 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
             # (e.g. kBtu to MMBtu, kBtu to Ton-Hr).
             conversion_factor = data_info.get("conversion_factor", 1)
             scaled = sum(clean_df[c] * s for c, s in zip(actual_columns, unit_scales))
-            clean_df['value'] = scaled * conversion_factor
+            # precision contract (Dev/Conventions 2026-09-19): 4 significant figures at every
+            # writer; the raw floats carried ~17 characters of noise per value
+            clean_df['value'] = round_series(scaled * conversion_factor)
             
             # Reorder columns 
             columns_order = ["id", "ts", "value", "metadata"]

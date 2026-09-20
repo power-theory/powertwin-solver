@@ -7,6 +7,7 @@ from glob import glob
 
 # sibling module, not the package: modules/utils/__init__ imports FROM this file (circular)
 from .setup_logger import initialize_logger
+from .precision import round_series
 
 logger = initialize_logger('Pack Results', os.environ.get('POWERTWIN_LOG_DIR'))
 
@@ -145,6 +146,7 @@ def _normalize_rows(rows, resample, start_date_time=None, end_date_time=None):
     if local_tz is not None:
         df['ts'] = df['ts'].dt.tz_localize(local_tz).dt.tz_convert('UTC').dt.tz_localize(None)
 
+    df['value'] = round_series(df['value'])  # precision contract: 4 significant figures after the sum
     return [
         {
             'ts': r.ts.isoformat() if pd.notna(r.ts) else None,
