@@ -14,6 +14,39 @@ logger = initialize_logger('Stop UOSim', external_log_dir)
 # and energyplus binaries.
 SIM_COMMAND_MARKERS = ('uo run', '/bin/uo', 'bundle', 'openstudio', 'energyplus')
 
+# Killing the toolchain alone does not stop a campaign: run_batch marks the killed asset Failed
+# and spawns the next one (review 2026-09-20). A stop therefore also drops a marker into every
+# simulation working directory; the batch loop checks it before each asset. Per-simulation so
+# nothing needs clearing (a new run gets a new directory), and visible to the loky workers.
+STOP_MARKER = '.stop'
+DATA_DIR = os.path.join('data')
+
+
+def stop_marker_path(simulation_dir):
+    return os.path.join(simulation_dir, STOP_MARKER)
+
+
+def stop_requested(simulation_dir) -> bool:
+    return os.path.exists(stop_marker_path(simulation_dir))
+
+
+def request_stop(data_dir=DATA_DIR):
+    """Write the marker into every simulation directory under data_dir; returns the paths."""
+    marked = []
+    if not os.path.isdir(data_dir):
+        return marked
+    for name in os.listdir(data_dir):
+        sim_dir = os.path.join(data_dir, name)
+        if not os.path.isdir(sim_dir):
+            continue
+        try:
+            with open(stop_marker_path(sim_dir), 'w') as fh:
+                fh.write(str(time.time()))
+            marked.append(sim_dir)
+        except OSError as e:
+            logger.warning(f'Could not write stop marker in {sim_dir}: {e}')
+    return marked
+
 ########################################################################################
 # Name: get_processes
 # Description: Function to get the processes
@@ -65,11 +98,15 @@ def kill_processes():
 # Description: Function to stop the simulation
 ########################################################################################
 def stop_UOsimulation():
-    #TODO: temporary solution to stop the simulation
+    """Mark every simulation as stopped, then SIGKILL the toolchain twice five seconds apart
+    (the second sweep catches a process that was mid-spawn). Returns {'killed': pids,
+    'stopped': simulation dirs}."""
+    stopped = request_stop()
     killed = kill_processes()
     time.sleep(5)  # Wait for 5 seconds
     killed += kill_processes()  # Re-call the process killing function
-    return killed
+    # a killed-but-unreaped pid is still listed on the second sweep; report each once
+    return {'killed': sorted(set(killed)), 'stopped': stopped}
 
 if __name__ == '__main__':
     stop_UOsimulation()

@@ -12,6 +12,7 @@ import contextlib
 from flask import request, jsonify, render_template, send_file
 
 from modules.simulation import initialize_uo, create_featurefiles, stop_UOsimulation
+from modules.simulation.stop_UOsim import stop_requested
 from modules.simulation.sim_params_spec import (
     validate_metadata, build_asset_ctx, resolve_default,
     is_dynamic_defaults_enabled,
@@ -478,6 +479,12 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
             initialize_uo(simulation_dir, sim_local_dir, simulation_name)
             write_status(sim_local_dir, 'cleaning_reports', simulation_name=simulation_name)
 
+            if stop_requested(simulation_dir):
+                write_status(sim_local_dir, 'stopped', simulation_name=simulation_name,
+                             error='stopped by request (POST /api/simulation/stop)')
+                logger.info(f"Async simulation stopped by request: {simulation_name}")
+                return
+
             # prepare_record swallows per-asset failures (EnergyPlus fatal, uo process
             # crash, etc.), so an empty cleaned_reports/ is the only signal that the
             # sim didn't actually produce output. Raise so the except below writes
@@ -741,9 +748,9 @@ def stop_simulation():
     # Stop the simulation
     try:
         logger.debug("Stopping the simulation")
-        killed = stop_UOsimulation()
+        outcome = stop_UOsimulation()
 
-        return jsonify({'message': 'Simulation stopped successfully', 'killed': killed}), 200
+        return jsonify({'message': 'Simulation stopped successfully', **outcome}), 200
     except Exception as e:
         logger.error(f"Exception while stopping the simulation: {str(e)}")
         send_error_to_mss('stop_simulation', str(e))

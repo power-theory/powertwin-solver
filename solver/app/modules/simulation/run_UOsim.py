@@ -7,6 +7,7 @@ import json
 import subprocess
 
 from .clean_report import clean_single_report
+from .stop_UOsim import stop_requested
 from modules.utils import initialize_logger, run_command, check_storage
 from modules.utils.command_timer import uo_timeout
 from modules.utils.check_uo import get_urbanopt_command
@@ -336,6 +337,9 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
         # Capture stderr from subprocess errors for Ruby/UrbanOpt diagnostics
         if hasattr(e, 'stderr') and e.stderr:
             error_msg = f"{error_msg}\nSTDERR: {e.stderr[:500]}"
+        if stop_requested(SIMULATION_DIR):
+            # the toolchain was SIGKILLed by /api/simulation/stop; name that, not the -9
+            error_msg = "STOPPED by request"
         logger.error(f"BATCH {batch_num}: Failed to process asset {asset_id}: {error_msg}")
         update_status("Failed", asset_id=asset_id, simulation_name=simulation_name,
                       failure_reason=error_msg[:1000])
@@ -349,7 +353,7 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
 #   have been processed.
 ############################################################################################################
 def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
-    from modules.diagnostics import get_asset_total,get_bulk_assets
+    from modules.diagnostics import get_asset_total, get_bulk_assets, bulk_update_status
     
     # Add synchronization barrier before processing in HPC environment
     if os.environ.get('SLURM_JOB_ID'):
@@ -371,14 +375,22 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
     
     successful = 0
     failed = 0
-    for asset_data in assets:
+    skipped = 0
+    for i, asset_data in enumerate(assets):
+        if stop_requested(SIMULATION_DIR):
+            # leave the rest Not Processed Yet so a recovery run can resume them
+            remaining = [a[0] for a in assets[i:]]
+            bulk_update_status(remaining, "Not Processed Yet", simulation_name)
+            skipped = len(remaining)
+            logger.warning(f"BATCH {batch_num}: stop requested, {skipped} assets left Not Processed Yet")
+            break
         result, asset_id, error = process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simulation_name)
         if result:
             successful += 1
         else:
             failed += 1
     
-    logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed")
+    logger.info(f"BATCH {batch_num}: Completed - {successful} successful, {failed} failed, {skipped} skipped")
     
     # Clean up - delete finished batch (gated by URBANOPT_KEEP_RUN_DIR
     # so test verifiers can inspect in.osw / out.osw / in.idf after a sim).
