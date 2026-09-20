@@ -95,6 +95,13 @@ def read_metadata(metadata_csv):
 
     with open(metadata_csv, 'r') as metadata_file:
         reader = csv.DictReader(metadata_file)
+        # One row per building with a `sensors` map (flow's shape since 2026-09-17). Refuse the
+        # legacy per-sensor shape here, before any weather lookup or uo run: clean_report was the
+        # only guard and it fired after each asset's full simulation (review 2026-09-20).
+        if 'sensors' not in (reader.fieldnames or []):
+            raise ValueError(
+                f"{metadata_csv} has no `sensors` column: legacy per-sensor metadata file; "
+                f"convert it with powertwin-flow tools/compact_metadata.py")
 
         # Read each row in the CSV file to assign building data to its corresponding building ID
         for row in reader:

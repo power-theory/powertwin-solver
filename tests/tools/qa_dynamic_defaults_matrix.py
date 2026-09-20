@@ -38,10 +38,13 @@ import math
 from dataclasses import dataclass, field as dataclass_field
 from typing import Any
 
-REPO = pathlib.Path(__file__).resolve().parent.parent
+# this file lives in tests/tools/, so the repo root is two levels up (parent.parent was tests/,
+# which put the generated fixtures under tests/tests/ and pointed the inspector at a path that
+# never existed; the sibling scorer already used parents[2])
+REPO = pathlib.Path(__file__).resolve().parents[2]
 FIXTURE_DIR = REPO / "tests" / "tools" / "qa_matrix_fixtures"
 SIM_OUTPUT_DIR = REPO / "powertwin_data" / "user_files"
-INSPECTOR_HOST = REPO / "tests" / "qa_dynamic_defaults_matrix_inspect.rb"
+INSPECTOR_HOST = REPO / "tests" / "tools" / "qa_dynamic_defaults_matrix_inspect.rb"
 INSPECTOR_CONTAINER = "/tmp/qa_matrix_inspect.rb"
 CONTAINER = os.environ.get("QA_CONTAINER", "powertwin-solver-flask")
 
@@ -624,16 +627,16 @@ def _generate_metadata(fixture: Fixture, out_dir: pathlib.Path) -> pathlib.Path:
     p = out_dir / f"{fixture.name}_metadata.csv"
     with p.open("w", newline="") as f:
         w = csv.writer(f)
+        # one row per building, sensors as a {sensor_type_id: sensor_id} map (flow's shape since
+        # 2026-09-17; the solver refuses the legacy per-sensor header before any run)
         w.writerow([
-            "sensor_id", "sensor_type_id", "sensor_type_name",
-            "asset_id", "asset_name", "asset_subtype_id",
-            "asset_subtype_name", "asset_metadata",
-            "asset_geometries_properties",
+            "asset_id", "asset_name", "asset_subtype_id", "asset_subtype_name",
+            "sensors", "asset_metadata", "asset_geometries_properties",
         ])
         w.writerow([
-            fixture.asset_id, 1, "Electricity",
             fixture.asset_id, fixture.asset_name,
             fixture.subtype_id, fixture.subtype_name,
+            json.dumps({"1": fixture.asset_id}),
             json.dumps(meta), json.dumps(geom_props),
         ])
     return p

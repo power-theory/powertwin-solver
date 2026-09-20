@@ -266,7 +266,10 @@ def load_metadata(metadata_path: pathlib.Path) -> MetadataIndex:
     sensor_ids: set[int] = set()
     with open(metadata_path, "r") as f:
         for row in csv.DictReader(f):
-            sensor_ids.add(int(row["sensor_id"]))
+            # one row per building; the sensors map holds {sensor_type_id: sensor_id}
+            # (flow's shape since 2026-09-17)
+            for sid in json.loads(row.get("sensors") or "{}").values():
+                sensor_ids.add(int(sid))
             asset_id = int(row["asset_id"])
             asset_name[asset_id] = row["asset_name"]
             try:
