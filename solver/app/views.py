@@ -1,5 +1,6 @@
 import shutil
 import os
+import re
 import json
 import datetime
 import csv
@@ -29,6 +30,33 @@ logger = initialize_logger('Views', external_log_dir)
 
 # Define the output directory for the simulation files
 DATA_DIR = os.path.join('data')
+
+# A simulation_name is exactly one path component under DATA_DIR and LOCAL_DIR. Every
+# route that takes one joined it unvalidated, and Flask's default converter lets a bare
+# '..' through (only a slash is refused), so DELETE /api/simulation/delete/.. removed
+# the parent of both roots: the whole user_files volume and /solver/app under the
+# running server (proven in a throwaway container 2026-09-20). start/autorun took any
+# string, including '../../tmp/x'. Same character class the db listener and the cluster
+# scripts already produce (asset_<id>_<ts>, natv3b, qa_matrix_<fx>_<arm>).
+_SIM_NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,254}$')
+
+
+def _valid_sim_name(name) -> bool:
+    if not isinstance(name, str) or not _SIM_NAME_RE.fullmatch(name):
+        return False
+    for root in (DATA_DIR, os.path.join('powertwin-solver-pg', 'user_files')):
+        real_root = os.path.realpath(root)
+        if not os.path.realpath(os.path.join(root, name)).startswith(real_root + os.sep):
+            return False
+    return True
+
+
+def _reject_sim_name(name):
+    """Response tuple for an invalid simulation_name, else None."""
+    if _valid_sim_name(name):
+        return None
+    logger.error(f"Invalid simulation_name rejected: {name!r}")
+    return jsonify({'error': 'Invalid simulation_name'}), 400
 
 # Reporting-frequency translation: user-facing labels ↔ urbanopt natives.
 # Loaded once at import; the file lives alongside the other upload/ defaults.
@@ -196,6 +224,9 @@ def start_simulation():
     if not ASSET_GEOJSON or not METADATA_CSV or not simulation_name or num_cores <= 0:
         logger.error("Error: missing or invalid parameter.")
         return jsonify({'error': 'missing or invalid parameter'}), 400
+    bad_name = _reject_sim_name(simulation_name)
+    if bad_name is not None:
+        return bad_name
     
     # HPC mode validation
     if is_hpc and not shared_storage:
@@ -257,6 +288,10 @@ def start_simulation():
 ############################################################################################################
 # Name: def _check_api_token()
 # Description: Reject requests without the shared service token (API_SOLVER_TOKEN).
+# Clients send it as the 'api-token' header (the db listener does). Werkzeug 3.1 drops header
+# names containing an underscore before the app sees them, so a literal 'api_token' header
+# is a silent 403; the lookup below is spelled with the underscore only because Werkzeug
+# normalizes both spellings to the same key on the server side.
 # Fails closed: if the env var is unset on this Flask process, every request is rejected with 500
 # (operator misconfig — surfaces in monitoring rather than silently authorizing all traffic).
 # Returns a Flask response tuple to short-circuit the handler, or None when authorized.
@@ -350,6 +385,10 @@ def process_asset_update():
         asset_id = str(metadata_json[0].get('asset_id', 'unknown'))
         timestamp = started_at.strftime('%Y%m%d_%H%M%S_%f')
         simulation_name = f"asset_{asset_id}_{timestamp}"
+        # asset_id comes from the JSON body and is joined into two roots below.
+        bad_name = _reject_sim_name(simulation_name)
+        if bad_name is not None:
+            return bad_name
 
         # Validate programmable sim params (enum membership) before doing any
         # filesystem work. metadata_json[0].asset_metadata is the JSONB blob the
@@ -622,6 +661,9 @@ def autorun_simulation():
     if not simulation_name or not asset_geojson_path or not metadata_csv_path or num_cores <= 0:
         logger.error("Error: Missing required fields in simulation.json")
         return jsonify({'error': 'Missing required fields in simulation.json'}), 400
+    bad_name = _reject_sim_name(simulation_name)
+    if bad_name is not None:
+        return bad_name
 
     # Define and create Simulation directory (container) and Local directory (saved on host)
     # Local directory stores all necessary files for recovery and completed asset files
@@ -686,16 +728,22 @@ def autorun_simulation():
 # Name: def stop_simulation()
 # Description: This function stops the UrbanOpt simulation.
 # Calls the stop_UOsimulation function to aggressively stop the simulation.
-# WARNING: KILLS ALL PIDS WITHIN THE CONTAINER BESIDES ANY WITH app.py
+# WARNING: SIGKILLs every urbanopt/openstudio/energyplus process in the container, so every
+# in-flight simulation here dies, not one. Token-gated: before 2026-09-20 an unauthenticated
+# POST also killed the Werkzeug worker (the old filter spared 'app.py', the server is run.py)
+# and the container exited.
 ############################################################################################################
 def stop_simulation():
     logger.debug("Within stop_simulation()")
+    auth_err = _check_api_token()
+    if auth_err is not None:
+        return auth_err
     # Stop the simulation
     try:
         logger.debug("Stopping the simulation")
-        stop_UOsimulation()
+        killed = stop_UOsimulation()
 
-        return jsonify({'message': 'Simulation stopped successfully'}), 200
+        return jsonify({'message': 'Simulation stopped successfully', 'killed': killed}), 200
     except Exception as e:
         logger.error(f"Exception while stopping the simulation: {str(e)}")
         send_error_to_mss('stop_simulation', str(e))
@@ -717,6 +765,9 @@ def get_simulation_status(simulation_name):
     if simulation_name is None:
         logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
+    bad_name = _reject_sim_name(simulation_name)
+    if bad_name is not None:
+        return bad_name
     
     # Prefer the status.json the async worker writes after each phase.
     sim_local_dir = os.path.join('powertwin-solver-pg', 'user_files', simulation_name)
@@ -764,6 +815,9 @@ def delete_simulation(simulation_name):
     if simulation_name is None:
         logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
+    bad_name = _reject_sim_name(simulation_name)
+    if bad_name is not None:
+        return bad_name
 
     SIMULATION_DIR = os.path.join(DATA_DIR, simulation_name)
     LOCAL_DIR_SIM = os.path.join('powertwin-solver-pg', 'user_files', simulation_name)
@@ -813,6 +867,9 @@ def get_asset_config(simulation_name, asset_id):
     if not asset_id or not simulation_name:
         logger.error("Error: Asset ID and Simulation Name are required")
         return jsonify({'error': 'Asset ID and Simulation Name are required'}), 400
+    bad_name = _reject_sim_name(simulation_name)
+    if bad_name is not None:
+        return bad_name
            
     try:
         # Search to see if user_files directory exists, so that we can search for the feature file.
@@ -959,6 +1016,10 @@ def recovery():
     if not recover_simulation_name:
         logger.error("Error: Recover simulation name is required.")
         return jsonify({'error': 'Recover simulation name is required.'}), 400
+    for simulation_name in (corrupted_simulation_name, recover_simulation_name):
+        bad_name = _reject_sim_name(simulation_name)
+        if bad_name is not None:
+            return bad_name
     
     # TODO: Set as global variable for consistency across all LOCAL_DIR references 
     LOCAL_DIR = os.path.join('powertwin-solver-pg', 'user_files')
@@ -1164,6 +1225,9 @@ def get_simulation_results(simulation_name):
         return auth_err
     if simulation_name is None:
         return jsonify({'error': 'Simulation name is required.'}), 400
+    bad_name = _reject_sim_name(simulation_name)
+    if bad_name is not None:
+        return bad_name
     sim_local_dir = os.path.join('powertwin-solver-pg', 'user_files', simulation_name)
     results_path = os.path.join(sim_local_dir, 'results.json')
     if not os.path.isfile(results_path):

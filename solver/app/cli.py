@@ -3,6 +3,13 @@ import requests
 import os
 from modules.utils.hpc_environment import is_hpc_environment
 
+
+def _token_header():
+    """delete and stop are token-gated; the header must be 'api-token' (Werkzeug 3.1 drops
+    header names containing an underscore at the wire, so 'api_token' silently 403s)."""
+    token = os.environ.get('API_SOLVER_TOKEN', '')
+    return {'api-token': token} if token else {}
+
 def start_simulation(args):
     # Use centralized HPC detection
     is_hpc = is_hpc_environment()
@@ -48,7 +55,7 @@ def get_simulation_status(args):
 
 def delete_simulation(args):
     url = f"http://localhost:8080/api/simulation/delete/{args.simulation_name}"
-    response = requests.get(url)
+    response = requests.delete(url, headers=_token_header())
     if response.status_code == 200:
         print("delete_simulation function worked")
     else:
@@ -60,7 +67,7 @@ def delete_simulation(args):
 
 def stop_simulation(args):
     url = "http://localhost:8080/api/simulation/stop"
-    response = requests.post(url)
+    response = requests.post(url, headers=_token_header())
     if response.status_code == 200:
         print("stop_simulation function worked")
     else:

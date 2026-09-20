@@ -128,10 +128,15 @@ def run_parallel_batches(batch_range, simulation_dir, local_dir, simulation_name
                 f"Node {node_name} (ID {node_id}): Assigned batches {node_start}-{node_end-1} "
                 f"({len(node_batches)} total of {total_batches})"
             )
+        elif num_nodes > 1:
+            # SLURM_NODEID is set by srun, not by a bare sbatch step. The old fallback gave
+            # every node every batch with only a warning: an N-node job did the whole run N
+            # times over (proven in-process 2026-09-20). Refuse instead.
+            raise RuntimeError(
+                f"Node {node_name}: SLURM_JOB_NUM_NODES={num_nodes} but SLURM_NODEID is unset; "
+                f"launch run-parallel-batches through srun so each node gets its own batch slice")
         else:
-            # Fallback: assign all batches if node_id detection failed
             node_batches = batch_range
-            logger.warning(f"Node {node_name}: Could not determine node_id, processing all batches")
 
         # CRITICAL: Initialize node-specific database WITH assigned batches BEFORE any database operations
         from modules.database.sqlite_manager import get_sqlite_manager

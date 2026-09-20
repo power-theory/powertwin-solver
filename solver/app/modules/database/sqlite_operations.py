@@ -176,6 +176,9 @@ def _rekey_if_needed(conn, table_name):
             logger.warning(f"Rekey drops columns absent from the current schema: {dropped}")
         names = ', '.join(c['name'] for c in cols if c['name'] in kept)
         # NULL simulation_name cannot enter the key and no run can ever match it.
+        orphans = conn.execute(f"SELECT COUNT(*) FROM {old} WHERE simulation_name IS NULL").fetchone()[0]
+        if orphans:
+            logger.warning(f"Rekey drops {orphans} rows with NULL simulation_name")
         conn.execute(f"INSERT INTO {table_name} ({names}) SELECT {names}"
                      f" FROM {old} WHERE simulation_name IS NOT NULL")
         conn.execute(f"DROP TABLE {old}")
@@ -396,11 +399,15 @@ def bulk_update_status(asset_ids: List[int], status: str, simulation_name: str) 
         updated = cur.rowcount if cur.rowcount is not None and cur.rowcount >= 0 else 0
         # Report REAL success like postgres (Q/A D-05): the constant True let recover_UOsim
         # believe a bulk update that matched zero rows had worked.
-        if updated != len(asset_ids) and status != 'Not Processed Yet':
-            logger.error(
-                f"bulk_update_status matched {updated}/{len(asset_ids)} assets for '{status}' "
-                f"in {simulation_name}")
-            return False
+        if updated != len(asset_ids):
+            if status != 'Not Processed Yet':
+                logger.error(
+                    f"bulk_update_status matched {updated}/{len(asset_ids)} assets for '{status}' "
+                    f"in {simulation_name}")
+                return False
+            logger.info(
+                f"bulk_update_status reset {updated}/{len(asset_ids)} assets in {simulation_name}; "
+                f"{len(asset_ids) - updated} already Finished and kept")
         logger.info(f"Successfully updated status to '{status}' for {updated} assets")
         return True
         
