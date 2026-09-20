@@ -559,17 +559,29 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
 def convert_metadata_to_csv(metadata_json):
     """Convert the per-sensor JSON rows the API sends into the metadata CSV the pipeline reads:
     one row per building with a `sensors` {sensor_type_id: sensor_id} column (flow's shape
-    since 2026-09-17; the asset's metadata used to be repeated on every sensor row)."""
+    since 2026-09-17; the asset's metadata used to be repeated on every sensor row). A building
+    is an (asset, geometry) pair: the listener joins every footprint of the asset with every
+    sensor, and generateFeatureFile keys on asset_geometries_properties.id, so an asset with
+    several footprints keeps one row per footprint with the full sensors map on each (grouping
+    by asset alone simulated one footprint of a campus asset and reported the asset as done)."""
     if not metadata_json:
         return ""
     headers = ['asset_id', 'asset_name', 'asset_subtype_id', 'sensors', 'asset_metadata', 'asset_geometries_properties']
-    by_asset = {}
+    sensors_by_asset = {}
+    by_building = {}
     for row in metadata_json:
         aid = str(row.get('asset_id', ''))
-        entry = by_asset.setdefault(aid, {'row': row, 'sensors': {}})
+        props = row.get('asset_geometries_properties') or {}
+        if isinstance(props, str):
+            try:
+                props = json.loads(props)
+            except ValueError:
+                props = {}
+        gid = str(props.get('id', '') if isinstance(props, dict) else '')
+        by_building.setdefault((aid, gid), row)
         st, sid = row.get('sensor_type_id'), row.get('sensor_id')
         if st not in (None, '') and sid not in (None, ''):
-            entry['sensors'][str(st)] = sid
+            sensors_by_asset.setdefault(aid, {})[str(st)] = sid
 
     def q(v):
         return '"' + str(v).replace('"', '""') + '"'
@@ -578,11 +590,10 @@ def convert_metadata_to_csv(metadata_json):
         return q(v if isinstance(v, str) else json.dumps(v))
 
     csv_lines = [','.join(headers)]
-    for aid, entry in by_asset.items():
-        row = entry['row']
+    for (aid, _gid), row in by_building.items():
         csv_lines.append(','.join([
             aid, q(row.get('asset_name', '')), str(row.get('asset_subtype_id', '')),
-            js(entry['sensors']), js(row.get('asset_metadata', {})), js(row.get('asset_geometries_properties', {})),
+            js(sensors_by_asset.get(aid, {})), js(row.get('asset_metadata', {})), js(row.get('asset_geometries_properties', {})),
         ]))
     return '\n'.join(csv_lines)
 ############################################################################################################
