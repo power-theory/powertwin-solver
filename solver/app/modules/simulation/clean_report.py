@@ -153,29 +153,23 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
     UNCLEAN_REPORT_CSV = os.path.join(SIMULATION_DIR, asset_id, "feature_reports", "default_feature_report.csv")
     ASSET_DIR = os.path.join(SIMULATION_DIR, asset_id)
     LOCAL_ASSET_DIR = os.path.join(LOCAL_BATCH_SIMULATION_DIR, asset_id)
-    
-    if ASSET_DIR is None:
-        logger.error(f"No asset directory found for asset id: {asset_id}")
-        return
-    
-    if UNCLEAN_REPORT_CSV is None:
-        logger.error(f"No unclean report CSV file found for asset id: {asset_id}")
-        return
-        
+
     sensor_id_list = {}
-    
+
+    # One row per building; `sensors` holds {sensor_type_id: sensor_id} (flow's shape since
+    # 2026-09-17). A legacy per-sensor file must be converted first (flow tools/compact_metadata.py).
     with open(METADATA_CSV, 'r') as metadata_file:
         reader = csv.DictReader(metadata_file)
+        if 'sensors' not in (reader.fieldnames or []):
+            logger.error(f"{METADATA_CSV} has no `sensors` column: legacy per-sensor metadata file; "
+                         f"convert it with powertwin-flow tools/compact_metadata.py")
+            return False
         for row in reader:
-            asset_geometries_properties = json.loads(row['asset_geometries_properties'])  
-
-            if str(asset_id) != str(asset_geometries_properties.get('id')):
+            if str(asset_id) != str(json.loads(row['asset_geometries_properties']).get('id') or row.get('asset_id')):
                 continue
-            
-            sensor_id =  row['sensor_id']
-            sensor_type_id = int(row['sensor_type_id'])
-            
-            sensor_id_list[sensor_type_id] = sensor_id
+            for st, sid in (json.loads(row['sensors'] or '{}')).items():
+                sensor_id_list[int(st)] = str(sid)
+            break
     
     # Read the CSV file into a DataFrame
     df = pd.read_csv(UNCLEAN_REPORT_CSV)

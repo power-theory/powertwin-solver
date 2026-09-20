@@ -19,7 +19,7 @@ To begin a simulation there are 2 required files: the GeoJSON (geometry) and the
 
 **GeoJSON** — each feature needs the polygon geometry plus `id` and `asset_id` (`floor_count`/`height` optional; `floor_count` defaults to 1).
 
-**Metadata CSV** — the per-building `asset_metadata` JSON drives the simulation defaults. Fields fall in three tiers:
+**Metadata CSV** — one row per building: `asset_id, asset_name, asset_subtype_id, sensors, asset_metadata, asset_geometries_properties`, where `sensors` is a JSON map `{sensor_type_id: sensor_id}` (flow's shape since 2026-09-17; the legacy one-row-per-sensor file, which repeated the asset JSON on every sensor row, is refused by the readers and is converted in place by flow's `tools/compact_metadata.py`). The per-building `asset_metadata` JSON drives the simulation defaults. Fields fall in three tiers:
 
 - **Required to simulate** (a building missing any of these is excluded and marked Failed): `area` (conditioned floor area, ft²) and `latitude` + `longitude` (used to assign the weather station).
 - **Required for accurate, unbiased defaults** (missing these silently falls back to flat national averages):

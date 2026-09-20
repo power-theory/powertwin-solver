@@ -97,10 +97,9 @@ def emit(subtype_id, subtype_name, area, floors, leaves, *, state=None, lat=None
             "asset_geometries_properties": json.dumps(
                 {"id": bid, "base": 0, "name": label, "height": floors * 3.5,
                  "asset_id": bid, "floor_count": floors})}
-    # one row per declared sensor (sensor_id unique per building x sensor; asset_id shared)
-    for stid, sname in SENSORS:
-        rows.append({"sensor_id": bid * 100 + stid, "sensor_type_id": stid,
-                     "sensor_type_name": sname, **base})
+    # one row per building; the declared sensors ride in the `sensors` map (sensor_id unique per
+    # building x sensor type, the same ids as before: bid * 100 + sensor_type_id)
+    rows.append({**base, "sensors": json.dumps({str(stid): bid * 100 + stid for stid, _ in SENSORS})})
     manifest[str(bid)] = leaves
 
 
