@@ -497,3 +497,11 @@ dynamic-default arm remains nationally more defensible.
 - Enhance status monitoring for parallel operations
 - Balance resource allocation for multi-batch simulations
 
+
+## License
+
+Apache License, Version 2.0 (see `LICENSE`). Copyright 2023-2026 Power Theory Inc. Redistributions
+must carry the `NOTICE` file, which credits the URBANopt, OpenStudio, EnergyPlus, ResStock and
+ComStock components vendored or transcribed here under their BSD-style licenses. Building-stock data
+processed by the solver carries its own terms (ODbL for OpenStreetMap and Overture derivatives); see
+the powertwin-flow project.

@@ -1,0 +1,47 @@
+PowerTwin Solver
+Copyright 2023-2026 Power Theory Inc.
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+Redistributions of this product, in source or binary form, must reproduce this
+NOTICE file (Apache License section 4(d)) and retain the third-party notices below.
+
+This product includes software and data developed by third parties:
+
+* URBANopt (tm), Copyright (c) Alliance for Sustainable Energy, LLC.
+  BSD-3-Clause style license, https://github.com/urbanopt/urbanopt-cli/blob/develop/LICENSE.md
+  Vendored and modified in solver/upload/PowerTwin.rb, solver/upload/powertwin_refs.rb and
+  solver/upload/measures/.
+
+* OpenStudio (r) and openstudio-standards, Copyright (c) Alliance for Sustainable Energy, LLC.
+  BSD-3-Clause style license, https://github.com/NREL/OpenStudio/blob/develop/LICENSE.md
+  Measures vendored under solver/upload/measures/; operating schedules and people densities
+  transcribed into solver/upload/reference_data/openstudio_standards_*.json.
+
+* EnergyPlus (tm), Copyright (c) The Regents of the University of California, through Lawrence
+  Berkeley National Laboratory, and others. BSD-3-Clause style license,
+  https://github.com/NREL/EnergyPlus/blob/develop/LICENSE.txt. Run inside the container image.
+
+* ResStock (tm), Copyright (c) 2016-2026, Alliance for Energy Innovation, LLC (formerly Alliance
+  for Sustainable Energy, LLC). BSD-3-Clause style license,
+  https://github.com/NREL/resstock/blob/develop/LICENSE.md
+  County priors transcribed from the ResStock 2024.2 baseline into
+  solver/upload/reference_data/resstock2024_county_*.json.gz.
+
+* ComStock (tm), Copyright (c) 2025 Alliance for Sustainable Energy, LLC.
+  BSD-3-Clause style license, https://github.com/NREL/comstock/blob/main/LICENSE.txt
+  County priors transcribed from ComStock 2024 R1 into
+  solver/upload/reference_data/comstock2024_county_*.json.gz.
+
+Modified versions of this product must not be described as URBANopt, OpenStudio, EnergyPlus,
+ResStock or ComStock, and the names of the Alliance for Sustainable Energy, the Alliance for
+Energy Innovation, the National Renewable Energy Laboratory, the U.S. Department of Energy or the
+U.S. Government may not be used to endorse or promote products derived from this software without
+prior written permission.
+
+Public-domain U.S. Government data transcribed into solver/upload/reference_data/ (no license
+terms, credit requested): RECS 2020 and CBECS 2018 (U.S. Energy Information Administration),
+American Community Survey 2022 (U.S. Census Bureau).
+
+Building-stock inputs processed by this solver may derive from OpenStreetMap and Overture Maps
+data under the Open Database License (ODbL); attribution obligations for that data attach to the
+datasets and exports, not to this software. See the powertwin-flow project.

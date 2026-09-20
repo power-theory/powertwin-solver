@@ -44,3 +44,20 @@ def test_bare_python_invocation_stays_inert_and_documented():
                         capture_output=True, text=True, cwd=REPO)
     n = len([l for l in r2.stdout.splitlines() if "::" in l])
     assert n >= 40, f"pytest collects {n} resolver tests; expected the full suite (>=40)"
+
+
+def test_license_and_notice_ship_inside_the_image_context():
+    """The solver is Apache-2.0 (2026-09-18); section 4(d) requires the NOTICE file in every
+    redistribution, including the ECR image and the cluster SIF. The image builds from ./solver, so
+    the root LICENSE and NOTICE cannot reach it; solver/ carries byte-identical copies and this pins
+    them together so an edit to one cannot drift from the other."""
+    for name in ("LICENSE", "NOTICE"):
+        root = os.path.join(REPO, name)
+        inner = os.path.join(REPO, "solver", name)
+        if not os.path.exists(root):
+            import pytest
+            pytest.skip(f"no root {name} here (staged container copy)")
+        assert os.path.exists(inner), f"solver/{name} missing: copy the root file into the image context"
+        assert open(root, "rb").read() == open(inner, "rb").read(), f"solver/{name} differs from the root {name}"
+    assert "Apache License" in open(os.path.join(REPO, "LICENSE")).read()
+    assert "Power Theory" in open(os.path.join(REPO, "NOTICE")).read()
