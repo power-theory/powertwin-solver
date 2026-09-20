@@ -75,10 +75,15 @@ test_resolvers:
     - *ecr_login
   after_script:
     # The daemon is the shared runner host's, so every per-commit image a job pushed stayed
-    # behind until someone pruned by hand. Drop this job's own tags (the buildkit cache keeps
-    # the layers for the next build), the dangling images, and bound the cache instead of
-    # emptying it after every job; the keep-storage prune skips records another job is using.
-    - docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -E "\.amazonaws\.com/${CI_PROJECT_NAME}-[a-z]+:(${IMAGE_TAG}|${CI_COMMIT_BRANCH})$" | xargs -r docker image rm -f || true
+    # behind until someone pruned by hand. Drop only THIS job's per-commit tag (IMAGE_NAME is
+    # set per job; the three build jobs run concurrently on one daemon, and a pattern over
+    # sibling names untagged flask's image mid-push), never the branch tag, which the next
+    # build retags (a concurrent same-branch pipeline may still be pushing it). after_script
+    # runs in its own shell, so ECR_REGISTRY from before_script is not available: match the
+    # registry part loosely and the name and tag exactly. The buildkit cache keeps the layers;
+    # prune dangling images and bound the cache instead of emptying it after every job; the
+    # keep-storage prune skips records another job is using.
+    - docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -E "^[^/]+/${CI_PROJECT_NAME}-${IMAGE_NAME}:${IMAGE_TAG}$" | xargs -r docker image rm -f || true
     - docker image prune -f
     - docker builder prune -f --keep-storage 20G
   rules:
@@ -86,6 +91,8 @@ test_resolvers:
 
 build_flask:
   extends: .build_template
+  variables:
+    IMAGE_NAME: flask
   script:
     # Refuse to build an image without the county tables (the resolver would silently
     # fall back to division-level priors while still stamping the county resolver version).
@@ -97,6 +104,8 @@ build_flask:
 
 build_pgbouncer:
   extends: .build_template
+  variables:
+    IMAGE_NAME: pgbouncer
   script:
     - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-pgbouncer:${IMAGE_TAG}
         -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-pgbouncer:${CI_COMMIT_BRANCH}
@@ -105,6 +114,8 @@ build_pgbouncer:
 
 build_mss:
   extends: .build_template
+  variables:
+    IMAGE_NAME: mss
   script:
     - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-mss:${IMAGE_TAG}
         -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-mss:${CI_COMMIT_BRANCH}

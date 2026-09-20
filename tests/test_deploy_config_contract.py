@@ -80,3 +80,22 @@ def test_flask_healthcheck_is_real():
     assert "exit 0" not in DEV.split("healthcheck", 1)[1].split("restart", 1)[0], (
         "flask healthcheck is unconditionally healthy"
     )
+
+
+def test_build_cleanup_targets_only_the_jobs_own_per_commit_image():
+    # Review 2026-09-20: the after_script in the shared build template matched every sibling
+    # image (flask, pgbouncer, mss run concurrently on one daemon) and the branch tag, so a fast
+    # sibling untagged flask's image mid-push and a concurrent pipeline lost its :dev.
+    import re
+    import yaml
+    ci = yaml.safe_load(open(os.path.join(REPO, ".gitlab-ci.yml")))
+    after = "\n".join(ci[".build_template"]["after_script"])
+    assert "${IMAGE_NAME}" in after and "[a-z]+" not in after and "CI_COMMIT_BRANCH" not in after
+    for job in ("build_flask", "build_pgbouncer", "build_mss"):
+        assert ci[job]["variables"]["IMAGE_NAME"] == job.split("_", 1)[1]
+    # the pattern, rendered for flask, must not match its siblings or the branch tag
+    pat = re.search(r'grep -E "([^"]+)"', after).group(1)
+    pat = pat.replace("${CI_PROJECT_NAME}", "powertwin-solver").replace("${IMAGE_NAME}", "flask").replace("${IMAGE_TAG}", "abc123")
+    assert re.search(pat, "1.dkr.ecr.us-west-2.amazonaws.com/powertwin-solver-flask:abc123")
+    for other in ("powertwin-solver-pgbouncer:abc123", "powertwin-solver-mss:abc123", "powertwin-solver-flask:dev"):
+        assert not re.search(pat, "1.dkr.ecr.us-west-2.amazonaws.com/" + other), other
