@@ -32,7 +32,8 @@ test_resolvers:
   script:
     # mpi4py (in solver/requirements) has no slim-image wheel; build it against a real MPI toolchain
     - apt-get update && apt-get install -y --no-install-recommends gcc libopenmpi-dev
-    - pip install -r solver/requirements.txt pytest --quiet
+    # pyyaml is for the deploy config contract tests, which read .gitlab-ci.yml and the compose files
+    - pip install -r solver/requirements.txt pytest pyyaml --quiet
     # Install the app package too, so the test env matches the container (Dockerfile
     # runs `pip install -e ./app`): its setup.py is the single source of truth for
     # app-level deps like requests, which modules.utils imports at collection time.
