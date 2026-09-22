@@ -14,7 +14,7 @@ import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
-from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref
+from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref, ENUM_VALUES, NUMERIC_RANGES, TIME_FIELDS
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
@@ -31,6 +31,18 @@ with open(ASSET_SUBTYPES_CSV, 'r') as f:
         }
 
 DEFAULT_SUBTYPE_ID = 4  # Single-Family
+
+# Programmable params whose explicit presence the feature file reports (see explicit_params).
+_EXPLICIT_PARAM_KEYS = tuple(sorted(set(ENUM_VALUES) | set(NUMERIC_RANGES) | set(TIME_FIELDS)))
+
+
+def _coerce_like(raw, resolved):
+    """Compare a raw metadata value with what get_param returned for it: numbers as floats,
+    everything else as stripped strings, so '19.25' == 19.25 and 'heat_pump' == 'heat_pump'."""
+    try:
+        return float(raw) if isinstance(resolved, (int, float)) and not isinstance(resolved, bool) else str(raw).strip()
+    except (TypeError, ValueError):
+        return str(raw).strip()
 
 # Dwelling-unit count per original subtype id (effective_id remapping resolved
 # upstream). Used as the per-unit denominator for BOTH the occupants resolver
@@ -449,6 +461,16 @@ def process_feature(feature, building_area_list, building_type_list, building_na
 
     new_properties["resolver_version"] = RESOLVER_VERSION
     new_properties["dynamic_defaults"] = is_dynamic_defaults_enabled()
+    # Provenance for the mapper (asset 448523 review, 2026-09-21): which programmable params the
+    # metadata supplied (and get_param accepted) versus resolved defaults, and whether this
+    # feature is a scenario fan-out variant (carries stochastic_seed_id). PowerTwin.rb treats an
+    # explicit heat pump on a non-variant as current equipment; a variant keeps the vintage rule so
+    # the lever delta the surrogate learns is the equipment type alone.
+    new_properties["explicit_params"] = sorted(
+        k for k in _EXPLICIT_PARAM_KEYS
+        if asset_metadata.get(k) not in (None, '')
+        and get_param(asset_metadata, k, ctx) == _coerce_like(asset_metadata.get(k), get_param(asset_metadata, k, ctx)))
+    new_properties["scenario_variant"] = asset_metadata.get('stochastic_seed_id') not in (None, '')
     if ctx.get('region'):
         new_properties["region"] = ctx['region']
 

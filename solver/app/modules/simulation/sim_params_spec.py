@@ -25,6 +25,8 @@ import json
 import logging
 import math
 import os
+import csv
+import functools
 import re
 import time
 import urllib.request
@@ -178,7 +180,7 @@ _TIME_RE = re.compile(r'^([01]\d|2[0-3]):[0-5]\d$')
 # HPXML duct-location literals (BuildResidentialHPXML choice list); the resolver maps
 # ResStock's six location labels onto these at draw time (CR WP-R1).
 HEATING_EQUIPMENT_DETAILS = ('Furnace', 'WallFurnace', 'Boiler', 'ElectricResistance',
-                             'air-to-air', 'mini-split')
+                             'air-to-air', 'mini-split', 'ground-to-air')
 
 DUCT_LOCATIONS = ('conditioned space', 'attic', 'crawlspace',
                   'basement - conditioned', 'basement - unconditioned', 'garage')
@@ -370,7 +372,7 @@ ENUM_VALUES = {
         # heating_system_type/fuel via the HPXML path instead.
     },
     'heating_system_type':             {'heat_pump', 'furnace', 'boiler', 'electric_resistance', 'wood_stove'},
-    'heating_equipment_detail':        {'Furnace', 'WallFurnace', 'Boiler', 'ElectricResistance', 'air-to-air', 'mini-split'},
+    'heating_equipment_detail':        {'Furnace', 'WallFurnace', 'Boiler', 'ElectricResistance', 'air-to-air', 'mini-split', 'ground-to-air'},
     'heating_has_ducts':               {'Yes', 'No'},
     'water_heater_type':               {'storage water heater', 'instantaneous water heater', 'heat pump water heater'},
     # urbanopt's heating_system_fuel_type enum (5 values). cooling_* and SWH_*
@@ -662,6 +664,30 @@ def _normalize_county_fips(value) -> str | None:
     return str(value).split('.')[0].zfill(5)
 
 
+@functools.lru_cache(maxsize=1)
+def _subtype_effective_names() -> dict:
+    """Subtype label -> the label of its effective_id row, from upload/asset_subtypes.csv
+    ('Single-Family' -> 'Single-Family Detached', 'Multifamily (2 to 4 units)' -> 'Multifamily')."""
+    path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'upload', 'asset_subtypes.csv')
+    rows = {}
+    with open(path) as fh:
+        for row in csv.DictReader(fh):
+            rows[int(row['id'])] = row
+    return {r['name']: rows[int(r['effective_id'])]['name'] for r in rows.values() if int(r['effective_id']) in rows}
+
+
+def _effective_building_type(bt):
+    """Normalise a subtype label through the effective_id remap so every caller resolves the
+    same building type generateFeatureFile simulates. The modal's defaults preview passed the raw
+    label ('Single-Family', id 4) straight in; it is not in RESIDENTIAL_BUILDING_TYPES, so every
+    residential resolver took the non-residential path and the hints showed natural gas and no
+    system type while the simulation (remapped to 'Single-Family Detached') was right
+    (asset 448523 review, 2026-09-21). Unknown labels pass through unchanged."""
+    if not isinstance(bt, str):
+        return bt
+    return _subtype_effective_names().get(bt, bt)
+
+
 def build_asset_ctx(metadata: dict, building_type: str | None = None,
                     climate_zone: str | None = None,
                     building_id: str | None = None) -> dict:
@@ -689,7 +715,7 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
     refs = _load_ref('census_regions')
     region = refs['state_to_region'].get(state) if state else None
     division = refs.get('state_to_division', {}).get(state) if state else None
-    bt = building_type if building_type is not None else metadata.get('building_type')
+    bt = _effective_building_type(building_type if building_type is not None else metadata.get('building_type'))
     cz = climate_zone if climate_zone is not None else metadata.get('climate_zone')
     # Scenario fan-out and version-matched A/B (2026-09-19): a metadata `stochastic_seed_id`
     # declares whose draws this asset shares. Every share-weighted draw hashes on the ctx
@@ -2239,8 +2265,9 @@ def resolve_default(field: str, ctx: dict):
                 return (detail or hp, f"county_{hd['tier']}")
             return (None, None)
         if field == 'heating_has_ducts':
-            if ctx.get('heating_system_type') in ENUM_VALUES.get('heating_system_type', set()):
-                return (None, None)
+            # The duct truth describes the HOUSE, not the equipment, so it is served even when the
+            # system type is explicit: an explicit heat pump on a ductless house builds as a
+            # mini-split instead of inheriting a new duct run (asset 448523 review, 2026-09-21).
             hd = _heating_donor(ctx)
             if hd:
                 return (hd['donor'].get('in.hvac_has_ducts'), f"county_{hd['tier']}")

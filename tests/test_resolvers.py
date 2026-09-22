@@ -2162,3 +2162,29 @@ def test_2020_plus_vintage():
 # ============================================================
 # Run via `pytest tests/test_resolvers.py`. Each test_* function is enforced by the
 # autouse _enforce_checks fixture above (no standalone __main__ runner).
+
+
+def test_subtype_label_normalises_to_effective_building_type():
+    # Asset 448523 review (2026-09-21): the defaults preview passed the raw subtype label
+    # ('Single-Family', id 4) into build_asset_ctx; it is not in RESIDENTIAL_BUILDING_TYPES so the
+    # hints took the non-residential path while the sim (effective_id remap) was right.
+    md = {"county_fips": "56039", "year_built": 1988, "area": 7226, "floor_count": 2}
+    raw = build_asset_ctx(md, building_type="Single-Family")
+    eff = build_asset_ctx(md, building_type="Single-Family Detached")
+    assert raw["building_type"] == "Single-Family Detached"
+    assert build_asset_ctx(md, building_type="Multifamily (2 to 4 units)")["building_type"] == "Multifamily"
+    assert build_asset_ctx(md, building_type="Office")["building_type"] == "Office"
+    for f in ("heating_system_type", "heating_system_fuel_type", "heating_equipment_detail", "heating_has_ducts"):
+        assert resolve_default(f, raw) == resolve_default(f, eff), f
+
+
+def test_duct_truth_served_for_explicit_heat_pump():
+    # The county duct truth describes the house, so an explicit heat pump still learns whether the
+    # house is ductless (PowerTwin.rb then builds a mini-split instead of a new attic duct run).
+    md = {"county_fips": "56039", "year_built": 1988, "area": 7226, "floor_count": 2, "heating_system_type": "heat_pump"}
+    ctx = build_asset_ctx(md, building_type="Single-Family Detached")
+    ducts, level = resolve_default("heating_has_ducts", ctx)
+    assert ducts in ("Yes", "No") and level.startswith("county_")
+    # the equipment detail stays the type's own business: no donor detail for an explicit system
+    assert resolve_default("heating_equipment_detail", ctx) == (None, None)
+    assert "ground-to-air" in ENUM_VALUES["heating_equipment_detail"]

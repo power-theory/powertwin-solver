@@ -508,5 +508,19 @@
     "Unknown|feat999|nostoch": true,
     "Unknown|building-42|stoch": false,
     "Unknown|building-42|nostoch": true
+  },
+  "explicit_hvac": {
+    "explicit": true,
+    "variant": false,
+    "other_key": false,
+    "absent": false
+  },
+  "cc_ashp": {
+    "hspf_ductless": 10.0,
+    "hspf_ducted": 9.0,
+    "seer": 15.0,
+    "retention_5f": 0.7,
+    "gshp_cop": 3.6,
+    "gshp_eer": 17.1
   }
 }

@@ -110,6 +110,32 @@ module PowerTwinRefs
 
   def self.hp_hspf(eff_year) = eff_year >= 2023 ? 8.8 : (eff_year >= 2015 ? 8.2 : (eff_year >= 2006 ? 7.7 : 6.8))
 
+  # Explicit (user-chosen) equipment, asset 448523 review 2026-09-21. Spec MINIMA, cited:
+  #  - NEEP Cold Climate Air Source Heat Pump Specification v4.0 (effective 2023-01-01), Central
+  #    Air Conditioning Heat Pump, Performance Requirements: non-ducted HSPF2 >= 8.5 (10 HSPF
+  #    equivalent), SEER2 >= 15 (15 SEER equivalent); ducted HSPF2 >= 7.7 (9 HSPF equivalent),
+  #    SEER2 >= 14.3 (15 SEER equivalent); COP at 5 F >= 1.75 at maximum capacity; variable-
+  #    capacity compressor required. The mapper feeds HSPF/SEER (not HSPF2/SEER2), so NEEP's own
+  #    stated equivalents are used.
+  #  - ENERGY STAR Central AC and Heat Pump v6.2 (Rev. March 2025), Table 3 and Cold Climate low
+  #    ambient performance: heating capacity at 5 F >= 70 percent of the 47 F capacity (Appendix
+  #    M1 H42 / H1N tests); HSPF2 >= 8.5 non-ducted, >= 8.1 ducted; SEER2 >= 15.2.
+  #  - ENERGY STAR Geothermal Heat Pump v3.2, Table 1: closed loop water-to-air EER 17.1, COP 3.6.
+  CC_ASHP_HSPF_DUCTLESS = 10.0
+  CC_ASHP_HSPF_DUCTED = 9.0
+  CC_ASHP_SEER = 15.0
+  CC_ASHP_RETENTION_5F = 0.70
+  GSHP_COP = 3.6
+  GSHP_EER = 17.1
+
+  # A programmable param the metadata supplied (feature explicit_params, emitted by
+  # generateFeatureFile) on a feature that is not a scenario fan-out variant.
+  def self.explicit_hvac?(props)
+    list = props[:explicit_params]
+    return false unless list.respond_to?(:include?)
+    !props[:scenario_variant] && list.include?('heating_system_type')
+  end
+
   # --- Residential envelope cavity-R -> HPXML assembly-R ------------------------
   # recs2020 wall_r_value is CAVITY-only R; HPXML wall_assembly_r is whole-wall
   # assembly R (wood-frame parallel-path: ~0.75 framing derate on cavity + ~2.5

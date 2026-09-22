@@ -698,12 +698,32 @@ module URBANopt
               case sys_type
               when 'heat_pump'
                 # CR WP-R2: the county donor distinguishes air-to-air from mini-split.
+                # Asset 448523 review (2026-09-21): an explicit heat pump (user-set, not a
+                # scenario variant) on a house whose county duct truth says no ducts is a
+                # ductless mini-split retrofit, not an air-to-air unit with a brand-new duct
+                # run in the attic; 'ground-to-air' is an explicit detail (COP-rated, ducted).
                 hp_detail = res_props[:heating_equipment_detail].to_s
-                args[:heat_pump_type] = hp_detail == 'mini-split' ? 'mini-split' : 'air-to-air'
+                explicit_hvac = PowerTwinRefs.explicit_hvac?(res_props)
+                ductless_house = res_props[:heating_has_ducts].to_s == 'No'
+                args[:heat_pump_type] = if %w[mini-split ground-to-air air-to-air].include?(hp_detail)
+                                          hp_detail                       # an explicit detail is honoured as given
+                                        elsif explicit_hvac && ductless_house
+                                          'mini-split'
+                                        else
+                                          'air-to-air'
+                                        end
+                args[:heat_pump_is_ducted] = false if args[:heat_pump_type] == 'mini-split' && ductless_house
                 args[:heating_system_type] = 'none'
                 args[:cooling_system_type] = 'none'
                 args[:heat_pump_backup_type] = 'integrated'
                 args[:heat_pump_backup_fuel] = 'electricity'
+                if args[:heat_pump_type] == 'ground-to-air'
+                  # HPXML rates GSHPs by COP/EER (no HSPF); ENERGY STAR closed-loop tier.
+                  args[:heat_pump_heating_efficiency_type] = 'COP'
+                  args[:heat_pump_heating_efficiency] = PowerTwinRefs::GSHP_COP
+                  args[:heat_pump_cooling_efficiency_type] = 'EER'
+                  args[:heat_pump_cooling_efficiency] = PowerTwinRefs::GSHP_EER
+                end
               when 'boiler'
                 args[:heating_system_type] = 'Boiler'
                 htg_fuel = res_props[:heating_system_fuel_type].to_s.downcase
@@ -772,7 +792,7 @@ module URBANopt
                                  res_props[:heating_has_ducts].to_s == 'Yes'
                                else
                                  %w[Furnace].include?(args[:heating_system_type].to_s) ||
-                                   args[:heat_pump_type].to_s == 'air-to-air'
+                                   %w[air-to-air ground-to-air].include?(args[:heat_pump_type].to_s)
                                end
               # A central AC is inherently ducted: HPXML builds an AirDistribution for
               # it with worst-case default leakage even when the heating side is
@@ -1012,7 +1032,7 @@ module URBANopt
                   args[:cooling_system_cooling_efficiency] = PowerTwinRefs.ac_seer(eff_hvac_year, southern)
                   args[:cooling_system_cooling_efficiency_type] = 'SEER'
                 end
-                if args[:heat_pump_type].to_s == 'air-to-air'
+                if args[:heat_pump_type].to_s == 'air-to-air' && !PowerTwinRefs.explicit_hvac?(res_props)
                   seer = PowerTwinRefs.hp_seer(eff_hvac_year, southern)
                   hspf = PowerTwinRefs.hp_hspf(eff_hvac_year)
                   args[:heat_pump_cooling_efficiency] = seer
@@ -1020,6 +1040,27 @@ module URBANopt
                   args[:heat_pump_heating_efficiency] = hspf
                   args[:heat_pump_heating_efficiency_type] = 'HSPF'
                 end
+              end
+            end
+
+            # Asset 448523 review (2026-09-21): a user-set heat pump on a non-variant is CURRENT
+            # equipment, whatever the house's vintage (the turnover rule above models the stock's
+            # replaced-since-construction units, not a retrofit someone just chose). Zone 6+ gets
+            # a cold-climate unit at the NEEP v4.0 / ENERGY STAR v6.2 minima (variable speed,
+            # 70 percent capacity retained at 5 F, constants cited in powertwin_refs.rb);
+            # elsewhere today's federal minimum unit. Scenario variants keep the vintage rule so the lever delta
+            # is the equipment type alone.
+            if %w[air-to-air mini-split].include?(args[:heat_pump_type].to_s) && PowerTwinRefs.explicit_hvac?(res_props)
+              cold = climate_zone.to_s[0].to_i >= 6
+              args[:heat_pump_heating_efficiency_type] = 'HSPF'
+              cc_hspf = args[:heat_pump_type].to_s == 'mini-split' && args[:heat_pump_is_ducted] == false ? PowerTwinRefs::CC_ASHP_HSPF_DUCTLESS : PowerTwinRefs::CC_ASHP_HSPF_DUCTED
+              args[:heat_pump_heating_efficiency] = cold ? cc_hspf : PowerTwinRefs.hp_hspf(sim_year)
+              args[:heat_pump_cooling_efficiency_type] = 'SEER'
+              args[:heat_pump_cooling_efficiency] = cold ? PowerTwinRefs::CC_ASHP_SEER : PowerTwinRefs.hp_seer(sim_year, res_props[:region].to_s == 'South')
+              if cold
+                args[:heat_pump_cooling_compressor_type] = 'variable speed'
+                args[:heat_pump_heating_capacity_retention_fraction] = PowerTwinRefs::CC_ASHP_RETENTION_5F
+                args[:heat_pump_heating_capacity_retention_temp] = 5.0
               end
             end
 

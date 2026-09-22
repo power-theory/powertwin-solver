@@ -571,8 +571,8 @@ fields:
   heating_equipment_detail:
     workflow: residential_only
     type: enum
-    values: [Furnace, WallFurnace, Boiler, ElectricResistance, air-to-air, mini-split]
-    flat_default: ""   # empty -> coarse heating_system_type stands alone (division fallback)
+    values: [Furnace, WallFurnace, Boiler, ElectricResistance, air-to-air, mini-split, ground-to-air]
+    flat_default: ""   # empty -> coarse heating_system_type stands alone (division fallback); ground-to-air is explicit-only (no donor label), built COP/EER-rated and ducted (2026-09-21)
     resolver: "_heating_donor -> _parse_heating_donor_label (county joint, ACS-raked)"
     source_assumption: {residential: "RESSTOCK2024_county_heating donor's native equipment class; WallFurnace is DUCTLESS and 25% of Teton's electric heat - collapsing it to Furnace recreates the D-60 duct penalty; Shared Heating approximated as Boiler (dominant real config for MF shared heat)"}
     invariants: ["same donor drives heating_system_type, heating_system_fuel_type, heating_has_ducts (one salt, deterministic)", "raked fuel marginal equals renormalized served ACS (verified to 4 decimals on Teton)"]
@@ -887,6 +887,12 @@ physical_constants:
     - {name: TIER_FACTOR,      source: RESNET_HERS,      where: powertwin_refs.rb, oracle: test_powertwin_refs::window_props,             status: PROVEN}
     - {name: SWH_EFFICIENCY,   source: "ASHRAE_90_1_2013 Tbl 7.8", where: powertwin_refs.rb, oracle: test_powertwin_refs::swh_efficiency, status: PROVEN}
     - {name: GARAGE_PREVALENCE, source: RECS2020_envelope, where: powertwin_refs.rb, oracle: test_powertwin_refs::garage_rate,            status: PROVEN}
+    - {name: CC_ASHP_HSPF_DUCTLESS, value: 10.0, source: "NEEP ccASHP Specification v4.0 (eff. 2023-01-01), Central AC Heat Pump Performance Requirements: non-ducted HSPF2 >= 8.5, stated 10 HSPF equivalent", where: powertwin_refs.rb, oracle: test_powertwin_refs::cc_ashp, status: PROVEN, applies: "explicit heating_system_type=heat_pump on a non-variant feature in IECC zone 6+ (PowerTwinRefs.explicit_hvac?); never the stock"}
+    - {name: CC_ASHP_HSPF_DUCTED,   value: 9.0,  source: "NEEP ccASHP v4.0: ducted HSPF2 >= 7.7, stated 9 HSPF equivalent", where: powertwin_refs.rb, oracle: test_powertwin_refs::cc_ashp, status: PROVEN}
+    - {name: CC_ASHP_SEER,          value: 15.0, source: "NEEP ccASHP v4.0: SEER2 >= 15 non-ducted / >= 14.3 ducted, stated 15 SEER equivalent", where: powertwin_refs.rb, oracle: test_powertwin_refs::cc_ashp, status: PROVEN}
+    - {name: CC_ASHP_RETENTION_5F,  value: 0.70, source: "ENERGY STAR Central AC and Heat Pump v6.2 (Rev. March 2025), Cold Climate low ambient performance: heating capacity at 5 F >= 70 percent of 47 F", where: powertwin_refs.rb, oracle: test_powertwin_refs::cc_ashp, status: PROVEN}
+    - {name: GSHP_COP,              value: 3.6,  source: "ENERGY STAR Geothermal Heat Pump v3.2, Table 1, closed loop water-to-air", where: powertwin_refs.rb, oracle: test_powertwin_refs::cc_ashp, status: PROVEN}
+    - {name: GSHP_EER,              value: 17.1, source: "ENERGY STAR Geothermal Heat Pump v3.2, Table 1, closed loop water-to-air", where: powertwin_refs.rb, oracle: test_powertwin_refs::cc_ashp, status: PROVEN}
 
   derivation_heuristic:   # defensible derivation, golden-pinned, but a heuristic not a standard -> PROPERTY
     - {name: wall_assembly_r,  formula: "cavity*0.75+2.5", basis: "wood-frame parallel-path", oracle: test_powertwin_refs::wall_assembly_r, status: PROPERTY}
@@ -900,6 +906,7 @@ physical_constants:
     - {name: hp_seer,      ladder: "2023:15/14 2015:14 2006:13 else 10", source: federal_min_standards, oracle: test_powertwin_refs::hp_seer, status: PROPERTY}
     - {name: hp_hspf,      ladder: "2023:8.8 2015:8.2 2006:7.7 else 6.8", source: federal_min_standards, oracle: test_powertwin_refs::hp_hspf, status: PROPERTY}
     - {name: EUL, values: "HVAC 20yr, SWH 15yr", basis: "equipment useful life convention (effective replacement year)", status: PROPERTY}
+    - {name: explicit_equipment_is_current, basis: "a user-set heating_system_type on a non-variant feature (feature explicit_params, no stochastic_seed_id) is treated as current equipment; the EUL turnover keeps applying to resolved values and to scenario fan-out variants so lever deltas stay pure (asset 448523 review 2026-09-21; feature-file diff on Teton: 0 of 17,237 features carry explicit params)", oracle: test_powertwin_refs::explicit_hvac, status: PROPERTY}
     - {name: conditioned_fraction, values: "0.70-0.95 by DOE prototype", source: "CBECS-derived (no per-value citation)", status: PROPERTY}
     - {name: cooling_setpoint_72F, source: "RECS 2020 median", status: PROPERTY}
     - {name: vacant_setpoints, values: "heat 55F / cool 99F / occupants 0", basis: "pipe-freeze, no-cooling convention", status: PROPERTY}
