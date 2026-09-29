@@ -166,8 +166,14 @@ def direct_run_parallel_batches(SIMULATION_DIR, LOCAL_SIMULATION_DIR, simulation
         bool: True if successful, False otherwise
     """
     from modules.simulation.parallel import run_parallel_batches
-    
+    from modules.simulation.initialize_UOsim import ensure_standards_patched
+
     logger.info(f"Running parallel batches for: {simulation_name}")
+    try:
+        ensure_standards_patched()   # the job's shared gems, even when the job script predates the patch
+    except Exception as e:
+        logger.error(f"Cannot run batches for {simulation_name}: {e}")
+        return False
     
     try:
         # If batch_range is not provided, determine it from the MASTER database
@@ -254,6 +260,12 @@ def direct_simulation_recovery(recovery_dir, local_recovery_dir, corrupted_dir, 
     Returns:
         bool: True if successful, False otherwise
     """    
+    from modules.simulation.initialize_UOsim import ensure_standards_patched
+    try:
+        ensure_standards_patched()   # recovery reruns simulations on the job's shared gems too
+    except Exception as e:
+        logger.error(f"Cannot recover {corrupted_simulation_name}: {e}")
+        return False
     try:
         # Ensure recovery directories exist
         os.makedirs(recovery_dir, exist_ok=True)

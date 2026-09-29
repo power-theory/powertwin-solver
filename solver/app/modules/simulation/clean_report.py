@@ -9,7 +9,7 @@
 
 
 import pandas as pd
-from modules.utils.precision import round_series
+from modules.utils.precision import round_series, sig_figs_setting
 import json
 import csv
 import os
@@ -136,6 +136,9 @@ def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
 # Description: This function processes the input CSV file and saves cleaned section reports to a new directory.
 ############################################################################################################
 def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, METADATA_CSV, asset_id):
+    # an invalid POWERTWIN_SIG_FIGS raises here, before the per-stream except below swallows it and
+    # the asset goes Finished with no report
+    sig_figs_setting()
     logger.debug(f"Within clean_report for asset_id: {asset_id}")
     
     CLEANED_REPORT_DEST = os.path.join(LOCAL_DIR,'cleaned_reports', f'{asset_id}')
@@ -222,6 +225,7 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
           .map(lambda x: x.isoformat() if pd.notna(x) else None)
     )
 
+    failed_streams, written = [], []
     for data_id, data_info in data_mapping.items():
         data_header = data_info["name"]
         unclean_columns = data_info["columns"]
@@ -285,10 +289,28 @@ def clean_single_report(LOCAL_DIR,LOCAL_BATCH_SIMULATION_DIR,SIMULATION_DIR, MET
             output_file = os.path.join(CLEANED_REPORT_DEST, f'cleaned_predicted_{data_header.lower().replace(" ", "_")}.csv')
             logger.debug(f"Saving cleaned section report to: {output_file}")
             clean_df.to_csv(output_file, index=False)
+            written.append(output_file)
         
         except Exception as e:
             logger.error(f"Error processing {data_header}: {str(e)}")
+            failed_streams.append(data_header)
+            # a write cut short (ENOSPC, EACCES) must not leave a truncated stream for ingest to read
+            partial = os.path.join(CLEANED_REPORT_DEST, f'cleaned_predicted_{data_header.lower().replace(" ", "_")}.csv')
+            if os.path.exists(partial):
+                os.remove(partial)
             continue
-        
-    # Clean the asset directory    
+
+    # A stream that failed must fail the asset, not finish it without that fuel (review 2026-09-28): keep the raw
+    # feature report for the retry (clean_asset_dir would delete it) and return False, which run_UOsim turns into
+    # a Failed asset.
+    if failed_streams:
+        # the streams that did write go too: ingest ships every cleaned_predicted_*.csv it finds, and a Failed asset
+        # with only some of its fuels would still reach the db as if complete (review 2026-09-29)
+        for f in written:
+            if os.path.exists(f):
+                os.remove(f)
+        logger.error(f"Asset {asset_id}: cleaning failed for {failed_streams}; asset left for retry")
+        return False
+
+    # Clean the asset directory
     clean_asset_dir(ASSET_DIR, LOCAL_ASSET_DIR)

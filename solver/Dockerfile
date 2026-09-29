@@ -65,6 +65,12 @@ RUN rm -f /usr/local/bin/bundle /usr/local/bin/bundler && \
     gem install --no-document ruby2_keywords -v 0.0.5 && \
     rm -rf /tmp/prewarm
 
+# openstudio-standards 0.7.x fails buildings a user can request (weekend hours past midnight; PTAC and
+# PSZ-AC on a central air source heat pump). This patches the image's copies and fails the build if the
+# code moved; each run's own project bundle is patched by initialize_UOsim.prepare_project_bundle
+COPY ./patches/patch_openstudio_standards.py /tmp/patch_openstudio_standards.py
+RUN python3 /tmp/patch_openstudio_standards.py && rm /tmp/patch_openstudio_standards.py
+
 # Final verification that uo is in PATH
 RUN which uo && uo --version
 # Copy application code and set environment variables

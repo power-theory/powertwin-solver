@@ -661,6 +661,14 @@ prewarm_gem_home() {
         return 1
     fi
 
+    # The bundle above installs its own openstudio-standards, so the image's patched copy is not the
+    # one loaded here: re-apply the openstudio-standards fixes (solver/patches) to this job's copy.
+    if ! apptainer exec --bind "${SHARED_GEM_HOME}:${SHARED_GEM_HOME}:rw" "${SOLVER_SIF}" \
+            python3 /solver/patches/patch_openstudio_standards.py "${SHARED_GEM_HOME}"; then
+        print_status "error" "openstudio-standards patch failed on ${SHARED_GEM_HOME}"
+        return 1
+    fi
+
     print_status "info" "GEM_HOME pre-warmed successfully ($(du -sh ${SHARED_GEM_HOME} | cut -f1))"
     return 0
 }

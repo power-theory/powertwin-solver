@@ -47,8 +47,8 @@ def snapshot
     end
   end
   s['garage_attached'] = ga
-  # explicit HVAC gate (asset 448523 review, 2026-09-21): user-set heating_system_type on a
-  # non-variant is current equipment; a scenario variant or a resolved value is not.
+  # explicit HVAC gate (asset 448523 review, 2026-09-21): a supplied heating_system_type is
+  # current equipment whether a user or the fan-out set it (2026-09-24); a resolved value is not.
   s['explicit_hvac'] = {
     'explicit' => PowerTwinRefs.explicit_hvac?({ explicit_params: ['heating_system_type'], scenario_variant: false }),
     'variant' => PowerTwinRefs.explicit_hvac?({ explicit_params: ['heating_system_type'], scenario_variant: true }),

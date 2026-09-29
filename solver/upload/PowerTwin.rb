@@ -698,8 +698,8 @@ module URBANopt
               case sys_type
               when 'heat_pump'
                 # CR WP-R2: the county donor distinguishes air-to-air from mini-split.
-                # Asset 448523 review (2026-09-21): an explicit heat pump (user-set, not a
-                # scenario variant) on a house whose county duct truth says no ducts is a
+                # Asset 448523 review (2026-09-21): an explicit heat pump (user-set or a fan-out
+                # variant, not resolved) on a house whose county duct truth says no ducts is a
                 # ductless mini-split retrofit, not an air-to-air unit with a brand-new duct
                 # run in the attic; 'ground-to-air' is an explicit detail (COP-rated, ducted).
                 hp_detail = res_props[:heating_equipment_detail].to_s
@@ -1043,13 +1043,13 @@ module URBANopt
               end
             end
 
-            # Asset 448523 review (2026-09-21): a user-set heat pump on a non-variant is CURRENT
+            # Asset 448523 review (2026-09-21): a user-set heat pump is CURRENT
             # equipment, whatever the house's vintage (the turnover rule above models the stock's
             # replaced-since-construction units, not a retrofit someone just chose). Zone 6+ gets
             # a cold-climate unit at the NEEP v4.0 / ENERGY STAR v6.2 minima (variable speed,
             # 70 percent capacity retained at 5 F, constants cited in powertwin_refs.rb);
-            # elsewhere today's federal minimum unit. Scenario variants keep the vintage rule so the lever delta
-            # is the equipment type alone.
+            # elsewhere today's federal minimum unit. A fan-out variant gets the same unit as a user
+            # edit (2026-09-24), so the surrogate's delta matches what UrbanOpt serves.
             if %w[air-to-air mini-split].include?(args[:heat_pump_type].to_s) && PowerTwinRefs.explicit_hvac?(res_props)
               cold = climate_zone.to_s[0].to_i >= 6
               args[:heat_pump_heating_efficiency_type] = 'HSPF'

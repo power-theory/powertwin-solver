@@ -5,6 +5,7 @@
 #   It writes the new feature structure to individual feature files in the output directory.
 ############################################################################################################
 
+import copy
 import csv
 import json
 import math
@@ -14,7 +15,7 @@ import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
-from modules.simulation.sim_params_spec import get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref, ENUM_VALUES, NUMERIC_RANGES, TIME_FIELDS
+from modules.simulation.sim_params_spec import CONFIRMABLE_FIELDS, RESIDENTIAL_BUILDING_TYPES, get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref, ENUM_VALUES, NUMERIC_RANGES, TIME_FIELDS
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
@@ -225,6 +226,157 @@ def _ring_perimeter(ring):
     return total
 
 
+SQFT_TO_M2 = 0.09290304  # exact; NIST SP 811 Appendix B.8
+WGS84_A_M = 6378137.0  # WGS 84 semi-major axis (NGA.STND.0036)
+WGS84_INV_F = 298.257223563  # WGS 84 inverse flattening (NGA.STND.0036)
+_WGS84_E2 = (1 / WGS84_INV_F) * (2 - 1 / WGS84_INV_F)
+# urbanopt-geojson 1.0.1 helper.rb floor_print_from_polygon: with zoning, a vertex within this distance of an
+# earlier one is merged into it (OpenStudio.getCombinedPoint(point, all_points, 1.0)); then removeCollinear and
+# getOutwardNormal, and a floor print that is not a polygon fails the building ("Failed to create building spaces")
+ZONING_MERGE_TOL_M = 1.0
+# A footprint within this relative area of its target is simulated as mapped. The stock's metadata area and the
+# outline measured as OpenStudio projects it differ only by measurement: Teton within 0.12%, a second stock systematically higher
+# (a systematic projection offset; p99.5 0.68%), natv3 within 0.5% bar the rows whose area came from another
+# source (2026-09-28). Below 1% the mapped outline, and the stock results, stay byte-identical.
+AREA_FIT_TOL = 0.01
+RESIDENTIAL_TYPES = RESIDENTIAL_BUILDING_TYPES  # the HPXML workflow's types (one list: sim_params_spec)
+UNSIMULATABLE_TYPES = frozenset({'Uncovered Parking', 'Covered Parking'})
+
+
+def _floor_count_of(asset_metadata, properties):
+    """The floor count process_feature simulates: metadata first, then the feature, whole floors, at least 1.
+    floor_count may arrive as int, float, or string (incl. malformed like 'abc' or '3.5'); a bad value must not
+    crash feature generation, and a sub-1 value would later divide footprint_area by zero."""
+    fc = asset_metadata.get('floor_count') or properties.get('floor_count')
+    try:
+        fc = int(float(fc))
+    except (ValueError, TypeError, OverflowError):
+        # OverflowError: int(float('inf')). One non-finite floor_count in a national collection must not kill
+        # the whole feature-generation job.
+        fc = 1
+    return max(1, fc)
+
+
+def _ring_center(ring):
+    pts = ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring
+    return sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)
+
+
+def _metres_per_degree(lat):
+    """(east, north) metres per degree on the WGS 84 ellipsoid at latitude lat (prime vertical and meridian radii),
+    the local scale OpenStudio's toLocalCartesian applies."""
+    s = math.sin(math.radians(lat))
+    w = 1 - _WGS84_E2 * s * s
+    n = WGS84_A_M / math.sqrt(w)
+    m = WGS84_A_M * (1 - _WGS84_E2) / w ** 1.5
+    return math.radians(1) * n * math.cos(math.radians(lat)), math.radians(1) * m
+
+
+def _local_xy(ring, lon0, lat0):
+    kx, ky = _metres_per_degree(lat0)
+    return [((p[0] - lon0) * kx, (p[1] - lat0) * ky) for p in ring]
+
+
+def _outer_ring(geom):
+    """The outer ring the zoning measure builds a commercial floor from: flatten_geometry's part choice, holes
+    ignored (the measure does not build them)."""
+    if not geom or 'coordinates' not in geom or not geom['coordinates']:
+        return None
+    if geom.get('type') == 'MultiPolygon':
+        geom = copy.deepcopy(geom)
+        flatten_geometry(geom)
+    return geom['coordinates'][0] if geom.get('type') == 'Polygon' else None
+
+
+def outer_area_m2(geom):
+    """Area in m2 of the outer ring URBANopt builds a commercial floor from, about the ring's vertex mean."""
+    ring = _outer_ring(geom)
+    if not ring or len(ring) < 3:
+        return 0.0
+    return _ring_area_unsigned(_local_xy(ring, *_ring_center(ring)))
+
+
+def _floor_print_area_m2(ring):
+    """Area left after the zoning measure's vertex merge (0 when fewer than 3 points or all collinear)."""
+    kept = []
+    for x, y in _local_xy(ring[:-1] if ring[0] == ring[-1] else ring, *_ring_center(ring)):
+        hit = next(((a, b) for a, b in kept if math.hypot(x - a, y - b) <= ZONING_MERGE_TOL_M), None)
+        kept.append(hit or (x, y))
+    pts = [p for i, p in enumerate(kept) if p != kept[i - 1]]
+    return _ring_area_unsigned(pts) if len(set(pts)) >= 3 else 0.0
+
+
+def scale_polygon(geom, k):
+    """Scale every ring of a lon/lat Polygon in place by k about the outer ring's vertex mean (area x k^2)."""
+    lon0, lat0 = _ring_center(geom['coordinates'][0])
+    geom['coordinates'] = [[[lon0 + k * (p[0] - lon0), lat0 + k * (p[1] - lat0), *p[2:]] for p in r]
+                           for r in geom['coordinates']]
+
+
+def _square_polygon(geom, area_m2):
+    """Axis-aligned square of area_m2 centred on the outer ring's vertex mean (fallback when scaling collapses)."""
+    lon0, lat0 = _ring_center(geom['coordinates'][0])
+    kx, ky = _metres_per_degree(lat0)
+    h = math.sqrt(area_m2) / 2
+    dlon, dlat = h / kx, h / ky
+    geom['coordinates'] = [[[lon0 - dlon, lat0 - dlat], [lon0 + dlon, lat0 - dlat], [lon0 + dlon, lat0 + dlat],
+                            [lon0 - dlon, lat0 + dlat], [lon0 - dlon, lat0 - dlat]]]
+
+
+def fit_footprint_to_area(geom, k, wing_target_m2, building_id):
+    """Scale one (flattened) Polygon by its asset's factor k so the zoning measure builds wing_target_m2 per floor.
+    Returns 'unchanged' (within AREA_FIT_TOL: simulated as mapped), 'scaled', 'square' (the scaled outline would
+    not survive the measure's vertex merge; a square of the target area is used) or 'kept' (even that square would
+    not; the mapped outline is simulated)."""
+    if not geom or geom.get('type') != 'Polygon' or abs(k * k - 1.0) <= AREA_FIT_TOL:
+        return 'unchanged'
+    original = copy.deepcopy(geom['coordinates'])
+    scale_polygon(geom, k)
+    if _floor_print_area_m2(geom['coordinates'][0]) > 0:
+        return 'scaled'
+    if math.sqrt(wing_target_m2) >= 2 * ZONING_MERGE_TOL_M:
+        _square_polygon(geom, wing_target_m2)
+        logger.warning(f"Building {building_id}: scaled footprint does not survive the zoning vertex merge; "
+                       f"simulated as a {wing_target_m2:.1f} m2 square")
+        return 'square'
+    geom['coordinates'] = original
+    logger.warning(f"Building {building_id}: footprint of {wing_target_m2:.2f} m2 is below the zoning measure's "
+                   f"resolution; the mapped outline is simulated instead")
+    return 'kept'
+
+
+def annotate_asset_footprints(features, area_list, type_list, name_list, weather_list, metadata_list):
+    """Pre-pass for the commercial fit. Every footprint row of a multi-wing asset repeats the whole asset's area, so
+    the factor that makes the asset build its area is taken over the footprints that will actually be fitted:
+    commercial rows process_feature keeps (not residential, not parking, with a type, name and weather). Stashes on
+    each such row its outer footprint and its asset's total simulated floor area (footprint x floors summed)."""
+    rows, pool = {}, {}
+    for f in features:
+        props = f.get('properties') or {}
+        bid = str(props.get('id'))
+        if bid not in area_list or bid not in type_list or bid not in name_list:
+            continue
+        btype = type_list[bid]
+        state, wfile = weather_list.get(bid, (None, None))
+        if btype in RESIDENTIAL_TYPES or btype in UNSIMULATABLE_TYPES or not state or not wfile:
+            continue
+        asset = str(props.get('asset_id') or bid)
+        fp = outer_area_m2(f.get('geometry'))
+        rows[bid] = (asset, fp)
+        pool[asset] = pool.get(asset, 0.0) + fp * _floor_count_of(metadata_list.get(bid, {}), props)
+    for bid, (asset, fp) in rows.items():
+        metadata_list[bid]['_footprint_m2'] = fp
+        metadata_list[bid]['_asset_floor_area_m2'] = pool[asset]
+
+
+def load_asset_geojson(path, area_list, type_list, name_list, weather_list, metadata_list):
+    """Read an asset GeoJSON and run the commercial-fit pre-pass: every loader that feeds process_feature uses this."""
+    with open(path, 'r') as fh:
+        geojson_data = json.load(fh)
+    annotate_asset_footprints(geojson_data['features'], area_list, type_list, name_list, weather_list, metadata_list)
+    return geojson_data
+
+
 def flatten_geometry(geom):
     """Flatten MultiPolygon to Polygon by selecting the largest polygon by area.
 
@@ -276,32 +428,40 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     building_type = building_type_list[building_id]
     building_name = sanitize_filename(building_name_list[building_id])
 
-    UNSIMULATABLE_TYPES = {'Uncovered Parking', 'Covered Parking'}
     if building_type in UNSIMULATABLE_TYPES:
         logger.warning(f"Skipping {building_name} (building_id {building_id}): {building_type} has no building energy model")
         return None
 
     asset_metadata = building_metadata_list.get(building_id, {})
 
-    # floor_count may arrive as int, float, or string (incl. malformed like
-    # 'abc' or '3.5'). Coerce defensively: a bad value must not crash feature
-    # generation, and a sub-1 value would later divide footprint_area by zero.
-    floor_count = asset_metadata.get('floor_count') or properties.get('floor_count')
-    try:
-        floor_count = int(float(floor_count))
-    except (ValueError, TypeError, OverflowError):
-        # OverflowError: int(float('inf')). One non-finite floor_count in a
-        # national collection must not kill the whole feature-generation job.
-        floor_count = 1
-    if floor_count < 1:
-        floor_count = 1
+    floor_count = _floor_count_of(asset_metadata, properties)
+
+    # Commercial geometry is rebuilt from this polygon x stories by urban_geometry_creation_zoning (PowerTwin.rb),
+    # which discards create_bar's area-based bar, so the polygon is what sets the simulated floor area. Fit it to
+    # the metadata area (owner 2026-09-28: the area a user types is the area simulated). One factor per asset over
+    # its fitted footprints (every row of a multi-wing asset carries the whole asset's area); each footprint takes
+    # its share of the area, weighted by footprint x floors, so its prototype pick and occupants match its geometry.
+    if building_type not in RESIDENTIAL_TYPES:
+        if '_asset_floor_area_m2' not in asset_metadata:
+            if all(building_weather_list.get(building_id, (None, None))):  # weatherless rows are dropped below anyway
+                logger.warning(f"Building {building_id}: commercial footprint not fitted to its area "
+                               f"(load the GeoJSON with load_asset_geojson)")
+        else:
+            fp_m2, pool_m2 = asset_metadata['_footprint_m2'], asset_metadata['_asset_floor_area_m2']
+            area_ft2 = float(asset_metadata['area'])
+            if fp_m2 > 0 and pool_m2 > 0 and area_ft2 > 0:
+                share = fp_m2 * floor_count / pool_m2
+                if share < 1.0 - 1e-12:
+                    floor_area = max(1, int(area_ft2 * share))
+                fit_footprint_to_area(feature.get('geometry'), math.sqrt(area_ft2 * SQFT_TO_M2 / pool_m2),
+                                      area_ft2 * SQFT_TO_M2 * share / floor_count, building_id)
 
     # Resolve the dwelling-unit count up front (residential only) so the
     # occupants resolver's per-unit denominator matches the HPXML
     # number_of_residential_units written below -- otherwise an MF building
     # without explicit number_of_units gets whole-building occupants multiplied
     # by the subtype fallback unit count (e.g. 11 occ/unit x 8 units = 88).
-    if building_type in ('Single-Family Detached', 'Single-Family Attached', 'Multifamily'):
+    if building_type in RESIDENTIAL_TYPES:
         residential_units = _residential_unit_count(asset_metadata)
     else:
         residential_units = None
@@ -463,12 +623,13 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     new_properties["dynamic_defaults"] = is_dynamic_defaults_enabled()
     # Provenance for the mapper (asset 448523 review, 2026-09-21): which programmable params the
     # metadata supplied (and get_param accepted) versus resolved defaults, and whether this
-    # feature is a scenario fan-out variant (carries stochastic_seed_id). PowerTwin.rb treats an
-    # explicit heat pump on a non-variant as current equipment; a variant keeps the vintage rule so
-    # the lever delta the surrogate learns is the equipment type alone.
+    # feature is a scenario fan-out variant (carries stochastic_seed_id; provenance only since
+    # 2026-09-24, a variant's explicit heat pump builds exactly like a user's). A heating_system_type
+    # that only confirms the resolved default is not explicit (build_asset_ctx).
+    confirmed = {f for f in CONFIRMABLE_FIELDS if ctx.get(f'{f}_confirms_default')}
     new_properties["explicit_params"] = sorted(
         k for k in _EXPLICIT_PARAM_KEYS
-        if asset_metadata.get(k) not in (None, '')
+        if k not in confirmed and asset_metadata.get(k) not in (None, '')
         and get_param(asset_metadata, k, ctx) == _coerce_like(asset_metadata.get(k), get_param(asset_metadata, k, ctx)))
     new_properties["scenario_variant"] = asset_metadata.get('stochastic_seed_id') not in (None, '')
     if ctx.get('region'):
@@ -522,7 +683,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # Reuse the unit count resolved up front (residential_units) so the HPXML
     # number_of_residential_units matches the occupants resolver's per-unit
     # denominator exactly. See _residential_unit_count.
-    if building_type in ('Single-Family Detached', 'Single-Family Attached', 'Multifamily'):
+    if building_type in RESIDENTIAL_TYPES:
         units = residential_units
         # Use supplied whole-building bedroom count when present (divided by units),
         # mirroring _resolve_occupants -- only infer from area when absent, so the
@@ -799,8 +960,8 @@ def create_bulk_featurefiles(failed_asset_ids, SIMULATION_DIR, LOCAL_RECOVERY_DI
         logger.debug("Reading metadata and geojson files...")
         building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list = read_metadata(METADATA_CSV)
 
-        with open(ASSET_GEOJSON, 'r') as geojson_file:
-            geojson_data = json.load(geojson_file)
+        geojson_data = load_asset_geojson(ASSET_GEOJSON, building_area_list, building_type_list, building_name_list,
+                                          building_weather_list, building_metadata_list)
 
     except Exception as e:
         logger.error(f"Error reading data files: {e}")
@@ -848,8 +1009,8 @@ def create_single_featurefile(asset_id, SIMULATION_DIR, LOCAL_RECOVERY_DIR, simu
 
     # Metadata requires the area, subtype and name of the building to be present from the metadata
     building_area_list, building_type_list, building_name_list, building_weather_list, building_climate_zone_list, building_year_list, building_metadata_list = read_metadata(METADATA_CSV)
-    with open(ASSET_GEOJSON, 'r') as geojson_file:
-        geojson_data = json.load(geojson_file)
+    geojson_data = load_asset_geojson(ASSET_GEOJSON, building_area_list, building_type_list, building_name_list,
+                                      building_weather_list, building_metadata_list)
 
 
     # Process each feature in the GeoJSON data
@@ -917,8 +1078,8 @@ def create_featurefiles(SIMULATION_DIR, LOCAL_DIR, asset_geojson, metadata_csv, 
     _mark_unsimulatable_failed(building_weather_list, building_area_list, building_name_list,
                                building_type_list, building_metadata_list, simulation_name)
 
-    with open(asset_geojson, 'r') as file:
-        geojson_data = json.load(file)
+    geojson_data = load_asset_geojson(asset_geojson, building_area_list, building_type_list, building_name_list,
+                                      building_weather_list, building_metadata_list)
 
 
     # Process each feature in the GeoJSON data

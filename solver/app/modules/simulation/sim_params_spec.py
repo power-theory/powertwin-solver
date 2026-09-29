@@ -36,7 +36,7 @@ log = logging.getLogger('Generate Feature Files')
 # Bump when resolver logic or reference data changes.
 # Stamped into feature.json so results are traceable to the model that produced them.
 # push.sh syncs this to the README header automatically.
-RESOLVER_VERSION = '3.0'  # CR review fixes: commercial keying, explicit-override honoring, delivery guards
+RESOLVER_VERSION = '3.1'  # 3.1: an explicit heating_system_type or water_heater_type equal to the unset default only confirms it (CONFIRMABLE_FIELDS); 3.0: CR review fixes
 
 _REF_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'upload', 'reference_data'
@@ -688,6 +688,10 @@ def _effective_building_type(bt):
     return _subtype_effective_names().get(bt, bt)
 
 
+# Explicit choices that only confirm the resolved default are not edits (build_asset_ctx; generateFeatureFile).
+CONFIRMABLE_FIELDS = ('heating_system_type', 'water_heater_type')
+
+
 def build_asset_ctx(metadata: dict, building_type: str | None = None,
                     climate_zone: str | None = None,
                     building_id: str | None = None) -> dict:
@@ -727,7 +731,7 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
         bid = str(seed)
     else:
         bid = building_id if building_id is not None else metadata.get('building_id')
-    return {
+    ctx = {
         'building_type': bt,
         'state': state,
         'region': region,
@@ -753,6 +757,20 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
         'foundation_type': metadata.get('foundation_type'),
         'system_type': metadata.get('system_type'),
     }
+    # A heating_system_type equal to the one the resolver picks without it only confirms the house's
+    # system (a user re-selecting the default the modal showed). Conditioning on it re-drew the fuel
+    # and dropped the county equipment detail, so the no-op edit rebuilt the house (2026-09-24:
+    # 'furnace' on an electric wall-furnace home became a ducted gas furnace). Every resolver then
+    # serves the unedited house, and generateFeatureFile leaves it out of explicit_params.
+    # The same holds for the water heater: re-picking the previewed 'storage water heater' conditioned the SWH
+    # fuel on it and bypassed the county donor, so the fuel redrew (review 2026-09-28: a Fairfield CT 1950 home
+    # went from electricity to fuel oil). Heating first, so the water heater is compared in the ctx the sim uses.
+    for field in CONFIRMABLE_FIELDS:
+        v = ctx[field]
+        if v in ENUM_VALUES.get(field, set()) and resolve_default(field, dict(ctx, **{field: None}))[0] == v:
+            ctx[field] = None
+            ctx[f'{field}_confirms_default'] = True
+    return ctx
 
 
 # Fallback-level taxonomy returned alongside each dynamically-resolved value.

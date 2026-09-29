@@ -30,6 +30,24 @@ def stop_requested(simulation_dir) -> bool:
     return os.path.exists(stop_marker_path(simulation_dir))
 
 
+# A run cut short by a stop records it here: the batch loop skipped assets or an asset was killed mid-run. A stop
+# marks every simulation directory, so the .stop marker alone also sat in a run whose assets had all finished,
+# and its caller got 409 for a complete run (review 2026-09-28). Callers decide 'stopped' from this marker.
+STOPPED_EARLY_MARKER = '.stopped_early'
+
+
+def mark_stopped_early(simulation_dir):
+    try:
+        with open(os.path.join(simulation_dir, STOPPED_EARLY_MARKER), 'w') as fh:
+            fh.write(str(time.time()))
+    except OSError as e:
+        logger.warning(f'Could not write stopped-early marker in {simulation_dir}: {e}')
+
+
+def stopped_early(simulation_dir) -> bool:
+    return os.path.exists(os.path.join(simulation_dir, STOPPED_EARLY_MARKER))
+
+
 def request_stop(data_dir=DATA_DIR):
     """Write the marker into every simulation directory under data_dir; returns the paths."""
     marked = []

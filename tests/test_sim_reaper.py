@@ -73,9 +73,13 @@ def test_terminal_phases_are_left_alone(tmp_path):
     base = str(tmp_path)
     done = _sim(base, 'sim_done', 'completed', pid=99999, pid_start='1')
     failed = _sim(base, 'sim_failed', 'failed', pid=99999, pid_start='1')
+    # a stop is final too: reaping it after a restart turned it into 'failed', which the db
+    # listener requeues, so the stopped run ran again (review 2026-09-24)
+    stopped = _sim(base, 'sim_stopped', 'stopped', pid=99999, pid_start='1')
     reap_orphaned_sims(base=base)
     assert read_status(done)['phase'] == 'completed'
     assert read_status(failed)['phase'] == 'failed'
+    assert read_status(stopped)['phase'] == 'stopped'
 
 
 def test_proc_start_identifies_processes(tmp_path):

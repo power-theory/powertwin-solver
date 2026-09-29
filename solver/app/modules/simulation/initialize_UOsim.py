@@ -2,6 +2,7 @@ import os
 import glob
 import time
 import zipfile
+import signal
 import subprocess
 import shutil
 
@@ -9,6 +10,8 @@ from .parallel import run_parallel_batches
 from modules.utils import initialize_logger
 from modules.utils.hpc_environment import is_hpc_environment
 from modules.utils.check_uo import get_urbanopt_command
+from modules.utils.command_timer import uo_timeout
+from modules.simulation.stop_UOsim import stop_requested, mark_stopped_early
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Initialize UOSim', external_log_dir)
@@ -18,6 +21,139 @@ if os.environ.get('SLURM_JOB_ID'):
     MAPPER_FILE = os.path.join('/solver', 'upload', 'PowerTwin.rb')
 else:
     MAPPER_FILE = os.path.join('upload', 'PowerTwin.rb')
+
+STANDARDS_PATCH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'patches',
+                                               'patch_openstudio_standards.py'))
+
+# urbanopt-scenario's ScenarioCSV#load_mapper_files, verbatim in effect: resolve the bundle path
+# from runner.conf and install the project bundle with the extension Runner only when that path is
+# missing or empty. Prints the path last.
+_PROJECT_BUNDLE_RB = r"""
+require 'bundler'
+require 'pathname'
+require 'openstudio/extension'
+root = Dir.pwd
+opts = OpenStudio::Extension::RunnerConfig.default_config(root)
+if File.exist?(File.join(root, OpenStudio::Extension::RunnerConfig::FILENAME))
+  conf = OpenStudio::Extension::RunnerConfig.new(root)
+  opts = opts.merge(conf.options.reject { |_k, v| v.nil? || (v.is_a?(String) && v == '') })
+end
+if !opts.key?(:bundle_install_path) || opts[:bundle_install_path] == ''
+  opts[:bundle_install_path] = File.join(root, '.bundle/install/')
+else
+  opts[:bundle_install_path] = Pathname.new(opts[:bundle_install_path]).cleanpath.to_s
+end
+path = opts[:bundle_install_path]
+Bundler.with_unbundled_env { OpenStudio::Extension::Runner.new(root, [], opts) } if !Dir.exist?(path) || Dir.empty?(path)
+puts path
+"""
+
+
+def ensure_standards_patched():
+    """On the cluster, patch the job's shared gem home (GEM_HOME / BUNDLE_PATH) before any simulation runs. The job
+    script patches it after its bundle prewarm, but a campaign launched from an older per-campaign script copy
+    does not (review 2026-09-28): with this every batch process of a current image patches it itself. The patch
+    is idempotent and its writes atomic, so parallel batches on one gem home are safe. Raises when the patch
+    cannot apply (the job's gems would reproduce the failures it fixes)."""
+    roots = [os.environ[k] for k in ('BUNDLE_PATH', 'GEM_HOME') if os.environ.get(k)]
+    if not roots:
+        return False
+    done = subprocess.run(['python3', STANDARDS_PATCH, *sorted(set(roots))], capture_output=True, text=True)
+    if done.returncode != 0:
+        raise RuntimeError(f"openstudio-standards patch failed on {roots}: {(done.stderr or done.stdout).strip()}")
+    logger.info(f"openstudio-standards patch on {roots}: {done.stdout.strip()}")
+    return True
+
+
+def _run_bundle_step(project_dir):
+    """Run _PROJECT_BUNDLE_RB in project_dir in its own process group, bounded like `uo process`
+    (uo_timeout, 2 h cap); returns (returncode, stdout, stderr)."""
+    proc = subprocess.Popen(['ruby', '-e', _PROJECT_BUNDLE_RB], cwd=project_dir, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        out, err = proc.communicate(timeout=uo_timeout(cap=7200))
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.communicate()
+        raise RuntimeError(f"project bundle install in {project_dir} exceeded {uo_timeout(cap=7200)} s")
+    return proc.returncode, out or '', err or ''
+
+
+def prepare_project_bundle(project_dir, simulation_dir=None):
+    """Install the project's gem bundle before any batch runs, exactly where and how the first
+    `uo run` would, then patch it. `uo run` installs a fresh openstudio-standards into the project
+    when the bundle is missing, so a patch baked into the image never reaches a simulation
+    (2026-09-24); patching here covers every building of the run. Not on the cluster: its job
+    script installs the bundle into the per-job BUNDLE_PATH after this runs and patches it there.
+
+    Returns False when POST /api/simulation/stop killed the install (its command line carries the
+    stop sweep's 'bundle'/'openstudio' markers): the run then ends 'stopped' through the batch
+    loop's marker check instead of 'failed', which the db listener would requeue (review
+    2026-09-28, reproduced). Bounded like `uo process` (uo_timeout, 2 h cap) and killed as a
+    process group, a real failure reports Ruby's own error rather than the program text, gems come
+    over https, and a partial bundle (failed fetches the Runner swallows) is reinstalled once from a
+    clean state, then fails loud with the fetch errors."""
+    if is_hpc_environment():
+        return True
+    # urbanopt's project template fetches gems over plain http; on a lossy link (exodus' NIC corrupts
+    # frames) a damaged .gem arrives undetected and Bundler crashes mid-install (Zlib::DataError,
+    # 'is not an octal string', 2026-09-29). https fails such a transfer and retries it. Same gems.
+    gemfile = os.path.join(project_dir, 'Gemfile')
+    if os.path.isfile(gemfile):
+        with open(gemfile) as fh:
+            src = fh.read()
+        if "source 'http://rubygems.org'" in src:
+            with open(gemfile, 'w') as fh:
+                fh.write(src.replace("source 'http://rubygems.org'", "source 'https://rubygems.org'"))
+    for attempt in (1, 2):
+        rc, out, err = _run_bundle_step(project_dir)
+        if rc != 0:
+            if simulation_dir and stop_requested(simulation_dir):
+                logger.info(f"Project bundle install in {project_dir} ended by a stop request")
+                return False
+            tail = ' | '.join((err or out or '').strip().splitlines()[-5:])
+            raise RuntimeError(f"project bundle install failed in {project_dir} (exit {rc}): {tail}")
+        lines = out.strip().splitlines()
+        if not lines:
+            raise RuntimeError(f"project bundle step in {project_dir} printed no bundle path: {' | '.join(err.strip().splitlines()[-5:])}")
+        bundle_path = lines[-1]
+        # The extension Runner swallows a failed `bundle update` (download timeouts or a corrupt gem on a flaky
+        # link, 2026-09-29) and still exits 0 with a partial .bundle/install; `uo run` then sees a non-empty
+        # bundle, never reinstalls, and every building fails on a misleading Gem::ConflictError. Check the
+        # bundle; on a partial one clear it and install once more, then fail with the fetch errors.
+        try:
+            check = subprocess.run(['bundle', 'check'], cwd=project_dir, capture_output=True, text=True,
+                                   timeout=uo_timeout(cap=7200))
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(f"`bundle check` in {project_dir} exceeded {uo_timeout(cap=7200)} s")
+        if check.returncode == 0:
+            break
+        if simulation_dir and stop_requested(simulation_dir):
+            logger.info(f"Project bundle install in {project_dir} ended by a stop request")
+            return False
+        reasons = [l.strip() for l in (out + err).splitlines()
+                   if any(k in l for k in ('Error running command', 'FetchError', 'Could not', 'Zlib::', 'Errno::'))][:3]
+        if attempt == 2:
+            raise RuntimeError(f"project bundle in {project_dir} is incomplete after two installs: "
+                               f"{' | '.join(reasons) or check.stdout.strip()[-300:]}")
+        logger.warning(f"Project bundle in {project_dir} incomplete ({' | '.join(reasons)[:300]}); reinstalling once")
+        # the Runner decides to install from .bundle/config and Gemfile.lock existing, not from the gems being
+        # there: clearing only the install dir makes the rerun a silent no-op
+        shutil.rmtree(bundle_path, ignore_errors=True)
+        shutil.rmtree(os.path.join(project_dir, '.bundle'), ignore_errors=True)
+        lock = os.path.join(project_dir, 'Gemfile.lock')
+        if os.path.exists(lock):
+            os.remove(lock)
+    roots = [bundle_path] + [os.environ[k] for k in ('BUNDLE_PATH', 'GEM_HOME') if os.environ.get(k)]
+    patched = subprocess.run(['python3', STANDARDS_PATCH, *roots], capture_output=True, text=True)
+    if patched.returncode != 0:
+        raise RuntimeError(f"openstudio-standards patch failed for {project_dir}: "
+                           f"{(patched.stderr or patched.stdout).strip()}")
+    logger.debug(f"Project bundle {bundle_path}: {patched.stdout.strip()}")
+    return True
 
 
 ############################################################################################################
@@ -143,6 +279,10 @@ def prepare_record(SIMULATION_DIR, LOCAL_DIR, simulation_name):
     # Stage our custom measures under <project>/measures/ so openstudio CLI
     # can resolve them by measure_dir_name without explicit measure_paths.
     deploy_measures(upload_dir, UO_SIMULATION_DIR)
+    if not prepare_project_bundle(UO_SIMULATION_DIR, SIMULATION_DIR):
+        # a stop killed the install: record it here, since run_batch only marks a run it finds assets to skip in
+        # (review 2026-09-29: a run with no assets left would answer 'ran successfully')
+        mark_stopped_early(SIMULATION_DIR)
 
     # Initialize all assets with "Not Processed Yet" status using bulk update
     try:

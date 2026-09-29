@@ -122,3 +122,14 @@ def test_sig_and_round_series_are_bit_identical_and_noise_free():
 def test_scalar_and_vector_agree_on_ties():
     vals = [123.45, 0.12345, 2.5e-4, 99995.0, 1234.5]
     assert [sig4(v) for v in vals] == list(round_series(pd.Series(vals)))
+
+
+def test_an_invalid_setting_fails_the_report_instead_of_emptying_it(monkeypatch):
+    """clean_single_report rounds each stream inside a per-stream except, so an invalid setting was
+    swallowed stream by stream and the asset went Finished with no report (review 2026-09-24)."""
+    import pytest
+    pytest.importorskip("rich", reason="solver runtime deps unavailable")
+    from modules.simulation.clean_report import clean_single_report
+    monkeypatch.setenv("POWERTWIN_SIG_FIGS", "on")
+    with pytest.raises(ValueError, match="POWERTWIN_SIG_FIGS"):
+        clean_single_report("nowhere", "nowhere", "nowhere", "nowhere.csv", "1")

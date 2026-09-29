@@ -511,7 +511,7 @@
   },
   "explicit_hvac": {
     "explicit": true,
-    "variant": false,
+    "variant": true,
     "other_key": false,
     "absent": false
   },

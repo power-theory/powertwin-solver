@@ -61,10 +61,10 @@ def test_every_simulation_name_route_validates():
                 "recovery", "process_asset_update"]
     for h in handlers:
         body = VIEWS.split(f"\ndef {h}(", 1)[1].split("\ndef ", 1)[0]
-        assert "_reject_sim_name(simulation_name)" in body, f"{h} joins simulation_name unvalidated"
+        assert "_reject_sim_name(simulation_name" in body, f"{h} joins simulation_name unvalidated"
         # validation precedes the first join of the name into a path
         first_join = re.search(r"os\.path\.join\([^)]*simulation_name", body, re.IGNORECASE).start()
-        assert body.index("_reject_sim_name(simulation_name)") < first_join, (
+        assert body.index("_reject_sim_name(simulation_name") < first_join, (
             f"{h} joins simulation_name before validating it")
 
 
@@ -183,13 +183,69 @@ def test_stop_marks_every_simulation_and_the_loop_honours_it(tmp_path, monkeypat
     monkeypatch.delenv("SLURM_JOB_ID", raising=False)
     R.run_batch(0, str(data / "simA"), str(tmp_path), "simA")
     assert calls["processed"] == [] and calls["reset"] == ([1, 2, 3], "Not Processed Yet")
+    assert S.stopped_early(str(data / "simA"))                      # cut short: its caller reports stopped
     R.run_batch(0, str(data / "new_sim"), str(tmp_path), "new_sim")
     assert calls["processed"] == [1, 2, 3]
+
+
+def test_a_stop_for_another_run_does_not_stop_a_finished_one(tmp_path, monkeypatch):
+    """Review 2026-09-28: a stop writes .stop into EVERY simulation dir, so a run whose assets had all finished
+    (it was in uo process or cleanup) answered 409. Only a run the stop actually cut short reports stopped."""
+    from modules.simulation import stop_UOsim as S
+    from modules.simulation import run_UOsim as R
+    data = tmp_path / "data"
+    (data / "simB").mkdir(parents=True)
+    monkeypatch.setattr(R, "process_single_asset", lambda a, *rest: (True, a[0], None))
+    fake_diag = types.SimpleNamespace(get_asset_total=lambda *a: 2, get_bulk_assets=lambda *a: [(1, "a"), (2, "b")],
+                                      bulk_update_status=lambda *a: None)
+    monkeypatch.setitem(sys.modules, "modules.diagnostics", fake_diag)
+    monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+    R.run_batch(0, str(data / "simB"), str(tmp_path), "simB")         # every asset finished
+    S.request_stop(str(data))                                          # a stop aimed at another run lands now
+    assert S.stop_requested(str(data / "simB")) and not S.stopped_early(str(data / "simB"))
 
 
 def test_stop_endpoint_reports_marker_and_worker_writes_stopped():
     body = VIEWS.split("\ndef stop_simulation(", 1)[1].split("\ndef ", 1)[0]
     assert "outcome = stop_UOsimulation()" in body
     worker = VIEWS.split("\ndef _run_asset_update_simulation(", 1)[1].split("\ndef ", 1)[0]
-    assert "stop_requested(simulation_dir)" in worker and "'stopped'" in worker
-    assert worker.index("stop_requested(simulation_dir)") < worker.index("produced no cleaned_reports")
+    assert "stopped_early(simulation_dir)" in worker and "'stopped'" in worker
+    assert worker.index("stopped_early(simulation_dir)") < worker.index("produced no cleaned_reports")
+
+
+def test_name_length_leaves_room_for_the_files_named_after_it():
+    """The name is the stem of <name>_asset.geojson and friends; a file name caps at 255 bytes, so a
+    245-character name passed validation, then failed the save and left both dirs behind, blocking
+    the name for good (review 2026-09-24)."""
+    ns = _views_namespace()
+    assert ns["_valid_sim_name"]("a" * 200) is True
+    assert ns["_valid_sim_name"]("a" * 201) is False and ns["_valid_sim_name"]("a" * 245) is False
+
+
+def test_a_stopped_batch_run_does_not_report_success():
+    """start, autorun and recovery deleted the sim dir (and the stop marker in it) and answered
+    'ran successfully' after a stop that simulated nothing (review 2026-09-24)."""
+    for handler, sim_dir in (("\ndef start_simulation(", "SIMULATION_DIR"), ("\ndef autorun_simulation(", "SIMULATION_DIR"),
+                             ("\ndef recovery(", "RECOVERY_DIR_CONTAINER")):
+        body = VIEWS.split(handler, 1)[1].split("\ndef ", 1)[0]
+        check, rmtree = body.index(f"stopped_early({sim_dir})"), body.index(f"shutil.rmtree({sim_dir})")
+        assert check < rmtree and "_stopped_response(" in body, handler
+    ns = _views_namespace()
+    ns["logger"] = types.SimpleNamespace(info=lambda *a, **k: None, error=lambda *a, **k: None)
+    ns["jsonify"] = lambda *a, **kw: a[0] if a else kw
+    body, code = ns["_stopped_response"]("sim3")
+    assert code == 409 and body["stopped"] is True
+
+
+def test_long_names_from_before_the_cap_stay_reachable():
+    """Review 2026-09-29: the 200-character cap is for creating runs; lookups keep 255 so older runs can be
+    queried and deleted."""
+    ns = _views_namespace()
+    assert ns["_valid_sim_name"]("a" * 230, creating=False) is True
+    assert ns["_valid_sim_name"]("a" * 230) is False and ns["_valid_sim_name"]("a" * 256, creating=False) is False
+    for lookup in ("get_simulation_status", "delete_simulation", "get_asset_config", "get_simulation_results"):
+        body = VIEWS.split(f"\ndef {lookup}(", 1)[1].split("\ndef ", 1)[0]
+        assert "_reject_sim_name(simulation_name, creating=False)" in body, lookup
+    for creator in ("start_simulation", "process_asset_update", "autorun_simulation"):
+        body = VIEWS.split(f"\ndef {creator}(", 1)[1].split("\ndef ", 1)[0]
+        assert "_reject_sim_name(simulation_name)" in body, creator

@@ -7,7 +7,7 @@ import json
 import subprocess
 
 from .clean_report import clean_single_report
-from .stop_UOsim import stop_requested
+from .stop_UOsim import stop_requested, mark_stopped_early
 from modules.utils import initialize_logger, run_command, check_storage
 from modules.utils.command_timer import uo_timeout
 from modules.utils.check_uo import get_urbanopt_command
@@ -340,6 +340,7 @@ def process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simul
         if stop_requested(SIMULATION_DIR):
             # the toolchain was SIGKILLed by /api/simulation/stop; name that, not the -9
             error_msg = "STOPPED by request"
+            mark_stopped_early(SIMULATION_DIR)
         logger.error(f"BATCH {batch_num}: Failed to process asset {asset_id}: {error_msg}")
         update_status("Failed", asset_id=asset_id, simulation_name=simulation_name,
                       failure_reason=error_msg[:1000])
@@ -383,6 +384,7 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
             bulk_update_status(remaining, "Not Processed Yet", simulation_name)
             skipped = len(remaining)
             logger.warning(f"BATCH {batch_num}: stop requested, {skipped} assets left Not Processed Yet")
+            mark_stopped_early(SIMULATION_DIR)
             break
         result, asset_id, error = process_single_asset(asset_data, SIMULATION_DIR, LOCAL_DIR, batch_num, simulation_name)
         if result:

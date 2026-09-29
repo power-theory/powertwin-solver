@@ -324,7 +324,7 @@ def read_status(local_dir):
         return None
 
 
-TERMINAL_PHASES = {'completed', 'failed', 'deleted'}
+TERMINAL_PHASES = {'completed', 'failed', 'deleted', 'stopped'}
 
 
 def reap_orphaned_sims(base=None):

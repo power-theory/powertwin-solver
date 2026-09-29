@@ -12,7 +12,7 @@ import contextlib
 from flask import request, jsonify, render_template, send_file
 
 from modules.simulation import initialize_uo, create_featurefiles, stop_UOsimulation
-from modules.simulation.stop_UOsim import stop_requested
+from modules.simulation.stop_UOsim import stopped_early
 from modules.simulation.sim_params_spec import (
     validate_metadata, build_asset_ctx, resolve_default,
     is_dynamic_defaults_enabled,
@@ -39,11 +39,16 @@ DATA_DIR = os.path.join('data')
 # running server (proven in a throwaway container 2026-09-20). start/autorun took any
 # string, including '../../tmp/x'. Same character class the db listener and the cluster
 # scripts already produce (asset_<id>_<ts>, natv3b, qa_matrix_<fx>_<arm>).
-_SIM_NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,254}$')
+# At most 200 characters: the name is also the stem of files written beside it
+# (<name>_asset.geojson, <name>_sensor_logs.csv), and a file name caps at 255 bytes.
+_SIM_NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,199}$')
+# Lookups (status, results, delete, asset config) keep the old 255 cap so runs created before the 200 cap stay
+# reachable and removable (review 2026-09-29).
+_SIM_NAME_LOOKUP_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,254}$')
 
 
-def _valid_sim_name(name) -> bool:
-    if not isinstance(name, str) or not _SIM_NAME_RE.fullmatch(name):
+def _valid_sim_name(name, creating=True) -> bool:
+    if not isinstance(name, str) or not (_SIM_NAME_RE if creating else _SIM_NAME_LOOKUP_RE).fullmatch(name):
         return False
     for root in (DATA_DIR, os.path.join('powertwin-solver-pg', 'user_files')):
         real_root = os.path.realpath(root)
@@ -52,9 +57,17 @@ def _valid_sim_name(name) -> bool:
     return True
 
 
-def _reject_sim_name(name):
+def _stopped_response(simulation_name):
+    """A run halted by POST /api/simulation/stop: its batches returned early, so it must not read
+    as a success to the caller that started it (409; the stop marker dies with the sim dir)."""
+    logger.info(f"Simulation {simulation_name} stopped by request before completing")
+    return jsonify({'error': 'stopped by request (POST /api/simulation/stop)', 'stopped': True,
+                    'simulation_name': simulation_name}), 409
+
+
+def _reject_sim_name(name, creating=True):
     """Response tuple for an invalid simulation_name, else None."""
-    if _valid_sim_name(name):
+    if _valid_sim_name(name, creating):
         return None
     logger.error(f"Invalid simulation_name rejected: {name!r}")
     return jsonify({'error': 'Invalid simulation_name'}), 400
@@ -275,6 +288,7 @@ def start_simulation():
             initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
             logger.debug("Exited initialize_uo to start_simulation()")
 
+            stopped = stopped_early(SIMULATION_DIR)
             logger.debug("Deleting simulation directory, within the container")
             get_logs()
             shutil.rmtree(SIMULATION_DIR)
@@ -283,6 +297,8 @@ def start_simulation():
             send_error_to_mss('start_simulation', str(e))
             return jsonify({'error': str(e)}), 500
 
+    if stopped:
+        return _stopped_response(simulation_name)
     logger.debug("start_simulation() ran successfully")
     return jsonify({'confirmation': f'Simulation "{simulation_name}" ran successfully'})
 
@@ -479,7 +495,7 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
             initialize_uo(simulation_dir, sim_local_dir, simulation_name)
             write_status(sim_local_dir, 'cleaning_reports', simulation_name=simulation_name)
 
-            if stop_requested(simulation_dir):
+            if stopped_early(simulation_dir):
                 write_status(sim_local_dir, 'stopped', simulation_name=simulation_name,
                              error='stopped by request (POST /api/simulation/stop)')
                 logger.info(f"Async simulation stopped by request: {simulation_name}")
@@ -733,9 +749,12 @@ def autorun_simulation():
             initialize_uo(SIMULATION_DIR, LOCAL_DIR, simulation_name)
             logger.debug("Exited initialize_uo")
         
+        stopped = stopped_early(SIMULATION_DIR)
         logger.debug("Deleting simulation directory, within the container")
         get_logs()
         shutil.rmtree(SIMULATION_DIR)
+        if stopped:
+            return _stopped_response(simulation_name)
         return jsonify({'message': 'Simulation completed successfully.'}), 200
     except Exception as e:
         logger.error(f"Exception: {str(e)}")
@@ -783,7 +802,7 @@ def get_simulation_status(simulation_name):
     if simulation_name is None:
         logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
-    bad_name = _reject_sim_name(simulation_name)
+    bad_name = _reject_sim_name(simulation_name, creating=False)
     if bad_name is not None:
         return bad_name
     
@@ -833,7 +852,7 @@ def delete_simulation(simulation_name):
     if simulation_name is None:
         logger.error("Error: Simulation name is required.")
         return jsonify({'error': 'Simulation name is required.'}), 400
-    bad_name = _reject_sim_name(simulation_name)
+    bad_name = _reject_sim_name(simulation_name, creating=False)
     if bad_name is not None:
         return bad_name
 
@@ -885,7 +904,7 @@ def get_asset_config(simulation_name, asset_id):
     if not asset_id or not simulation_name:
         logger.error("Error: Asset ID and Simulation Name are required")
         return jsonify({'error': 'Asset ID and Simulation Name are required'}), 400
-    bad_name = _reject_sim_name(simulation_name)
+    bad_name = _reject_sim_name(simulation_name, creating=False)
     if bad_name is not None:
         return bad_name
            
@@ -1083,8 +1102,11 @@ def recovery():
             simulation_recovery(RECOVERY_DIR_CONTAINER, RECOVERY_DIR_LOCAL, CORRUPTED_SIMULATION_DIR, corrupted_simulation_name, recover_simulation_name, num_cores, batch_id)
         
         logger.debug("Exited simulation_recovery to recovery(), deleting recovery directory within the container")
+        stopped = stopped_early(RECOVERY_DIR_CONTAINER)
         get_logs()
         shutil.rmtree(RECOVERY_DIR_CONTAINER)
+        if stopped:
+            return _stopped_response(recover_simulation_name)
         return jsonify({'message': 'Simulation recovery process completed successfully'}), 200
 
 
@@ -1243,7 +1265,7 @@ def get_simulation_results(simulation_name):
         return auth_err
     if simulation_name is None:
         return jsonify({'error': 'Simulation name is required.'}), 400
-    bad_name = _reject_sim_name(simulation_name)
+    bad_name = _reject_sim_name(simulation_name, creating=False)
     if bad_name is not None:
         return bad_name
     sim_local_dir = os.path.join('powertwin-solver-pg', 'user_files', simulation_name)
@@ -1320,13 +1342,22 @@ def resolve_defaults_preview():
         return auth_err
     try:
         payload = request.get_json(silent=True) or {}
-        metadata = payload.get('metadata') or {}
+        # build_asset_ctx lowercases keys; drop a field by the same key it reads (review 2026-09-29)
+        metadata = {str(k).lower(): v for k, v in (payload.get('metadata') or {}).items()}
         building_type = payload.get('building_type')
         ctx = build_asset_ctx(metadata, building_type=building_type)
         resolved = {}
         levels = {}
         for f in DYNAMIC_FIELDS:
-            value, level = resolve_default(f, ctx)
+            # A field's default is what it resolves to when the user leaves it unset: resolve it from the metadata
+            # without that field (every other saved choice still applies). Resolving it with its own saved value in
+            # the ctx showed 'furnace' on a house whose saved 'boiler' hid an electric-resistance default, so
+            # re-picking the shown default rebuilt the house (review 2026-09-28, reproduced on Teton 15973);
+            # build_asset_ctx's confirm check compares against the same unset value.
+            # only a field build_asset_ctx carries into the ctx can condition its own default; rebuild just for those
+            f_ctx = build_asset_ctx({k: v for k, v in metadata.items() if k != f}, building_type=building_type) \
+                if f in ctx and metadata.get(f) not in (None, '') else ctx
+            value, level = resolve_default(f, f_ctx)
             if value is not None:
                 resolved[f] = value
                 levels[f] = level

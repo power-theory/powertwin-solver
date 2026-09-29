@@ -128,12 +128,13 @@ module PowerTwinRefs
   GSHP_COP = 3.6
   GSHP_EER = 17.1
 
-  # A programmable param the metadata supplied (feature explicit_params, emitted by
-  # generateFeatureFile) on a feature that is not a scenario fan-out variant.
+  # A heating_system_type the metadata supplied (feature explicit_params, emitted by
+  # generateFeatureFile). A scenario fan-out variant counts like a user edit, so the delta
+  # surrogate learns what hosted UrbanOpt builds for the same choice (2026-09-24).
   def self.explicit_hvac?(props)
     list = props[:explicit_params]
     return false unless list.respond_to?(:include?)
-    !props[:scenario_variant] && list.include?('heating_system_type')
+    list.include?('heating_system_type')
   end
 
   # --- Residential envelope cavity-R -> HPXML assembly-R ------------------------

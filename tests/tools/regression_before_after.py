@@ -254,6 +254,10 @@ def test_feature_generation_e2e():
 
     sample = {}
     count = 0
+    # the commercial footprint fit needs the whole collection's pre-pass (generateFeatureFile.load_asset_geojson)
+    from modules.simulation.generateFeatureFile import annotate_asset_footprints
+    annotate_asset_footprints(features, building_area, building_type_list, building_name_list,
+                              building_weather_list, building_metadata_list)
     for feat in features:
         props = feat.get('properties', {})
         bid = str(props.get('id', ''))
