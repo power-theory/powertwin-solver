@@ -1,6 +1,7 @@
 """solver/patches/patch_openstudio_standards.py: every fix lands once in each gem copy, a re-run changes
 nothing, and a gem whose code moved fails loudly instead of being skipped."""
 import importlib.util
+import json
 import os
 import sys
 
@@ -21,7 +22,30 @@ def _gem(root, version='0.7.1', moved=False):
         if moved:
             body = body.replace('122.0', '121.0').replace('#{wknd_op_hrs_start}', '#{x}')
         open(path, 'w').write(body)
+    for rel, _edit in P.JSON_PATCHES['openstudio-standards']:     # 90.1 space-type data (2026-10-01)
+        path = os.path.join(lib, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        rows = [{'template': 't', 'building_type': 'SecondarySchool', 'space_type': 'Gym',
+                 'heating_setpoint_schedule': 'H', 'cooling_setpoint_schedule': 'C'},
+                {'template': 't', 'building_type': 'SecondarySchool', 'space_type': 'Classroom'}]
+        json.dump({'space_types': rows}, open(path, 'w'))
+    _geojson(root)
     return lib
+
+
+def _geojson(root, version='1.0.1', moved=False):
+    """urbanopt-geojson's building.rb with the fixed zoning floor-to-floor line (2026-09-30)."""
+    path = os.path.join(root, 'gems', f'urbanopt-geojson-{version}', 'lib', 'urbanopt', 'geojson', 'building.rb')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    line = P._FLOOR_FIXED.replace('3.6', '3.5') if moved else P._FLOOR_FIXED
+    open(path, 'w').write('if zoning\n  floor_to_floor_height = other_building[:properties][:floor_to_floor_height]\nend\n' + line + 'after\n')
+    zp = os.path.join(root, 'gems', f'urbanopt-geojson-{version}', 'lib', 'urbanopt', 'geojson', 'zoning.rb')
+    open(zp, 'w').write('before\n' + P._ZONING_CORE + 'middle\n' + P._ZONING_RETURN + 'after\n')    # divide_floor_print
+    for m in ('urban_geometry_creation_zoning', 'urban_geometry_creation'):     # the vacant-PV hack (2026-10-01)
+        mp = os.path.join(root, 'gems', f'urbanopt-geojson-{version}', 'lib', 'measures', m, 'measure.rb')
+        os.makedirs(os.path.dirname(mp), exist_ok=True)
+        open(mp, 'w').write("      building_type = feature.building_type\n" + P._VACANT_PV + "\n      # make other buildings\n")
+    return path
 
 
 def test_patches_once_and_is_idempotent(tmp_path, capsys):
@@ -34,7 +58,7 @@ def test_patches_once_and_is_idempotent(tmp_path, capsys):
     snapshot = {rel: open(os.path.join(lib, rel)).read() for rel, _ in P.PATCHES}
     capsys.readouterr()
     P.main([str(tmp_path)])
-    assert capsys.readouterr().out.count('already patched') == 2
+    assert capsys.readouterr().out.count('already patched') == sum(len(files) for _lib, files in P.GEM_PATCHES.values()) + sum(len(v) for v in P.JSON_PATCHES.values())  # every patched file
     assert snapshot == {rel: open(os.path.join(lib, rel)).read() for rel, _ in P.PATCHES}
 
 
@@ -94,3 +118,66 @@ def test_cluster_batches_patch_the_jobs_gem_home(tmp_path, monkeypatch):
     monkeypatch.setenv('BUNDLE_PATH', str(tmp_path / 'moved'))
     with pytest.raises(RuntimeError, match='patch failed'):
         U.ensure_standards_patched()
+
+
+def test_zoning_honours_the_features_story_height(tmp_path, capsys):
+    """urbanopt-geojson built every commercial story at 3.6 m, discarding the floor_to_floor_height it had just read."""
+    _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    rb = open(_geojson_path(tmp_path)).read()
+    assert P._FLOOR_FIXED not in rb and "OpenStudio.convert(floor_to_floor_height.to_f, 'ft', 'm').get : 3.6) : 3" in rb
+    capsys.readouterr()
+    P.main([str(tmp_path)])
+    assert rb == open(_geojson_path(tmp_path)).read()
+
+
+def test_moved_geojson_code_fails_loudly(tmp_path):
+    _gem(str(tmp_path))
+    _geojson(str(tmp_path), moved=True)
+    with pytest.raises(SystemExit, match='building.rb: expected the patched code once'):
+        P.main([str(tmp_path)])
+
+
+def _geojson_path(root):
+    return os.path.join(str(root), 'gems', 'urbanopt-geojson-1.0.1', 'lib', 'urbanopt', 'geojson', 'building.rb')
+
+
+def test_vacant_buildings_get_no_phantom_pv(tmp_path, capsys):
+    """urbanopt-geojson's 'DLM: temp hack' gave every Vacant building a footprint-sized 30% PV array over its roof
+    (a vacant Sacramento building reported 1.16 GWh produced, DEER check 2026-10-01)."""
+    _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    for m in ('urban_geometry_creation_zoning', 'urban_geometry_creation'):
+        rb = open(os.path.join(str(tmp_path), 'gems', 'urbanopt-geojson-1.0.1', 'lib', 'measures', m, 'measure.rb')).read()
+        assert 'Helper.create_shading_surfaces(' not in rb and 'powertwin patch' in rb and 'building_type = feature.building_type' in rb
+    capsys.readouterr()
+    P.main([str(tmp_path)])                                  # idempotent
+
+
+def test_doe_ref_schools_keep_their_gym_audience_conditioned_under_90_1(tmp_path, capsys):
+    """A DOE Ref school's 'Gym - audience' zones got no thermostat and no HVAC when its HVAC template was 90.1
+    (one stock: a whole unconditioned story ran past 200 C; 2026-10-01)."""
+    lib = _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    for rel, _edit in P.JSON_PATCHES['openstudio-standards']:
+        rows = json.load(open(os.path.join(lib, rel)))['space_types']
+        ga = [r for r in rows if r['space_type'] == 'Gym - audience']
+        assert len(ga) == 1 and ga[0]['heating_setpoint_schedule'] == 'H' and ga[0]['cooling_setpoint_schedule'] == 'C'
+        assert 'powertwin patch' in ga[0]['notes']
+    capsys.readouterr()
+    P.main([str(tmp_path)])
+    for rel, _edit in P.JSON_PATCHES['openstudio-standards']:
+        assert len([r for r in json.load(open(os.path.join(lib, rel)))['space_types'] if r['space_type'] == 'Gym - audience']) == 1
+
+
+def test_a_collapsed_core_or_untiled_split_keeps_the_floor_whole(tmp_path, capsys):
+    """Narrow footprints got degenerate surfaces and sliver zones; the self-intersection check keeps its upstream
+    warn-and-divide, since returning there left 27% of Teton's commercial area undivided on footprints that run fine."""
+    _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    rb = open(os.path.join(str(tmp_path), 'gems', 'urbanopt-geojson-1.0.1', 'lib', 'urbanopt', 'geojson', 'zoning.rb')).read()
+    i = rb.index("Self intersecting surface result, will not divide')")
+    assert rb.index('end', i) < rb.index('return [floor_print]', i)            # upstream: warns, divides
+    assert "core_area.get < 0.1 * floor_area.get" in rb and rb.count('return [floor_print]') == 2
+    assert 'does not tile the floor' in rb and rb.rstrip().endswith('return result\nafter')
+

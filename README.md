@@ -325,14 +325,14 @@ seeded into `simulation_*_types` tables and served at
 | `system_type` | enum | `Inferred` | — | omitted from feature.json so urbanopt picks the building_type's template default |
 | `heating_system_fuel_type` | enum | `natural gas` | residential: ACS 2022 county fuel shares reconciled with RECS 2020 division system-types, share-weighted per building; commercial: CBECS 2018 region shares | `simulation_fuel_types` |
 | `cooling_system_fuel_type` | enum | `electricity` | constant (~99%) | `simulation_fuel_types` |
-| `service_water_heating_fuel_type` | enum | `natural gas` | residential: conditioned on the resolved heating fuel (RECS 2020 SWH-follows-heat); commercial: CBECS 2018 region shares | `simulation_fuel_types` |
+| `service_water_heating_fuel_type` | enum | `natural gas` | residential: conditioned on the resolved heating fuel (RECS 2020 SWH-follows-heat); commercial: CBECS 2018 region shares | `simulation_fuel_types`; always `electricity` with a heat pump water heater (a conflicting saved fuel is overridden with a warning) |
 | `window_type` | enum | `Double Pane` | RECS 2020 TYPEGLASS / CBECS 2018 WINTYP by vintage | `simulation_window_types` |
-| `wall_material` | enum | `Insulated` | RECS 2020 / CBECS 2018 region+vintage tier | `simulation_surface_materials` (solver appends " Wall") |
-| `roof_material` | enum | `Insulated` | RECS 2020 / CBECS 2018 region+vintage tier | `simulation_surface_materials` (solver appends " Roof") |
+| `wall_material` | label only | `Insulated` | the tier of the wall R-value the building uses; a saved value is ignored since resolver 3.2 (Insulation Presets Plan) | written as " Wall" in feature.json |
+| `roof_material` | label only | `Insulated` | the tier of the roof R-value the building uses; a saved value is ignored since resolver 3.2 | written as " Roof" in feature.json |
 | `window_to_wall_ratio` | number | `0.20` | OpenStudio Standards prototype WWR per building_type (commercial only) | range `[0.0, 0.8]` |
 | `wall_r_value` | number | `13.0` | ResStock TRG / CBECS region+vintage avg | range `[1.0, 80.0]` |
 | `roof_r_value` | number | `30.0` | ResStock TRG / CBECS region+vintage avg | range `[1.0, 80.0]` |
-| `floor_height` | number | `9.0` ft | — | range `[6.0, 20.0]` |
+| `floor_height` | number | unset = what URBANopt builds: houses 8 ft (ceiling), commercial 3.6 m (11.81 ft zoning story), dynamic defaults on or off | commercial with dynamic defaults: `PROTOTYPE_TYPICAL_STORY_FT` of its prototype when not Vacant and 1,000 ft2 or more (ComStock's domain); an explicit value is a house's ceiling height | minimum 6.0, no maximum (a non-finite value falls back to the default) |
 | `weekday_start_time` | time `HH:MM` | `""` (template default) | OpenStudio Standards operating hours per building_type | emit only when paired with non-empty `weekday_duration` |
 | `weekday_duration` | time `HH:MM` | `""` (template default) | OpenStudio Standards operating hours per building_type | must not equal `24:00` (schedule collision) |
 | `weekend_start_time` | time `HH:MM` | `""` (template default) | OpenStudio Standards operating hours per building_type | emit only when paired with non-empty `weekend_duration` |

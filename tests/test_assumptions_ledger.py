@@ -50,9 +50,11 @@ SPEC_PATH = os.path.join(REPO, "solver", "app", "modules", "simulation", "sim_pa
 # rather than hardcoded: the old five-entry whitelist meant a guard placed in any sixth test file
 # could not be cited by the ledger without editing this dict (Q/A campaign C-4). Every
 # tests/test_*.py and tests/test_*.rb is now citable; existence remains asserted per oracle.
+# solver tests win on a name clash; the surrogate's tests carry the oracles of its rules (pairing, levers)
 ORACLE_FILES = {
-    os.path.splitext(f)[0]: os.path.join(REPO, "tests", f)
-    for f in sorted(os.listdir(os.path.join(REPO, "tests")))
+    os.path.splitext(f)[0]: os.path.join(REPO, d, f)
+    for d in ("surrogate/tests", "tests")
+    for f in sorted(os.listdir(os.path.join(REPO, d)))
     if f.startswith("test_") and os.path.splitext(f)[1] in (".py", ".rb")
 }
 VALID_STATUS = {

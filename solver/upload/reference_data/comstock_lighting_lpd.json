@@ -1,0 +1,111 @@
+{
+ "_source": {
+  "extracted": "2026-10-01",
+  "generations": "ComStock in.interior_lighting_generation gen1_t12_incandescent, gen2_t8_halogen, gen3_t5_cfl, gen4_led, gen5_led",
+  "name": "Van Sant, CaraDonna, Parker (NREL), End-Use Savings Shapes Measure Documentation: LED Lighting, NREL/TP-5500-86100, December 2023, Table 2",
+  "pdf_sha256": "8571300be9139a57b75768d87cdcf942a7295de9419011f858f11f7526fd4e5c",
+  "regen": "tests/tools/build_lighting_lpd.py",
+  "units": "W/ft2, average installed building-level LPD",
+  "url": "https://www.nrel.gov/docs/fy24osti/86100.pdf"
+ },
+ "lpd_w_per_ft2": {
+  "FullServiceRestaurant": {
+   "gen1": 1.51,
+   "gen2": 0.96,
+   "gen3": 0.45,
+   "gen4": 0.43,
+   "gen5": 0.39
+  },
+  "Hospital": {
+   "gen1": 1.59,
+   "gen2": 1.07,
+   "gen3": 0.63,
+   "gen4": 0.58,
+   "gen5": 0.52
+  },
+  "LargeHotel": {
+   "gen1": 1.31,
+   "gen2": 0.8,
+   "gen3": 0.29,
+   "gen4": 0.23,
+   "gen5": 0.21
+  },
+  "LargeOffice": {
+   "gen1": 1.18,
+   "gen2": 0.8,
+   "gen3": 0.5,
+   "gen4": 0.53,
+   "gen5": 0.47
+  },
+  "MediumOffice": {
+   "gen1": 1.18,
+   "gen2": 0.8,
+   "gen3": 0.5,
+   "gen4": 0.53,
+   "gen5": 0.47
+  },
+  "Outpatient": {
+   "gen1": 1.27,
+   "gen2": 0.85,
+   "gen3": 0.53,
+   "gen4": 0.52,
+   "gen5": 0.47
+  },
+  "PrimarySchool": {
+   "gen1": 0.73,
+   "gen2": 0.56,
+   "gen3": 0.48,
+   "gen4": 0.47,
+   "gen5": 0.42
+  },
+  "QuickServiceRestaurant": {
+   "gen1": 1.73,
+   "gen2": 1.11,
+   "gen3": 0.56,
+   "gen4": 0.52,
+   "gen5": 0.47
+  },
+  "RetailStandalone": {
+   "gen1": 1.17,
+   "gen2": 0.75,
+   "gen3": 0.54,
+   "gen4": 0.47,
+   "gen5": 0.42
+  },
+  "RetailStripmall": {
+   "gen1": 1.59,
+   "gen2": 1.07,
+   "gen3": 0.65,
+   "gen4": 0.64,
+   "gen5": 0.59
+  },
+  "SecondarySchool": {
+   "gen1": 0.88,
+   "gen2": 0.58,
+   "gen3": 0.48,
+   "gen4": 0.45,
+   "gen5": 0.4
+  },
+  "SmallHotel": {
+   "gen1": 1.08,
+   "gen2": 0.63,
+   "gen3": 0.28,
+   "gen4": 0.25,
+   "gen5": 0.22
+  },
+  "SmallOffice": {
+   "gen1": 1.18,
+   "gen2": 0.79,
+   "gen3": 0.5,
+   "gen4": 0.52,
+   "gen5": 0.47
+  },
+  "Warehouse": {
+   "gen1": 0.83,
+   "gen2": 0.4,
+   "gen3": 0.39,
+   "gen4": 0.3,
+   "gen5": 0.27
+  }
+ }
+}

@@ -36,7 +36,7 @@ log = logging.getLogger('Generate Feature Files')
 # Bump when resolver logic or reference data changes.
 # Stamped into feature.json so results are traceable to the model that produced them.
 # push.sh syncs this to the README header automatically.
-RESOLVER_VERSION = '3.1'  # 3.1: an explicit heating_system_type or water_heater_type equal to the unset default only confirms it (CONFIRMABLE_FIELDS); 3.0: CR review fixes
+RESOLVER_VERSION = '3.3'  # 3.3: a commercial building's interior lighting LPD comes from its ComStock lighting generation (resolve_lighting) and its template (construction and HVAC) follows its state's energy-code adoption years from ComStock 2024.1 (resolved_templates), California on DEER with its CEC zone, and a county-drawn 'Residential forced air furnace' builds as ComStock's unventilated furnace (MEASURE_NATIVE_SYSTEMS; system_type is CONFIRMABLE); 3.2: an explicit floor_height is a house's ceiling height and a saved wall/roof_material is ignored (RETIRED_INPUT_FIELDS); 3.1: an explicit heating_system_type or water_heater_type equal to the unset default only confirms it (CONFIRMABLE_FIELDS); 3.0: CR review fixes
 
 _REF_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'upload', 'reference_data'
@@ -106,10 +106,10 @@ def _county_prior_tiers(ref_name: str, county_fips):
     if cell and cell.get('_n', 0) >= floors.get('division', 1):
         yield (cell, 'division')
 
-# CR review fix (finding 2): the county tables are gitignored builder outputs;
-# an image built from a fresh clone would silently lose every county channel
-# (resolve_default swallows the per-field FileNotFoundError). Check presence
-# ONCE at import and shout - loud log, not a crash, so prod degrades visibly.
+# CR review fix (finding 2), updated 2026-10-03: the reference tables are Git LFS objects (pinned in
+# county_tables.sha256); a clone without `git lfs pull` has small pointer files in their place, and a missing table
+# silently loses its channel (resolve_default swallows the per-field error). Check ONCE at import and shout - loud
+# log, not a crash, so prod degrades visibly. The Dockerfile's sha256 check refuses such an image outright.
 _COUNTY_TABLES = (
     'resstock2024_county_ducts', 'resstock2024_county_heating',
     'resstock2024_county_setpoints', 'resstock2024_county_infiltration',
@@ -119,25 +119,36 @@ _COUNTY_TABLES = (
     'resstock2024_county_cooling', 'resstock2024_county_pv',
     'comstock2024_county_hours', 'comstock2024_county_system',
     'comstock2024_county_fuels', 'comstock2024_county_tstat',
+    'comstock2024_county_lighting', 'cec_building_climate_zones',
+    # resolver 3.3 plain-JSON tables (tracked, not LFS)
+    'comstock2024_state_code_adoption', 'comstock_lighting_lpd', 'insulation_presets',
 )
 
 
 def _county_tables_missing():
+    """Tables absent, or present only as a Git LFS pointer (a ~130-byte text stub, never valid JSON or gzip)."""
     ref_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                            '..', '..', '..', 'upload', 'reference_data')
-    return [t for t in _COUNTY_TABLES
-            if not (os.path.exists(os.path.join(ref_dir, f'{t}.json.gz'))
-                    or os.path.exists(os.path.join(ref_dir, f'{t}.json')))]
+    bad = []
+    for t in _COUNTY_TABLES:
+        path = next((p for p in (os.path.join(ref_dir, f'{t}.json.gz'), os.path.join(ref_dir, f'{t}.json'))
+                     if os.path.exists(p)), None)
+        if path is None:
+            bad.append(t)
+            continue
+        with open(path, 'rb') as f:
+            if f.read(40).startswith(b'version https://git-lfs'):
+                bad.append(f'{t} (LFS pointer)')
+    return bad
 
 
 _missing_county_tables = _county_tables_missing()
 if _missing_county_tables:
     log.error(
-        f"COUNTY REFERENCE TABLES MISSING ({len(_missing_county_tables)}/16): "
-        f"{_missing_county_tables} - these are gitignored builder outputs "
-        f"(tests/tools/build_county_*.py, see reference_data/README_county_tables.md); "
-        f"every county-resolved field will silently fall back to division/RECS "
-        f"behavior while stamping RESOLVER_VERSION {RESOLVER_VERSION}.")
+        f"REFERENCE TABLES MISSING OR NOT PULLED ({len(_missing_county_tables)}/{len(_COUNTY_TABLES)}): "
+        f"{_missing_county_tables} - run `git lfs pull` (see reference_data/README_county_tables.md); "
+        f"every field they serve falls back to division/RECS/ladder behavior while stamping "
+        f"RESOLVER_VERSION {RESOLVER_VERSION}.")
 
 # Master switch for the national-stock dynamic-default resolver. Read at call
 # time (not module-import time) so a per-request override mutating
@@ -188,6 +199,19 @@ DUCT_LOCATIONS = ('conditioned space', 'attic', 'crawlspace',
 TIME_FIELDS = ('weekday_start_time', 'weekday_duration',
                'weekend_start_time', 'weekend_duration')
 
+# The ceiling height a residential building simulates at when floor_height is left unset: URBANopt's residential
+# mapper sets geometry_average_ceiling_height = maximum_roof_height / stories with maximum_roof_height defaulting to
+# 8 ft per story (urbanopt-cli 1.0.1 example_files/mappers/residential/util.rb:77,179), and our features carry no
+# maximum_roof_height. PowerTwin.rb passes only an EXPLICIT floor_height to a house, so an unset house gets this
+# value from get_param (feature file and preview alike), not the flat 9 ft (2026-09-29, 2026-09-30).
+RESIDENTIAL_UNSET_CEILING_HEIGHT_FT = 8.0
+
+# Fields a user can no longer set (owner 2026-09-29, Insulation Presets Plan): the insulation tier only ever labelled
+# the R-value (PowerTwin.rb has read only r_value since 2026-06-08), so a saved tier is ignored and the label always
+# resolves from the building's R draw, as for an unedited building. Stored values stay valid for validate_metadata.
+RETIRED_INPUT_FIELDS = ('wall_material', 'roof_material')
+HPWH = 'heat pump water heater'     # electric by definition; see get_param (2026-09-30)
+
 SIM_PARAM_DEFAULTS = {
     # Enum-backed. These are the LAST-RESORT fallbacks — see resolve_default()
     # for the dynamic lookups that take precedence when the asset context
@@ -206,7 +230,7 @@ SIM_PARAM_DEFAULTS = {
     'window_to_wall_ratio': 0.20,    # CBECS 2018 commercial median
     'wall_r_value': 13.0,            # ResStock TRG post-1980 SFD avg / IECC CZ4 min
     'roof_r_value': 30.0,            # ResStock TRG post-1980 ceiling avg
-    'floor_height': 9.0,             # ASHRAE 90.1 commercial baseline
+    'floor_height': 9.0,             # last resort only: commercial resolves the prototype's typical story (3.6 m outside its domain), houses 8 ft
     'number_of_occupants': '',
 
     # Heating equipment detail channel (CR WP-R2): the county donor carries the
@@ -288,7 +312,8 @@ NUMERIC_RANGES = {
     'window_to_wall_ratio': (0.0, 0.8),
     'wall_r_value':         (0.0, 80.0),   # 0.0 = Uninsulated (county insulation draws)
     'roof_r_value':         (0.0, 80.0),
-    'floor_height':         (6.0, 20.0),
+    'floor_height':         (6.0, float('inf')),   # no maximum (owner 2026-10-01: a cap only blocked real tall
+                                                   # buildings); the 6 ft minimum catches a metres entry (3.6)
     'number_of_occupants':  (0, 100000),
 }
 
@@ -454,7 +479,7 @@ COMSTOCK_HVAC_KEY = {
     'PSZ-AC with gas boiler': 'PSZ-AC with gas coil',                     # gas heat kept; hydronic -> coil
     'PVAV with gas boiler reheat': 'PVAV with gas heat with electric reheat',  # gas primary kept; reheat electrified
     'PSZ-AC district chilled water with electric coil': 'PSZ-AC with baseboard electric',  # electric heat kept; district CHW dropped
-    'Residential forced air furnace': 'Forced air furnace',               # heat-only furnace
+    'Residential forced air furnace': 'Forced air furnace',               # heat-only furnace; builds as ComStock's (MEASURE_NATIVE_SYSTEMS)
     'VAV air-cooled chiller with PFP boxes': 'VAV chiller with PFP boxes',  # electric reheat kept; chiller condenser type
     'VAV district chilled water with PFP boxes': 'VAV chiller with PFP boxes',  # electric reheat kept; district CHW dropped
     'VAV chiller with district hot water reheat': 'VAV chiller with gas boiler reheat',  # chiller kept; district -> gas hydronic
@@ -472,6 +497,14 @@ COMSTOCK_HVAC_KEY = {
 # subset would reject legitimate user-set enum values. Mapping targets living
 # inside the enum is pinned by its own regression guard instead.
 RESOLVER_ENUM_VALUES['system_type'] = set(ENUM_VALUES['system_type'])
+
+# ComStock labels the create_typical measure builds as they are (openstudio-standards cbecs_hvac) although
+# urbanopt-geojson's system_type enum lacks them: the feature carries the enum member above (the schema rejects
+# anything else) and comstock_system_type, which PowerTwin.rb passes to the measure instead. 'Residential forced air
+# furnace' is an unventilated furnace; its remap target 'Forced air furnace' adds a 100% outdoor-air intake downstream
+# of the furnace, which 90.1 then gives an energy recovery ventilator whose pretreat setpoint references a mixed-air
+# node nothing controls (EnergyPlus checkSetpointNodesAtEnd fatal; 7 of 20 such Teton vacant buildings, 2026-10-01).
+MEASURE_NATIVE_SYSTEMS = {'Residential forced air furnace'}
 
 
 # Default number_of_occupants per occupancy_type, used as a flat last-resort
@@ -511,8 +544,8 @@ def validate_metadata(metadata):
     # and strict ENUM_VALUES would reject them at the boundary (district-steam e2e).
     for key, valid in ENUM_VALUES.items():
         val = metadata.get(key)
-        if val in (None, ''):
-            continue
+        if val in (None, '') or key in RETIRED_INPUT_FIELDS:
+            continue    # a retired input is ignored, so an odd stored value must not 400 every re-simulation
         allowed = RESOLVER_ENUM_VALUES.get(key, valid)
         if val not in allowed:
             errors.append(f"invalid {key}={val!r} (must be one of: {sorted(allowed)})")
@@ -689,7 +722,7 @@ def _effective_building_type(bt):
 
 
 # Explicit choices that only confirm the resolved default are not edits (build_asset_ctx; generateFeatureFile).
-CONFIRMABLE_FIELDS = ('heating_system_type', 'water_heater_type')
+CONFIRMABLE_FIELDS = ('heating_system_type', 'water_heater_type', 'system_type')
 
 
 def build_asset_ctx(metadata: dict, building_type: str | None = None,
@@ -1767,6 +1800,21 @@ def _resolve_system_type(ctx):
     """County-first commercial HVAC system (WP-C1): ComStock share draw for this
     county x building type, mapped onto urbanopt's enum via COMSTOCK_HVAC_KEY.
     Residential buildings and unmapped draws fall through (template default)."""
+    raw, tier = _draw_comstock_system(ctx)
+    mapped = COMSTOCK_HVAC_KEY.get(raw)
+    return (mapped, f'county_{tier}') if mapped else (None, None)
+
+
+def comstock_native_system(ctx):
+    """The ComStock label create_typical builds for a county-drawn system the enum maps elsewhere
+    (MEASURE_NATIVE_SYSTEMS), or None. Never for a system_type the metadata sets."""
+    if ctx.get('system_type') in ENUM_VALUES.get('system_type', set()) or not is_dynamic_defaults_enabled():
+        return None
+    raw, _tier = _draw_comstock_system(ctx)
+    return raw if raw in MEASURE_NATIVE_SYSTEMS else None
+
+
+def _draw_comstock_system(ctx):
     bt = ctx.get('building_type')
     if not bt or bt in RESIDENTIAL_BUILDING_TYPES:
         return (None, None)
@@ -1787,11 +1835,7 @@ def _resolve_system_type(ctx):
         sub = cell.get(cs_type)
         if not sub:
             continue
-        raw = _select_fuel_by_share(sub, ctx, salt='system_type')
-        mapped = COMSTOCK_HVAC_KEY.get(raw)
-        if mapped:
-            return (mapped, f'county_{tier}')
-        return (None, None)
+        return (_select_fuel_by_share(sub, ctx, salt='system_type'), tier)
     return (None, None)
 
 
@@ -1862,6 +1906,259 @@ def _r_to_tier(r: float, surface: str) -> str:
     if surface == 'wall':
         return 'Standard' if r <= 7 else 'Insulated' if r <= 14 else 'Super Insulated'
     return 'Standard' if r < 19 else 'Insulated' if r < 38 else 'Super Insulated'
+
+
+PRESET_LABELS = {'IECC 2009': 'Code minimum, 2009 IECC', 'IECC 2021': 'Current code, 2021 IECC',
+                 '90.1-2007': 'Code minimum, ASHRAE 90.1-2007', '90.1-2019': 'Current code, ASHRAE 90.1-2019'}
+
+# The ASHRAE prototype PowerTwin.rb lookup_building_type builds for each commercial subtype (its non-DEER branch),
+# by the Ruby's own names; test_insulation_presets pins this against the case statement. Office and Lodging are sized
+# below; Mixed use arrives already remapped to Office (asset_subtypes.csv effective_id), as the simulation builds it.
+_PRESET_PROTOTYPE = {
+    'Education': 'SecondarySchool', 'Enclosed mall': 'RetailStripmall', 'Food sales': 'SuperMarket',
+    'Food service': 'FullServiceRestaurant', 'Inpatient health care': 'Hospital', 'Laboratory': 'Laboratory',
+    'Nonrefrigerated warehouse': 'Warehouse', 'Nursing': 'Outpatient', 'Outpatient health care': 'Outpatient',
+    'Public assembly': 'MediumOffice', 'Public order and safety': 'MediumOffice', 'Refrigerated warehouse': 'Warehouse',
+    'Religious worship': 'MediumOffice', 'Retail other than mall': 'RetailStandalone', 'Service': 'MediumOffice',
+    'Strip shopping mall': 'RetailStripmall', 'Vacant': 'Warehouse',
+}
+# openstudio-standards model_get_lookup_name: the name construction sets (and so the constructions) are looked up by
+_LOOKUP_NAME = {'SmallOffice': 'Office', 'MediumOffice': 'Office', 'LargeOffice': 'Office',
+                'RetailStandalone': 'Retail', 'RetailStripmall': 'StripMall'}
+
+# Typical floor-to-floor height (ft) of each ASHRAE prototype PowerTwin builds: openstudio-standards 0.7.1
+# lib/openstudio-standards/geometry/create_bar.rb building_form_defaults `typical_story` (the height create_bar uses
+# when given none). The commercial floor_height default since 2026-09-30, replacing the flat 9 ft that the
+# urbanopt-geojson zoning step discarded anyway (it built every commercial story at 3.6 m; patched in
+# patches/patch_openstudio_standards.py).
+PROTOTYPE_TYPICAL_STORY_FT = {
+    'SmallOffice': 10.0, 'MediumOffice': 13.0, 'LargeOffice': 13.0, 'RetailStandalone': 20.0, 'RetailStripmall': 17.0,
+    'SecondarySchool': 13.0, 'Outpatient': 10.0, 'Hospital': 14.0, 'SmallHotel': 9.0, 'LargeHotel': 10.0,
+    'Warehouse': 28.0, 'FullServiceRestaurant': 10.0, 'SuperMarket': 20.0, 'Laboratory': 10.0,
+}
+# urbanopt-geojson's own zoning story (building.rb, 3.6 m), in ft: the height a commercial building outside the
+# prototypes' domain keeps, which is what every commercial building was built at before the zoning patch.
+URBANOPT_ZONING_STORY_FT = 3.6 / 0.3048
+# ComStock 2024.1 (baseline.parquet, 346,185 buildings) samples no building under 1,000 ft2 (min in.sqft is 1,000 for
+# every type) and has no Vacant type; the typical story is a property of the prototypes it builds, not of a shed.
+# The floor-fit run gave Vacant (built as the Warehouse prototype) 28 ft stories on one utility stock's buildings with a
+# median 382 ft2 a story, and 7 sheds of 79 to 415 ft2 failed in EnergyPlus (2026-09-30).
+PROTOTYPE_STORY_MIN_SQFT = 1000.0
+PROTOTYPE_STORY_EXCLUDED_TYPES = ('Vacant',)
+
+
+def _prototype_story_applies(ctx: dict) -> bool:
+    """Whether the prototype's typical story fits this commercial building: a type ComStock models (not Vacant, whose
+    Warehouse prototype is a load proxy) and a total floor area inside ComStock's sample (1,000 ft2 or more)."""
+    if ctx.get('building_type') in PROTOTYPE_STORY_EXCLUDED_TYPES:
+        return False
+    try:
+        area = float(ctx.get('area'))
+    except (TypeError, ValueError, OverflowError):
+        return False
+    return math.isfinite(area) and area >= PROTOTYPE_STORY_MIN_SQFT
+
+
+def _sim_stories(ctx: dict) -> int:
+    """The story count the simulation uses (generateFeatureFile._floor_count_of): whole floors, at least 1, and a
+    missing or malformed value is 1 (review 2026-09-30: None mapped a Lodging to LargeHotel, which the sim never
+    builds for it)."""
+    try:
+        return max(1, int(float(ctx.get('floor_count'))))
+    except (TypeError, ValueError, OverflowError):
+        return 1
+
+
+def _preset_prototype(ctx: dict):
+    bt = ctx.get('building_type')
+    if not isinstance(bt, str):
+        return None
+    if bt == 'Office':          # PowerTwin.rb: total floor area < 25,000 small, > 100,000 large, else medium
+        try:
+            area = float(ctx.get('area'))
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return 'SmallOffice' if area < 25000 else 'LargeOffice' if area > 100000 else 'MediumOffice'
+    if bt == 'Lodging':         # PowerTwin.rb: more than 3 stories is a large hotel
+        return 'LargeHotel' if _sim_stories(ctx) > 3 else 'SmallHotel'
+    return _PRESET_PROTOTYPE.get(bt)
+
+
+_DOE_REF_INCOMPATIBLE = ('SmallHotel', 'Laboratory')         # PowerTwin.rb DOE_REF_INCOMPATIBLE
+
+
+COMMERCIAL_HVAC_EUL_YEARS = 20     # PowerTwin.rb hvac_eul: the HVAC template is the code at the last replacement year
+
+
+def _state_code_at(state, year):
+    """The energy code ComStock 2024.1 assigns a commercial building of `state` built in `year` (the state adoption
+    table, comstock2024_state_code_adoption.json): (template, family) or (None, None). Years past a state's last
+    sampled year keep its last code."""
+    entry = _load_ref('comstock2024_state_code_adoption').get('states', {}).get(str(state or '').upper())
+    if not entry:
+        return (None, None)
+    code = None
+    for start, step_code in entry['steps']:
+        if year >= start:
+            code = step_code
+    return (code, entry['family'])
+
+
+def resolved_templates(ctx: dict, sim_year=None, cec_zone=None):
+    """Energy Code Assignment Plan (resolver 3.3): the (construction, HVAC) templates of a commercial building from its
+    state's adoption years, in place of PowerTwin.rb's year-only ladder, which assumed every 90.1 edition governed
+    everywhere from the year after publication. The HVAC template is the code in force at the last replacement
+    (PowerTwin.rb's 20-year rule, unchanged). California's codes are the DEER templates, which openstudio-standards
+    accepts only with a CEC climate zone, so they apply only when the caller resolved `cec_zone` (the feature then
+    carries it). (None, None) leaves the ladder: dynamic defaults off, a house, no state or year, or California without
+    a CEC zone."""
+    if not is_dynamic_defaults_enabled() or not ctx or ctx.get('building_type') in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    try:
+        y = int(float(ctx.get('year_built')))
+    except (TypeError, ValueError, OverflowError):
+        return (None, None)
+    env, family = _state_code_at(ctx.get('state'), y)
+    if env is None or (family == 'DEER' and not cec_zone):
+        return (None, None)
+    if sim_year is None:
+        sim_year = int(os.environ.get('URBANOPT_SIMULATION_YEAR', '2025'))
+    hvac = env
+    if sim_year - y > COMMERCIAL_HVAC_EUL_YEARS:
+        eff = min(max(y + COMMERCIAL_HVAC_EUL_YEARS, sim_year - COMMERCIAL_HVAC_EUL_YEARS), sim_year)
+        hvac = _state_code_at(ctx.get('state'), eff)[0] or env
+    return (env, hvac)
+
+
+def resolve_lighting(ctx: dict):
+    """A commercial building's installed interior lighting power density (W/ft2), replacing the flat 35% cut to the
+    90.1 allowance, which had no source (2026-10-01): its lighting generation drawn from ComStock 2024.1's county
+    distribution for its ComStock type (comstock2024_county_lighting, division fallback; the mode with stochastic
+    sampling off), and that generation's average LPD for the type from NREL/TP-5500-86100 Table 2
+    (comstock_lighting_lpd). Returns (lpd, generation, level) or (None, None, None): dynamic defaults off, a house,
+    or a type ComStock does not model (the 35% cut stays there)."""
+    if not is_dynamic_defaults_enabled() or not ctx or ctx.get('building_type') in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None, None)
+    cs_type = _comstock_type(ctx)
+    lpd_by_gen = _load_ref('comstock_lighting_lpd').get('lpd_w_per_ft2', {}).get(cs_type or '')
+    if not lpd_by_gen:
+        return (None, None, None)
+    for cell, tier in _county_prior_tiers('comstock2024_county_lighting', ctx.get('county_fips')):
+        sub = cell.get(cs_type)
+        if not sub:
+            continue
+        gen = _select_fuel_by_share(sub, ctx, salt='lighting_generation')
+        lpd = lpd_by_gen.get(str(gen)[:4])
+        if lpd is not None:
+            return (float(lpd), gen, f'county_{tier}')
+    return (None, None, None)
+
+
+def _doe_ref_guard(template, prototype):
+    """SmallHotel and Laboratory cannot build on a DOE Ref template (PowerTwin.rb DOE_REF_INCOMPATIBLE); the ladder
+    gave them 90.1-2004 there, and so does the state table."""
+    if template and template.startswith('DOE Ref') and prototype in _DOE_REF_INCOMPATIBLE:
+        return '90.1-2004'
+    return template
+
+
+def _preset_template(year_built, prototype, ctx=None, cec_zone=None):
+    """The template, and so the construction set, a commercial building is built with: the state adoption table when
+    it applies (resolved_templates, with the building's CEC zone so a California building gets the DEER template it
+    is built on), else PowerTwin.rb lookup_template_by_year_built (non-DEER), pinned against the Ruby by
+    test_insulation_presets."""
+    if ctx is not None:
+        env, _hvac = resolved_templates(ctx, cec_zone=cec_zone)
+        if env and env.startswith('DEER'):
+            return env      # no ASHRAE construction set applies; insulation_presets offers none (review 2026-10-03)
+        if env:
+            return _doe_ref_guard(env, prototype)
+    try:
+        y = int(float(year_built))
+    except (TypeError, ValueError, OverflowError):
+        return '90.1-2013'      # the site's default template (generateFeatureFile), which a building with no year gets
+    doe_ok = prototype not in _DOE_REF_INCOMPATIBLE
+    if doe_ok and y < 1980:
+        return 'DOE Ref Pre-1980'
+    if doe_ok and y <= 2004:
+        return 'DOE Ref 1980-2004'
+    return '90.1-2004' if y <= 2007 else '90.1-2007' if y <= 2010 else '90.1-2010' if y <= 2013 else '90.1-2013'
+
+
+def _zone_value(table: dict, key: str, zone: str):
+    """A {key: {zone: value}} lookup for an IECC zone like '7A': the DOE Ref templates key subzones ('2A'), the 90.1
+    editions whole zones ('7')."""
+    by_zone = table.get(key) or {}
+    for z in (zone, zone[:1]):
+        if z in by_zone:
+            return by_zone[z]
+    return None
+
+
+def insulation_presets(ctx: dict, older_climate_zone: str | None = None, cec_zone: str | None = None) -> dict:
+    """Code R-value presets for the defaults preview (Insulation Presets Plan, owner 2026-09-29): the R-value is the
+    only insulation input and the modal offers these to fill it.
+    - Zones: the current-code presets (2021 IECC, 90.1-2019) use the 2021 zone of the building's coordinates, the one
+      the simulation uses; the code-minimum presets (2009 IECC, 90.1-2007) use `older_climate_zone`, the county's
+      zone on the map those editions were written for (weather.get_climate_zone(..., '15')), falling back to the
+      2021 zone (review 2026-09-30: 373 of 3,222 counties changed zones between the maps).
+    - Houses: IECC 2009 / 2021 ceiling (roof_r_value) and cavity wall minimums; only with dynamic defaults on, since
+      PowerTwin.rb applies a house's wall/roof R only then.
+    - Commercial: the insulation-layer R that meets ASHRAE 90.1-2007 / 2019 for the construction the building is
+      actually built with (prototype -> template by year -> openstudio-standards lookup name -> construction set; a
+      hotel is residential only where the template has a residential set). No preset where the template's own
+      insulation layer is R-1 or less (the openstudio-ee measures skip such a construction) or the value is below
+      R-1 (the product minimum; the roof measure rejects it).
+    - California commercial buildings built on a DEER template (`cec_zone` resolved): no preset. The presets are
+      90.1 R-values for openstudio-standards' ASHRAE construction sets, and a 90.1-2007 R on a DEER construction does
+      not meet 90.1-2007 (a 2010 Sacramento office: 42% over U_max; review 2026-10-03).
+    Returns {field: [{label, value, source}, ...]} in order code minimum, current code; the current-code entry is
+    dropped where it is below the code minimum (90.1-2019 relaxed some semiheated metal-building walls)."""
+    cz = str(ctx.get('climate_zone') or '').upper()
+    if not cz[:1].isdigit():
+        return {}
+    old = str(older_climate_zone or '').upper()
+    old = old if old[:1].isdigit() else cz
+    bt = ctx.get('building_type')
+    if not isinstance(bt, str):
+        return {}
+    if bt in RESIDENTIAL_BUILDING_TYPES and not is_dynamic_defaults_enabled():
+        return {}   # PowerTwin.rb applies a house's wall/roof R only with dynamic defaults on (review 2026-09-30)
+    ref = _load_ref('insulation_presets')
+    out = {'wall_r_value': [], 'roof_r_value': []}
+    if bt in RESIDENTIAL_BUILDING_TYPES:
+        for ed, zone in (('IECC 2009', old), ('IECC 2021', cz)):
+            t = ref['residential'][ed]
+            key = 'M4' if zone.startswith('4C') else zone[0]
+            for field, col in (('wall_r_value', 'wall_cavity'), ('roof_r_value', 'ceiling')):
+                v = t[col].get(key)
+                if v is not None:
+                    out[field].append({'label': PRESET_LABELS[ed], 'value': float(v), 'source': ed})
+    else:
+        com = ref['commercial']
+        proto = _preset_prototype(ctx)
+        template = _preset_template(ctx.get('year_built'), proto, ctx, cec_zone)
+        if template.startswith('DEER'):
+            return {}
+        lookup = _LOOKUP_NAME.get(proto, proto)
+        cset = com['construction_sets'].get(template, {}).get(lookup or '')
+        if cset:
+            residential = proto in ('SmallHotel', 'LargeHotel') and lookup in com['residential_sets'].get(template, [])
+            for field, surf in (('wall_r_value', 'wall'), ('roof_r_value', 'roof')):
+                ctype, cat = cset[surf]
+                key = f"{surf}|{ctype}|{'Residential' if residential else cat}"
+                built = _zone_value(com['template_insulation_r'].get(template, {}), key, cz)
+                if built is not None and built <= 1.0:
+                    continue    # the measure would leave this construction unaltered
+                for ed, zone in (('90.1-2007', old), ('90.1-2019', cz)):
+                    v = _zone_value(com['insulation_r'][ed], key, zone)
+                    if v is not None and v >= 1.0:
+                        out[field].append({'label': PRESET_LABELS[ed], 'value': float(v),
+                                           'source': f'ASHRAE {ed}, {ctype} {surf} ({proto}, built to {template})'})
+    for field, items in out.items():
+        if len(items) == 2 and items[1]['value'] < items[0]['value']:
+            del items[1]
+    return {f: v for f, v in out.items() if v}
 
 
 def _envelope_R_cell(r_table, ctx):
@@ -2252,6 +2549,15 @@ def resolve_default(field: str, ctx: dict):
     if not is_dynamic_defaults_enabled() or not ctx:
         return (None, None)
     try:
+        if field == 'floor_height':
+            # commercial: the prototype's typical story, which the patched zoning step now builds (houses keep
+            # URBANopt's 8 ft unless a user sets floor_height, see RESIDENTIAL_UNSET_CEILING_HEIGHT_FT)
+            if ctx.get('building_type') in RESIDENTIAL_BUILDING_TYPES:
+                return (None, None)
+            if not _prototype_story_applies(ctx):
+                return (URBANOPT_ZONING_STORY_FT, 'building_type_only')
+            ft = PROTOTYPE_TYPICAL_STORY_FT.get(_preset_prototype(ctx))
+            return (ft, 'building_type_only') if ft is not None else (URBANOPT_ZONING_STORY_FT, 'building_type_only')
         if field == 'number_of_occupants':
             val = _resolve_occupants(ctx)
             if val is None:
@@ -2371,6 +2677,23 @@ def get_param(metadata, key, ctx=None):
     (legacy behavior preserved for callers that don't have building_type
     resolved yet).
     """
+    if key in RETIRED_INPUT_FIELDS:
+        # A label only (the tier is no longer an input): the tier of the R-value the building actually uses, explicit
+        # or resolved. Labelling the resolver's own draw contradicted an explicit R (review 2026-09-30: R-30 said
+        # 'Standard'); for an unedited building the two are the same draw, so nothing changes there.
+        surface = key.split('_', 1)[0]
+        r = get_param(metadata, f'{surface}_r_value', ctx)
+        return _r_to_tier(float(r), surface) if r is not None else SIM_PARAM_DEFAULTS[key]
+    # Exact match, like the water_heater_type enum gate below: a case variant the gate rejects must not make the fuel
+    # electric under a storage heater nobody chose (review 2026-10-03).
+    if key == 'service_water_heating_fuel_type' and metadata.get('water_heater_type') == HPWH:
+        # A heat pump water heater is electric by definition. HPXML built an explicit HPWH as electric even beside an
+        # explicit 'natural gas' fuel while the feature file and preview kept saying gas (2026-09-30 house test), so
+        # the type wins everywhere, visibly, with dynamic defaults on or off.
+        if str(metadata.get(key) or 'electricity').strip().lower() != 'electricity':
+            log.warning(f"service_water_heating_fuel_type={metadata.get(key)!r} conflicts with a heat pump water heater; "
+                        f"using electricity")
+        return 'electricity'
     raw = metadata.get(key)
     if raw is not None and raw != '':
         # Enum gate on the METADATA path too (Q/A D-26): an arbitrary explicit string used to
@@ -2389,6 +2712,8 @@ def get_param(metadata, key, ctx=None):
             lo, hi = NUMERIC_RANGES[key]
             try:
                 val = float(raw)
+                if not math.isfinite(val):   # 'inf', '1e999', 'nan': no range clamps them (floor_height has no maximum)
+                    raise ValueError(raw)
             except (ValueError, TypeError):
                 log.warning(f"non-numeric {key}={raw!r}, falling back to default")
                 raw = None
@@ -2433,6 +2758,14 @@ def get_param(metadata, key, ctx=None):
                     except (TypeError, ValueError):
                         pass
                 return dynamic
+
+    if key == 'floor_height' and ctx is not None and ctx.get('building_type'):
+        # What URBANopt builds when nothing sets the height (2026-09-30): a house's 8 ft ceiling, a commercial
+        # building's 3.6 m zoning story. The flat 9 ft built neither; it reached the feature file as a house's
+        # floor_height and, with the zoning patch, would have built every commercial story at 9 ft with dynamic
+        # defaults off, which must stay plain URBANopt.
+        return (RESIDENTIAL_UNSET_CEILING_HEIGHT_FT if ctx.get('building_type') in RESIDENTIAL_BUILDING_TYPES
+                else URBANOPT_ZONING_STORY_FT)
 
     return SIM_PARAM_DEFAULTS[key]
 

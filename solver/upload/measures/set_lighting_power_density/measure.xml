@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>set_lighting_power_density</name>
+  <uid>c3a0b00a-9c44-4a4f-8d1d-001a7c4f0006</uid>
+  <version_id>c3a0b00a-9c44-4a4f-8d1d-001a7c4f0006</version_id>
+  <version_modified>2026-10-01T00:00:00Z</version_modified>
+  <xml_checksum>00000001</xml_checksum>
+  <class_name>SetLightingPowerDensity</class_name>
+  <display_name>Set Lighting Power Density</display_name>
+  <description>Scale interior lighting so the building-average installed LPD equals target_w_per_ft2.</description>
+  <modeler_description>Computes the building lighting power, then multiplies every Lights instance multiplier by target x area / current so the building-average installed lighting power density equals target_w_per_ft2 (W/ft2). Preserves the space-by-space distribution; exterior lights untouched.</modeler_description>
+  <arguments>
+    <argument>
+      <name>target_w_per_ft2</name>
+      <display_name>Target building-average lighting power density</display_name>
+      <type>Double</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0</default_value>
+    </argument>
+  </arguments>
+  <outputs/>
+  <attributes>
+    <attribute><name>Measure Type</name><value>ModelMeasure</value><datatype>string</datatype></attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+  </files>
+</measure>

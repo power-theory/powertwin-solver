@@ -248,6 +248,12 @@
         "elecequip_power_reduction_percent": 20
       }
     },{
+      "measure_dir_name": "set_lighting_power_density",
+      "arguments": {
+        "__SKIP__": true,
+        "target_w_per_ft2": 0.0
+      }
+    },{
       "measure_dir_name": "ReduceLightingLoadsByPercentage",
       "arguments": {
         "__SKIP__": true,

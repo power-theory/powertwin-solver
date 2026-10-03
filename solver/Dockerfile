@@ -75,6 +75,10 @@ RUN python3 /tmp/patch_openstudio_standards.py && rm /tmp/patch_openstudio_stand
 RUN which uo && uo --version
 # Copy application code and set environment variables
 COPY . .
+# The county reference tables are Git LFS objects pinned by county_tables.sha256. Refuse to build without them:
+# a git archive or an unhydrated checkout leaves them out or as LFS pointers, and the resolver then silently falls
+# back to division priors (the 2026-09-30 control image modelled a Teton office at 273,988 kWh instead of 233,904).
+RUN cd /solver/upload/reference_data && sha256sum -c --quiet county_tables.sha256
 
 # Q/A X-1: build provenance baked into the image so a cluster SIF's origin is checkable --
 # CI pushes to ECR by tag while the cluster consumes a hand-built flask.sif with no version

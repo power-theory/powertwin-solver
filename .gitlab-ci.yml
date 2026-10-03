@@ -38,17 +38,16 @@ test_resolvers:
     # runs `pip install -e ./app`): its setup.py is the single source of truth for
     # app-level deps like requests, which modules.utils imports at collection time.
     - pip install -e solver/app --quiet
-    # The sixteen county reference tables are gitignored builder outputs; a checkout
-    # gets them from this project's generic package registry, pinned by the tracked
-    # county_tables.sha256 / .version files (see reference_data/README_county_tables.md).
-    - python tests/tools/county_tables_registry.py fetch
+    # The county reference tables are Git LFS objects (2026-09-30; they came from a package registry before).
+    # Their checksums are pinned in county_tables.sha256, and a checkout that left LFS pointers fails here.
+    - (cd solver/upload/reference_data && sha256sum -c --quiet county_tables.sha256)
     # tests/data/gen_leaf_stock.py templates its geometries from the LFS-tracked ASU
     # demo file; a checkout that left the LFS pointer in place would fail deep inside
     # json.load, so say so here instead.
     - if grep -q "git-lfs.github.com/spec" solver/upload/demo_data/asu_asset_geometries.geojson; then echo "solver/upload/demo_data is an unhydrated Git LFS pointer; the runner checkout did not fetch LFS objects"; exit 1; fi
     - python -m pytest tests/ -m "not requires_container" -q
-  # Hand the fetched tables to the build jobs (needs: implies artifacts), so the
-  # docker COPY ships them; build_flask re-verifies the checksums before building.
+  # Hand the verified tables to the build jobs (needs: implies artifacts), so the docker COPY ships them even if
+  # a build job's checkout skipped LFS; build_flask and the Dockerfile re-verify the checksums.
   artifacts:
     paths:
       - solver/upload/reference_data/*.json.gz

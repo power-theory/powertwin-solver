@@ -15,7 +15,7 @@ from modules.simulation import initialize_uo, create_featurefiles, stop_UOsimula
 from modules.simulation.stop_UOsim import stopped_early
 from modules.simulation.sim_params_spec import (
     validate_metadata, build_asset_ctx, resolve_default,
-    is_dynamic_defaults_enabled,
+    is_dynamic_defaults_enabled, RESIDENTIAL_BUILDING_TYPES, get_param, insulation_presets, HPWH,
 )
 from modules.diagnostics import read_simulation_status, simulation_recovery, create_table
 from modules.utils import (
@@ -23,6 +23,7 @@ from modules.utils import (
     pack_simulation_results, atomic_write_json, write_status,
 )
 from modules.utils.hpc_environment import is_hpc_environment, get_hpc_info
+from modules.utils.weather import get_climate_zone
 from modules.utils.sim_flags import set_sim_flags, clear_sim_flags, get_sim_flag
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
@@ -1320,6 +1321,7 @@ DYNAMIC_FIELDS = [
     'window_type',
     'wall_material', 'roof_material',
     'wall_r_value', 'roof_r_value', 'window_to_wall_ratio',
+    'floor_height',   # commercial: the prototype's typical story, or 3.6 m for Vacant and under 1,000 ft2 (2026-09-30); houses get the 8 ft line below
     'duct_location', 'duct_leakage_pct', 'duct_insulation_r',
     'heating_setpoint_f', 'cooling_setpoint_f', 'infiltration_ach50',
     'system_type',
@@ -1345,7 +1347,21 @@ def resolve_defaults_preview():
         # build_asset_ctx lowercases keys; drop a field by the same key it reads (review 2026-09-29)
         metadata = {str(k).lower(): v for k, v in (payload.get('metadata') or {}).items()}
         building_type = payload.get('building_type')
-        ctx = build_asset_ctx(metadata, building_type=building_type)
+        if not isinstance(building_type, str):
+            building_type = None        # a list or number here used to raise inside the resolvers (review 2026-09-30)
+        # The simulation keys its context on the IECC zone of the building's coordinates (generateFeatureFile
+        # read_metadata -> get_location -> get_climate_zone), and commercial envelope R, among others, is zone-keyed.
+        # Without it the preview fell back to census region: a Teton office showed a Standard R-4 wall that the
+        # simulation builds as a Super Insulated R-17, so re-picking the shown tier would have downgraded it (2026-09-29).
+        climate_zone = older_climate_zone = None
+        if metadata.get('latitude') not in (None, '') and metadata.get('longitude') not in (None, ''):
+            try:
+                lat, lon = float(metadata['latitude']), float(metadata['longitude'])
+                climate_zone = get_climate_zone(lat, lon)
+                older_climate_zone = get_climate_zone(lat, lon, '15')   # the zone map the code-minimum presets use
+            except (TypeError, ValueError, OverflowError):
+                climate_zone = older_climate_zone = None
+        ctx = build_asset_ctx(metadata, building_type=building_type, climate_zone=climate_zone)
         resolved = {}
         levels = {}
         for f in DYNAMIC_FIELDS:
@@ -1355,7 +1371,8 @@ def resolve_defaults_preview():
             # re-picking the shown default rebuilt the house (review 2026-09-28, reproduced on Teton 15973);
             # build_asset_ctx's confirm check compares against the same unset value.
             # only a field build_asset_ctx carries into the ctx can condition its own default; rebuild just for those
-            f_ctx = build_asset_ctx({k: v for k, v in metadata.items() if k != f}, building_type=building_type) \
+            f_ctx = build_asset_ctx({k: v for k, v in metadata.items() if k != f}, building_type=building_type,
+                                    climate_zone=climate_zone) \
                 if f in ctx and metadata.get(f) not in (None, '') else ctx
             value, level = resolve_default(f, f_ctx)
             if value is not None:
@@ -1363,11 +1380,35 @@ def resolve_defaults_preview():
                 levels[f] = level
             else:
                 levels[f] = 'flat_default'
+        # An unset floor_height shows what URBANopt builds (a house's 8 ft ceiling, a commercial 3.6 m story), which
+        # get_param now returns for a typed building whether or not dynamic defaults are on (2026-09-30), so
+        # re-picking the shown value changes nothing.
+        if 'floor_height' not in resolved and ctx.get('building_type'):
+            resolved['floor_height'] = get_param({}, 'floor_height', ctx)
+            levels['floor_height'] = 'building_type_only'
+        # A saved heat pump water heater makes the water-heating fuel electricity (get_param, DD on or off), so the form
+        # shows that whatever filled the fuel above: with DD off nothing resolves it (the flat 'natural gas', live check
+        # 2026-09-30), and with DD on the commercial fuel resolver fills the donor's gas first (review 2026-10-03).
+        if metadata.get('water_heater_type') == HPWH:
+            resolved['service_water_heating_fuel_type'] = 'electricity'
+            levels['service_water_heating_fuel_type'] = 'building_type_only'
+        # R-value presets for the modal (Insulation Presets Plan): picking one fills wall_r_value / roof_r_value.
+        # A missing or unpulled presets table drops the presets, not the whole preview (review 2026-10-03).
+        try:
+            cec = None
+            if ctx.get('state') == 'CA' and is_dynamic_defaults_enabled():
+                from modules.utils.cec_zones import get_cec_climate_zone
+                cec = get_cec_climate_zone(metadata.get('latitude'), metadata.get('longitude'), metadata.get('postcode'))
+            presets = insulation_presets(ctx, older_climate_zone, cec)
+        except Exception as exc:   # noqa: BLE001
+            logger.warning(f"resolve_defaults_preview: insulation presets unavailable ({type(exc).__name__}: {exc})")
+            presets = {}
         return jsonify({
             'dynamic_defaults_enabled': is_dynamic_defaults_enabled(),
             'context': ctx,
             'resolved': resolved,
             'levels': levels,
+            'presets': presets,
         })
     except Exception as e:
         logger.error(f"resolve_defaults_preview error: {e}")

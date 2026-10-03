@@ -40,45 +40,48 @@ module load nvhpc/25.7
 # Configuration Variables - MODIFY THESE AS NEEDED
 # =====================================================
 # Simulation parameters
-SIMULATION_NAME="teton1"
-COLLECTION_ID="7"
-URBANOPT_SIMULATION_YEAR="2026"
-URBANOPT_REPORTING_FREQUENCY="Timestep"  # Timestep, Hourly, Daily, Monthly, Runperiod
-URBANOPT_RESAMPLE="H"                  # H, D, M, A. Empty disables the resample step in consolidate
-URBANOPT_POSTPROCESS_TRANSLATIONS="true" # subtract 1s from end-of-period ts so it buckets right
-URBANOPT_DYNAMIC_DEFAULTS="true"       # opt-in: resolve defaults from RECS 2020 / CBECS 2018 / OS-Standards. false = flat SIM_PARAM_DEFAULTS only
-URBANOPT_STOCHASTIC_SAMPLING="false"   # opt-in: hash-based probabilistic assignment for fuel type, vacancy, and garage. requires dynamic_defaults=true
-URBANOPT_KEEP_RUN_DIR="false"          # opt-in: preserve in.osw / in.osm / eplusout.sql / intermediate run dirs for test verifiers + ad-hoc forensics. false = production cleanup
+# Every setting below can come from the environment (sbatch --export=ALL with the variable set, or an env file
+# sourced by apptainer/ops/launch-campaign.sh); the value after :- is the default. A campaign is then an env file
+# and one sbatch call, never a hand-edited copy of this script (runbook: vault Dev/powertwin-solver/ARCC HPC).
+SIMULATION_NAME="${SIMULATION_NAME:-teton1}"
+COLLECTION_ID="${COLLECTION_ID:-7}"
+URBANOPT_SIMULATION_YEAR="${URBANOPT_SIMULATION_YEAR:-2026}"
+URBANOPT_REPORTING_FREQUENCY="${URBANOPT_REPORTING_FREQUENCY:-Timestep}"  # Timestep, Hourly, Daily, Monthly, Runperiod
+URBANOPT_RESAMPLE="${URBANOPT_RESAMPLE:-H}"                  # H, D, M, A. Empty disables the resample step in consolidate
+URBANOPT_POSTPROCESS_TRANSLATIONS="${URBANOPT_POSTPROCESS_TRANSLATIONS:-true}" # subtract 1s from end-of-period ts so it buckets right
+URBANOPT_DYNAMIC_DEFAULTS="${URBANOPT_DYNAMIC_DEFAULTS:-true}"       # opt-in: resolve defaults from RECS 2020 / CBECS 2018 / OS-Standards. false = flat SIM_PARAM_DEFAULTS only
+URBANOPT_STOCHASTIC_SAMPLING="${URBANOPT_STOCHASTIC_SAMPLING:-false}"   # opt-in: hash-based probabilistic assignment for fuel type, vacancy, and garage. requires dynamic_defaults=true
+URBANOPT_KEEP_RUN_DIR="${URBANOPT_KEEP_RUN_DIR:-false}"          # opt-in: preserve in.osw / in.osm / eplusout.sql / intermediate run dirs for test verifiers + ad-hoc forensics. false = production cleanup
 
 # Storage layout:
 #   ${HPC_SHARED_STORAGE}/shared/        — infrastructure (SIF, gem home, logs, tmp)
 #   ${HPC_SHARED_STORAGE}/${COLLECTION_ID}/  — per-state data (upload, powertwin_data, user_files)
-HPC_SHARED_STORAGE="/project/cowy-ptheory/powertwin"
-SHARED_DIR="${HPC_SHARED_STORAGE}/shared"
-COLLECTION_BASE="${HPC_SHARED_STORAGE}/${COLLECTION_ID}"
+HPC_SHARED_STORAGE="${HPC_SHARED_STORAGE:-/project/cowy-ptheory/powertwin}"
+SHARED_DIR="${SHARED_DIR:-${HPC_SHARED_STORAGE}/shared}"
+COLLECTION_BASE="${COLLECTION_BASE:-${HPC_SHARED_STORAGE}/${COLLECTION_ID}}"
 
-UPLOAD_DIR="${COLLECTION_BASE}/upload"
-ASSET_GEOJSON_PATH="${UPLOAD_DIR}/${COLLECTION_ID}_asset_geometries.geojson"
-METADATA_CSV_PATH="${UPLOAD_DIR}/${COLLECTION_ID}_metadata.csv"
-POWERTWIN_KEEP_DIRS=1
-WITH_NSYS_PROFILING=0
+UPLOAD_DIR="${UPLOAD_DIR:-${COLLECTION_BASE}/upload}"
+ASSET_GEOJSON_PATH="${ASSET_GEOJSON_PATH:-${UPLOAD_DIR}/${COLLECTION_ID}_asset_geometries.geojson}"
+METADATA_CSV_PATH="${METADATA_CSV_PATH:-${UPLOAD_DIR}/${COLLECTION_ID}_metadata.csv}"
+POWERTWIN_KEEP_DIRS="${POWERTWIN_KEEP_DIRS:-1}"
+WITH_NSYS_PROFILING="${WITH_NSYS_PROFILING:-0}"
 
 # SIF files location (shared across all states)
-SIF_DIR="${SHARED_DIR}/sif_containers"
-SOLVER_SIF="${SIF_DIR}/flask.sif"
+SIF_DIR="${SIF_DIR:-${SHARED_DIR}/sif_containers}"
+SOLVER_SIF="${SOLVER_SIF:-${SIF_DIR}/flask.sif}"
 
 # Per-state data directories
-DATA_DIR="${COLLECTION_BASE}/powertwin_data"
-USER_FILES_DIR="${COLLECTION_BASE}/user_files"
+DATA_DIR="${DATA_DIR:-${COLLECTION_BASE}/powertwin_data}"
+USER_FILES_DIR="${USER_FILES_DIR:-${COLLECTION_BASE}/user_files}"
 
 # Shared infrastructure directories
-LOG_DIR="${SHARED_DIR}/logs"
-TMP_BASE="${SHARED_DIR}/tmp"
-NSYS_REPORTS_DIR="${SHARED_DIR}/nsys_reports"
+LOG_DIR="${LOG_DIR:-${SHARED_DIR}/logs}"
+TMP_BASE="${TMP_BASE:-${SHARED_DIR}/tmp}"
+NSYS_REPORTS_DIR="${NSYS_REPORTS_DIR:-${SHARED_DIR}/nsys_reports}"
 
 # SQLite database configuration
-SQLITE_DB_DIR="${DATA_DIR}/sqlite"
-SQLITE_DB_PATH="${SQLITE_DB_DIR}/powertwin.db"
+SQLITE_DB_DIR="${SQLITE_DB_DIR:-${DATA_DIR}/sqlite}"
+SQLITE_DB_PATH="${SQLITE_DB_PATH:-${SQLITE_DB_DIR}/powertwin.db}"
 
 # Database environment variables
 export SQLITE_DB_PATH="${SQLITE_DB_PATH}"

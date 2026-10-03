@@ -1,0 +1,3906 @@
+{
+ "_source": {
+  "builder": "tests/tools/build_insulation_presets.py",
+  "commercial": "openstudio-standards 0.7.1 (construction_sets of the six templates PowerTwin.rb selects by year built; 90.1-2007 / 90.1-2019 construction_properties, constructions, materials); insulation R = 1/U_max - other layers - films (0.85 wall, 0.78 roof)",
+  "residential": "IECC 2009 Table 402.1.1 and IECC 2021 Table R402.1.3 (code text via up.codes, fetched 2026-09-29); ceiling and cavity-only wood-frame wall minimums",
+  "standards_files_md5": {
+   "ashrae_90_1.constructions.json": "8442425dec0c2a5eda86943ca1d14e23",
+   "ashrae_90_1.materials.json": "c8acee159f0c1e5ff20e60e430221e8b",
+   "ashrae_90_1_2004.construction_properties.json": "7283676be83f21e6726da534e5e09a6c",
+   "ashrae_90_1_2004.construction_sets.json": "78691cdff007b97c19342863397b144d",
+   "ashrae_90_1_2007.construction_properties.json": "6deb95b46d542b24d5668b82d640519f",
+   "ashrae_90_1_2007.construction_sets.json": "3869fbbcec8479e599cd581b659f7064",
+   "ashrae_90_1_2010.construction_properties.json": "10d8762d2094e5c80c021081b90294b4",
+   "ashrae_90_1_2010.construction_sets.json": "f3ea6b62a056979e4973264397076d24",
+   "ashrae_90_1_2013.construction_properties.json": "2668c660c5d2f6391e40eb18a98cee87",
+   "ashrae_90_1_2013.construction_sets.json": "2f5957413b5a2593665c2a7a2884b971",
+   "ashrae_90_1_2019.construction_properties.json": "c1a492432afb9b35b2df7e722e3cc6e4",
+   "doe_ref_1980_2004.construction_properties.json": "ea0c12cc8130bbb6a84c5b1ed90be083",
+   "doe_ref_1980_2004.construction_sets.json": "e73fe3e8e0fa30c48ef0244596035bd1",
+   "doe_ref_pre_1980.construction_properties.json": "a19112ca31949df0e9cc2bc707424e6b",
+   "doe_ref_pre_1980.construction_sets.json": "ca3efca719ab721012b4e5436a86786b"
+  }
+ },
+ "commercial": {
+  "construction_sets": {
+   "90.1-2004": {
+    "College": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Courthouse": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "FullServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "HighriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Hospital": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Laboratory": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeDataCenterHighITE": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeDataCenterLowITE": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "MediumOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MediumOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MidriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Office": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Outpatient": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "PrimarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "QuickServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "Retail": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "SecondarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallDataCenterHighITE": {
+     "roof": [
+      "Attic and Other",
+      "Adiabatic"
+     ],
+     "wall": [
+      "Mass",
+      "Adiabatic"
+     ]
+    },
+    "SmallDataCenterLowITE": {
+     "roof": [
+      "Attic and Other",
+      "Adiabatic"
+     ],
+     "wall": [
+      "Mass",
+      "Adiabatic"
+     ]
+    },
+    "SmallHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOffice": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOfficeDetailed": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "StripMall": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SuperMarket": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "SuperTallBuilding": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "TallBuilding": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Warehouse": {
+     "roof": [
+      "Metal Building",
+      "Semiheated"
+     ],
+     "wall": [
+      "Metal Building",
+      "Semiheated"
+     ]
+    }
+   },
+   "90.1-2007": {
+    "College": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Courthouse": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "FullServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "HighriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Hospital": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Laboratory": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeDataCenterHighITE": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeDataCenterLowITE": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "MediumOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MediumOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MidriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Office": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Outpatient": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "PrimarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "QuickServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "Retail": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "SecondarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallDataCenterHighITE": {
+     "roof": [
+      "Attic and Other",
+      "Adiabatic"
+     ],
+     "wall": [
+      "Mass",
+      "Adiabatic"
+     ]
+    },
+    "SmallDataCenterLowITE": {
+     "roof": [
+      "Attic and Other",
+      "Adiabatic"
+     ],
+     "wall": [
+      "Mass",
+      "Adiabatic"
+     ]
+    },
+    "SmallHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOffice": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOfficeDetailed": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "StripMall": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SuperMarket": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "SuperTallBuilding": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "TallBuilding": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Warehouse": {
+     "roof": [
+      "Metal Building",
+      "Semiheated"
+     ],
+     "wall": [
+      "Metal Building",
+      "Semiheated"
+     ]
+    }
+   },
+   "90.1-2010": {
+    "College": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Courthouse": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "FullServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "HighriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Hospital": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Laboratory": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeDataCenterHighITE": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeDataCenterLowITE": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "MediumOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MediumOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MidriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Office": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Outpatient": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "PrimarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "QuickServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "Retail": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "SecondarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallDataCenterHighITE": {
+     "roof": [
+      "Attic and Other",
+      "Adiabatic"
+     ],
+     "wall": [
+      "Mass",
+      "Adiabatic"
+     ]
+    },
+    "SmallDataCenterLowITE": {
+     "roof": [
+      "Attic and Other",
+      "Adiabatic"
+     ],
+     "wall": [
+      "Mass",
+      "Adiabatic"
+     ]
+    },
+    "SmallHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOffice": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOfficeDetailed": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "StripMall": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SuperMarket": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "SuperTallBuilding": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "TallBuilding": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Warehouse": {
+     "roof": [
+      "Metal Building",
+      "Semiheated"
+     ],
+     "wall": [
+      "Metal Building",
+      "Semiheated"
+     ]
+    }
+   },
+   "90.1-2013": {
+    "College": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Courthouse": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "FullServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "HighriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Hospital": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Laboratory": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeDataCenterHighITE": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeDataCenterLowITE": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "LargeHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "MediumOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MediumOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MidriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Office": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Outpatient": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "PrimarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "QuickServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "Retail": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "SecondarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallDataCenterHighITE": {
+     "roof": [
+      "Attic and Other",
+      "Adiabatic"
+     ],
+     "wall": [
+      "Mass",
+      "Adiabatic"
+     ]
+    },
+    "SmallDataCenterLowITE": {
+     "roof": [
+      "Attic and Other",
+      "Adiabatic"
+     ],
+     "wall": [
+      "Mass",
+      "Adiabatic"
+     ]
+    },
+    "SmallHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOffice": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOfficeDetailed": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "StripMall": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SuperMarket": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "SuperTallBuilding": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "TallBuilding": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Warehouse": {
+     "roof": [
+      "Metal Building",
+      "Semiheated"
+     ],
+     "wall": [
+      "Metal Building",
+      "Semiheated"
+     ]
+    }
+   },
+   "DOE Ref 1980-2004": {
+    "College": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Courthouse": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "FullServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Hospital": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "MediumOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MediumOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MidriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Office": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Outpatient": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "PrimarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "QuickServiceRestaurant": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "Retail": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "SecondarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallHotel": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOffice": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOfficeDetailed": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "WoodFramed",
+      "Nonresidential"
+     ]
+    },
+    "StripMall": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SuperMarket": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Warehouse": {
+     "roof": [
+      "Metal Building",
+      "Semiheated"
+     ],
+     "wall": [
+      "Metal Building",
+      "Semiheated"
+     ]
+    }
+   },
+   "DOE Ref Pre-1980": {
+    "College": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Courthouse": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "FullServiceRestaurant": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "Hospital": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeHotel": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "LargeOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "MediumOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MediumOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "MidriseApartment": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Residential"
+     ]
+    },
+    "Office": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Outpatient": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "PrimarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "QuickServiceRestaurant": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Retail": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SecondarySchool": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallHotel": {
+     "roof": [
+      "Attic and Other",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOffice": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SmallOfficeDetailed": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "StripMall": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "SteelFramed",
+      "Nonresidential"
+     ]
+    },
+    "SuperMarket": {
+     "roof": [
+      "IEAD",
+      "Nonresidential"
+     ],
+     "wall": [
+      "Mass",
+      "Nonresidential"
+     ]
+    },
+    "Warehouse": {
+     "roof": [
+      "IEAD",
+      "Semiheated"
+     ],
+     "wall": [
+      "Metal Building",
+      "Semiheated"
+     ]
+    }
+   }
+  },
+  "insulation_r": {
+   "90.1-2007": {
+    "roof|Attic and Other|Nonresidential": {
+     "0": 28.07,
+     "1": 28.07,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 35.69,
+     "5": 35.69,
+     "6": 35.69,
+     "7": 35.69,
+     "8": 46.27
+    },
+    "roof|Attic and Other|Residential": {
+     "0": 35.69,
+     "1": 35.69,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 35.69,
+     "5": 35.69,
+     "6": 35.69,
+     "7": 35.69,
+     "8": 46.27
+    },
+    "roof|Attic and Other|Semiheated": {
+     "0": 11.0,
+     "1": 11.0,
+     "2": 11.0,
+     "3": 17.52,
+     "4": 17.52,
+     "5": 17.52,
+     "6": 28.07,
+     "7": 28.07,
+     "8": 28.07
+    },
+    "roof|IEAD|Nonresidential": {
+     "0": 14.76,
+     "1": 14.76,
+     "2": 19.72,
+     "3": 19.72,
+     "4": 19.72,
+     "5": 19.72,
+     "6": 19.72,
+     "7": 19.72,
+     "8": 19.72
+    },
+    "roof|IEAD|Residential": {
+     "0": 19.72,
+     "1": 19.72,
+     "2": 19.72,
+     "3": 19.72,
+     "4": 19.72,
+     "5": 19.72,
+     "6": 19.72,
+     "7": 19.72,
+     "8": 19.72
+    },
+    "roof|IEAD|Semiheated": {
+     "0": 3.47,
+     "1": 3.47,
+     "2": 3.47,
+     "3": 4.66,
+     "4": 4.66,
+     "5": 7.29,
+     "6": 9.64,
+     "7": 9.64,
+     "8": 14.76
+    },
+    "roof|Metal Building|Nonresidential": {
+     "0": 14.6,
+     "1": 14.6,
+     "2": 14.6,
+     "3": 14.6,
+     "4": 14.6,
+     "5": 14.6,
+     "6": 14.6,
+     "7": 14.6,
+     "8": 19.63
+    },
+    "roof|Metal Building|Residential": {
+     "0": 0.76,
+     "1": 0.76,
+     "2": 14.6,
+     "3": 14.6,
+     "4": 14.6,
+     "5": 14.6,
+     "6": 14.6,
+     "7": 14.6,
+     "8": 19.63
+    },
+    "roof|Metal Building|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 5.21,
+     "3": 9.53,
+     "4": 9.53,
+     "5": 9.53,
+     "6": 9.53,
+     "7": 9.53,
+     "8": 13.11
+    },
+    "wall|Mass|Nonresidential": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 4.23,
+     "3": 5.74,
+     "4": 7.23,
+     "5": 8.72,
+     "6": 10.11,
+     "7": 11.7,
+     "8": 11.7
+    },
+    "wall|Mass|Residential": {
+     "0": 4.23,
+     "1": 4.23,
+     "2": 5.74,
+     "3": 7.23,
+     "4": 8.72,
+     "5": 10.11,
+     "6": 11.7,
+     "7": 11.7,
+     "8": 16.84
+    },
+    "wall|Mass|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 0.0,
+     "3": 0.0,
+     "4": 0.0,
+     "5": 4.23,
+     "6": 4.23,
+     "7": 5.74,
+     "8": 7.23
+    },
+    "wall|Metal Building|Nonresidential": {
+     "0": 7.55,
+     "1": 7.55,
+     "2": 7.55,
+     "3": 7.55,
+     "4": 7.55,
+     "5": 7.55,
+     "6": 7.55,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Residential": {
+     "0": 7.55,
+     "1": 7.55,
+     "2": 7.55,
+     "3": 7.55,
+     "4": 7.55,
+     "5": 16.24,
+     "6": 16.24,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 4.13,
+     "3": 4.13,
+     "4": 6.16,
+     "5": 6.83,
+     "6": 7.55,
+     "7": 7.55,
+     "8": 7.55
+    },
+    "wall|SteelFramed|Nonresidential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 5.89,
+     "3": 9.73,
+     "4": 13.45,
+     "5": 13.45,
+     "6": 13.45,
+     "7": 13.45,
+     "8": 13.45
+    },
+    "wall|SteelFramed|Residential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 13.45,
+     "3": 13.45,
+     "4": 13.45,
+     "5": 13.45,
+     "6": 13.45,
+     "7": 21.63,
+     "8": 24.85
+    },
+    "wall|SteelFramed|Semiheated": {
+     "0": 0.66,
+     "1": 0.66,
+     "2": 5.89,
+     "3": 5.89,
+     "4": 5.89,
+     "5": 5.89,
+     "6": 5.89,
+     "7": 5.89,
+     "8": 9.73
+    },
+    "wall|WoodFramed|Nonresidential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 9.06,
+     "5": 13.45,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 25.6
+    },
+    "wall|WoodFramed|Residential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 13.45,
+     "5": 17.43,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 25.6
+    },
+    "wall|WoodFramed|Semiheated": {
+     "0": 1.25,
+     "1": 1.25,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 9.06,
+     "5": 9.06,
+     "6": 9.06,
+     "7": 9.06,
+     "8": 9.06
+    }
+   },
+   "90.1-2019": {
+    "roof|Attic and Other|Nonresidential": {
+     "0": 35.69,
+     "1": 35.69,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 46.27,
+     "5": 46.27,
+     "6": 46.27,
+     "7": 57.48,
+     "8": 57.48
+    },
+    "roof|Attic and Other|Residential": {
+     "0": 35.69,
+     "1": 35.69,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 46.27,
+     "5": 46.27,
+     "6": 46.27,
+     "7": 57.48,
+     "8": 57.48
+    },
+    "roof|Attic and Other|Semiheated": {
+     "0": 11.0,
+     "1": 11.0,
+     "2": 17.52,
+     "3": 17.52,
+     "4": 28.07,
+     "5": 28.07,
+     "6": 28.07,
+     "7": 35.69,
+     "8": 35.69
+    },
+    "roof|IEAD|Nonresidential": {
+     "0": 24.52,
+     "1": 19.72,
+     "2": 24.52,
+     "3": 24.52,
+     "4": 30.13,
+     "5": 30.13,
+     "6": 30.13,
+     "7": 34.6,
+     "8": 34.6
+    },
+    "roof|IEAD|Residential": {
+     "0": 30.13,
+     "1": 24.52,
+     "2": 24.52,
+     "3": 24.52,
+     "4": 30.13,
+     "5": 30.13,
+     "6": 30.13,
+     "7": 34.6,
+     "8": 34.6
+    },
+    "roof|IEAD|Semiheated": {
+     "0": 3.47,
+     "1": 3.47,
+     "2": 4.66,
+     "3": 7.29,
+     "4": 9.64,
+     "5": 14.76,
+     "6": 14.76,
+     "7": 24.52,
+     "8": 24.52
+    },
+    "roof|Metal Building|Nonresidential": {
+     "0": 23.61,
+     "1": 23.61,
+     "2": 23.61,
+     "3": 23.61,
+     "4": 26.25,
+     "5": 26.25,
+     "6": 31.48,
+     "7": 33.7,
+     "8": 37.68
+    },
+    "roof|Metal Building|Residential": {
+     "0": 23.61,
+     "1": 23.61,
+     "2": 23.61,
+     "3": 23.61,
+     "4": 26.25,
+     "5": 26.25,
+     "6": 33.7,
+     "7": 33.7,
+     "8": 37.68
+    },
+    "roof|Metal Building|Semiheated": {
+     "0": 7.92,
+     "1": 7.92,
+     "2": 9.64,
+     "3": 9.64,
+     "4": 11.42,
+     "5": 11.42,
+     "6": 15.89,
+     "7": 26.25,
+     "8": 26.25
+    },
+    "wall|Mass|Nonresidential": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 4.23,
+     "3": 5.74,
+     "4": 7.23,
+     "5": 8.72,
+     "6": 10.11,
+     "7": 11.7,
+     "8": 18.44
+    },
+    "wall|Mass|Residential": {
+     "0": 4.23,
+     "1": 4.23,
+     "2": 5.74,
+     "3": 7.23,
+     "4": 8.72,
+     "5": 10.11,
+     "6": 11.7,
+     "7": 11.7,
+     "8": 18.44
+    },
+    "wall|Mass|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 0.0,
+     "3": 0.0,
+     "4": 0.0,
+     "5": 4.23,
+     "6": 4.23,
+     "7": 5.74,
+     "8": 7.23
+    },
+    "wall|Metal Building|Nonresidential": {
+     "0": 9.34,
+     "1": 9.34,
+     "2": 9.34,
+     "3": 9.34,
+     "4": 15.37,
+     "5": 18.7,
+     "6": 18.7,
+     "7": 21.43,
+     "8": 24.34
+    },
+    "wall|Metal Building|Residential": {
+     "0": 9.34,
+     "1": 9.34,
+     "2": 9.34,
+     "3": 12.59,
+     "4": 18.7,
+     "5": 18.7,
+     "6": 18.7,
+     "7": 21.43,
+     "8": 24.34
+    },
+    "wall|Metal Building|Semiheated": {
+     "0": 1.54,
+     "1": 1.54,
+     "2": 4.87,
+     "3": 4.87,
+     "4": 4.87,
+     "5": 9.34,
+     "6": 9.34,
+     "7": 12.59,
+     "8": 15.37
+    },
+    "wall|SteelFramed|Nonresidential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 9.73,
+     "3": 10.81,
+     "4": 13.45,
+     "5": 16.0,
+     "6": 18.23,
+     "7": 18.23,
+     "8": 24.85
+    },
+    "wall|SteelFramed|Residential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 13.45,
+     "3": 13.45,
+     "4": 13.45,
+     "5": 16.0,
+     "6": 18.23,
+     "7": 21.63,
+     "8": 24.85
+    },
+    "wall|SteelFramed|Semiheated": {
+     "0": 0.66,
+     "1": 0.66,
+     "2": 5.89,
+     "3": 5.89,
+     "4": 5.89,
+     "5": 9.73,
+     "6": 9.73,
+     "7": 13.45,
+     "8": 13.45
+    },
+    "wall|WoodFramed|Nonresidential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 13.45,
+     "5": 17.43,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 29.07
+    },
+    "wall|WoodFramed|Residential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 13.45,
+     "4": 13.45,
+     "5": 17.43,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 29.07
+    },
+    "wall|WoodFramed|Semiheated": {
+     "0": 1.25,
+     "1": 1.25,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 9.06,
+     "5": 9.06,
+     "6": 9.06,
+     "7": 13.45,
+     "8": 17.43
+    }
+   }
+  },
+  "residential_sets": {
+   "90.1-2004": [
+    "SmallHotel"
+   ],
+   "90.1-2007": [
+    "SmallHotel"
+   ],
+   "90.1-2010": [
+    "SmallHotel"
+   ],
+   "90.1-2013": [
+    "SmallHotel"
+   ],
+   "DOE Ref 1980-2004": [],
+   "DOE Ref Pre-1980": []
+  },
+  "template_insulation_r": {
+   "90.1-2004": {
+    "roof|Attic and Other|Nonresidential": {
+     "0": 28.07,
+     "1": 28.07,
+     "2": 28.07,
+     "3A": 28.07,
+     "3B": 28.07,
+     "3C": 28.07,
+     "4": 28.07,
+     "5": 28.07,
+     "6": 35.69,
+     "7": 35.69,
+     "8": 35.69
+    },
+    "roof|Attic and Other|Residential": {
+     "0": 35.69,
+     "1": 35.69,
+     "2": 35.69,
+     "3A": 35.69,
+     "3B": 35.69,
+     "3C": 35.69,
+     "4": 35.69,
+     "5": 35.69,
+     "6": 35.69,
+     "7": 35.69,
+     "8": 35.69
+    },
+    "roof|Attic and Other|Semiheated": {
+     "0": 0.28,
+     "1": 0.28,
+     "2": 11.0,
+     "3A": 11.0,
+     "3B": 11.0,
+     "3C": 11.0,
+     "4": 11.0,
+     "5": 17.52,
+     "6": 17.52,
+     "7": 17.52,
+     "8": 28.07
+    },
+    "roof|IEAD|Nonresidential": {
+     "0": 14.76,
+     "1": 14.76,
+     "2": 14.76,
+     "3A": 14.76,
+     "3B": 14.76,
+     "3C": 14.76,
+     "4": 14.76,
+     "5": 14.76,
+     "6": 14.76,
+     "7": 14.76,
+     "8": 19.72
+    },
+    "roof|IEAD|Residential": {
+     "0": 14.76,
+     "1": 14.76,
+     "2": 14.76,
+     "3A": 14.76,
+     "3B": 14.76,
+     "3C": 14.76,
+     "4": 14.76,
+     "5": 14.76,
+     "6": 14.76,
+     "7": 14.76,
+     "8": 19.72
+    },
+    "roof|IEAD|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 3.47,
+     "3A": 3.47,
+     "3B": 3.47,
+     "3C": 3.47,
+     "4": 3.47,
+     "5": 4.66,
+     "6": 4.66,
+     "7": 4.66,
+     "8": 9.64
+    },
+    "roof|Metal Building|Nonresidential": {
+     "0": 14.6,
+     "1": 14.6,
+     "2": 14.6,
+     "3A": 14.6,
+     "3B": 14.6,
+     "3C": 14.6,
+     "4": 14.6,
+     "5": 14.6,
+     "6": 14.6,
+     "7": 14.6,
+     "8": 19.63
+    },
+    "roof|Metal Building|Residential": {
+     "0": 14.6,
+     "1": 14.6,
+     "2": 14.6,
+     "3A": 14.6,
+     "3B": 14.6,
+     "3C": 14.6,
+     "4": 14.6,
+     "5": 14.6,
+     "6": 14.6,
+     "7": 14.6,
+     "8": 19.63
+    },
+    "roof|Metal Building|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 5.21,
+     "3A": 9.53,
+     "3B": 9.53,
+     "3C": 9.53,
+     "4": 9.53,
+     "5": 9.53,
+     "6": 9.53,
+     "7": 9.53,
+     "8": 13.11
+    },
+    "wall|Mass|Nonresidential": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 0.0,
+     "3A": 4.23,
+     "3B": 4.23,
+     "3C": 4.23,
+     "4": 4.23,
+     "5": 5.74,
+     "6": 7.23,
+     "7": 8.72,
+     "8": 10.11
+    },
+    "wall|Mass|Residential": {
+     "0": 4.23,
+     "1": 4.23,
+     "2": 4.23,
+     "3A": 5.74,
+     "3B": 5.74,
+     "3C": 5.74,
+     "4": 7.23,
+     "5": 8.72,
+     "6": 8.72,
+     "7": 10.11,
+     "8": 11.7
+    },
+    "wall|Mass|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 0.0,
+     "3A": 0.0,
+     "3B": 0.0,
+     "3C": 0.0,
+     "4": 0.0,
+     "5": 0.0,
+     "6": 0.0,
+     "7": 0.0,
+     "8": 4.23
+    },
+    "wall|Metal Building|Nonresidential": {
+     "0": 7.55,
+     "1": 7.55,
+     "2": 7.55,
+     "3A": 7.55,
+     "3B": 7.55,
+     "3C": 7.55,
+     "4": 7.55,
+     "5": 7.55,
+     "6": 7.55,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Residential": {
+     "0": 7.55,
+     "1": 7.55,
+     "2": 7.55,
+     "3A": 7.55,
+     "3B": 7.55,
+     "3C": 7.55,
+     "4": 7.55,
+     "5": 16.24,
+     "6": 16.24,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 4.13,
+     "3A": 4.13,
+     "3B": 4.13,
+     "3C": 4.13,
+     "4": 6.16,
+     "5": 6.83,
+     "6": 7.55,
+     "7": 7.55,
+     "8": 7.55
+    },
+    "wall|SteelFramed|Nonresidential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 5.89,
+     "3A": 5.89,
+     "3B": 5.89,
+     "3C": 5.89,
+     "4": 5.89,
+     "5": 9.73,
+     "6": 9.73,
+     "7": 13.45,
+     "8": 13.45
+    },
+    "wall|SteelFramed|Residential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 5.89,
+     "3A": 9.73,
+     "3B": 9.73,
+     "3C": 9.73,
+     "4": 13.45,
+     "5": 13.45,
+     "6": 13.45,
+     "7": 13.45,
+     "8": 16.0
+    },
+    "wall|SteelFramed|Semiheated": {
+     "0": 0.66,
+     "1": 0.66,
+     "2": 0.66,
+     "3A": 0.66,
+     "3B": 0.66,
+     "3C": 0.66,
+     "4": 5.89,
+     "5": 5.89,
+     "6": 5.89,
+     "7": 5.89,
+     "8": 5.89
+    },
+    "wall|WoodFramed|Nonresidential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3A": 9.06,
+     "3B": 9.06,
+     "3C": 9.06,
+     "4": 9.06,
+     "5": 9.06,
+     "6": 9.06,
+     "7": 9.06,
+     "8": 17.43
+    },
+    "wall|WoodFramed|Residential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3A": 9.06,
+     "3B": 9.06,
+     "3C": 9.06,
+     "4": 9.06,
+     "5": 9.06,
+     "6": 13.45,
+     "7": 17.43,
+     "8": 17.43
+    },
+    "wall|WoodFramed|Semiheated": {
+     "0": 1.25,
+     "1": 1.25,
+     "2": 1.25,
+     "3A": 9.06,
+     "3B": 9.06,
+     "3C": 9.06,
+     "4": 9.06,
+     "5": 9.06,
+     "6": 9.06,
+     "7": 9.06,
+     "8": 9.06
+    }
+   },
+   "90.1-2007": {
+    "roof|Attic and Other|Nonresidential": {
+     "0": 28.07,
+     "1": 28.07,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 35.69,
+     "5": 35.69,
+     "6": 35.69,
+     "7": 35.69,
+     "8": 46.27
+    },
+    "roof|Attic and Other|Residential": {
+     "0": 35.69,
+     "1": 35.69,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 35.69,
+     "5": 35.69,
+     "6": 35.69,
+     "7": 35.69,
+     "8": 46.27
+    },
+    "roof|Attic and Other|Semiheated": {
+     "0": 11.0,
+     "1": 11.0,
+     "2": 11.0,
+     "3": 17.52,
+     "4": 17.52,
+     "5": 17.52,
+     "6": 28.07,
+     "7": 28.07,
+     "8": 28.07
+    },
+    "roof|IEAD|Nonresidential": {
+     "0": 14.76,
+     "1": 14.76,
+     "2": 19.72,
+     "3": 19.72,
+     "4": 19.72,
+     "5": 19.72,
+     "6": 19.72,
+     "7": 19.72,
+     "8": 19.72
+    },
+    "roof|IEAD|Residential": {
+     "0": 19.72,
+     "1": 19.72,
+     "2": 19.72,
+     "3": 19.72,
+     "4": 19.72,
+     "5": 19.72,
+     "6": 19.72,
+     "7": 19.72,
+     "8": 19.72
+    },
+    "roof|IEAD|Semiheated": {
+     "0": 3.47,
+     "1": 3.47,
+     "2": 3.47,
+     "3": 4.66,
+     "4": 4.66,
+     "5": 7.29,
+     "6": 9.64,
+     "7": 9.64,
+     "8": 14.76
+    },
+    "roof|Metal Building|Nonresidential": {
+     "0": 14.6,
+     "1": 14.6,
+     "2": 14.6,
+     "3": 14.6,
+     "4": 14.6,
+     "5": 14.6,
+     "6": 14.6,
+     "7": 14.6,
+     "8": 19.63
+    },
+    "roof|Metal Building|Residential": {
+     "0": 0.76,
+     "1": 0.76,
+     "2": 14.6,
+     "3": 14.6,
+     "4": 14.6,
+     "5": 14.6,
+     "6": 14.6,
+     "7": 14.6,
+     "8": 19.63
+    },
+    "roof|Metal Building|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 5.21,
+     "3": 9.53,
+     "4": 9.53,
+     "5": 9.53,
+     "6": 9.53,
+     "7": 9.53,
+     "8": 13.11
+    },
+    "wall|Mass|Nonresidential": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 4.23,
+     "3": 5.74,
+     "4": 7.23,
+     "5": 8.72,
+     "6": 10.11,
+     "7": 11.7,
+     "8": 11.7
+    },
+    "wall|Mass|Residential": {
+     "0": 4.23,
+     "1": 4.23,
+     "2": 5.74,
+     "3": 7.23,
+     "4": 8.72,
+     "5": 10.11,
+     "6": 11.7,
+     "7": 11.7,
+     "8": 16.84
+    },
+    "wall|Mass|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 0.0,
+     "3": 0.0,
+     "4": 0.0,
+     "5": 4.23,
+     "6": 4.23,
+     "7": 5.74,
+     "8": 7.23
+    },
+    "wall|Metal Building|Nonresidential": {
+     "0": 7.55,
+     "1": 7.55,
+     "2": 7.55,
+     "3": 7.55,
+     "4": 7.55,
+     "5": 7.55,
+     "6": 7.55,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Residential": {
+     "0": 7.55,
+     "1": 7.55,
+     "2": 7.55,
+     "3": 7.55,
+     "4": 7.55,
+     "5": 16.24,
+     "6": 16.24,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 4.13,
+     "3": 4.13,
+     "4": 6.16,
+     "5": 6.83,
+     "6": 7.55,
+     "7": 7.55,
+     "8": 7.55
+    },
+    "wall|SteelFramed|Nonresidential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 5.89,
+     "3": 9.73,
+     "4": 13.45,
+     "5": 13.45,
+     "6": 13.45,
+     "7": 13.45,
+     "8": 13.45
+    },
+    "wall|SteelFramed|Residential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 13.45,
+     "3": 13.45,
+     "4": 13.45,
+     "5": 13.45,
+     "6": 13.45,
+     "7": 21.63,
+     "8": 24.85
+    },
+    "wall|SteelFramed|Semiheated": {
+     "0": 0.66,
+     "1": 0.66,
+     "2": 5.89,
+     "3": 5.89,
+     "4": 5.89,
+     "5": 5.89,
+     "6": 5.89,
+     "7": 5.89,
+     "8": 9.73
+    },
+    "wall|WoodFramed|Nonresidential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 9.06,
+     "5": 13.45,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 25.6
+    },
+    "wall|WoodFramed|Residential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 13.45,
+     "5": 17.43,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 25.6
+    },
+    "wall|WoodFramed|Semiheated": {
+     "0": 1.25,
+     "1": 1.25,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 9.06,
+     "5": 9.06,
+     "6": 9.06,
+     "7": 9.06,
+     "8": 9.06
+    }
+   },
+   "90.1-2010": {
+    "roof|Attic and Other|Nonresidential": {
+     "0": 28.07,
+     "1": 28.07,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 35.69,
+     "5": 35.69,
+     "6": 35.69,
+     "7": 35.69,
+     "8": 46.27
+    },
+    "roof|Attic and Other|Residential": {
+     "0": 35.69,
+     "1": 35.69,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 35.69,
+     "5": 35.69,
+     "6": 35.69,
+     "7": 35.69,
+     "8": 46.27
+    },
+    "roof|Attic and Other|Semiheated": {
+     "0": 11.0,
+     "1": 11.0,
+     "2": 11.0,
+     "3": 17.52,
+     "4": 17.52,
+     "5": 17.52,
+     "6": 28.07,
+     "7": 28.07,
+     "8": 28.07
+    },
+    "roof|IEAD|Nonresidential": {
+     "0": 14.76,
+     "1": 14.76,
+     "2": 19.72,
+     "3": 19.72,
+     "4": 19.72,
+     "5": 19.72,
+     "6": 19.72,
+     "7": 19.72,
+     "8": 19.72
+    },
+    "roof|IEAD|Residential": {
+     "0": 19.72,
+     "1": 19.72,
+     "2": 19.72,
+     "3": 19.72,
+     "4": 19.72,
+     "5": 19.72,
+     "6": 19.72,
+     "7": 19.72,
+     "8": 19.72
+    },
+    "roof|IEAD|Semiheated": {
+     "0": 3.47,
+     "1": 3.47,
+     "2": 3.47,
+     "3": 4.66,
+     "4": 4.66,
+     "5": 7.29,
+     "6": 9.64,
+     "7": 9.64,
+     "8": 14.76
+    },
+    "roof|Metal Building|Nonresidential": {
+     "0": 14.6,
+     "1": 14.6,
+     "2": 17.4,
+     "3": 17.4,
+     "4": 17.4,
+     "5": 17.4,
+     "6": 19.63,
+     "7": 19.63,
+     "8": 27.79
+    },
+    "roof|Metal Building|Residential": {
+     "0": 14.6,
+     "1": 14.6,
+     "2": 17.4,
+     "3": 17.4,
+     "4": 17.4,
+     "5": 17.4,
+     "6": 19.63,
+     "7": 19.63,
+     "8": 27.79
+    },
+    "roof|Metal Building|Semiheated": {
+     "0": 5.21,
+     "1": 5.21,
+     "2": 9.53,
+     "3": 9.53,
+     "4": 9.53,
+     "5": 11.27,
+     "6": 13.11,
+     "7": 13.11,
+     "8": 14.6
+    },
+    "wall|Mass|Nonresidential": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 4.23,
+     "3": 5.74,
+     "4": 7.23,
+     "5": 8.72,
+     "6": 10.11,
+     "7": 11.7,
+     "8": 11.7
+    },
+    "wall|Mass|Residential": {
+     "0": 4.23,
+     "1": 4.23,
+     "2": 5.74,
+     "3": 7.23,
+     "4": 8.72,
+     "5": 10.11,
+     "6": 11.7,
+     "7": 11.7,
+     "8": 16.84
+    },
+    "wall|Mass|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 0.0,
+     "3": 0.0,
+     "4": 0.0,
+     "5": 4.23,
+     "6": 4.23,
+     "7": 5.74,
+     "8": 7.23
+    },
+    "wall|Metal Building|Nonresidential": {
+     "0": 9.45,
+     "1": 9.45,
+     "2": 9.45,
+     "3": 10.6,
+     "4": 10.6,
+     "5": 13.19,
+     "6": 13.19,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Residential": {
+     "0": 9.45,
+     "1": 9.45,
+     "2": 9.45,
+     "3": 10.6,
+     "4": 10.6,
+     "5": 13.19,
+     "6": 13.19,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Semiheated": {
+     "0": 7.55,
+     "1": 7.55,
+     "2": 7.55,
+     "3": 7.55,
+     "4": 7.55,
+     "5": 7.55,
+     "6": 7.55,
+     "7": 7.55,
+     "8": 7.55
+    },
+    "wall|SteelFramed|Nonresidential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 5.89,
+     "3": 9.73,
+     "4": 13.45,
+     "5": 13.45,
+     "6": 13.45,
+     "7": 13.45,
+     "8": 13.45
+    },
+    "wall|SteelFramed|Residential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 13.45,
+     "3": 13.45,
+     "4": 13.45,
+     "5": 13.45,
+     "6": 13.45,
+     "7": 21.63,
+     "8": 24.85
+    },
+    "wall|SteelFramed|Semiheated": {
+     "0": 0.66,
+     "1": 0.66,
+     "2": 5.89,
+     "3": 5.89,
+     "4": 5.89,
+     "5": 5.89,
+     "6": 5.89,
+     "7": 5.89,
+     "8": 9.73
+    },
+    "wall|WoodFramed|Nonresidential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 9.06,
+     "5": 13.45,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 25.6
+    },
+    "wall|WoodFramed|Residential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 13.45,
+     "5": 17.43,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 25.6
+    },
+    "wall|WoodFramed|Semiheated": {
+     "0": 1.25,
+     "1": 1.25,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 9.06,
+     "5": 9.06,
+     "6": 9.06,
+     "7": 9.06,
+     "8": 9.06
+    }
+   },
+   "90.1-2013": {
+    "roof|Attic and Other|Nonresidential": {
+     "0": 35.69,
+     "1": 35.69,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 46.27,
+     "5": 46.27,
+     "6": 46.27,
+     "7": 57.48,
+     "8": 57.48
+    },
+    "roof|Attic and Other|Residential": {
+     "0": 35.69,
+     "1": 35.69,
+     "2": 35.69,
+     "3": 35.69,
+     "4": 46.27,
+     "5": 46.27,
+     "6": 46.27,
+     "7": 57.48,
+     "8": 57.48
+    },
+    "roof|Attic and Other|Semiheated": {
+     "0": 11.0,
+     "1": 11.0,
+     "2": 17.52,
+     "3": 17.52,
+     "4": 28.07,
+     "5": 28.07,
+     "6": 28.07,
+     "7": 35.69,
+     "8": 35.69
+    },
+    "roof|IEAD|Nonresidential": {
+     "0": 19.72,
+     "1": 19.72,
+     "2": 24.52,
+     "3": 24.52,
+     "4": 30.13,
+     "5": 30.13,
+     "6": 30.13,
+     "7": 34.6,
+     "8": 34.6
+    },
+    "roof|IEAD|Residential": {
+     "0": 24.52,
+     "1": 24.52,
+     "2": 24.52,
+     "3": 24.52,
+     "4": 30.13,
+     "5": 30.13,
+     "6": 30.13,
+     "7": 34.6,
+     "8": 34.6
+    },
+    "roof|IEAD|Semiheated": {
+     "0": 3.47,
+     "1": 3.47,
+     "2": 4.66,
+     "3": 7.29,
+     "4": 9.64,
+     "5": 14.76,
+     "6": 14.76,
+     "7": 24.52,
+     "8": 24.52
+    },
+    "roof|Metal Building|Nonresidential": {
+     "0": 23.61,
+     "1": 23.61,
+     "2": 23.61,
+     "3": 23.61,
+     "4": 26.25,
+     "5": 26.25,
+     "6": 31.48,
+     "7": 33.7,
+     "8": 37.68
+    },
+    "roof|Metal Building|Residential": {
+     "0": 23.61,
+     "1": 23.61,
+     "2": 23.61,
+     "3": 23.61,
+     "4": 26.25,
+     "5": 26.25,
+     "6": 33.7,
+     "7": 33.7,
+     "8": 37.68
+    },
+    "roof|Metal Building|Semiheated": {
+     "0": 7.92,
+     "1": 7.92,
+     "2": 9.64,
+     "3": 9.64,
+     "4": 11.42,
+     "5": 11.42,
+     "6": 15.89,
+     "7": 26.25,
+     "8": 26.25
+    },
+    "wall|Mass|Nonresidential": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 4.23,
+     "3": 5.74,
+     "4": 7.23,
+     "5": 8.72,
+     "6": 10.11,
+     "7": 11.7,
+     "8": 18.44
+    },
+    "wall|Mass|Residential": {
+     "0": 4.23,
+     "1": 4.23,
+     "2": 5.74,
+     "3": 7.23,
+     "4": 8.72,
+     "5": 10.11,
+     "6": 11.7,
+     "7": 11.7,
+     "8": 18.44
+    },
+    "wall|Mass|Semiheated": {
+     "0": 0.0,
+     "1": 0.0,
+     "2": 0.0,
+     "3": 0.0,
+     "4": 0.0,
+     "5": 4.23,
+     "6": 4.23,
+     "7": 5.74,
+     "8": 7.23
+    },
+    "wall|Metal Building|Nonresidential": {
+     "0": 9.34,
+     "1": 9.34,
+     "2": 9.34,
+     "3": 9.34,
+     "4": 15.37,
+     "5": 18.7,
+     "6": 18.7,
+     "7": 21.43,
+     "8": 24.34
+    },
+    "wall|Metal Building|Residential": {
+     "0": 9.34,
+     "1": 9.34,
+     "2": 9.34,
+     "3": 12.59,
+     "4": 18.7,
+     "5": 18.7,
+     "6": 18.7,
+     "7": 21.43,
+     "8": 24.34
+    },
+    "wall|Metal Building|Semiheated": {
+     "0": 1.54,
+     "1": 1.54,
+     "2": 4.87,
+     "3": 4.87,
+     "4": 4.87,
+     "5": 9.34,
+     "6": 9.34,
+     "7": 12.59,
+     "8": 15.37
+    },
+    "wall|SteelFramed|Nonresidential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 9.73,
+     "3": 10.81,
+     "4": 13.45,
+     "5": 16.0,
+     "6": 18.23,
+     "7": 18.23,
+     "8": 24.85
+    },
+    "wall|SteelFramed|Residential": {
+     "0": 5.89,
+     "1": 5.89,
+     "2": 13.45,
+     "3": 13.45,
+     "4": 13.45,
+     "5": 16.0,
+     "6": 18.23,
+     "7": 21.63,
+     "8": 24.85
+    },
+    "wall|SteelFramed|Semiheated": {
+     "0": 0.66,
+     "1": 0.66,
+     "2": 5.89,
+     "3": 5.89,
+     "4": 5.89,
+     "5": 9.73,
+     "6": 9.73,
+     "7": 13.45,
+     "8": 13.45
+    },
+    "wall|WoodFramed|Nonresidential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 13.45,
+     "5": 17.43,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 29.07
+    },
+    "wall|WoodFramed|Residential": {
+     "0": 9.06,
+     "1": 9.06,
+     "2": 9.06,
+     "3": 13.45,
+     "4": 13.45,
+     "5": 17.43,
+     "6": 17.43,
+     "7": 17.43,
+     "8": 29.07
+    },
+    "wall|WoodFramed|Semiheated": {
+     "0": 1.25,
+     "1": 1.25,
+     "2": 9.06,
+     "3": 9.06,
+     "4": 9.06,
+     "5": 9.06,
+     "6": 9.06,
+     "7": 13.45,
+     "8": 17.43
+    }
+   },
+   "DOE Ref 1980-2004": {
+    "roof|Attic and Other|Nonresidential": {
+     "1": 12.17,
+     "2A": 13.81,
+     "2B": 20.39,
+     "3A": 12.54,
+     "3B": 19.49,
+     "3C": 10.02,
+     "4A": 15.9,
+     "4B": 15.6,
+     "4C": 14.28,
+     "5A": 17.52,
+     "5B": 18.26,
+     "5C": 18.26,
+     "6A": 20.88,
+     "6B": 19.06,
+     "7": 23.66,
+     "8": 30.91
+    },
+    "roof|Attic and Other|Residential": {
+     "1": 35.69,
+     "2A": 35.69,
+     "2B": 35.69,
+     "3A": 35.69,
+     "3B": 35.69,
+     "3C": 35.69,
+     "4A": 35.69,
+     "4B": 35.69,
+     "4C": 35.69,
+     "5A": 35.69,
+     "5B": 35.69,
+     "5C": 35.69,
+     "6A": 35.69,
+     "6B": 35.69,
+     "7": 35.69,
+     "8": 35.69
+    },
+    "roof|Attic and Other|Semiheated": {
+     "1": 0.28,
+     "2A": 11.0,
+     "2B": 11.0,
+     "3A": 11.0,
+     "3B": 11.0,
+     "3C": 11.0,
+     "4A": 11.0,
+     "4B": 11.0,
+     "4C": 11.0,
+     "5A": 17.52,
+     "5B": 17.52,
+     "5C": 17.52,
+     "6A": 17.52,
+     "6B": 17.52,
+     "7": 17.52,
+     "8": 28.07
+    },
+    "roof|IEAD|Nonresidential": {
+     "1": 12.4,
+     "2A": 14.03,
+     "2B": 20.62,
+     "3A": 12.77,
+     "3B": 19.72,
+     "3C": 10.25,
+     "4A": 16.12,
+     "4B": 15.83,
+     "4C": 14.51,
+     "5A": 17.75,
+     "5B": 18.49,
+     "5C": 18.49,
+     "6A": 21.1,
+     "6B": 19.29,
+     "7": 23.88,
+     "8": 31.14
+    },
+    "roof|IEAD|Residential": {
+     "1": 12.4,
+     "2A": 14.03,
+     "2B": 20.62,
+     "3A": 12.77,
+     "3B": 19.72,
+     "3C": 10.25,
+     "4A": 16.12,
+     "4B": 15.83,
+     "4C": 14.51,
+     "5A": 17.75,
+     "5B": 18.49,
+     "5C": 18.49,
+     "6A": 21.1,
+     "6B": 19.29,
+     "7": 23.88,
+     "8": 31.14
+    },
+    "roof|Metal Building|Nonresidential": {
+     "1": 9.22,
+     "2A": 9.22,
+     "2B": 9.22,
+     "3A": 9.22,
+     "3B": 9.22,
+     "3C": 9.22,
+     "4A": 10.85,
+     "4B": 10.46,
+     "4C": 10.98,
+     "5A": 13.11,
+     "5B": 12.38,
+     "5C": 12.38,
+     "6A": 21.44,
+     "6B": 19.63,
+     "7": 24.22,
+     "8": 31.48
+    },
+    "roof|Metal Building|Residential": {
+     "1": 14.6,
+     "2A": 14.6,
+     "2B": 14.6,
+     "3A": 14.6,
+     "3B": 14.6,
+     "3C": 14.6,
+     "4A": 14.6,
+     "4B": 14.6,
+     "4C": 14.6,
+     "5A": 14.6,
+     "5B": 14.6,
+     "5C": 14.6,
+     "6A": 14.6,
+     "6B": 14.6,
+     "7": 14.6,
+     "8": 19.63
+    },
+    "roof|Metal Building|Semiheated": {
+     "1": 9.22,
+     "2A": 9.22,
+     "2B": 9.22,
+     "3A": 9.22,
+     "3B": 9.22,
+     "3C": 9.22,
+     "4A": 10.85,
+     "4B": 10.46,
+     "4C": 10.98,
+     "5A": 13.11,
+     "5B": 12.38,
+     "5C": 12.38,
+     "6A": 21.44,
+     "6B": 19.63,
+     "7": 24.22,
+     "8": 31.48
+    },
+    "wall|Mass|Nonresidential": {
+     "1": 0.0,
+     "2A": 0.55,
+     "2B": 0.05,
+     "3A": 1.06,
+     "3B": 1.06,
+     "3C": 0.0,
+     "4A": 5.94,
+     "4B": 2.87,
+     "4C": 7.61,
+     "5A": 7.61,
+     "5B": 4.75,
+     "5C": 4.75,
+     "6A": 11.7,
+     "6B": 10.27,
+     "7": 14.0,
+     "8": 18.89
+    },
+    "wall|Mass|Residential": {
+     "1": 4.23,
+     "2A": 4.23,
+     "2B": 4.23,
+     "3A": 5.74,
+     "3B": 5.74,
+     "3C": 5.74,
+     "4A": 7.23,
+     "4B": 7.23,
+     "4C": 7.23,
+     "5A": 8.72,
+     "5B": 8.72,
+     "5C": 8.72,
+     "6A": 8.72,
+     "6B": 8.72,
+     "7": 10.11,
+     "8": 11.7
+    },
+    "wall|Mass|Semiheated": {
+     "1": 0.0,
+     "2A": 0.0,
+     "2B": 0.0,
+     "3A": 0.0,
+     "3B": 0.0,
+     "3C": 0.0,
+     "4A": 0.0,
+     "4B": 0.0,
+     "4C": 0.0,
+     "5A": 0.0,
+     "5B": 0.0,
+     "5C": 0.0,
+     "6A": 0.0,
+     "6B": 0.0,
+     "7": 0.0,
+     "8": 4.23
+    },
+    "wall|Metal Building|Nonresidential": {
+     "1": 0.0,
+     "2A": 5.37,
+     "2B": 2.87,
+     "3A": 6.39,
+     "3B": 4.95,
+     "3C": 6.39,
+     "4A": 9.94,
+     "4B": 8.7,
+     "4C": 9.57,
+     "5A": 10.89,
+     "5B": 10.89,
+     "5C": 10.89,
+     "6A": 14.08,
+     "6B": 12.59,
+     "7": 15.94,
+     "8": 20.92
+    },
+    "wall|Metal Building|Residential": {
+     "1": 7.55,
+     "2A": 7.55,
+     "2B": 7.55,
+     "3A": 7.55,
+     "3B": 7.55,
+     "3C": 7.55,
+     "4A": 7.55,
+     "4B": 7.55,
+     "4C": 7.55,
+     "5A": 16.24,
+     "5B": 16.24,
+     "5C": 16.24,
+     "6A": 16.24,
+     "6B": 16.24,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Semiheated": {
+     "1": 0.0,
+     "2A": 5.37,
+     "2B": 2.87,
+     "3A": 6.39,
+     "3B": 4.95,
+     "3C": 6.39,
+     "4A": 9.94,
+     "4B": 8.7,
+     "4C": 9.57,
+     "5A": 10.89,
+     "5B": 10.89,
+     "5C": 10.89,
+     "6A": 14.08,
+     "6B": 12.59,
+     "7": 15.94,
+     "8": 20.92
+    },
+    "wall|SteelFramed|Nonresidential": {
+     "1": 0.0,
+     "2A": 4.49,
+     "2B": 1.99,
+     "3A": 5.51,
+     "3B": 4.07,
+     "3C": 5.51,
+     "4A": 9.06,
+     "4B": 7.82,
+     "4C": 8.69,
+     "5A": 10.02,
+     "5B": 10.02,
+     "5C": 10.02,
+     "6A": 13.21,
+     "6B": 11.71,
+     "7": 15.06,
+     "8": 20.04
+    },
+    "wall|SteelFramed|Residential": {
+     "1": 0.0,
+     "2A": 4.49,
+     "2B": 1.99,
+     "3A": 5.51,
+     "3B": 4.07,
+     "3C": 5.51,
+     "4A": 9.06,
+     "4B": 7.82,
+     "4C": 8.69,
+     "5A": 10.02,
+     "5B": 10.02,
+     "5C": 10.02,
+     "6A": 13.21,
+     "6B": 11.71,
+     "7": 15.06,
+     "8": 20.04
+    },
+    "wall|SteelFramed|Semiheated": {
+     "1": 0.66,
+     "2A": 0.66,
+     "2B": 0.66,
+     "3A": 0.66,
+     "3B": 0.66,
+     "3C": 0.66,
+     "4A": 5.89,
+     "4B": 5.89,
+     "4C": 5.89,
+     "5A": 5.89,
+     "5B": 5.89,
+     "5C": 5.89,
+     "6A": 5.89,
+     "6B": 5.89,
+     "7": 5.89,
+     "8": 5.89
+    },
+    "wall|WoodFramed|Nonresidential": {
+     "1": 0.0,
+     "2A": 4.49,
+     "2B": 1.99,
+     "3A": 5.51,
+     "3B": 4.07,
+     "3C": 5.51,
+     "4A": 9.06,
+     "4B": 7.82,
+     "4C": 8.69,
+     "5A": 10.02,
+     "5B": 10.02,
+     "5C": 10.02,
+     "6A": 13.21,
+     "6B": 11.71,
+     "7": 15.06,
+     "8": 20.04
+    },
+    "wall|WoodFramed|Residential": {
+     "1": 0.0,
+     "2A": 4.49,
+     "2B": 1.99,
+     "3A": 5.51,
+     "3B": 4.07,
+     "3C": 5.51,
+     "4A": 9.06,
+     "4B": 7.82,
+     "4C": 8.69,
+     "5A": 10.02,
+     "5B": 10.02,
+     "5C": 10.02,
+     "6A": 13.21,
+     "6B": 11.71,
+     "7": 15.06,
+     "8": 20.04
+    },
+    "wall|WoodFramed|Semiheated": {
+     "1": 1.25,
+     "2A": 1.25,
+     "2B": 1.25,
+     "3A": 9.06,
+     "3B": 9.06,
+     "3C": 9.06,
+     "4A": 9.06,
+     "4B": 9.06,
+     "4C": 9.06,
+     "5A": 9.06,
+     "5B": 9.06,
+     "5C": 9.06,
+     "6A": 9.06,
+     "6B": 9.06,
+     "7": 9.06,
+     "8": 9.06
+    }
+   },
+   "DOE Ref Pre-1980": {
+    "roof|Attic and Other|Nonresidential": {
+     "1": 8.66,
+     "2A": 8.66,
+     "2B": 8.66,
+     "3A": 8.66,
+     "3B": 8.66,
+     "3C": 8.66,
+     "4A": 10.28,
+     "4B": 9.89,
+     "4C": 10.42,
+     "5A": 12.54,
+     "5B": 11.81,
+     "5C": 11.81,
+     "6A": 15.32,
+     "6B": 15.32,
+     "7": 15.32,
+     "8": 15.32
+    },
+    "roof|Attic and Other|Residential": {
+     "1": 35.69,
+     "2A": 35.69,
+     "2B": 35.69,
+     "3A": 35.69,
+     "3B": 35.69,
+     "3C": 35.69,
+     "4A": 35.69,
+     "4B": 35.69,
+     "4C": 35.69,
+     "5A": 35.69,
+     "5B": 35.69,
+     "5C": 35.69,
+     "6A": 35.69,
+     "6B": 35.69,
+     "7": 35.69,
+     "8": 35.69
+    },
+    "roof|Attic and Other|Semiheated": {
+     "1": 0.28,
+     "2A": 11.0,
+     "2B": 17.52,
+     "3A": 11.0,
+     "3B": 11.0,
+     "3C": 11.0,
+     "4A": 11.0,
+     "4B": 11.0,
+     "4C": 11.0,
+     "5A": 17.52,
+     "5B": 17.52,
+     "5C": 17.52,
+     "6A": 17.52,
+     "6B": 17.52,
+     "7": 17.52,
+     "8": 28.07
+    },
+    "roof|IEAD|Nonresidential": {
+     "1": 8.88,
+     "2A": 8.88,
+     "2B": 8.88,
+     "3A": 8.88,
+     "3B": 8.88,
+     "3C": 8.88,
+     "4A": 10.51,
+     "4B": 10.12,
+     "4C": 10.65,
+     "5A": 12.77,
+     "5B": 12.04,
+     "5C": 12.04,
+     "6A": 15.55,
+     "6B": 15.55,
+     "7": 15.55,
+     "8": 15.55
+    },
+    "roof|IEAD|Residential": {
+     "1": 8.88,
+     "2A": 8.88,
+     "2B": 8.88,
+     "3A": 8.88,
+     "3B": 8.88,
+     "3C": 8.88,
+     "4A": 10.51,
+     "4B": 10.12,
+     "4C": 10.65,
+     "5A": 12.77,
+     "5B": 12.04,
+     "5C": 12.04,
+     "6A": 15.55,
+     "6B": 15.55,
+     "7": 15.55,
+     "8": 15.55
+    },
+    "roof|IEAD|Semiheated": {
+     "1": 8.88,
+     "2A": 8.88,
+     "2B": 8.88,
+     "3A": 8.88,
+     "3B": 8.88,
+     "3C": 8.88,
+     "4A": 10.51,
+     "4B": 10.12,
+     "4C": 10.65,
+     "5A": 12.77,
+     "5B": 12.04,
+     "5C": 12.04,
+     "6A": 15.55,
+     "6B": 15.55,
+     "7": 15.55,
+     "8": 15.55
+    },
+    "roof|Metal Building|Nonresidential": {
+     "5B": 12.38,
+     "5C": 12.38
+    },
+    "roof|Metal Building|Residential": {
+     "1": 14.6,
+     "2A": 14.6,
+     "2B": 14.6,
+     "3A": 14.6,
+     "3B": 14.6,
+     "3C": 14.6,
+     "4A": 14.6,
+     "4B": 14.6,
+     "4C": 14.6,
+     "5A": 14.6,
+     "5B": 14.6,
+     "5C": 14.6,
+     "6A": 14.6,
+     "6B": 14.6,
+     "7": 14.6,
+     "8": 19.63
+    },
+    "roof|Metal Building|Semiheated": {
+     "5B": 12.38,
+     "5C": 12.38
+    },
+    "wall|Mass|Nonresidential": {
+     "1": 1.96,
+     "2A": 1.96,
+     "2B": 1.96,
+     "3A": 2.06,
+     "3B": 1.96,
+     "3C": 2.08,
+     "4A": 3.23,
+     "4B": 3.05,
+     "4C": 3.33,
+     "5A": 4.02,
+     "5B": 3.82,
+     "5C": 3.82,
+     "6A": 4.51,
+     "6B": 4.51,
+     "7": 4.96,
+     "8": 5.61
+    },
+    "wall|Mass|Residential": {
+     "1": 4.23,
+     "2A": 4.23,
+     "2B": 4.23,
+     "3A": 5.74,
+     "3B": 5.74,
+     "3C": 5.74,
+     "4A": 7.23,
+     "4B": 7.23,
+     "4C": 7.23,
+     "5A": 8.72,
+     "5B": 8.72,
+     "5C": 8.72,
+     "6A": 8.72,
+     "6B": 8.72,
+     "7": 10.11,
+     "8": 11.7
+    },
+    "wall|Mass|Semiheated": {
+     "1": 0.0,
+     "2A": 0.0,
+     "2B": 0.0,
+     "3A": 0.0,
+     "3B": 0.0,
+     "3C": 0.0,
+     "4A": 0.0,
+     "4B": 0.0,
+     "4C": 0.0,
+     "5A": 0.0,
+     "5B": 0.0,
+     "5C": 0.0,
+     "6A": 0.0,
+     "6B": 0.0,
+     "7": 0.0,
+     "8": 4.23
+    },
+    "wall|Metal Building|Nonresidential": {
+     "1": 3.05,
+     "2A": 3.05,
+     "2B": 3.05,
+     "3A": 3.14,
+     "3B": 3.05,
+     "3C": 3.16,
+     "4A": 4.32,
+     "4B": 4.13,
+     "4C": 4.41,
+     "5A": 5.11,
+     "5B": 4.91,
+     "5C": 4.91,
+     "6A": 5.6,
+     "6B": 5.6,
+     "7": 6.05,
+     "8": 6.7
+    },
+    "wall|Metal Building|Residential": {
+     "1": 7.55,
+     "2A": 7.55,
+     "2B": 7.55,
+     "3A": 7.55,
+     "3B": 7.55,
+     "3C": 7.55,
+     "4A": 7.55,
+     "4B": 7.55,
+     "4C": 7.55,
+     "5A": 16.24,
+     "5B": 16.24,
+     "5C": 16.24,
+     "6A": 16.24,
+     "6B": 16.24,
+     "7": 16.24,
+     "8": 16.24
+    },
+    "wall|Metal Building|Semiheated": {
+     "1": 3.05,
+     "2A": 3.05,
+     "2B": 3.05,
+     "3A": 3.14,
+     "3B": 3.05,
+     "3C": 3.16,
+     "4A": 4.32,
+     "4B": 4.13,
+     "4C": 4.41,
+     "5A": 5.11,
+     "5B": 4.91,
+     "5C": 4.91,
+     "6A": 5.6,
+     "6B": 5.6,
+     "7": 6.05,
+     "8": 6.7
+    },
+    "wall|SteelFramed|Nonresidential": {
+     "1": 2.17,
+     "2A": 2.17,
+     "2B": 2.17,
+     "3A": 2.27,
+     "3B": 2.17,
+     "3C": 2.29,
+     "4A": 3.44,
+     "4B": 3.26,
+     "4C": 3.54,
+     "5A": 4.23,
+     "5B": 4.03,
+     "5C": 4.03,
+     "6A": 4.72,
+     "6B": 4.72,
+     "7": 5.17,
+     "8": 5.82
+    },
+    "wall|SteelFramed|Residential": {
+     "1": 2.17,
+     "2A": 2.17,
+     "2B": 2.17,
+     "3A": 2.27,
+     "3B": 2.17,
+     "3C": 2.29,
+     "4A": 3.44,
+     "4B": 3.26,
+     "4C": 3.54,
+     "5A": 4.23,
+     "5B": 4.03,
+     "5C": 4.03,
+     "6A": 4.72,
+     "6B": 4.72,
+     "7": 5.17,
+     "8": 5.82
+    },
+    "wall|SteelFramed|Semiheated": {
+     "1": 0.66,
+     "2A": 0.66,
+     "2B": 0.66,
+     "3A": 0.66,
+     "3B": 0.66,
+     "3C": 0.66,
+     "4A": 5.89,
+     "4B": 5.89,
+     "4C": 5.89,
+     "5A": 5.89,
+     "5B": 5.89,
+     "5C": 5.89,
+     "6A": 5.89,
+     "6B": 5.89,
+     "7": 5.89,
+     "8": 5.89
+    },
+    "wall|WoodFramed|Nonresidential": {
+     "1": 2.17,
+     "2A": 2.17,
+     "2B": 2.17,
+     "3A": 2.27,
+     "3B": 2.17,
+     "3C": 2.29,
+     "4A": 3.44,
+     "4B": 3.26,
+     "4C": 3.54,
+     "5A": 4.23,
+     "5B": 4.03,
+     "5C": 4.03,
+     "6A": 4.72,
+     "6B": 4.72,
+     "7": 5.17,
+     "8": 5.82
+    },
+    "wall|WoodFramed|Residential": {
+     "1": 2.17,
+     "2A": 2.17,
+     "2B": 2.17,
+     "3A": 2.27,
+     "3B": 2.17,
+     "3C": 2.29,
+     "4A": 3.44,
+     "4B": 3.26,
+     "4C": 3.54,
+     "5A": 4.23,
+     "5B": 4.03,
+     "5C": 4.03,
+     "6A": 4.72,
+     "6B": 4.72,
+     "7": 5.17,
+     "8": 5.82
+    },
+    "wall|WoodFramed|Semiheated": {
+     "1": 1.25,
+     "2A": 1.25,
+     "2B": 1.25,
+     "3A": 9.06,
+     "3B": 9.06,
+     "3C": 9.06,
+     "4A": 9.06,
+     "4B": 9.06,
+     "4C": 9.06,
+     "5A": 9.06,
+     "5B": 9.06,
+     "5C": 9.06,
+     "6A": 9.06,
+     "6B": 9.06,
+     "7": 9.06,
+     "8": 9.06
+    }
+   }
+  }
+ },
+ "residential": {
+  "IECC 2009": {
+   "ceiling": {
+    "1": 30,
+    "2": 30,
+    "3": 30,
+    "4": 38,
+    "5": 38,
+    "6": 49,
+    "7": 49,
+    "8": 49,
+    "M4": 38
+   },
+   "wall_cavity": {
+    "1": 13,
+    "2": 13,
+    "3": 13,
+    "4": 13,
+    "5": 20,
+    "6": 20,
+    "7": 21,
+    "8": 21,
+    "M4": 20
+   }
+  },
+  "IECC 2021": {
+   "ceiling": {
+    "0": 30,
+    "1": 30,
+    "2": 49,
+    "3": 49,
+    "4": 60,
+    "5": 60,
+    "6": 60,
+    "7": 60,
+    "8": 60,
+    "M4": 60
+   },
+   "wall_cavity": {
+    "0": 13,
+    "1": 13,
+    "2": 13,
+    "3": 20,
+    "4": 30,
+    "5": 30,
+    "6": 30,
+    "7": 30,
+    "8": 30,
+    "M4": 30
+   }
+  }
+ }
+}

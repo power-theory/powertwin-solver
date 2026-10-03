@@ -46,11 +46,12 @@ def test_empty_weather_key_fails_loud():
     )
 
 
-def test_swh_dead_heatpump_arm_removed():
-    # R-038: the case arm listed 'HeatPump', which swh_fuel_map can never emit.
-    seg = RB.split("swh_fuel_map", 1)[1][:800]
-    assert "when 'Electricity', 'NaturalGas', 'HeatPump'" not in RB, \
-        "dead 'HeatPump' case arm still present"
+def test_swh_heatpump_arm_is_reachable():
+    # R-038 removed a 'HeatPump' arm nothing could reach. Since 2026-09-30 a commercial heat pump water heater sets
+    # ep_fuel = 'HeatPump' before the case, so the arm is live (an office's explicit HPWH had built a gas heater).
+    seg = RB.split("swh_fuel_map", 1)[1][:1600]
+    assert "ep_fuel = 'HeatPump' if props[:water_heater_type]" in seg
+    assert seg.index("ep_fuel = 'HeatPump'") < seg.index("when 'Electricity', 'NaturalGas', 'HeatPump'")
 
 
 def test_stale_construction_lookup_comment_gone():

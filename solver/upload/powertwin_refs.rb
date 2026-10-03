@@ -53,6 +53,23 @@ module PowerTwinRefs
   #   Electric storage:       EF ~= 0.93 - 0.00132*V (~0.95 for typical 50 gal)
   # https://www.ashrae.org/technical-resources/bookstore/standard-90-1
   SWH_EFFICIENCY = { 'Electricity' => 0.95, 'NaturalGas' => 0.80, 'FuelOilNo2' => 0.78, 'Propane' => 0.80 }.freeze
+  # Vacant commercial load cuts vs the Warehouse prototype, EIA CBECS 2018 microdata (PBA 1 Vacant n=117 vs PBA 5
+  # nonrefrigerated warehouse n=753, FINALWT): lighting 1 - 0.398 lit-floorspace ratio; equipment 1 - 0.769 office +
+  # computing + other electricity-intensity ratio (EIA-modeled end use). 2026-10-01; were uncited 90 and 80.
+  # set_nist_infiltration_correlations' own ASHRAE-prototype mapping (openstudio-model-articulation 0.11.1
+  # measure.rb infer_nist_building_type: Office small/medium by area, LargeOffice -> MediumOffice, Warehouse/restaurants
+  # -> RetailStripmall, Outpatient -> MediumOffice, SuperMarket -> RetailStandalone), named explicitly for a DEER
+  # building whose DEER type the measure does not map (2026-10-01).
+  NIST_TYPE_FOR_PROTOTYPE = {
+    'SmallOffice' => 'SmallOffice', 'MediumOffice' => 'MediumOffice', 'LargeOffice' => 'MediumOffice',
+    'RetailStandalone' => 'RetailStandalone', 'RetailStripmall' => 'RetailStripmall', 'Warehouse' => 'RetailStripmall',
+    'QuickServiceRestaurant' => 'RetailStripmall', 'FullServiceRestaurant' => 'RetailStripmall',
+    'Outpatient' => 'MediumOffice', 'SuperMarket' => 'RetailStandalone', 'SecondarySchool' => 'SecondarySchool',
+    'PrimarySchool' => 'PrimarySchool', 'SmallHotel' => 'SmallHotel', 'LargeHotel' => 'LargeHotel',
+    'Hospital' => 'Hospital', 'MidriseApartment' => 'MidriseApartment', 'HighriseApartment' => 'HighriseApartment'
+  }.freeze
+  VACANT_LIGHTING_CUT_PCT = 60.0
+  VACANT_EQUIPMENT_CUT_PCT = 23.0
   RESIDENTIAL_BUILDING_TYPES = %w[Single-Family\ Detached Single-Family\ Attached Multifamily].freeze
 
   # Trailing CZ digit. urbanopt emits "ASHRAE 169-2013-4A"; we want "4".
@@ -131,10 +148,13 @@ module PowerTwinRefs
   # A heating_system_type the metadata supplied (feature explicit_params, emitted by
   # generateFeatureFile). A scenario fan-out variant counts like a user edit, so the delta
   # surrogate learns what hosted UrbanOpt builds for the same choice (2026-09-24).
-  def self.explicit_hvac?(props)
+  def self.explicit_hvac?(props) = explicit_param?(props, 'heating_system_type')
+
+  # Whether the metadata supplied `key` (the feature's explicit_params list).
+  def self.explicit_param?(props, key)
     list = props[:explicit_params]
     return false unless list.respond_to?(:include?)
-    list.include?('heating_system_type')
+    list.include?(key)
   end
 
   # --- Residential envelope cavity-R -> HPXML assembly-R ------------------------

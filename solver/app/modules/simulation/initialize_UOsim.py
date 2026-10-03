@@ -1,5 +1,6 @@
 import os
 import glob
+import json
 import time
 import zipfile
 import signal
@@ -82,6 +83,90 @@ def _run_bundle_step(project_dir):
     return proc.returncode, out or '', err or ''
 
 
+def _run_group(cmd, cwd):
+    """Run a bundle command in its own process group, bounded like the other bundle steps (uo_timeout, 2 h cap);
+    on a timeout kill the whole group, not just the bundle process. Returns (rc, out, err), rc None on timeout."""
+    proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                            start_new_session=True)
+    try:
+        out, err = proc.communicate(timeout=uo_timeout(cap=7200))
+        return proc.returncode, out or '', err or ''
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.communicate()
+        return None, '', ''
+
+
+def _offline_project_bundle(project_dir):
+    """Build the project bundle from the image's own gems, without the network (2026-09-29, requested from Al's
+    benchmark session): the extension Runner runs `bundle lock --add_platform ruby` and `bundle update` against
+    rubygems.org, about 580 MB per run, and under many concurrent fetches on a lossy or rootless link the downloads
+    corrupt or time out (Zlib::DataError, Net::OpenTimeout, TLS bad record mac), failing every building. Every gem
+    the template needs is installed with its .gem cached in the image, so `--local` resolves and installs the same
+    versions (parallel 1.19.1) the online path does. Writes .bundle/config and Gemfile.lock exactly where the Runner
+    would, so it then finds a complete bundle and never runs. Returns (ok, reason); on failure the partial state is
+    cleared and the caller falls back to the online install."""
+    conf = os.path.join(project_dir, 'runner.conf')
+    custom = ''
+    if os.path.isfile(conf):
+        try:
+            with open(conf) as fh:
+                data = json.load(fh)
+            custom = (data.get('bundle_install_path') or '') if isinstance(data, dict) else ''
+        except (OSError, ValueError):
+            custom = ''
+    if custom:
+        return False, f"runner.conf sets bundle_install_path {custom!r}"
+    # absolute: callers pass the project relative to /solver, and Bundler resolves a relative configured path
+    # inside the project, so the gems landed in a nested data/... tree, `uo run` found .bundle/install empty and
+    # fell back into the Runner (Gem::ConflictError on parallel, 2026-09-29, reproduced end to end)
+    project_dir = os.path.abspath(project_dir)
+    path = os.path.join(project_dir, '.bundle', 'install')
+    cache = os.path.join(project_dir, 'vendor', 'cache')
+    gem_caches = [os.path.join(d, 'cache') for d in dict.fromkeys(
+        filter(None, [os.environ.get('GEM_HOME')] + os.environ.get('GEM_PATH', '').split(os.pathsep)))]
+
+    def clear(partial):
+        shutil.rmtree(cache, ignore_errors=True)
+        if os.path.isdir(os.path.dirname(cache)) and not os.listdir(os.path.dirname(cache)):
+            os.rmdir(os.path.dirname(cache))
+        if partial:
+            shutil.rmtree(os.path.join(project_dir, '.bundle'), ignore_errors=True)
+            lock = os.path.join(project_dir, 'Gemfile.lock')
+            if os.path.exists(lock):
+                os.remove(lock)
+
+    # Resolve against the image's installed gems first: once a project path is configured, `--local` sees only
+    # gems under that path. Then install from the image's cached .gem files, linked in as the app cache.
+    steps = (['bundle', 'lock', '--local', '--add-platform', 'ruby'],
+             ['bundle', 'config', 'set', '--local', 'path', path],
+             'link-cache',
+             ['bundle', 'install', '--local'])
+    try:
+        for cmd in steps:
+            if cmd == 'link-cache':
+                os.makedirs(cache, exist_ok=True)
+                for d in gem_caches:
+                    for g in glob.glob(os.path.join(d, '*.gem')):
+                        dst = os.path.join(cache, os.path.basename(g))
+                        if not os.path.lexists(dst):
+                            os.symlink(g, dst)
+                continue
+            rc, out, err = _run_group(cmd, project_dir)
+            if rc != 0:
+                why = 'timed out' if rc is None else ' | '.join((err or out).strip().splitlines()[-3:])
+                clear(partial=True)
+                return False, f"`{' '.join(cmd[:2])}` {why}"
+    except Exception as e:   # anything else (a bad link, a full disk): clean up and let the online install run
+        clear(partial=True)
+        return False, f'{type(e).__name__}: {e}'
+    clear(partial=False)
+    return True, path
+
+
 def prepare_project_bundle(project_dir, simulation_dir=None):
     """Install the project's gem bundle before any batch runs, exactly where and how the first
     `uo run` would, then patch it. `uo run` installs a fresh openstudio-standards into the project
@@ -108,6 +193,14 @@ def prepare_project_bundle(project_dir, simulation_dir=None):
         if "source 'http://rubygems.org'" in src:
             with open(gemfile, 'w') as fh:
                 fh.write(src.replace("source 'http://rubygems.org'", "source 'https://rubygems.org'"))
+        ok, detail = _offline_project_bundle(project_dir)
+        if ok:
+            logger.info(f"Project bundle for {project_dir} built offline from the image's gems")
+        elif simulation_dir and stop_requested(simulation_dir):
+            logger.info(f"Project bundle install in {project_dir} ended by a stop request")
+            return False
+        else:
+            logger.warning(f"Offline project bundle for {project_dir} not built ({detail}); installing online")
     for attempt in (1, 2):
         rc, out, err = _run_bundle_step(project_dir)
         if rc != 0:

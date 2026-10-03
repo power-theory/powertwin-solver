@@ -40,6 +40,7 @@ NUMERIC_RANGES = sps.NUMERIC_RANGES
 RESOLVER_VERSION = sps.RESOLVER_VERSION
 _load_ref = sps._load_ref
 is_vacant = sps.is_vacant
+RESIDENTIAL_UNSET_CEILING_HEIGHT_FT = sps.RESIDENTIAL_UNSET_CEILING_HEIGHT_FT
 
 REGIONS = ["Northeast", "Midwest", "South", "West"]
 VINTAGES = ["pre-1980", "1980-1999", "2000-2009", "2010+"]
@@ -76,6 +77,7 @@ ALL_DYNAMIC_FIELDS = [
     "wall_r_value",
     "roof_r_value",
     "window_to_wall_ratio",
+    "floor_height",            # commercial prototype typical story since 2026-09-30
     "number_of_occupants",
     "weekday_start_time",
     "weekday_duration",
@@ -84,7 +86,7 @@ ALL_DYNAMIC_FIELDS = [
 ]
 
 NON_DYNAMIC_FIELDS = [
-    "floor_height",
+    # floor_height resolves the commercial prototype's typical story since 2026-09-30 (houses still return None)
 ]
 
 passed = 0
@@ -526,7 +528,6 @@ def test_precedence():
     override_vals = {
         "window_type": "Triple Pane",
         "heating_system_fuel_type": "propane",
-        "wall_material": "Super Insulated",
         "wall_r_value": 42.0,
         "roof_r_value": 55.0,
         "window_to_wall_ratio": 0.42,
@@ -543,6 +544,14 @@ def test_precedence():
         else:
             check(f"{field} override wins", result, override_val, section)
 
+    # A retired input (resolver 3.2, Insulation Presets Plan): a saved insulation tier never overrides the resolver
+    for field in ("wall_material", "roof_material"):
+        meta = {"state": "IL", "year_built": 1970, "area": 2000}
+        ctx = build_asset_ctx(meta, building_type="Single-Family Detached")
+        unset = get_param(meta, field, ctx=ctx)
+        saved = dict(meta, **{field: "Super Insulated" if unset != "Super Insulated" else "Standard"})
+        check(f"{field} saved tier is ignored", get_param(saved, field, ctx=build_asset_ctx(saved, building_type="Single-Family Detached")), unset, section)
+
     # Resolver wins over flat default (pre-1980 South -> Single Pane, differs from flat "Double Pane")
     meta = {"state": "TX", "year_built": 1970, "area": 2000}
     ctx = build_asset_ctx(meta, building_type="Single-Family Detached")
@@ -555,7 +564,9 @@ def test_precedence():
         meta = {"state": "IL", "year_built": 1970, "area": 2000}
         ctx = build_asset_ctx(meta, building_type="Single-Family Detached")
         result = get_param(meta, field, ctx=ctx)
-        check(f"dynamic off: {field} -> flat", result, SIM_PARAM_DEFAULTS[field], section)
+        # floor_height is what URBANopt builds, not a flat number: a house's 8 ft ceiling (2026-09-30)
+        want = RESIDENTIAL_UNSET_CEILING_HEIGHT_FT if field == "floor_height" else SIM_PARAM_DEFAULTS[field]
+        check(f"dynamic off: {field} -> flat", result, want, section)
     os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = "true"
 
     # No context -> flat default
@@ -2188,3 +2199,23 @@ def test_duct_truth_served_for_explicit_heat_pump():
     # the equipment detail stays the type's own business: no donor detail for an explicit system
     assert resolve_default("heating_equipment_detail", ctx) == (None, None)
     assert "ground-to-air" in ENUM_VALUES["heating_equipment_detail"]
+
+
+def test_heat_pump_water_heater_is_electric_whatever_the_saved_fuel():
+    """2026-09-30 test runs: a house with an explicit HPWH and explicit natural gas built an electric HPWH (UEF 3.45)
+    while its feature file said gas, and an office's HPWH built a gas heater. The type wins, on or off."""
+    for dd in ("true", "false"):
+        os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = dd
+        try:
+            for bt in ("Single-Family Detached", "Office"):
+                for fuel in (None, "natural gas", "electricity", "propane"):
+                    md = {"state": "WY", "year_built": 1990, "area": 3000, "water_heater_type": "heat pump water heater"}
+                    if fuel:
+                        md["service_water_heating_fuel_type"] = fuel
+                    ctx = build_asset_ctx(md, building_type=bt)
+                    assert get_param(md, "service_water_heating_fuel_type", ctx) == "electricity", (dd, bt, fuel)
+            md = {"state": "WY", "year_built": 1990, "area": 3000, "service_water_heating_fuel_type": "natural gas",
+                  "water_heater_type": "storage water heater"}
+            assert get_param(md, "service_water_heating_fuel_type", build_asset_ctx(md, building_type="Office")) == "natural gas"
+        finally:
+            os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = "true"

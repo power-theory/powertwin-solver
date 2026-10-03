@@ -51,148 +51,89 @@ module URBANopt
         end
       end
 
-      def lookup_building_type(building_type, template, footprint_area, number_of_stories)
-        if template.include? 'DEER'
-          case building_type
-          when 'Education'
-            return 'EPr'
-          when 'Enclosed mall'
-            return 'RtL'
-          when 'Food sales'
-            return 'Gro'
-          when 'Food service'
-            return 'RSD'
-          when 'Inpatient health care'
-            return 'Nrs'
-          when 'Laboratory'
-            return 'Hsp'
-          when 'Lodging'
-            return 'Htl'
-          when 'Mixed use'
-            return 'ECC'
-          when 'Mobile Home'
-            return 'DMo'
-          when 'Multifamily (2 to 4 units)'
-            return 'MFm'
-          when 'Multifamily (5 or more units)'
-            return 'MFm'
-          when 'Nonrefrigerated warehouse'
-            return 'SUn'
-          when 'Nursing'
-            return 'Nrs'
-          when 'Office'
-            if footprint_area
-              total_area = footprint_area.to_f * [number_of_stories.to_i, 1].max
-              if total_area > 100000
-                return 'OfL'
-              else
-                return 'OfS'
-              end
+      def lookup_building_type(building_type, template, footprint_area, number_of_stories, floor_area = nil)
+        # Always the DOE prototype (template is unused). With a DEER template (California, resolver 3.3) create_bar maps it
+        # through openstudio-standards' own CreateTypical.doe_to_deer_building_type, so the building is the prototype
+        # every feature value was resolved for. The legacy URBANopt DEER table this replaced disagreed with that map
+        # (Hospital -> Nrs not Hsp, Outpatient -> Nrs not OfL, standalone and strip retail swapped, a 3-story hotel Htl
+        # not Mtl) and returned names conditioned_fraction does not know (2026-10-03 review).
+        case building_type
+        when 'Education'
+          return 'SecondarySchool'
+        when 'Enclosed mall'
+          return 'RetailStripmall'
+        when 'Food sales'
+          return 'SuperMarket'
+        when 'Food service'
+          return 'FullServiceRestaurant'
+        when 'Inpatient health care'
+          return 'Hospital'
+        when 'Laboratory'
+          return 'Laboratory'
+        when 'Lodging'
+          # TODO add 'Dormitory' asset_subtype routed to MidriseApartment.
+          # No code-only national fix (DOE plates per story: SmallHotel
+          # 10.8k, LargeHotel 20.4k, MidriseApt 8.4k --
+          # openei.org/wiki/Commercial_Reference_Buildings).
+          if number_of_stories
+            if number_of_stories.to_i > 3
+              return 'LargeHotel'
             else
-              raise 'footprint_area required to map office building type'
+              return 'SmallHotel'
             end
-          when 'Outpatient health care'
-            return 'Nrs'
-          when 'Public assembly'
-            return 'Asm'
-          when 'Public order and safety'
-            return 'Asm'
-          when 'Refrigerated warehouse'
-            return 'WRf'
-          when 'Religious worship'
-            return 'Asm'
-          when 'Retail other than mall'
-            return 'RtS'
-          when 'Service'
-            return 'MLI'
-          when 'Single-Family'
-            return 'MFm'
-          when 'Strip shopping mall'
-            return 'RtL'
-          when 'Vacant'
-            return 'SUn'
-          else
-            raise "building type #{building_type} cannot be mapped to a DEER building type"
           end
-
+          return 'LargeHotel'
+        when 'Mixed use'
+          return 'Mixed use'
+        when 'Mobile Home'
+          return 'MidriseApartment'
+        when 'Multifamily (2 to 4 units)'
+          return 'MidriseApartment'
+        when 'Multifamily (5 or more units)'
+          return 'MidriseApartment'
+        when 'Nonrefrigerated warehouse'
+          return 'Warehouse'
+        when 'Nursing'
+          return 'Outpatient'
+        when 'Office'
+          if footprint_area
+            # The feature's exact floor area when given: footprint_area is int(floor_area / floors), so 25,000 ft2 on
+            # 3 floors read 24,999 and built SmallOffice while every Python-side value was MediumOffice's (2026-10-03).
+            total_area = floor_area ? floor_area.to_f : footprint_area.to_f * [number_of_stories.to_i, 1].max
+            if total_area < 25000
+              return 'SmallOffice'
+            elsif total_area > 100000
+              return 'LargeOffice'
+            else
+              return 'MediumOffice'
+            end
+          else
+            raise 'Floor area required to map office building type'
+          end
+        when 'Outpatient health care'
+          return 'Outpatient'
+        when 'Public assembly'
+          return 'MediumOffice'
+        when 'Public order and safety'
+          return 'MediumOffice'
+        when 'Refrigerated warehouse'
+          return 'Warehouse'
+        when 'Religious worship'
+          return 'MediumOffice'
+        when 'Retail other than mall'
+          return 'RetailStandalone'
+        when 'Service'
+          return 'MediumOffice'
+        when 'Single-Family'
+          return 'MidriseApartment'
+        when 'Strip shopping mall'
+          return 'RetailStripmall'
+        when 'Vacant'
+          return 'Warehouse'
         else
-          # default: ASHRAE
-          case building_type
-          when 'Education'
-            return 'SecondarySchool'
-          when 'Enclosed mall'
-            return 'RetailStripmall'
-          when 'Food sales'
-            return 'SuperMarket'
-          when 'Food service'
-            return 'FullServiceRestaurant'
-          when 'Inpatient health care'
-            return 'Hospital'
-          when 'Laboratory'
-            return 'Laboratory'
-          when 'Lodging'
-            # TODO add 'Dormitory' asset_subtype routed to MidriseApartment.
-            # No code-only national fix (DOE plates per story: SmallHotel
-            # 10.8k, LargeHotel 20.4k, MidriseApt 8.4k --
-            # openei.org/wiki/Commercial_Reference_Buildings).
-            if number_of_stories
-              if number_of_stories.to_i > 3
-                return 'LargeHotel'
-              else
-                return 'SmallHotel'
-              end
-            end
-            return 'LargeHotel'
-          when 'Mixed use'
-            return 'Mixed use'
-          when 'Mobile Home'
-            return 'MidriseApartment'
-          when 'Multifamily (2 to 4 units)'
-            return 'MidriseApartment'
-          when 'Multifamily (5 or more units)'
-            return 'MidriseApartment'
-          when 'Nonrefrigerated warehouse'
-            return 'Warehouse'
-          when 'Nursing'
-            return 'Outpatient'
-          when 'Office'
-            if footprint_area
-              total_area = footprint_area.to_f * [number_of_stories.to_i, 1].max
-              if total_area < 25000
-                return 'SmallOffice'
-              elsif total_area > 100000
-                return 'LargeOffice'
-              else
-                return 'MediumOffice'
-              end
-            else
-              raise 'Floor area required to map office building type'
-            end
-          when 'Outpatient health care'
-            return 'Outpatient'
-          when 'Public assembly'
-            return 'MediumOffice'
-          when 'Public order and safety'
-            return 'MediumOffice'
-          when 'Refrigerated warehouse'
-            return 'Warehouse'
-          when 'Religious worship'
-            return 'MediumOffice'
-          when 'Retail other than mall'
-            return 'RetailStandalone'
-          when 'Service'
-            return 'MediumOffice'
-          when 'Single-Family'
-            return 'MidriseApartment'
-          when 'Strip shopping mall'
-            return 'RetailStripmall'
-          when 'Vacant'
-            return 'Warehouse'
-          else
-            raise "building type #{building_type} cannot be mapped to an ASHRAE building type"
-          end
+          raise "building type #{building_type} cannot be mapped to an ASHRAE building type"
         end
-      end
+    end
 
       DOE_REF_INCOMPATIBLE = %w[SmallHotel Laboratory].freeze
 
@@ -565,6 +506,16 @@ module URBANopt
             args = {}
             require File.join(File.dirname(__FILE__), 'residential/util')
             residential(scenario, feature, args, building_type)
+
+            # A user's floor_height is the house's ceiling height (2026-09-29). URBANopt's residential util sets
+            # geometry_average_ceiling_height = maximum_roof_height / stories, 8 ft when the feature has no
+            # maximum_roof_height (ours never does), so the product lever moved nothing on a house. Only an explicit
+            # value: the 9 ft flat default is the commercial create_bar height, and unedited houses stay at 8 ft
+            # (sim_params_spec.RESIDENTIAL_UNSET_CEILING_HEIGHT_FT, which the defaults preview shows).
+            raw_props_res = feature.feature_json[:properties] || {}
+            if PowerTwinRefs.explicit_param?(raw_props_res, 'floor_height') && PowerTwinRefs.present?(raw_props_res[:floor_height])
+              args[:geometry_average_ceiling_height] = raw_props_res[:floor_height].to_f
+            end
 
             # BuildResidentialModel declares urbanopt_feature_id via makeIntegerArgument -- an
             # OpenStudio Integer, i.e. a 32-bit int. National building ids are
@@ -1136,7 +1087,11 @@ module URBANopt
             # can enable reporting (commercial building types only for now)
             # OpenStudio::Extension.set_measure_argument(osw, 'openstudio_results', '__SKIP__', false)
             # OpenStudio::Extension.set_measure_argument(osw, 'envelope_and_internal_load_breakdown', '__SKIP__', false)
-            OpenStudio::Extension.set_measure_argument(osw, 'generic_qaqc', '__SKIP__', false)
+            # A California building on a DEER template (resolver 3.3) skips generic_qaqc: openstudio-common-measures
+            # 0.11.1 generic_qaqc crashes on DEER models (nil standards value, measure.rb:223; DEER build check
+            # 2026-10-01). It only reports, so nothing simulated changes.
+            deer_template = ((feature.feature_json[:properties] || {})[:template]).to_s.start_with?('DEER')
+            OpenStudio::Extension.set_measure_argument(osw, 'generic_qaqc', '__SKIP__', deer_template)
             
             # Added for PowerTwin
             OpenStudio::Extension.set_measure_argument(osw, 'reduce_epd_by_percentage_for_peak_hours', '__SKIP__', false)
@@ -1232,7 +1187,9 @@ module URBANopt
                 'MidriseApartment' => 0.90, 'HighriseApartment' => 0.88
               }
 
-              mapped_building_type_1 = lookup_building_type(building_type_1, template, footprint_area, number_of_stories)
+              exact_floor_area = PowerTwinRefs.present?((feature.feature_json[:properties] || {})[:floor_area]) ?
+                                 feature.feature_json[:properties][:floor_area].to_f : nil
+              mapped_building_type_1 = lookup_building_type(building_type_1, template, footprint_area, number_of_stories, exact_floor_area)
 
               frac = conditioned_fraction.fetch(mapped_building_type_1, 0.92)
               footprint_area = footprint_area.to_f * frac
@@ -1302,6 +1259,12 @@ module URBANopt
                   # urbanopt schema wording vs measure choice-list wording (Q/A R-002 near-miss)
                   system_type = 'DOAS with fan coil district chilled water with boiler'
                 end
+                # A county-drawn ComStock system the schema enum lacks (sim_params_spec MEASURE_NATIVE_SYSTEMS): the
+                # enum member is its stand-in on the feature and the measure builds ComStock's own system
+                # ('Residential forced air furnace' unventilated, not the 100% outdoor-air commercial furnace).
+                if PowerTwinRefs.present?(raw_props_fh[:comstock_system_type])
+                  system_type = raw_props_fh[:comstock_system_type].to_s
+                end
               else
                 system_type = 'Inferred'
               end
@@ -1327,15 +1290,15 @@ module URBANopt
                 end
               rescue StandardError
               end
-              if !cec_found
-                begin
-                  climate_zone = feature.climate_zone
-                  if !climate_zone.empty?
-                    climate_zone = "ASHRAE 169-2013-#{climate_zone}"
-                    OpenStudio::Extension.set_measure_argument(osw, 'ChangeBuildingLocation', 'climate_zone', climate_zone)
-                  end
-                rescue StandardError
+              # The ASHRAE zone is read either way: the window lookup below keys on it, and a California DEER building
+              # (cec_found) skipped it, so its windows fell back to the zone 4 U-factor and SHGC (2026-10-03 review).
+              begin
+                climate_zone = feature.climate_zone
+                if !climate_zone.empty?
+                  climate_zone = "ASHRAE 169-2013-#{climate_zone}"
+                  OpenStudio::Extension.set_measure_argument(osw, 'ChangeBuildingLocation', 'climate_zone', climate_zone) unless cec_found
                 end
+              rescue StandardError
               end
 
               # set weather file
@@ -1458,8 +1421,19 @@ module URBANopt
                   template_building_type = mapped_building_type_1
                 end
 
+                # Resolver 3.3: generateFeatureFile resolved the construction and HVAC templates from the state's
+                # energy-code adoption years (ComStock 2024.1); hvac_template marks them. The DOE Ref guard runs here
+                # too because only the mapper knows a mixed-use building's component types.
+                resolved_props = feature.feature_json[:properties] || {}
+                state_hvac_template = PowerTwinRefs.present?(resolved_props[:hvac_template]) ? resolved_props[:hvac_template].to_s : nil
+                doe_ref_guard = lambda do |t|
+                  t.start_with?('DOE Ref') && DOE_REF_INCOMPATIBLE.include?(template_building_type) ? '90.1-2004' : t
+                end
+
                 # can we override template with year_built info? (keeping same template family)
-                if !year_built.nil? && !feature.template.empty?
+                if state_hvac_template && !feature.template.empty?
+                  new_template = doe_ref_guard.call(feature.template)
+                elsif !year_built.nil? && !feature.template.empty?
                   new_template = lookup_template_by_year_built(template, year_built, template_building_type)
                 elsif !feature.template.empty?
                   new_template = template
@@ -1474,7 +1448,9 @@ module URBANopt
                   # while keeping the envelope template on step 1.
                   hvac_eul = 20
                   sim_year = (ENV['URBANOPT_SIMULATION_YEAR'] || '2025').to_i
-                  if !year_built.nil? && (sim_year - year_built.to_i) > hvac_eul
+                  if state_hvac_template
+                    OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'template', doe_ref_guard.call(state_hvac_template), 'create_typical_building_from_model 2')
+                  elsif !year_built.nil? && (sim_year - year_built.to_i) > hvac_eul
                     effective_hvac_year = [year_built.to_i + hvac_eul, sim_year - hvac_eul].max
                     # Re-derive template for the effective system vintage.
                     # Clamp to the newest cycle we have data for.
@@ -1562,6 +1538,23 @@ module URBANopt
               end
               if PowerTwinRefs.present?(props[:com_airtightness_75pa])
                 OpenStudio::Extension.set_measure_argument(osw, 'set_nist_infiltration_correlations', '__SKIP__', false)
+                # A DEER building's model type (SUn, Asm, Gro, Nrs ...) is outside the measure's own DEER mapping ("NIST
+                # coefficients are not available for model building type SUn", DEER build check 2026-10-01), so name
+                # the NIST type of the ASHRAE prototype the same building builds as outside California, by the
+                # measure's own prototype mapping (PowerTwinRefs::NIST_TYPE_FOR_PROTOTYPE).
+                if deer_template
+                  ashrae_proto = lookup_building_type(building_type_1, '90.1-2013', footprint_area, number_of_stories, exact_floor_area)
+                  nist_type = PowerTwinRefs::NIST_TYPE_FOR_PROTOTYPE[ashrae_proto]
+                  # Outside California the measure classes every 'Office' model by its floor area (infer_nist_building_type:
+                  # under 2,750 m2 SmallOffice), not by prototype; do the same so a 25,000 to 29,600 ft2 California office
+                  # gets the coefficients it would get anywhere else (review 2026-10-03). footprint_area here is the
+                  # conditioned footprint create_bar builds.
+                  if %w[SmallOffice MediumOffice].include?(ashrae_proto)
+                    model_m2 = footprint_area.to_f * [number_of_stories_above_ground.to_i, 1].max * 0.09290304
+                    nist_type = model_m2 < 2750.0 ? 'SmallOffice' : 'MediumOffice'
+                  end
+                  OpenStudio::Extension.set_measure_argument(osw, 'set_nist_infiltration_correlations', 'building_type', nist_type) if nist_type
+                end
                 OpenStudio::Extension.set_measure_argument(osw, 'set_nist_infiltration_correlations', 'airtightness_value', props[:com_airtightness_75pa].to_f)
                 OpenStudio::Extension.set_measure_argument(osw, 'set_nist_infiltration_correlations', 'airtightness_pressure', 75.0)
               end
@@ -1584,10 +1577,12 @@ module URBANopt
               swh_raw = props[:service_water_heating_fuel_type_extended] || props[:service_water_heating_fuel_type]
               if PowerTwinRefs.present?(swh_raw)
                 ep_fuel = swh_fuel_map[swh_raw.to_s.downcase]
+                # A heat pump water heater (create_typical's 'HeatPump' source). The commercial path never read
+                # water_heater_type, so an office's explicit HPWH built a gas heater (2026-09-30); get_param already
+                # resolves its fuel to electricity. Houses build theirs through HPXML.
+                ep_fuel = 'HeatPump' if props[:water_heater_type].to_s.downcase == 'heat pump water heater'
                 case ep_fuel
-                when 'Electricity', 'NaturalGas'
-                # ('HeatPump' is in the measure's choice list but swh_fuel_map can never emit
-                # it -- residential HPWH routes through the HPXML path instead; Q/A R-038)
+                when 'Electricity', 'NaturalGas', 'HeatPump'
                   ['create_typical_building_from_model 1', 'create_typical_building_from_model 2'].each do |step|
                     OpenStudio::Extension.set_measure_argument(osw, 'create_typical_building_from_model', 'swh_src', ep_fuel, step)
                   end
@@ -1600,16 +1595,28 @@ module URBANopt
                 end
               end
 
-              # LPD reduction: real buildings install 50-70% of ASHRAE 90.1 lighting allowance (DOE/NEEA surveys).
-              OpenStudio::Extension.set_measure_argument(osw, 'ReduceLightingLoadsByPercentage', '__SKIP__', false)
+              # Interior lighting (resolver 3.3): the building's ComStock lighting-generation LPD (NREL/TP-5500-86100
+              # Table 2), set by scaling the template's lights. Without it (DD off, a type ComStock lacks) the old flat
+              # 35% cut stays; its comment cited "DOE/NEEA surveys" that were never found (2026-10-01).
+              if PowerTwinRefs.present?(props[:lighting_power_density])
+                OpenStudio::Extension.set_measure_argument(osw, 'set_lighting_power_density', '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, 'set_lighting_power_density', 'target_w_per_ft2', props[:lighting_power_density].to_f)
+              else
+                OpenStudio::Extension.set_measure_argument(osw, 'ReduceLightingLoadsByPercentage', '__SKIP__', false)
+              end
 
-              # Vacant commercial: suppress occupant-driven loads.
+              # Vacant commercial (vs the Warehouse prototype it builds on), EIA CBECS 2018 microdata, PBA 1 Vacant
+              # (n=117) vs PBA 5 nonrefrigerated warehouse (n=753), FINALWT-weighted (2026-10-01; replaces uncited 90/80):
+              # occupants 0 (all completely vacant buildings report 0 workers and 0 hours); interior lighting cut 60%
+              # (lit floorspace share 0.398 of the warehouse's, survey-reported); equipment cut 23% (office + computing +
+              # other electricity intensity 0.769 of the warehouse's, EIA-modeled, CI includes no cut).
               if props[:vacant]
                 OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', '__SKIP__', false)
                 OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', 'target_total', 0)
                 OpenStudio::Extension.set_measure_argument(osw, 'ReduceElectricEquipmentLoadsByPercentage', '__SKIP__', false)
-                OpenStudio::Extension.set_measure_argument(osw, 'ReduceElectricEquipmentLoadsByPercentage', 'elecequip_power_reduction_percent', 80)
-                OpenStudio::Extension.set_measure_argument(osw, 'ReduceLightingLoadsByPercentage', 'lighting_power_reduction_percent', 90)
+                OpenStudio::Extension.set_measure_argument(osw, 'ReduceElectricEquipmentLoadsByPercentage', 'elecequip_power_reduction_percent', PowerTwinRefs::VACANT_EQUIPMENT_CUT_PCT)
+                OpenStudio::Extension.set_measure_argument(osw, 'ReduceLightingLoadsByPercentage', '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, 'ReduceLightingLoadsByPercentage', 'lighting_power_reduction_percent', PowerTwinRefs::VACANT_LIGHTING_CUT_PCT)
               elsif PowerTwinRefs.present?(props[:number_of_occupants])
                 OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', '__SKIP__', false)
                 OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', 'target_total', props[:number_of_occupants].to_i)
@@ -1631,22 +1638,25 @@ module URBANopt
               OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'num_stories_above_grade', number_of_stories_above_ground)
               OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'num_stories_below_grade', number_of_stories_below_ground)
 
-              OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_a', mapped_building_type_1)
+              # create_bar maps a DOE prototype to its DEER type itself under a DEER template; openstudio-standards has no
+              # DEER laboratory, so a California lab builds as DEER Hsp (hospital), as the legacy URBANopt DEER table did.
+              deer_bar = ->(t) { deer_template && t == 'Laboratory' ? 'Hospital' : t }
+              OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_a', deer_bar.call(mapped_building_type_1))
 
               if building_type_1 == 'Mixed use'
 
-                OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_a', openstudio_mixed_type_1)
+                OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_a', deer_bar.call(openstudio_mixed_type_1))
 
                 unless mixed_type_2.nil?
-                  OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_b', openstudio_mixed_type_2)
+                  OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_b', deer_bar.call(openstudio_mixed_type_2))
                   OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_b_fract_bldg_area', mixed_type_2_fract_bldg_area)
                 end
                 unless mixed_type_3.nil?
-                  OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_c', openstudio_mixed_type_3)
+                  OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_c', deer_bar.call(openstudio_mixed_type_3))
                   OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_c_fract_bldg_area', mixed_type_3_fract_bldg_area)
                 end
                 unless mixed_type_4.nil?
-                  OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_d', openstudio_mixed_type_4)
+                  OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_d', deer_bar.call(openstudio_mixed_type_4))
                   OpenStudio::Extension.set_measure_argument(osw, 'create_bar_from_building_type_ratios', 'bldg_type_d_fract_bldg_area', mixed_type_4_fract_bldg_area)
                 end
               end

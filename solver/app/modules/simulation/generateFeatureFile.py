@@ -15,7 +15,7 @@ import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
-from modules.simulation.sim_params_spec import CONFIRMABLE_FIELDS, RESIDENTIAL_BUILDING_TYPES, get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref, ENUM_VALUES, NUMERIC_RANGES, TIME_FIELDS
+from modules.simulation.sim_params_spec import resolved_templates, resolve_lighting, comstock_native_system, COMSTOCK_HVAC_KEY, CONFIRMABLE_FIELDS, RESIDENTIAL_BUILDING_TYPES, get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref, ENUM_VALUES, NUMERIC_RANGES, TIME_FIELDS, RETIRED_INPUT_FIELDS
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
@@ -34,7 +34,21 @@ with open(ASSET_SUBTYPES_CSV, 'r') as f:
 DEFAULT_SUBTYPE_ID = 4  # Single-Family
 
 # Programmable params whose explicit presence the feature file reports (see explicit_params).
-_EXPLICIT_PARAM_KEYS = tuple(sorted(set(ENUM_VALUES) | set(NUMERIC_RANGES) | set(TIME_FIELDS)))
+_EXPLICIT_PARAM_KEYS = tuple(sorted((set(ENUM_VALUES) | set(NUMERIC_RANGES) | set(TIME_FIELDS)) - set(RETIRED_INPUT_FIELDS)))
+
+
+def _accepted(asset_metadata, key, ctx):
+    """Whether get_param took the metadata's value for `key`. A number outside its range is clamped, not rejected,
+    so it is still the user's choice (review 2026-09-30: a house floor_height of 25 was clamped, dropped from
+    explicit_params and ignored, while 20 built 20 ft); an enum value the gate rejected is not."""
+    raw = asset_metadata.get(key)
+    resolved = get_param(asset_metadata, key, ctx)
+    if key in NUMERIC_RANGES:
+        try:
+            return math.isfinite(float(raw))
+        except (TypeError, ValueError, OverflowError):
+            return False
+    return resolved == _coerce_like(raw, resolved)
 
 
 def _coerce_like(raw, resolved):
@@ -369,10 +383,18 @@ def annotate_asset_footprints(features, area_list, type_list, name_list, weather
         metadata_list[bid]['_asset_floor_area_m2'] = pool[asset]
 
 
+# Footprint digitizing-noise cleanup lives in modules/utils/footprint_clean.py (standard library only), which the
+# surrogate's sim_levers also loads; re-exported here for every caller.
+from modules.utils.footprint_clean import (  # noqa: E402,F401
+    FOOTPRINT_NOISE_M2, FOOTPRINT_NOISE_SHARE, _ring_noise_free, _ring_noise_free_fixpoint, clean_footprint)
+
+
 def load_asset_geojson(path, area_list, type_list, name_list, weather_list, metadata_list):
     """Read an asset GeoJSON and run the commercial-fit pre-pass: every loader that feeds process_feature uses this."""
     with open(path, 'r') as fh:
         geojson_data = json.load(fh)
+    for f in geojson_data['features']:              # before the fit pre-pass measures them
+        clean_footprint(f.get('geometry'))
     annotate_asset_footprints(geojson_data['features'], area_list, type_list, name_list, weather_list, metadata_list)
     return geojson_data
 
@@ -414,6 +436,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # Flatten nested geometries if present
     if 'geometry' in feature:
         flatten_geometry(feature['geometry'])
+        clean_footprint(feature['geometry'])        # idempotent; load_asset_geojson already cleaned its features
 
     properties = feature['properties']
     #logger.debug(f"Processing feature with properties: {properties}")
@@ -596,6 +619,51 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     sys_type = get_param(asset_metadata, 'system_type', ctx)
     if sys_type and sys_type != 'Inferred':
         new_properties["system_type"] = sys_type
+        # The ComStock label the measure builds when the enum member is only its stand-in (MEASURE_NATIVE_SYSTEMS)
+        native = comstock_native_system(ctx)
+        if native and COMSTOCK_HVAC_KEY.get(native) == sys_type:
+            new_properties["comstock_system_type"] = native
+
+    # Commercial story height (2026-09-30): urbanopt-geojson's zoning step read this property and then built every
+    # commercial story at a fixed 3.6 m; patches/patch_openstudio_standards.py makes it honour the value (ft). Houses
+    # take the residential path (ceiling height from an explicit floor_height in PowerTwin.rb).
+    if building_type not in RESIDENTIAL_TYPES:
+        new_properties["floor_to_floor_height"] = floor_height
+        # Resolver 3.3: the construction and HVAC templates from the state's energy-code adoption years (ComStock
+        # 2024.1). PowerTwin.rb uses them in place of its year-only ladder; absent (DD off, no state or year, a
+        # DEER state) the ladder decides as before.
+        # These three lookups read reference tables directly, outside resolve_default's degrade-on-error handler: a
+        # missing table or an unpulled LFS pointer degrades this building to the ladder and the 35% lighting cut with a
+        # warning, as every other resolver does, instead of aborting the whole run (review 2026-10-03).
+        cec_zone = None
+        env_template = hvac_template = None
+        try:
+            if ctx.get('state') == 'CA' and is_dynamic_defaults_enabled():
+                # DEER templates need the building's Title 24 climate zone; PowerTwin.rb passes it to ChangeBuildingLocation
+                from modules.utils.cec_zones import get_cec_climate_zone
+                cec_zone = get_cec_climate_zone(asset_metadata.get('latitude'), asset_metadata.get('longitude'),
+                                                asset_metadata.get('postcode'))
+            env_template, hvac_template = resolved_templates(ctx, cec_zone=cec_zone)
+        except Exception as exc:   # noqa: BLE001 - degrade, never stop the run
+            logger.warning(f"Building {building_id}: energy-code templates unavailable ({type(exc).__name__}: {exc}); "
+                           f"the mapper's year ladder decides")
+            cec_zone = env_template = hvac_template = None
+        if env_template:
+            new_properties["template"] = env_template
+            new_properties["hvac_template"] = hvac_template
+            if env_template.startswith('DEER'):
+                new_properties["cec_climate_zone"] = cec_zone
+        # Resolver 3.3: installed interior lighting from the building's ComStock lighting generation (PowerTwin.rb's
+        # set_lighting_power_density replaces the flat 35% cut when this is present).
+        try:
+            lpd, lighting_gen, _lvl = resolve_lighting(ctx)
+        except Exception as exc:   # noqa: BLE001 - degrade, never stop the run
+            logger.warning(f"Building {building_id}: lighting generation unavailable ({type(exc).__name__}: {exc}); "
+                           f"the 35% cut applies")
+            lpd = lighting_gen = None
+        if lpd is not None:
+            new_properties["lighting_power_density"] = lpd
+            new_properties["lighting_generation"] = lighting_gen
 
     # CR WP-C2: commercial thermostat deltas + airtightness (resolver returns
     # nothing for residential buildings; empty = omit, measures stay skipped).
@@ -629,8 +697,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     confirmed = {f for f in CONFIRMABLE_FIELDS if ctx.get(f'{f}_confirms_default')}
     new_properties["explicit_params"] = sorted(
         k for k in _EXPLICIT_PARAM_KEYS
-        if k not in confirmed and asset_metadata.get(k) not in (None, '')
-        and get_param(asset_metadata, k, ctx) == _coerce_like(asset_metadata.get(k), get_param(asset_metadata, k, ctx)))
+        if k not in confirmed and asset_metadata.get(k) not in (None, '') and _accepted(asset_metadata, k, ctx))
     new_properties["scenario_variant"] = asset_metadata.get('stochastic_seed_id') not in (None, '')
     if ctx.get('region'):
         new_properties["region"] = ctx['region']

@@ -22,6 +22,7 @@ import importlib.util
 import os
 import re
 import sys
+import pytest
 from collections import Counter
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -50,7 +51,7 @@ PT_REFS_PATH = os.path.join(REPO, "solver", "upload", "powertwin_refs.rb")
 
 # Mirror of solver/app/views.py:1088 DYNAMIC_FIELDS (the preview contract).
 DYNAMIC_FIELDS = [
-    "number_of_occupants",
+    "number_of_occupants", "floor_height",
     "heating_system_fuel_type", "cooling_system_fuel_type",
     "service_water_heating_fuel_type",
     "heating_system_type", "water_heater_type",
@@ -243,7 +244,11 @@ def h5_off_equals_flat():
             ctx = build_asset_ctx({"state": "AZ", "year_built": 2005, "area": 50000, "floor_count": 10}, building_type=bt)
             for f in DYNAMIC_FIELDS:
                 assert resolve_default(f, ctx) == (None, None), f"OFF leaked dynamic value for {f}/{bt}"
-                assert get_param({}, f, ctx) == SIM_PARAM_DEFAULTS[f], f"OFF get_param != flat for {f}/{bt}"
+                # floor_height off = what plain URBANopt builds (a house's 8 ft ceiling, the 3.6 m zoning story),
+                # not the flat 9 ft that built neither (2026-09-30)
+                want = (({"Single-Family Detached": sps.RESIDENTIAL_UNSET_CEILING_HEIGHT_FT}).get(bt, sps.URBANOPT_ZONING_STORY_FT)
+                        if f == "floor_height" else SIM_PARAM_DEFAULTS[f])
+                assert get_param({}, f, ctx) == want, f"OFF get_param != flat for {f}/{bt}"
     finally:
         os.environ["URBANOPT_DYNAMIC_DEFAULTS"] = "true"
     return V("H5", "OFF == flat defaults", "OK", "all DYNAMIC_FIELDS fall back to SIM_PARAM_DEFAULTS when off")
@@ -403,3 +408,62 @@ def test_h11_infiltration_domain_gate():
     assert lodge == (None, None), "a lodge-scale 'SFD' must fall back to the HPXML default"
     assert no_area == (None, None), "unknown floor area is out of domain"
     assert mf[0] is not None, "per-UNIT area governs: a 40k sqft 20-unit building is in domain"
+
+
+def test_county_tables_are_lfs_and_every_build_verifies_them():
+    """2026-09-30: an image built from git archive shipped without the gitignored county tables and the resolver fell
+    back silently (a Teton office at 273,988 kWh instead of 233,904). The tables are now Git LFS objects, and every
+    path that builds or tests the solver checks them against county_tables.sha256."""
+    ref = os.path.join(REPO, "solver", "upload", "reference_data")
+    attrs = open(os.path.join(REPO, ".gitattributes")).read()
+    assert "solver/upload/reference_data/*.json.gz filter=lfs" in attrs
+    assert "reference_data/*.json.gz" not in open(os.path.join(REPO, ".gitignore")).read()
+    check = "sha256sum -c --quiet county_tables.sha256"
+    docker = open(os.path.join(REPO, "solver", "Dockerfile")).read()
+    assert docker.index(check) > docker.index("COPY . ."), "the Dockerfile must verify the tables after copying them"
+    ci = open(os.path.join(REPO, ".gitlab-ci.yml")).read()
+    assert check in ci and "sha256sum -c county_tables.sha256" in ci     # test job, then build_flask
+    assert "county_tables_registry" not in ci
+    pinned = {line.split()[1].lstrip("*") for line in open(os.path.join(ref, "county_tables.sha256")) if line.strip()}
+    present = {f for f in os.listdir(ref) if f.endswith(".json.gz")}
+    # since 2026-10-03 the resolver 3.3 plain-JSON tables are pinned too, and the import guard knows every pinned table
+    present |= {"comstock2024_state_code_adoption.json", "comstock_lighting_lpd.json", "insulation_presets.json"}
+    assert pinned == present, f"pins and tables differ: unpinned {sorted(present - pinned)}, missing {sorted(pinned - present)}"
+    from modules.simulation import sim_params_spec as S
+    assert {p.split(".json")[0] for p in pinned} == set(S._COUNTY_TABLES) and not S._county_tables_missing()
+
+
+def test_vacant_cuts_are_the_cbecs_values():
+    """Vacant commercial load cuts come from EIA CBECS 2018 microdata (vacant vs nonrefrigerated warehouse, 2026-10-01),
+    replacing uncited 90% lighting / 80% equipment."""
+    refs = open(os.path.join(REPO, "solver", "upload", "powertwin_refs.rb")).read()
+    assert "VACANT_LIGHTING_CUT_PCT = 60.0" in refs and "VACANT_EQUIPMENT_CUT_PCT = 23.0" in refs
+    rb = open(os.path.join(REPO, "solver", "upload", "PowerTwin.rb")).read()
+    vac = rb.split("if props[:vacant]", 1)[1].split("elsif", 1)[0]
+    assert "PowerTwinRefs::VACANT_EQUIPMENT_CUT_PCT" in vac and "PowerTwinRefs::VACANT_LIGHTING_CUT_PCT" in vac
+    assert "', 90)" not in vac and "', 80)" not in vac
+
+
+@pytest.mark.parametrize("raw", ["inf", "1e999", "Infinity", "-inf", "nan"])
+def test_non_finite_numeric_metadata_falls_back_instead_of_aborting_the_run(raw):
+    """floor_height lost its maximum (resolver 3.2), so no clamp caught 'inf' and process_feature raised OverflowError,
+    stopping feature generation for the whole run (review 2026-10-03); NaN already did. Non-finite is non-numeric."""
+    from modules.simulation import sim_params_spec as S
+    md = {"state": "WY", "year_built": 1990, "area": 5000, "floor_count": 1, "floor_height": raw}
+    for bt in ("Office", "Single-Family Detached"):
+        v = S.get_param(md, "floor_height", S.build_asset_ctx(md, building_type=bt))
+        assert v == S.get_param({k: x for k, x in md.items() if k != "floor_height"}, "floor_height",
+                                S.build_asset_ctx(md, building_type=bt))
+    assert S.get_param({"window_to_wall_ratio": raw}, "window_to_wall_ratio") == S.SIM_PARAM_DEFAULTS["window_to_wall_ratio"]
+
+
+def test_california_climate_zone_weather_stations_have_a_state(monkeypatch):
+    """CZ01RV2..CZ16RV2 (.../USA/CA-Zones/) have no USA_<ST>_ prefix, so their state was None and every building whose
+    nearest station is one (Sacramento, Los Angeles) was skipped as having no weather (found 2026-10-03)."""
+    monkeypatch.chdir(os.path.join(REPO, "solver"))           # the station file path is relative to solver/
+    from modules.utils import weather as W
+    W._weather_stations_cache = None
+    st = W._load_weather_stations()
+    cz = [s for s in st if s["title"].startswith("CZ") and s["title"][2:4].isdigit()]
+    assert len(cz) >= 10 and {s["state"] for s in cz} == {"CA"}
+    assert all(s["state"] == W.extract_state_from_weather_filename(s["title"]) for s in st if s["title"].startswith("USA_"))

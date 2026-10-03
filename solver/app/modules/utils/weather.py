@@ -43,7 +43,7 @@ def download_url(url, filepath, timeout=30, retries=3, backoff=1.0):
 
 _weather_stations_cache = None
 _unusable_stations_cache = None
-_climate_zone_by_fips = None
+_climate_zone_maps = None
 _county_lookup = None
 _fips_cache = {}
 
@@ -175,6 +175,13 @@ def _load_weather_stations():
             match = re.search(r'href=([^\s>]+)', epw_html)
             if match:
                 epw_url = match.group(1)
+        if state is None and epw_url:
+            # California's climate-zone files (CZ01RV2 ... CZ16RV2, under .../USA/CA-Zones/) carry no USA_<ST>_ prefix,
+            # so their state was None and every building whose nearest station is one (Sacramento, Los Angeles, ...)
+            # was skipped as having no weather (found 2026-10-03). The download path names the state.
+            m = re.search(r'/USA/([A-Z]{2})(?:-[^/]*)?/', epw_url)
+            if m:
+                state = m.group(1)
         
         weather_stations.append({
             'lon': coords[0],
@@ -228,35 +235,43 @@ def download_weather_files(weather_title, epw_url):
     return success
 
 
-def _load_climate_zones():
-    global _climate_zone_by_fips
-
-    if _climate_zone_by_fips is not None:
-        return _climate_zone_by_fips
-
-    _climate_zone_by_fips = {}
+def _zone_maps():
+    """County FIPS -> IECC zone with moisture suffix, for the 2021 map ('21', what the simulation uses) and the 2015
+    map ('15', the zones the 2009-2018 IECC and 90.1-2007 presets are written for; 373 of 3,222 counties differ).
+    Built locally and published only when complete: publishing an empty dict first let a concurrent reader (the
+    defaults preview in a request thread, a simulation thread) see no zones, and a failed first open was never
+    retried (review 2026-09-30)."""
+    global _climate_zone_maps
+    if _climate_zone_maps is not None:
+        return _climate_zone_maps
+    maps = {'21': {}, '15': {}}
     with open(CLIMATE_ZONES_CSV, 'r') as f:
         for row in csv.DictReader(f, delimiter=';'):
-            iecc = row.get('IECC21', '').strip()
-            if not iecc:
-                continue
             fips = row['GEOID'].lstrip('G')
-            moisture = row.get('MOISTURE21', '').strip()
-            # OpenStudio requires a moisture suffix for ASHRAE 169-2013 format.
-            # Some counties (zones 7, 8, and rare zone 4 cases) have empty
-            # MOISTURE21. Derive from BA21: Humid/Very Cold -> A, Dry -> B, Marine -> C.
-            if not moisture and iecc:
-                ba = row.get('BA21', '').strip().lower()
-                if 'dry' in ba:
-                    moisture = 'B'
-                elif 'marine' in ba:
-                    moisture = 'C'
-                else:
-                    moisture = 'A'
-            _climate_zone_by_fips[fips] = iecc + moisture
+            for ed, zone_map in maps.items():
+                iecc = row.get(f'IECC{ed}', '').strip()
+                if not iecc:
+                    continue
+                moisture = row.get(f'MOISTURE{ed}', '').strip()
+                # OpenStudio requires a moisture suffix for ASHRAE 169-2013 format.
+                # Some counties (zones 7, 8, and rare zone 4 cases) have empty
+                # MOISTURE. Derive from BA: Humid/Very Cold -> A, Dry -> B, Marine -> C.
+                if not moisture:
+                    ba = row.get(f'BA{ed}', '').strip().lower()
+                    if 'dry' in ba:
+                        moisture = 'B'
+                    elif 'marine' in ba:
+                        moisture = 'C'
+                    else:
+                        moisture = 'A'
+                zone_map[fips] = iecc + moisture
+    logger.debug(f"Loaded {len(maps['21'])} county climate zones from ClimateZones.csv")
+    _climate_zone_maps = maps
+    return maps
 
-    logger.debug(f"Loaded {len(_climate_zone_by_fips)} county climate zones from ClimateZones.csv")
-    return _climate_zone_by_fips
+
+def _load_climate_zones():
+    return _zone_maps()['21']
 
 
 def _load_county_boundaries():
@@ -315,15 +330,22 @@ def get_county_fips(lat, lon):
         return None
 
 
-def get_climate_zone(lat, lon):
+def get_climate_zone(lat, lon, edition='21'):
+    """IECC climate zone of the coordinates' county: edition '21' (the simulation's) or '15' (the map the 2009-2018
+    IECC and 90.1-2007 code presets are written for)."""
     fips = get_county_fips(lat, lon)
     if fips is None:
         return None
-    zones = _load_climate_zones()
+    zones = _zone_maps()[edition]
     zone = zones.get(fips)
     if zone is None:
         logger.warning(f"No climate zone found for county FIPS {fips}")
     return zone
+
+
+# California's CEC building climate zones live in cec_zones (standard library plus shapely), which the surrogate's
+# sim_levers also loads, so both sides resolve the same zone.
+from modules.utils.cec_zones import CEC_ZONE_FALLBACK_M, get_cec_climate_zone  # noqa: E402,F401
 
 
 def get_location(asset_metadata):

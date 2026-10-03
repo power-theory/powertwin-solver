@@ -182,7 +182,7 @@ FLAT = {
     "wall_r_value":                   13.0,
     "roof_r_value":                   30.0,
     "window_to_wall_ratio":           0.20,
-    "floor_height":                   9.0,
+    "floor_height":                   9.0,                 # unused by the flat arm since resolver 3.2 (expected_value)
     "number_of_occupants":            "",                  # falls through to OCCUPANTS_MAPPING
     "weekday_start_time":             "",                  # omitted
     "weekday_duration":               "",                  # omitted
@@ -979,6 +979,13 @@ def expected_raw(fixture: Fixture, arm: str, field: str,
     """Raw expected value before any downstream transforms. Reflects which
     resolution path the arm exercises."""
     if arm == "override":
+        if field in ("wall_material", "roof_material"):
+            # retired inputs since resolver 3.2: the label is the tier of the overridden R-value, never the override
+            surface = field.split("_", 1)[0]
+            r = float(OVERRIDE[f"{surface}_r_value"])
+            if surface == "wall":
+                return "Standard" if r <= 7 else "Insulated" if r <= 14 else "Super Insulated"
+            return "Standard" if r < 19 else "Insulated" if r < 38 else "Super Insulated"
         return OVERRIDE[field]
     if arm == "resolver":
         if field in resolver_preview.get("resolved", {}):
@@ -990,6 +997,10 @@ def expected_raw(fixture: Fixture, arm: str, field: str,
     # arm == flat
     if field == "number_of_occupants":
         return OCCUPANCY_MAPPING_FLAT.get(fixture.building_type, 1)
+    if field == "floor_height":
+        # unset = what URBANopt builds, DD on or off (resolver 3.2, get_param): a house's 8 ft ceiling, a commercial
+        # 3.6 m zoning story. The flat 9.0 below is no longer what any building gets (review 2026-10-03).
+        return 8.0 if fixture.building_type in RESIDENTIAL_TYPES else 3.6 / 0.3048
     return FLAT[field]
 
 
