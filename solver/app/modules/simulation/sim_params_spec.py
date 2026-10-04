@@ -28,8 +28,6 @@ import os
 import csv
 import functools
 import re
-import time
-import urllib.request
 
 log = logging.getLogger('Generate Feature Files')
 
@@ -634,38 +632,47 @@ def _coerce_int(val):
 
 
 _FIPS_CACHE = {}
+_COUNTY_INDEX = None
+_COUNTIES_GEOJSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'urbanopt', 'us_counties.geojson')
+
+
+def _county_index():
+    """(STRtree, polygons, fips) over the shipped US county boundaries (urbanopt/us_counties.geojson, the file
+    weather.get_county_fips reads), loaded once per process."""
+    global _COUNTY_INDEX
+    if _COUNTY_INDEX is None:
+        from shapely import STRtree
+        from shapely.geometry import shape
+        with open(_COUNTIES_GEOJSON) as f:
+            feats = json.load(f)['features']
+        geoms = [shape(ft['geometry']) for ft in feats]
+        _COUNTY_INDEX = (STRtree(geoms), geoms, [str(ft['id']) for ft in feats])
+    return _COUNTY_INDEX
+
 
 def _derive_county_fips(lat, lon) -> str | None:
-    """Derive 5-digit county FIPS from lat/lon via FCC Census Block API.
-    Results are cached per (rounded lat, lon) to minimize API calls."""
+    """5-digit county FIPS of a point from the shipped county boundaries, or None outside every county (offshore,
+    bad coordinates). Offline and deterministic: until 2026-10-03 this called the FCC Census Block API, which now
+    fails every request (its database rejects the service's login), so each building without county_fips spent about
+    2.4 s on three failed attempts inside build_asset_ctx (the training sampler, feature generation, the fast
+    estimate) and still got None. Cached per (lat, lon) to 2 decimals as before."""
     if lat is None or lon is None:
         return None
     try:
         lat_f, lon_f = float(lat), float(lon)
     except (TypeError, ValueError):
         return None
+    if not (math.isfinite(lat_f) and math.isfinite(lon_f)):
+        return None
     key = (round(lat_f, 2), round(lon_f, 2))
     if key in _FIPS_CACHE:
         return _FIPS_CACHE[key]
-    # This runs synchronously inside feature-file generation (under the sim
-    # lock), so bound the worst-case block: 3 attempts x 4s timeout + short
-    # backoff (~13s worst case) rather than retrying into the minutes. A miss
-    # caches None and the building simply resolves without county-level fuel.
-    url = (f"https://geo.fcc.gov/api/census/block/find?"
-           f"latitude={lat_f}&longitude={lon_f}&censusYear=2020&format=json")
-    attempts = 3
-    for attempt in range(attempts):
-        try:
-            with urllib.request.urlopen(url, timeout=4) as resp:
-                data = json.loads(resp.read())
-            fips = data.get('County', {}).get('FIPS')
-            _FIPS_CACHE[key] = fips
-            return fips
-        except Exception:
-            if attempt < attempts - 1:
-                time.sleep(0.5 * (attempt + 1))
-    _FIPS_CACHE[key] = None
-    return None
+    from shapely.geometry import Point
+    tree, geoms, fips = _county_index()
+    pt = Point(lon_f, lat_f)
+    hit = next((fips[i] for i in tree.query(pt) if geoms[i].covers(pt)), None)
+    _FIPS_CACHE[key] = hit
+    return hit
 
 
 # 2-digit state FIPS -> USPS abbreviation (INCITS 38). The first two digits of a

@@ -151,3 +151,19 @@ def test_builder_donor_cell_joint_consistency():
     assert ("baseboard", "No") in combos and ("baseboard", "Yes") in combos, (
         "joint (not marginal) structure must survive"
     )
+
+
+def test_county_fips_is_derived_offline_from_the_shipped_boundaries(monkeypatch):
+    """2026-10-03: the FCC Census Block API this used fails every request (its database rejects the service's login),
+    so each building without county_fips spent ~2.4 s on retries and still resolved without a county. The derivation
+    now reads urbanopt/us_counties.geojson and never touches the network."""
+    import urllib.request
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: (_ for _ in ()).throw(AssertionError("network")))
+    monkeypatch.setattr(sps, "_FIPS_CACHE", {})
+    assert sps._derive_county_fips(43.48, -110.76) == "56039"      # Jackson, WY: Teton County
+    assert sps._derive_county_fips(34.6, -78.5) == "37017"         # Bladen County, NC
+    assert sps._derive_county_fips(40.0, -60.0) is None            # Atlantic
+    assert sps._derive_county_fips("inf", 1) is None and sps._derive_county_fips(None, 1) is None
+    ctx = sps.build_asset_ctx({"latitude": 43.48, "longitude": -110.76, "state": "WY", "area": 2000},
+                              building_type="Single-Family Detached")
+    assert ctx["county_fips"] == "56039"

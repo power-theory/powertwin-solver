@@ -46,8 +46,8 @@ trust_boundaries:
     accepted: "Metadata INPUT truth (is lat/lon the real building, is year_built/area accurate) is the data provider's responsibility -- unprovable here."
     in_control_seam: "We DO control + prove the input_contract (units/types/ranges + validation) and the deterministic fallback. 'Bad input' is only an excuse where the contract is declared and validated; an unvalidated input is OUR gap (e.g. the m2/ft2 area)."
   - id: external_services
-    accepted: "Third-party services/data out of our control: FCC Census Block API (county_fips), energyplus.net EPW weather, Census TIGER boundaries behind FCC, EnergyPlus physics."
-    in_control_seam: "We control + prove correct integration (timeout/retry/cache/version pinning) and the fallback on failure -- e.g. FCC miss -> no-county RECS division path (PROVEN). We do NOT prove their uptime or internal accuracy."
+    accepted: "Third-party services/data out of our control: energyplus.net EPW weather, Census county boundaries (urbanopt/us_counties.geojson, shipped), EnergyPlus physics. The FCC Census Block API (county_fips) was dropped 2026-10-03 when it began failing every request."
+    in_control_seam: "We control + prove correct integration (timeout/retry/cache/version pinning) and the fallback on failure -- e.g. a point outside every county -> no-county RECS division path (PROVEN). We do NOT prove their uptime or internal accuracy."
 
 # --- Authoritative origins (deduped). Fields reference these by key. ---------
 sources:
@@ -338,12 +338,12 @@ ctx_derivation:
     oracle: {status: PARTIAL, tests: [test_regression_guards::H7], note: "MF per-unit tested; bedroom-default + int-coercion edges not directly enumerated"}
   county_fips:
     from: "metadata.county_fips OR _derive_county_fips(lat, lon)"
-    logic: "explicit metadata wins; else FCC Census Block API (3 retry x 4s, per-(rounded lat,lon) cache, zfill 5)"
-    external: "external_services (FCC API) -- OUT OF CONTROL"
-    fallback: "API miss/absent -> None -> no-county RECS division reconciliation"
-    invariants: ["5-digit zero-padded", "deterministic per rounded lat/lon via cache"]
-    control: "IN (logic+fallback) / OUT (FCC truth)"
-    oracle: {status: PROVEN_FALLBACK, tests: [test_resolvers::nocounty_marginal], note: "we PROVE degrade-to-division, NOT FCC correctness (trust boundary)"}
+    logic: "explicit metadata wins; else point-in-polygon on the shipped Census county boundaries (urbanopt/us_counties.geojson, offline, per-(rounded lat,lon) cache). Until 2026-10-03 the FCC Census Block API, which then failed every request (its database rejected the service login) and cost each county-less building ~2.4 s of retries for None"
+    external: "Census county boundaries (shipped file) -- data, not a service"
+    fallback: "outside every county / bad coordinates -> None -> no-county RECS division reconciliation"
+    invariants: ["5-digit zero-padded", "deterministic per rounded lat/lon via cache", "no network"]
+    control: "IN (logic+fallback+lookup) / OUT (boundary file truth)"
+    oracle: {status: PROVEN_FALLBACK, tests: [test_resolvers::nocounty_marginal, test_county_prior::test_county_fips_is_derived_offline_from_the_shipped_boundaries], note: "we PROVE the offline lookup on known points and degrade-to-division"}
   climate_zone:
     from: "metadata.climate_zone OR upstream get_location(lat, lon)"
     logic: "nearest weather station in master_weather.geojson (our data) -> CZ; shapely geometry"
@@ -1003,7 +1003,7 @@ coverage_summary:
   STATIC: [system_type, floor_height]
   note: "all resolver oracles PROVEN (test_resolvers + golden + powertwin_refs). INTEGRATION layer: the e2e gate (test_sim_e2e via run_docker.sh over ALL subtypes, both workflows) is green -- completeness + energy-balance closure + per-fuel capture + value-in-IDF + PER-FIELD value-in-HPXML for the residential envelope + EUI plausibility + A/B dynamic-delivery + test_all_dynamic_defaults_delivered_to_model (EVERY dynamic field's in.osw measure arg == resolved get_param, all 27 buildings both workflows) + test_commercial_envelope_reaches_built_model (the BUILT EnergyPlus opaque-envelope R distribution differs dynamic-ON vs OFF for every commercial building -- the resolved envelope reached + changed what EnergyPlus simulated). Remaining: cooling fuel implicit-electric; commercial envelope OUTPUT is A/B-verified (roof exact-matches, wall = resolved + base mass); delivery != resolver source-correctness."
   ctx_derivation:   # IN CONTROL logic upstream of every field
-    PROVEN_FALLBACK: [county_fips]            # degrade-to-division proven (not FCC truth)
+    PROVEN_FALLBACK: [county_fips]            # offline lookup + degrade-to-division proven (not boundary-file truth)
     PROPERTY: [vintage_and_decade, region_and_division]   # exercised indirectly; need direct enumeration
     PARTIAL: [units_and_bedrooms]
     UNVERIFIED: [climate_zone]                # lat/lon->CZ has no test
@@ -1024,7 +1024,7 @@ coverage_summary:
     - "self-integrity: test_assumptions_ledger.py now PROVES every named oracle EXISTS (existence closed); it does NOT yet prove each test asserts its SPECIFIC claim -- semantic match is still trust"
   not_in_scope:   # the trust_boundaries above -- accepted, not counted as uncertainty
     - "EnergyPlus physics; survey-source representativeness; design choices; FP reproducibility"
-    - "input_data_truth (provider's lat/lon/year/area truth); external_services internals (FCC/energyplus.net uptime+accuracy) -- we prove the contract + fallback, not their truth"
+    - "input_data_truth (provider's lat/lon/year/area truth); external_services internals (energyplus.net uptime+accuracy, county boundary file accuracy) -- we prove the contract + fallback, not their truth"
 
 # =============================================================================
 # HOW TO REACH 100% CONVICTION FROM HERE (the closure plan)
