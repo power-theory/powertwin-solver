@@ -76,3 +76,19 @@ def clean_footprint(geom):
     elif geom.get('type') == 'MultiPolygon':
         geom['coordinates'] = [[_ring_noise_free_fixpoint(r) for r in poly] for poly in geom['coordinates']]
     return geom
+
+
+def shape_factor(ring):
+    """Perimeter of a lon/lat ring over the perimeter of the square of the same area, measured in local metres
+    (metres per degree of longitude and latitude at the ring's mean latitude). Measured in raw degrees, a square read 1.013 at Teton's
+    latitude and the factor depended on orientation (2026-10-03). 1.0 for a degenerate ring."""
+    if not ring or len(ring) < 4:
+        return 1.0
+    lat0 = math.radians(sum(p[1] for p in ring) / len(ring))
+    kx, ky = 111320.0 * math.cos(lat0), 110540.0     # metres per degree, as _ring_noise_free
+    xy = [(p[0] * kx, p[1] * ky) for p in ring]
+    area = _ring_area_unsigned(xy)
+    if area <= 0:
+        return 1.0
+    perim = sum(math.dist(xy[i], xy[i + 1]) for i in range(len(xy) - 1))
+    return perim / (4.0 * math.sqrt(area))

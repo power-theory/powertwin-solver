@@ -85,11 +85,11 @@ def test_geometry_functions():
     print("\n=== TEST 2: Geometry (shape factor / MultiPolygon) ===")
 
     try:
-        from modules.simulation.generateFeatureFile import _ring_area_unsigned, _ring_perimeter
+        from modules.utils.footprint_clean import shape_factor   # local metres (2026-10-03)
         has_geo_funcs = True
     except ImportError:
         has_geo_funcs = False
-        print("  _ring_area_unsigned / _ring_perimeter NOT FOUND (old code)")
+        print("  footprint_clean.shape_factor NOT FOUND (old code)")
 
     from modules.simulation.generateFeatureFile import flatten_geometry
     import copy
@@ -112,11 +112,7 @@ def test_geometry_functions():
         if has_geo_funcs and gt == 'Polygon':
             outer = (geom.get('coordinates') or [None])[0]
             if outer and len(outer) >= 4:
-                area = _ring_area_unsigned(outer)
-                perim = _ring_perimeter(outer)
-                if area > 0:
-                    sq_perim = 4 * math.sqrt(area)
-                    shape_factors.append(perim / sq_perim)
+                shape_factors.append(shape_factor(outer))
 
     print(f"  Polygon: {poly_count}, MultiPolygon: {multi_count}")
 

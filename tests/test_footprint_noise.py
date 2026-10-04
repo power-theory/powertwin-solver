@@ -4,6 +4,8 @@ import math
 import os
 import sys
 
+import pytest
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "solver", "app"))
 os.environ.setdefault("POWERTWIN_LOG_DIR", "/tmp")
@@ -71,3 +73,18 @@ def test_cleaning_twice_equals_cleaning_once():
         g = {"type": "Polygon", "coordinates": [ring]}
         once = G.clean_footprint(copy.deepcopy(g))
         assert G.clean_footprint(copy.deepcopy(once)) == once
+
+
+def test_shape_factor_is_measured_in_metres_not_degrees():
+    """The perimeter/area ratio was taken on raw lon/lat, so a square read 1.013 at Teton's latitude and a rectangle's
+    factor depended on its orientation (2026-10-03). In local metres a square is 1 and orientation does not matter."""
+    import math
+    from modules.utils.footprint_clean import shape_factor
+    lat0, lon0 = 43.48, -110.76
+    kx, ky = 111320.0 * math.cos(math.radians(lat0)), 110540.0
+    ring = lambda pts: [[lon0 + x / kx, lat0 + y / ky] for x, y in pts]
+    assert shape_factor(ring([(0, 0), (20, 0), (20, 20), (0, 20), (0, 0)])) == pytest.approx(1.0, abs=1e-5)
+    ew = shape_factor(ring([(0, 0), (100, 0), (100, 10), (0, 10), (0, 0)]))
+    ns = shape_factor(ring([(0, 0), (10, 0), (10, 100), (0, 100), (0, 0)]))
+    assert ew == pytest.approx(ns, abs=1e-4) and ew == pytest.approx(22 / (4 * math.sqrt(10)), abs=1e-4)
+    assert G._metric_shape_factor is shape_factor          # generateFeatureFile uses this very function

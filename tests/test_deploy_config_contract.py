@@ -87,7 +87,7 @@ def test_build_cleanup_targets_only_the_jobs_own_per_commit_image():
     # image (flask, pgbouncer, mss run concurrently on one daemon) and the branch tag, so a fast
     # sibling untagged flask's image mid-push and a concurrent pipeline lost its :dev.
     import re
-    import yaml
+    yaml = pytest.importorskip("yaml")   # not in the flask image; the ledger tests skip the same way
     ci = yaml.safe_load(open(os.path.join(REPO, ".gitlab-ci.yml")))
     after = "\n".join(ci[".build_template"]["after_script"])
     assert "${IMAGE_NAME}" in after and "[a-z]+" not in after and "CI_COMMIT_BRANCH" not in after
@@ -99,3 +99,17 @@ def test_build_cleanup_targets_only_the_jobs_own_per_commit_image():
     assert re.search(pat, "1.dkr.ecr.us-west-2.amazonaws.com/powertwin-solver-flask:abc123")
     for other in ("powertwin-solver-pgbouncer:abc123", "powertwin-solver-mss:abc123", "powertwin-solver-flask:dev"):
         assert not re.search(pat, "1.dkr.ecr.us-west-2.amazonaws.com/" + other), other
+
+
+def test_every_flask_build_supplies_the_surrogate_context():
+    # The flask image COPYs the surrogate package from a named build context (fast estimate, 2026-10-03). A build
+    # without it fails with "pull access denied ... library/surrogate", which does not name the missing context.
+    yaml = pytest.importorskip("yaml")   # not in the flask image; the ledger tests skip the same way
+    assert "COPY --from=surrogate " in DOCKERFILE
+    flask = yaml.safe_load(CI)["build_flask"]["script"]
+    assert any("--build-context surrogate=./surrogate" in line and "./solver/Dockerfile" in line for line in flask)
+    for name, text in (("docker-compose.yml", DEV), ("docker-compose-prod.yml", PROD)):
+        build = yaml.safe_load(text)["services"]["powertwin-solver-flask"]["build"]
+        assert build["context"] == "./solver" and build.get("additional_contexts", {}).get("surrogate") == "./surrogate", name
+    # numba must cache outside the root-owned code: the pod runs as uid 1000 and a SIF is read-only
+    assert "NUMBA_CACHE_DIR=/tmp/" in DOCKERFILE and "setpriv --reuid=1000" in DOCKERFILE

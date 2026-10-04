@@ -26,6 +26,8 @@ services:
     container_name: powertwin-solver-flask
     build:
       context: ./solver
+      additional_contexts:
+        surrogate: ./surrogate
       args:
         - DEV_MODE=${DEV_MODE:-false}
     command:

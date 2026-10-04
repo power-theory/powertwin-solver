@@ -422,7 +422,35 @@ def process_asset_update():
         if not ok:
             return jsonify({'error': 'invalid simulation params', 'details': errs}), 400
 
-        logger.info(f"Accepted async simulation {simulation_name} for asset {asset_id}")
+        # Optional prediction model (vault Surrogate Serving Plan, 2026-10-03): the db's
+        # sensor_logs_pred_model_types id. Absent or 1 is URBANopt, as before; the fast-estimate id runs the
+        # surrogate on the same metadata and geometry. Anything else is refused, and a fast estimate this solver
+        # cannot serve (no model, or one trained for another schema / resolver / year) is a 503, never URBANopt.
+        from modules.simulation import surrogate_serving as SS
+        raw_model = request_data.get('model_type_id')
+        try:
+            model_type_id = SS.URBANOPT_MODEL_TYPE_ID if raw_model in (None, '') else int(raw_model)
+        except (TypeError, ValueError):
+            return jsonify({'error': f'invalid model_type_id {raw_model!r}'}), 400
+        surrogate_meta = None
+        surrogate_id = SS.surrogate_model_type_id()
+        if surrogate_id is not None and model_type_id == surrogate_id:
+            # the fast estimate is hourly: a coarser reporting_frequency without a datelevel becomes the matching
+            # resample (URBANopt would report at that frequency natively); a finer one cannot be served
+            if request_resample is None and request_reporting_frequency is not None:
+                coarser = {'Hourly': None, 'Timestep': None, 'Daily': 'D', 'Monthly': 'M', 'Runperiod': 'Y'}
+                if request_reporting_frequency not in coarser:
+                    return jsonify({'error': f'the fast estimate is hourly; reporting_frequency '
+                                             f'{request_reporting_frequency} is finer'}), 400
+                request_resample = coarser[request_reporting_frequency]
+            try:
+                surrogate_meta = SS.precheck()
+            except SS.SurrogateUnavailable as e:
+                return jsonify({'error': 'fast estimate unavailable', 'details': str(e)}), 503
+        elif model_type_id != SS.URBANOPT_MODEL_TYPE_ID:
+            return jsonify({'error': f'unknown model_type_id {model_type_id}'}), 400
+
+        logger.info(f"Accepted async simulation {simulation_name} for asset {asset_id} (model {model_type_id})")
 
         csv_content = convert_metadata_to_csv(metadata_json)
         geojson_content = convert_geometry_to_geojson(geojson_array)
@@ -448,20 +476,29 @@ def process_asset_update():
         with open(metadata_csv_path, 'w', newline='', encoding='utf-8') as f:
             f.write(csv_content)
 
-        thread = threading.Thread(
-            target=_run_asset_update_simulation,
-            args=(simulation_name, SIMULATION_DIR, sim_local_dir,
-                  asset_geojson_path, metadata_csv_path,
-                  started_at, request_start_date_time, request_end_date_time,
-                  request_reporting_frequency, request_dynamic_defaults,
-                  request_stochastic, request_resample),
-            daemon=True,
-        )
+        if surrogate_meta is not None:
+            thread = threading.Thread(
+                target=_run_asset_update_surrogate,
+                args=(simulation_name, SIMULATION_DIR, sim_local_dir, asset_geojson_path, metadata_csv_path,
+                      started_at, request_start_date_time, request_end_date_time, request_resample, model_type_id),
+                daemon=True,
+            )
+        else:
+            thread = threading.Thread(
+                target=_run_asset_update_simulation,
+                args=(simulation_name, SIMULATION_DIR, sim_local_dir,
+                      asset_geojson_path, metadata_csv_path,
+                      started_at, request_start_date_time, request_end_date_time,
+                      request_reporting_frequency, request_dynamic_defaults,
+                      request_stochastic, request_resample),
+                daemon=True,
+            )
         thread.start()
         return jsonify({
             'success': True,
             'simulation_name': simulation_name,
             'status': 'accepted',
+            'model_type_id': model_type_id,
         }), 202
 
     except Exception as e:
@@ -568,6 +605,66 @@ def _run_asset_update_simulation(simulation_name, simulation_dir, sim_local_dir,
             keep = _bool('URBANOPT_KEEP_RUN_DIR') or _bool('SIMULATION_KEEP_RUN_DIR')
             if os.path.exists(simulation_dir) and not keep:
                 shutil.rmtree(simulation_dir)
+
+def _run_asset_update_surrogate(simulation_name, simulation_dir, sim_local_dir, asset_geojson_path,
+                                metadata_csv_path, started_at, request_start_date_time=None,
+                                request_end_date_time=None, request_resample=None, model_type_id=None):
+    """Background worker for the fast estimate: same phases, cleaned reports, results.json shape and datelevel
+    handling as _run_asset_update_simulation, so the db's ingest needs no change. Runs without a request context.
+    The resolver runs in the model's training mode (dynamic defaults, stochastic sampling), whatever the request
+    asked for: the estimate is only valid at the settings the model learned."""
+    from modules.simulation import surrogate_serving as SS
+    try:
+        write_status(sim_local_dir, 'surrogate_loading', simulation_name=simulation_name)
+        server = SS.get_server()
+        env = server.env()
+        with _sim_env_override(env['URBANOPT_DYNAMIC_DEFAULTS'], env['URBANOPT_STOCHASTIC_SAMPLING'],
+                               resample=request_resample):
+            write_status(sim_local_dir, 'surrogate_running', simulation_name=simulation_name)
+            run = SS.run(sim_local_dir, metadata_csv_path, asset_geojson_path, server)
+            runtime_seconds = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds()
+            resample = get_sim_flag('URBANOPT_RESAMPLE')
+            if resample is None:
+                resample = os.environ.get('URBANOPT_RESAMPLE', '')
+            resample = resample.strip() or None
+            results_payload = pack_simulation_results(
+                sim_local_dir, runtime_seconds=runtime_seconds, resample=resample,
+                start_date_time=request_start_date_time, end_date_time=request_end_date_time)
+        response = {
+            'success': True,
+            'simulation_name': simulation_name,
+            'results': results_payload['results'],
+            'runtime_seconds': runtime_seconds,
+            'datelevel': results_payload['datelevel'],
+            'resample': results_payload.get('resample'),
+            'model_type_id': model_type_id,
+            'estimate_kind': 'baseline_surrogate',
+            'model_name': server.meta.get('model_name'),
+            'accuracy': server.meta.get('accuracy'),
+            'skipped': run['skipped'],
+        }
+        atomic_write_json(os.path.join(sim_local_dir, 'results.json'), response)
+        write_status(sim_local_dir, 'completed', simulation_name=simulation_name,
+                     completed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                     runtime_seconds=runtime_seconds, datelevel=results_payload['datelevel'],
+                     model_type_id=model_type_id)
+        logger.info(f"Fast estimate completed: {simulation_name} ({run['buildings']} buildings, "
+                    f"{runtime_seconds:.1f} s)")
+    except Exception as e:
+        logger.error(f"Fast estimate failed for {simulation_name}: {e}")
+        try:
+            write_status(sim_local_dir, 'failed', simulation_name=simulation_name, error=str(e),
+                         model_type_id=model_type_id)
+        except Exception:
+            pass
+        try:
+            send_error_to_mss('process_asset_update_surrogate', str(e))
+        except Exception:
+            pass
+    finally:
+        if os.path.exists(simulation_dir):
+            shutil.rmtree(simulation_dir, ignore_errors=True)
+
 
 ############################################################################################################
 # Name: def convert_metadata_to_csv(metadata_json)

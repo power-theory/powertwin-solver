@@ -99,7 +99,7 @@ build_flask:
     - (cd solver/upload/reference_data && sha256sum -c county_tables.sha256)
     - docker build -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask:${IMAGE_TAG} --build-arg GIT_SHA=${CI_COMMIT_SHA}
         -t ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask:${CI_COMMIT_BRANCH}
-        -f ./solver/Dockerfile ./solver
+        --build-context surrogate=./surrogate -f ./solver/Dockerfile ./solver
     - docker push ${ECR_REGISTRY}/${CI_PROJECT_NAME}-flask --all-tags
 
 build_pgbouncer:

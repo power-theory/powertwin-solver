@@ -73,6 +73,11 @@ RUN python3 /tmp/patch_openstudio_standards.py && rm /tmp/patch_openstudio_stand
 
 # Final verification that uo is in PATH
 RUN which uo && uo --version
+
+# Fast estimate (surrogate serving) dependencies, before the code copy so a code change does not reinstall them
+COPY ./requirements-surrogate.txt /solver/requirements-surrogate.txt
+RUN pip install -r requirements-surrogate.txt
+
 # Copy application code and set environment variables
 COPY . .
 # The county reference tables are Git LFS objects pinned by county_tables.sha256. Refuse to build without them:
@@ -95,9 +100,30 @@ RUN python3 ./patches/patch_district_meters.py
 # Install the solver package
 RUN pip install -e ./app
 
+# The fast estimate (surrogate serving, modules/simulation/surrogate_serving.py) imports the surrogate package from
+# the named build context "surrogate" (docker build --build-context surrogate=./surrogate, compose
+# additional_contexts). It sits beside a /solver symlink so its ../../../../solver paths resolve as in a checkout.
+# Code only: the model is mounted at run time (SURROGATE_MODEL_DIR); without one the solver refuses fast estimates.
+# numba caches compiled kernels beside the source by default; the code is root-owned and the pod runs as uid 1000
+# (and a SIF is read-only), so the import failed with "no locator available" (review 2026-10-03).
+COPY --from=surrogate __init__.py /opt/powertwin/surrogate/__init__.py
+COPY --from=surrogate app /opt/powertwin/surrogate/app
+ENV PYTHONPATH=/opt/powertwin NUMBA_CACHE_DIR=/tmp/numba_cache
+RUN find /opt/powertwin/surrogate -name __pycache__ -prune -exec rm -rf {} + && \
+    ln -s /solver /opt/powertwin/solver
+
 # Runtime runs as uid 1000 (k8s securityContext) and the app makedirs scratch dirs
 # (data/, logs/, powertwin-solver-pg/, ...) under its workdir, so make /solver writable.
 RUN chown -R 1000:1000 /solver
+
+# Import every module the fast estimate loads lazily (numba, xgboost, scikit-learn and the compiled kernel) as the
+# runtime uid, so a broken pin or an unwritable cache fails the build instead of the first request.
+RUN cd /solver && setpriv --reuid=1000 --regid=1000 --clear-groups env HOME=/ python3 -c "\
+from modules.simulation import surrogate_serving; \
+from surrogate.app.modules import serving; \
+from surrogate.app.modules.models import compact_trees, presence, split_gbm; \
+from surrogate.app.modules.data import collector; \
+import numba, xgboost, sklearn; print('fast estimate imports ok as uid 1000')"
 
 RUN chmod +x /solver/entrypoint.sh
 ENTRYPOINT ["/solver/entrypoint.sh"]

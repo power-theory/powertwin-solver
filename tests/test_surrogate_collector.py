@@ -167,10 +167,14 @@ def test_collect_e2e(tmp_path):
     previously-dead static features are now populated, elevation comes from the EPW, and the glazing
     matches the resolver-driven window_type for both a commercial and a residential building."""
     import pandas as pd
+    # collect() writes parquet; it runs in the collect image (pyarrow), not the flask image this marker also matches
+    pytest.importorskip("pyarrow", reason="collect() writes parquet; run in the collect image")
 
     ELEV = 337.0
     comm_id, res_id = 10000000001, 10000000002
-    manifest = {"buildings": [_building(comm_id, "Office"), _building(res_id, "Single-Family Detached")]}
+    # the samplers stamp the sim year the levers were previewed with; collect() refuses a manifest without it
+    manifest = {"sim_year": 2026,
+                "buildings": [_building(comm_id, "Office"), _building(res_id, "Single-Family Detached")]}
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps(manifest))
 

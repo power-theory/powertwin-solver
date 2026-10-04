@@ -230,15 +230,6 @@ def _ring_area_unsigned(ring):
     return abs(area) / 2.0
 
 
-def _ring_perimeter(ring):
-    """Euclidean perimeter of a coordinate ring (in coordinate units)."""
-    total = 0.0
-    for i in range(len(ring) - 1):
-        dx = ring[i + 1][0] - ring[i][0]
-        dy = ring[i + 1][1] - ring[i][1]
-        total += math.sqrt(dx * dx + dy * dy)
-    return total
-
 
 SQFT_TO_M2 = 0.09290304  # exact; NIST SP 811 Appendix B.8
 WGS84_A_M = 6378137.0  # WGS 84 semi-major axis (NGA.STND.0036)
@@ -386,7 +377,8 @@ def annotate_asset_footprints(features, area_list, type_list, name_list, weather
 # Footprint digitizing-noise cleanup lives in modules/utils/footprint_clean.py (standard library only), which the
 # surrogate's sim_levers also loads; re-exported here for every caller.
 from modules.utils.footprint_clean import (  # noqa: E402,F401
-    FOOTPRINT_NOISE_M2, FOOTPRINT_NOISE_SHARE, _ring_noise_free, _ring_noise_free_fixpoint, clean_footprint)
+    FOOTPRINT_NOISE_M2, FOOTPRINT_NOISE_SHARE, _ring_noise_free, _ring_noise_free_fixpoint, clean_footprint,
+    shape_factor as _metric_shape_factor)
 
 
 def load_asset_geojson(path, area_list, type_list, name_list, weather_list, metadata_list):
@@ -559,16 +551,15 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # perimeter estimate. The ratio of actual perimeter to the perimeter of a
     # square with the same area captures aspect ratio and irregularity. For a
     # square this ratio is 1.0; for a 10:1 rectangle it's ~1.74.
+    # (footprint_clean.shape_factor measures it in local metres; the surrogate's sim_levers loads the same file.)
+    # Only the emitted windows[0].window_area uses it: PowerTwin.rb and URBANopt read the window type, never this area,
+    # so it describes the building for consumers of the feature file and does not change what is simulated.
     shape_factor = 1.0
     geom = feature.get('geometry')
     if geom and geom.get('type') == 'Polygon':
         outer_ring = (geom.get('coordinates') or [None])[0]
         if outer_ring and len(outer_ring) >= 4:
-            geo_area = _ring_area_unsigned(outer_ring)
-            geo_perim = _ring_perimeter(outer_ring)
-            if geo_area > 0:
-                square_perim = 4 * math.sqrt(geo_area)
-                shape_factor = geo_perim / square_perim
+            shape_factor = _metric_shape_factor(outer_ring)
 
     side_length = footprint_area ** 0.5
     perimeter = 4 * side_length * shape_factor

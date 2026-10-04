@@ -114,6 +114,9 @@ def test_missing_node_id_on_multi_node_job_refuses(monkeypatch):
 
     monkeypatch.setitem(sys.modules, "modules.database.sqlite_manager",
                         types.SimpleNamespace(get_sqlite_manager=lambda: FakeMgr()))
+    # SLURM variables only: get_hpc_environment would import mpi4py and MPI_Init the shared pytest process, after
+    # which any fork aborts in the image's libfabric EFA provider (a later joblib pool hung the suite, 2026-10-03)
+    monkeypatch.setitem(sys.modules, "mpi4py", None)
     for k in ("SLURM_NODEID", "SLURM_NTASKS", "SLURM_PROCID"):
         monkeypatch.delenv(k, raising=False)
     monkeypatch.setenv("SLURM_JOB_ID", "1")
