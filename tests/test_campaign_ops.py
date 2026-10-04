@@ -39,3 +39,16 @@ def test_environment_overrides_flow_into_derived_paths():
 @pytest.mark.parametrize("script", sorted(glob.glob(os.path.join(REPO, "apptainer", "ops", "*.sh"))) + [TEMPLATE])
 def test_ops_scripts_parse(script):
     assert subprocess.run(["bash", "-n", script]).returncode == 0
+
+
+def test_collect_post_refuses_an_arm_it_cannot_collect():
+    """POST=collect (surrogate training data, 2026-10-03) needs the sampler's manifest, a repo copy for the collector
+    and the kept run dirs, checked before anything is staged; the collector's mode is the arm's stochastic flag."""
+    src = open(os.path.join(REPO, "apptainer", "ops", "launch-campaign.sh")).read()
+    guard = src.index('if [ "${POST:-consolidate}" = collect ]; then')
+    assert guard < src.index('if [ "$DRY" != 1 ]; then')
+    for need in ("needs MANIFEST_SRC", "needs REPO_COPY", "needs URBANOPT_KEEP_RUN_DIR=true"):
+        assert need in src[guard:guard + 600], need
+    col = open(os.path.join(REPO, "apptainer", "ops", "collect-surrogate.sh")).read()
+    assert 'STOCH=False; [ "${URBANOPT_STOCHASTIC_SAMPLING:-false}" = true ] && STOCH=True' in col
+    assert "stochastic=$STOCH" in col and '--bind "$REPO_COPY:/work"' in col

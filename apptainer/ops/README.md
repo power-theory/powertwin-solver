@@ -8,6 +8,7 @@ The standard way to run a simulation campaign on the cluster. Runbook: vault `De
 | `pull-sif.sh <tag>...` | `sbatch` | pulls `missionloyd/powertwin-solver-flask:<tag>` into `flask-<tag>.sif` and verifies it inside the SIF; `--as-flask` also replaces `flask.sif` |
 | `launch-campaign.sh <arm.env> [--after JOBID]` | login node | stages one arm's inputs into its collection dir and submits `example-sql-start.sh` with the arm's settings, plus `post-consolidate.sh` after it |
 | `post-consolidate.sh` | `sbatch` (by the launcher) | monthly sensor logs like the scored runs; with `POST=asu`, per-building end uses from the kept run tree (`extract_enduse.py`, `extract_sql.py`) |
+| `collect-surrogate.sh` | `sbatch` (by the launcher, `POST=collect`) | collects a kept-run-dir arm into surrogate training data in `collect.sif` against `REPO_COPY`, with the arm's stochastic mode |
 | `rm-job.sh`, `grind_trash.py`, `grind_trash2.py` | `sbatch` | the only sanctioned way to delete trees (never on the login node) |
 | `archive-home.sh [--dry-run]` | `sbatch` | moves loose scripts and job logs out of `~` into `~/archive/<YYYY-MM>/`; nothing deleted |
 | `qa_sif_pull.sh` | `sbatch` | legacy: pulls `:latest` over `flask.sif`; prefer `pull-sif.sh --as-flask <tag>` |

@@ -5,7 +5,8 @@
 # The env file sets (required) CAMPAIGN SIMULATION_NAME COLLECTION_ID SIF_TAG METADATA_SRC GEOJSON_SRC, the
 # URBANOPT_* settings the arm needs (the job template's defaults otherwise), and optionally NODES CPUS MEM TIME
 # PARTITION (defaults 8 / 48 / 200G / 3-00:00:00 / mb), POST=consolidate|asu|none (default consolidate) and
-# SCORE_CID (the collection id stamped into the consolidated logs; default COLLECTION_ID).
+# SCORE_CID (the collection id stamped into the consolidated logs; default COLLECTION_ID). POST=collect instead
+# collects the arm into surrogate training data (collect-surrogate.sh; needs MANIFEST_SRC, REPO_COPY, KEEP_RUN_DIR).
 # Layout: /project/cowy-ptheory/powertwin/campaigns/<CAMPAIGN>/{arms/<arm>.env, logs/, results/, jobs.tsv}.
 set -euo pipefail
 # LAUNCH_DRY_RUN=1: check the env file, the SIF and the run dirs, print the sbatch commands, stage and submit nothing.
@@ -29,11 +30,20 @@ for d in "$COLL/powertwin_data/$SIMULATION_NAME" "$COLL/user_files/$SIMULATION_N
 done
 MD="$COLL/upload/${COLLECTION_ID}_metadata.csv"; GJ="$COLL/upload/${COLLECTION_ID}_asset_geometries.geojson"
 [ -s "$METADATA_SRC" ] && [ -s "$GEOJSON_SRC" ] || { echo "missing input: $METADATA_SRC / $GEOJSON_SRC"; exit 2; }
+if [ "${POST:-consolidate}" = collect ]; then
+  [ -s "${MANIFEST_SRC:-}" ] || { echo "POST=collect needs MANIFEST_SRC"; exit 2; }
+  [ -d "${REPO_COPY:-}/surrogate" ] || { echo "POST=collect needs REPO_COPY (a repo copy with surrogate/)"; exit 2; }
+  [ "${URBANOPT_KEEP_RUN_DIR:-false}" = true ] || { echo "POST=collect needs URBANOPT_KEEP_RUN_DIR=true"; exit 2; }
+fi
 if [ "$DRY" != 1 ]; then
   mkdir -p "$C/arms" "$C/logs" "$C/results" "$COLL/upload" "$COLL/powertwin_data" "$COLL/user_files"
   cp "$ENV_FILE" "$C/arms/$SIMULATION_NAME.env"
   cp "$METADATA_SRC" "$MD"; cp "$GEOJSON_SRC" "$GJ"
   md5sum "$MD" "$GJ" >> "$C/inputs.md5"
+  if [ -n "${MANIFEST_SRC:-}" ]; then
+    cp "$MANIFEST_SRC" "$COLL/upload/${SIMULATION_NAME}_resolved_inputs.json"
+    md5sum "$COLL/upload/${SIMULATION_NAME}_resolved_inputs.json" >> "$C/inputs.md5"
+  fi
 fi
 DEP=(); [ -n "$AFTER" ] && DEP=(--dependency=afterok:$AFTER)
 arm=$(sb --parsable "${DEP[@]}" --job-name="powertwin-$SIMULATION_NAME" --partition="${PARTITION:-mb}" \
@@ -41,7 +51,10 @@ arm=$(sb --parsable "${DEP[@]}" --job-name="powertwin-$SIMULATION_NAME" --partit
   --no-requeue --mail-user=admin@powertheoryinc.com --mail-type=ALL --output="$C/logs/%x_%j.out" \
   --export=ALL,SOLVER_SIF="$SIF",METADATA_CSV_PATH="$MD",ASSET_GEOJSON_PATH="$GJ" "$OPS/example-sql-start.sh")
 post="-"
-if [ "${POST:-consolidate}" != none ]; then
+if [ "${POST:-consolidate}" = collect ]; then
+  post=$(sb --parsable --dependency=afterok:$arm --job-name="collect-$SIMULATION_NAME" \
+    --output="$C/logs/%x_%j.out" --export=ALL "$OPS/collect-surrogate.sh")
+elif [ "${POST:-consolidate}" != none ]; then
   post=$(sb --parsable --dependency=afterok:$arm --job-name="post-$SIMULATION_NAME" \
     --output="$C/logs/%x_%j.out" --export=ALL,CAMPAIGN_DIR="$C",SIF="$SIF",SCORE_CID="${SCORE_CID:-$COLLECTION_ID}" \
     "$OPS/post-consolidate.sh")
