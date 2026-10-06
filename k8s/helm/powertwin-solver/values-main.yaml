@@ -70,6 +70,9 @@ flask:
   # KEDA queue-based scaling for prod (scales 0..1 on queued sims, true scale-to-
   keda:
     enabled: true
+    # one replica stays up, so a run never waits on a cold start (KEDA's 30 s poll, the boot, the listener's
+    # hold): it shares the solver node dev's always-on solver keeps up, so idle it costs next to nothing
+    minReplicaCount: 1
   hpa:
     enabled: true
     minReplicas: 1
