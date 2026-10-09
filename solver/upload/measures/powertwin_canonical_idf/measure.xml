@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<measure>
+  <schema_version>3.1</schema_version>
+  <name>powertwin_canonical_idf</name>
+  <uid>4f7c1d2e-5a6b-4c8d-9e0f-1a2b3c4d5e01</uid>
+  <version_id>4f7c1d2e-5a6b-4c8d-9e0f-1a2b3c4d5e11</version_id>
+  <version_modified>2026-10-08T20:00:00Z</version_modified>
+  <xml_checksum>00000003</xml_checksum>
+  <class_name>PowertwinCanonicalIdf</class_name>
+  <display_name>PowerTwin Canonical IDF</display_name>
+  <description>Sorts the spaces of every SpaceList by name and rounds decimal inputs to 12 significant digits, so the EnergyPlus input does not depend on object order.</description>
+  <modeler_description>SpaceList members are written in OpenStudio handle order, and C++ sums follow it into the last bits of derived values; both are random per run.</modeler_description>
+  <arguments/>
+  <outputs/>
+  <attributes>
+    <attribute><name>Measure Type</name><value>EnergyPlusMeasure</value><datatype>string</datatype></attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>00000000</checksum>
+    </file>
+  </files>
+</measure>

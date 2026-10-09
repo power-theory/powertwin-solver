@@ -283,6 +283,12 @@
       }
     },
     {
+      "measure_dir_name": "powertwin_canonical_idf",
+      "arguments": {
+        "__SKIP__": false
+      }
+    },
+    {
       "measure_dir_name":"export_time_series_modelica",
       "arguments":{
         "__SKIP__": true

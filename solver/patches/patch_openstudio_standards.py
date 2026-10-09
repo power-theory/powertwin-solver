@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Fix upstream defects in the gems a simulation loads: openstudio-standards 0.7.x (1, 2) and urbanopt-geojson 1.0.x (3).
+"""Fix upstream defects in the gems a simulation loads: openstudio-standards 0.7.x (1, 2, 4, 6), urbanopt-geojson 1.0.x
+(3, 5) and openstudio-model-articulation (6).
 
 1. create_typical.rb, weekend hours past midnight. The midnight-overlap message interpolates
    `wknd_op_hrs_start`, a name that does not exist (the weekday branch correctly uses
@@ -31,7 +32,7 @@
    'Gym - audience' space type (space_type_ratios.rb, DOE Ref branch only), and only the DOE Ref data define it. The
    mapper's HVAC step 2 runs a newer template for a building whose systems were replaced (the 20-year rule), and under
    a 90.1 template the space type has no data, so its zones get no thermostat, are logged 'unconditioned' and get no
-   HVAC: on a 3+ story school that is a whole unconditioned story (one stock: all 9 story-3 zones; Teton 14628 as
+   HVAC: on a 3+ story school that is a whole unconditioned story (one collection: all 9 story-3 zones; Teton 14628 as
    a 6-story school: 15 zones), whose temperature ran past EnergyPlus's 200 C bound at 13 ft stories (2026-10-01).
    The patch adds 'Gym - audience' to each 90.1 edition PowerTwin uses as a copy of that edition's SecondarySchool
    'Gym' (bleacher seating in the same gym: same thermostat, systems and loads basis). It is the only DOE Ref space type
@@ -43,6 +44,20 @@
    keeps the floor whole when the core would be under 10% of the floor or the pieces do not tile it (sum within 1%,
    none under 0.5 m2). The upstream self-intersection check still only warns and divides: returning there too (as its
    warning says) left 27% of Teton's commercial floor area undivided on footprints that build and simulate fine.
+
+6. Determinism: openstudio-standards space_type_blend.rb and openstudio-model-articulation's blended_space_type_from_model.
+   OpenStudio returns model objects (getSpaces, story.spaces, space_type.spaces ...) in handle order, and handles are
+   random per run. The story blend gathers each story's space types in that order and keeps the first of equal-area
+   space types as the blend's standards space type, which chooses the thermostat and HVAC: a Teton Laboratory (asset
+   17126) got the office setpoints in one run and the lab setpoints in the next, which moved its design loads and coil
+   sizes and its summer electricity about 5% (2026-10-07). The patch iterates spaces and space types in name order
+   (OpenStudio's own sort), so ties and blended sums resolve the same way every run. openstudio-standards.rb also
+   installs PowertwinDeterministicOrder: the model's plural getters and a list of unordered relationships return
+   objects in name order (an infiltration schedule from the first air loop and F-factor floors shared by name were
+   order-dependent too). Standards.Model.rb model_eliminate_outlier_zones sorts zones on a float whose last digits
+   follow OpenStudio's summation order: it now sorts on the value to 1e-9 and then the zone name. openstudio-common-
+   measures' add_ems_emissions_reporting rounds the floor area it writes into its EMS program (its last digit followed
+   the same order). The SpaceList order in the translated input is fixed by the upload measure powertwin_canonical_idf.
 
 Usage: patch_openstudio_standards.py [GEM_ROOT ...]
 Patches every openstudio-standards and urbanopt-geojson copy under the given gem roots (default: the image's gem
@@ -125,6 +140,89 @@ _ZONING_RETURN_FIX = ("        end\n"
                       "        end\n"
                       "        return result\n")
 
+_ORDER_NOTE = "# powertwin patch: iterate in name order; OpenStudio's own order follows random handles (2026-10-07)\n"
+_BLEND_ARRAY = ("          space_types.each do |space_type|\n"
+                "            space_array.concat(space_type.spaces)\n")
+_BLEND_ARRAY_FIX = ("          " + _ORDER_NOTE +
+                    "          space_types.sort.each do |space_type|\n"
+                    "            space_array.concat(space_type.spaces.sort)\n")
+_BLEND_LARGEST = ("        largest_space_type_ratio = 0.00\n"
+                  "        space_types.each do |space_type|\n")
+_BLEND_LARGEST_FIX = ("        largest_space_type_ratio = 0.00\n"
+                      "        # powertwin patch: name order, so the first of equal-area space types (the blend's standards space type,\n"
+                      "        # which chooses its thermostat and HVAC) is the same every run; handle order is random (2026-10-07)\n"
+                      "        space_types.sort.each do |space_type|\n")
+_BLEND_TOTALS = ("          # loop through spaces so I can skip if not included in floor area\n"
+                 "          space_type.spaces.each do |space|\n")
+_BLEND_TOTALS_FIX = ("          # loop through spaces so I can skip if not included in floor area\n"
+                     "          " + _ORDER_NOTE +
+                     "          space_type.spaces.sort.each do |space|\n")
+_STORY_SPACES = "        story.spaces.each do |space|\n"
+_STORY_SPACES_FIX = "        " + _ORDER_NOTE + "        story.spaces.sort.each do |space|\n"
+_TYPE_SPACE_TYPES = ("      # loop through spaces and organize by building type\n"
+                     "      model.getSpaceTypes.each do |space_type|\n")
+_TYPE_SPACE_TYPES_FIX = ("      # loop through spaces and organize by building type\n"
+                         "      " + _ORDER_NOTE +
+                         "      model.getSpaceTypes.sort.each do |space_type|\n")
+
+_ORDER_SHIM_ANCHOR = "require_relative 'openstudio-standards/version'\n"
+_ORDER_SHIM = _ORDER_SHIM_ANCHOR + r"""
+# powertwin patch (determinism, 2026-10-07): OpenStudio returns a model's objects in handle order, and handles are
+# random per run, so code that iterates model.getX (or a space's loads, a story's spaces ...) and keeps the first match
+# or a running sum builds a slightly different model each run (Teton: an infiltration schedule taken from whichever air
+# loop came first; an F-factor floor shared by two spaces sized from whichever came first). Return the model's plural
+# getters and the unordered relationship lists below in name order (OpenStudio's own sort), from the moment
+# openstudio-standards loads. Ordered lists (construction layers, loop components, schedule rules) are untouched.
+module PowertwinDeterministicOrder
+  UNORDERED = {
+    'SpaceType' => %w[spaces people lights luminaires electricEquipment gasEquipment hotWaterEquipment steamEquipment
+                      otherEquipment internalMass spaceInfiltrationDesignFlowRates spaceInfiltrationEffectiveLeakageAreas],
+    'Space' => %w[surfaces people lights luminaires electricEquipment gasEquipment hotWaterEquipment steamEquipment
+                  otherEquipment internalMass spaceInfiltrationDesignFlowRates spaceInfiltrationEffectiveLeakageAreas],
+    'BuildingStory' => %w[spaces],
+    'ThermalZone' => %w[spaces],
+    'Surface' => %w[subSurfaces],
+    'AirLoopHVAC' => %w[thermalZones]
+  }.freeze
+
+  def self.sorted(result)
+    return result unless result.is_a?(Array) && result.size > 1 && result.first.respond_to?(:nameString)
+
+    result.each_with_index.sort_by { |o, i| [o.nameString, o.iddObjectType.valueName, i] }.map(&:first)
+  end
+
+  def self.wrap(klass, names)
+    names = names.select { |m| klass.method_defined?(m) }
+    return if names.empty? || klass.instance_variable_get(:@powertwin_sorted)
+
+    klass.prepend(Module.new do
+      names.each do |m|
+        define_method(m) { |*args, &blk| PowertwinDeterministicOrder.sorted(super(*args, &blk)) }
+      end
+    end)
+    klass.instance_variable_set(:@powertwin_sorted, true)
+  end
+
+  def self.install
+    model = OpenStudio::Model::Model
+    wrap(model, model.instance_methods.map(&:to_s).select { |m| m.match?(/\Aget[A-Z]\w*s\z/) && !m.end_with?('ByName') })
+    UNORDERED.each { |cls, names| wrap(OpenStudio::Model.const_get(cls), names) }
+  end
+end
+PowertwinDeterministicOrder.install if defined?(OpenStudio::Model::Model)
+"""
+
+_OUTLIER_SORT = "      array_of_zones = array_of_zones.sort_by { |hsh| hsh[key_to_inspect] }\n"
+_OUTLIER_SORT_FIX = ("      # powertwin patch: zones of one space type have near-equal values whose last digits depend on OpenStudio's\n"
+                     "      # summation order; sort on the value to 1e-9 and then the zone name, so the primary zones (and the order\n"
+                     "      # their air loops are created in) are the same every run (2026-10-07)\n"
+                     "      array_of_zones = array_of_zones.sort_by { |hsh| [hsh[key_to_inspect].round(9), hsh['zone'].name.get.to_s] }\n")
+
+_EMS_AREA = "    floor_area = building.floorArea * 10.764 #change from m2 to ft2\n"
+_EMS_AREA_FIX = ("    # powertwin patch: building.floorArea sums the spaces in OpenStudio's random handle order, so its last digit\n"
+                 "    # changed from run to run in the EMS program text (2026-10-08); round it\n"
+                 "    floor_area = (building.floorArea * 10.764).round(6) #change from m2 to ft2\n")
+
 # gem -> (library dir under the gem's lib, [(file under that dir, [(defect, fix), ...]), ...])
 GEM_PATCHES = {
     'openstudio-standards': ('openstudio-standards', [
@@ -133,12 +231,23 @@ GEM_PATCHES = {
            'Weekend start time of #{wknd_op_hrs_start_time} plus duration')]),
         (os.path.join('prototypes', 'common', 'objects', 'Prototype.hvac_systems.rb'),
          [_cap_after(_PTAC, '    '), _cap_after(_PSZ, '      ')]),
+        (os.path.join('create_typical', 'space_type_blend.rb'),
+         [(_BLEND_ARRAY, _BLEND_ARRAY_FIX), (_BLEND_LARGEST, _BLEND_LARGEST_FIX), (_BLEND_TOTALS, _BLEND_TOTALS_FIX)]),
+        (os.path.join('..', 'openstudio-standards.rb'), [(_ORDER_SHIM_ANCHOR, _ORDER_SHIM)]),
+        (os.path.join('standards', 'Standards.Model.rb'), [(_OUTLIER_SORT, _OUTLIER_SORT_FIX)]),
     ]),
     'urbanopt-geojson': (os.path.join('urbanopt', 'geojson'), [
         ('building.rb', [(_FLOOR_FIXED, _FLOOR_FIX)]),
         ('zoning.rb', [(_ZONING_CORE, _ZONING_CORE_FIX), (_ZONING_RETURN, _ZONING_RETURN_FIX)]),
         (os.path.join('..', '..', 'measures', 'urban_geometry_creation_zoning', 'measure.rb'), [(_VACANT_PV, _VACANT_PV_FIX)]),
         (os.path.join('..', '..', 'measures', 'urban_geometry_creation', 'measure.rb'), [(_VACANT_PV, _VACANT_PV_FIX)]),
+    ]),
+    'openstudio-common-measures': ('measures', [
+        (os.path.join('add_ems_emissions_reporting', 'measure.rb'), [(_EMS_AREA, _EMS_AREA_FIX)]),
+    ]),
+    'openstudio-model-articulation': ('measures', [
+        (os.path.join('blended_space_type_from_model', 'measure.rb'),
+         [(_STORY_SPACES, _STORY_SPACES_FIX), (_TYPE_SPACE_TYPES, _TYPE_SPACE_TYPES_FIX)]),
     ]),
 }
 PATCHES = GEM_PATCHES['openstudio-standards'][1]

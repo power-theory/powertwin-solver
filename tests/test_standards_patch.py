@@ -30,7 +30,33 @@ def _gem(root, version='0.7.1', moved=False):
                 {'template': 't', 'building_type': 'SecondarySchool', 'space_type': 'Classroom'}]
         json.dump({'space_types': rows}, open(path, 'w'))
     _geojson(root)
+    _articulation(root)
+    _main_file(root)
+    _common_measures(root)
     return lib
+
+
+def _main_file(root, version='0.7.1'):
+    path = os.path.join(root, 'gems', f'openstudio-standards-{version}', 'lib', 'openstudio-standards.rb')
+    open(path, 'w').write("require 'singleton'\n" + P._ORDER_SHIM_ANCHOR + "module OpenstudioStandards\nend\n")
+    return path
+
+
+def _common_measures(root, version='0.11.1'):
+    path = os.path.join(root, 'gems', f'openstudio-common-measures-{version}', 'lib', 'measures',
+                        'add_ems_emissions_reporting', 'measure.rb')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    open(path, 'w').write('    building = model.getBuilding\n' + P._EMS_AREA + '    ems_prgm = 1\n')
+    return path
+
+
+def _articulation(root, version='0.11.1'):
+    """openstudio-model-articulation's story blend measure, iterating spaces in handle order (2026-10-07)."""
+    path = os.path.join(root, 'gems', f'openstudio-model-articulation-{version}', 'lib', 'measures',
+                        'blended_space_type_from_model', 'measure.rb')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    open(path, 'w').write('before\n' + P._TYPE_SPACE_TYPES + 'middle\n' + P._STORY_SPACES + 'after\n')
+    return path
 
 
 def _geojson(root, version='1.0.1', moved=False):
@@ -181,3 +207,55 @@ def test_a_collapsed_core_or_untiled_split_keeps_the_floor_whole(tmp_path, capsy
     assert "core_area.get < 0.1 * floor_area.get" in rb and rb.count('return [floor_print]') == 2
     assert 'does not tile the floor' in rb and rb.rstrip().endswith('return result\nafter')
 
+
+
+def test_story_blends_iterate_in_name_order(tmp_path, capsys):
+    """OpenStudio returns spaces and space types in random handle order: the blend's tie between equal-area space
+    types (which picks the thermostat and HVAC) went either way from run to run (Teton 17126, 2026-10-07)."""
+    lib = _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    blend = open(os.path.join(lib, 'create_typical', 'space_type_blend.rb')).read()
+    assert blend.count('space_types.sort.each do |space_type|') == 2
+    assert 'space_array.concat(space_type.spaces.sort)' in blend and 'space_type.spaces.sort.each do |space|' in blend
+    measure = open(os.path.join(str(tmp_path), 'gems', 'openstudio-model-articulation-0.11.1', 'lib', 'measures',
+                                'blended_space_type_from_model', 'measure.rb')).read()
+    assert 'story.spaces.sort.each do |space|' in measure and 'model.getSpaceTypes.sort.each do |space_type|' in measure
+    assert P._STORY_SPACES not in measure
+    capsys.readouterr()
+    P.main([str(tmp_path)])
+    assert measure == open(os.path.join(str(tmp_path), 'gems', 'openstudio-model-articulation-0.11.1', 'lib',
+                                        'measures', 'blended_space_type_from_model', 'measure.rb')).read()
+
+
+def test_openstudio_standards_installs_the_name_order_shim(tmp_path):
+    """Plural model getters and unordered relationship lists return objects in name order once openstudio-standards
+    loads (an infiltration schedule from the first air loop and F-factor floors shared by name, 2026-10-07)."""
+    _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    main = open(_main_file_path(tmp_path)).read()
+    assert main.count('module PowertwinDeterministicOrder') == 1 and 'PowertwinDeterministicOrder.install' in main
+    assert main.index(P._ORDER_SHIM_ANCHOR) < main.index('PowertwinDeterministicOrder') < main.index('module OpenstudioStandards')
+    P.main([str(tmp_path)])
+    assert open(_main_file_path(tmp_path)).read() == main
+
+
+def _main_file_path(tmp_path):
+    return os.path.join(str(tmp_path), 'gems', 'openstudio-standards-0.7.1', 'lib', 'openstudio-standards.rb')
+
+
+def test_outlier_zone_sort_is_stable_across_runs(tmp_path):
+    """Near-equal zone values (same space type) differ in the last digit from run to run; the sort used to pick the
+    primary zones, and so the air-loop creation order, followed that noise (2026-10-07)."""
+    lib = _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    src = open(os.path.join(lib, 'standards', 'Standards.Model.rb')).read()
+    assert P._OUTLIER_SORT not in src and "[hsh[key_to_inspect].round(9), hsh['zone'].name.get.to_s]" in src
+
+
+def test_emissions_floor_area_is_rounded(tmp_path):
+    """building.floorArea's last digit followed OpenStudio's random summation order into the EMS program (2026-10-08)."""
+    _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    rb = open(os.path.join(str(tmp_path), 'gems', 'openstudio-common-measures-0.11.1', 'lib', 'measures',
+                           'add_ems_emissions_reporting', 'measure.rb')).read()
+    assert P._EMS_AREA not in rb and 'floor_area = (building.floorArea * 10.764).round(6)' in rb
