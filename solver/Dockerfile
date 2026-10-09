@@ -1,4 +1,9 @@
-FROM nrel/openstudio:3.9.0
+# Two images from one file (2026-10-09): the default target (the last stage, `full`) is the solver with the fast
+# estimate; `--target benchmark --build-arg APP_BASE=deps-core` is the frozen benchmark image: no surrogate package,
+# serving module or ML dependencies, no demo data or logs, and the Teton weather files baked in (see the stage).
+ARG APP_BASE=deps-full
+
+FROM nrel/openstudio:3.9.0 AS base
 ARG OPENSTUDIO_VERSION=3.9.0
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -74,10 +79,14 @@ RUN python3 /tmp/patch_openstudio_standards.py && rm /tmp/patch_openstudio_stand
 # Final verification that uo is in PATH
 RUN which uo && uo --version
 
+FROM base AS deps-core
+
+FROM base AS deps-full
 # Fast estimate (surrogate serving) dependencies, before the code copy so a code change does not reinstall them
 COPY ./requirements-surrogate.txt /solver/requirements-surrogate.txt
 RUN pip install -r requirements-surrogate.txt
 
+FROM ${APP_BASE} AS app
 # Copy application code and set environment variables
 COPY . .
 # The county reference tables are Git LFS objects pinned by county_tables.sha256. Refuse to build without them:
@@ -100,6 +109,25 @@ RUN python3 ./patches/patch_district_meters.py
 # Install the solver package
 RUN pip install -e ./app
 
+# Frozen benchmark image (powertwin-solver-benchmark): the solver without the fast estimate, offline for Teton.
+# build: docker build --target benchmark --build-arg APP_BASE=deps-core --build-arg GIT_SHA=<sha>
+#        --build-context teton_weather=<dir with the stations in benchmark/teton_weather.sha256> solver
+FROM app AS benchmark
+RUN rm -f app/modules/simulation/surrogate_serving.py requirements-surrogate.txt && \
+    rm -rf upload/demo_data .pytest_cache app/.pytest_cache && \
+    find /solver -name '*.log' -path '*/logs/*' -delete && \
+    find /solver -name __pycache__ -prune -exec rm -rf {} + && \
+    ! python3 -c 'import xgboost' 2>/dev/null && ! python3 -c 'import numba' 2>/dev/null
+# The weather files of every Teton building's station, checksummed: a run needs no download (simulate.sh runs
+# with no network). The headless runner seeds its weather_files from this cache.
+COPY --from=teton_weather . /solver/app/urbanopt/weather_files/
+RUN cd /solver/app/urbanopt/weather_files && sha256sum -c --quiet /solver/benchmark/teton_weather.sha256
+RUN chown -R 1000:1000 /solver && chmod +x /solver/entrypoint.sh
+ENTRYPOINT ["/solver/entrypoint.sh"]
+EXPOSE 8080
+CMD ["python3", "run.py"]
+
+FROM app AS full
 # The fast estimate (surrogate serving, modules/simulation/surrogate_serving.py) imports the surrogate package from
 # the named build context "surrogate" (docker build --build-context surrogate=./surrogate, compose
 # additional_contexts). It sits beside a /solver symlink so its ../../../../solver paths resolve as in a checkout.

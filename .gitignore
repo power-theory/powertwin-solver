@@ -29,3 +29,6 @@ postgres_data
 *.log
 .claude
 CLAUDE.md
+
+# the solver's local weather cache: downloaded on demand, never committed (2026-10-09)
+solver/app/urbanopt/weather_files/

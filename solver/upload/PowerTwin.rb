@@ -831,7 +831,7 @@ module URBANopt
                 # bonus area ABOVE the footprint, shrinking it; conditioned
                 # basements change the divisor; fail iff garage_width >= length =
                 # sqrt(footprint * aspect). The old sqrt estimates disagreed with
-                # this in BOTH directions and caused 98% of one stock's gml arm
+                # this in BOTH directions and caused 98% of an earlier run's
                 # failures (dangling garage refs + hard rejects). An identical
                 # predicate can only prevent guaranteed crashes, so it applies to
                 # BOTH the donor and legacy paths.
@@ -891,7 +891,7 @@ module URBANopt
                 # Positivity, not presence: the measure only builds a garage when
                 # width * depth > 0 (BuildResidentialHPXML measure.rb has_garage),
                 # and a dropped garage leaves width 0.0 in args, which present?
-                # accepts. Every residual failure of one stock's fix arm was a 0.0-width
+                # accepts. Every residual failure (1,952) of an earlier run was a 0.0-width
                 # home with garage-located ducts and no garage surfaces.
                 has_garage = args[:geometry_garage_width].to_f * args[:geometry_garage_depth].to_f > 0
                 allowed = ['conditioned space']
@@ -944,7 +944,7 @@ module URBANopt
                   args[:water_heater_type] = wh_type
                   if wh_type == 'heat pump water heater'
                     # HPXML requires EnergyFactor/UEF > 1 for HPWH and the SEER-era
-                    # defaults fail the build (26 failures in one stock's gml arm). 3.45 UEF =
+                    # defaults fail the build (26 failures in an earlier run). 3.45 UEF =
                     # ResStock 2024.2's sole HPWH label ('Electric Heat Pump, 50
                     # gal, 3.45 UEF').
                     args[:water_heater_efficiency_type] = 'UniformEnergyFactor'

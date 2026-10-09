@@ -1948,7 +1948,7 @@ PROTOTYPE_TYPICAL_STORY_FT = {
 URBANOPT_ZONING_STORY_FT = 3.6 / 0.3048
 # ComStock 2024.1 (baseline.parquet, 346,185 buildings) samples no building under 1,000 ft2 (min in.sqft is 1,000 for
 # every type) and has no Vacant type; the typical story is a property of the prototypes it builds, not of a shed.
-# The floor-fit run gave Vacant (built as the Warehouse prototype) 28 ft stories on one utility stock's buildings with a
+# The floor-fit run gave Vacant (built as the Warehouse prototype) 28 ft stories on 10,073 buildings of another collection with a
 # median 382 ft2 a story, and 7 sheds of 79 to 415 ft2 failed in EnergyPlus (2026-09-30).
 PROTOTYPE_STORY_MIN_SQFT = 1000.0
 PROTOTYPE_STORY_EXCLUDED_TYPES = ('Vacant',)

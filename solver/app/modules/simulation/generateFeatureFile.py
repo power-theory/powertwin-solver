@@ -240,7 +240,7 @@ _WGS84_E2 = (1 / WGS84_INV_F) * (2 - 1 / WGS84_INV_F)
 # getOutwardNormal, and a floor print that is not a polygon fails the building ("Failed to create building spaces")
 ZONING_MERGE_TOL_M = 1.0
 # A footprint within this relative area of its target is simulated as mapped. The stock's metadata area and the
-# outline measured as OpenStudio projects it differ only by measurement: Teton within 0.12%, a second stock systematically higher
+# outline measured as OpenStudio projects it differ only by measurement: Teton within 0.12%, another collection 0.15% to 0.68%
 # (a systematic projection offset; p99.5 0.68%), natv3 within 0.5% bar the rows whose area came from another
 # source (2026-09-28). Below 1% the mapped outline, and the stock results, stay byte-identical.
 AREA_FIT_TOL = 0.01
@@ -780,7 +780,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
                 if cz_num and cz_num <= 3:
                     foundation = 'slab'
         # BuildResidentialHPXML rejects >6 above-grade floors outright (22 tall
-        # structures classified residential crashed in one stock's gml arm); clamp with the
+        # structures classified residential crashed in an earlier run); clamp with the
         # real floor count preserved in metadata for area/occupant math upstream.
         new_properties.update({
             "number_of_stories_above_ground": min(int(floor_count or 1), 6),

@@ -48,6 +48,20 @@ _SIM_NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,199}$')
 _SIM_NAME_LOOKUP_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,254}$')
 
 
+URBANOPT_MODEL_TYPE_ID = 1   # the db's sensor_logs_pred_model_types id for URBANopt (surrogate_serving keeps the same)
+
+
+def fast_estimate_module():
+    """modules.simulation.surrogate_serving, or None in a build without the fast estimate (the frozen benchmark image
+    leaves out the surrogate and its serving module, 2026-10-09): URBANopt requests still run, fast-estimate ones get
+    a 503 instead of an ImportError."""
+    try:
+        from modules.simulation import surrogate_serving
+    except ImportError:
+        return None
+    return surrogate_serving
+
+
 def _valid_sim_name(name, creating=True) -> bool:
     if not isinstance(name, str) or not (_SIM_NAME_RE if creating else _SIM_NAME_LOOKUP_RE).fullmatch(name):
         return False
@@ -426,14 +440,17 @@ def process_asset_update():
         # sensor_logs_pred_model_types id. Absent or 1 is URBANopt, as before; the fast-estimate id runs the
         # surrogate on the same metadata and geometry. Anything else is refused, and a fast estimate this solver
         # cannot serve (no model, or one trained for another schema / resolver / year) is a 503, never URBANopt.
-        from modules.simulation import surrogate_serving as SS
+        SS = fast_estimate_module()
         raw_model = request_data.get('model_type_id')
         try:
-            model_type_id = SS.URBANOPT_MODEL_TYPE_ID if raw_model in (None, '') else int(raw_model)
+            model_type_id = URBANOPT_MODEL_TYPE_ID if raw_model in (None, '') else int(raw_model)
         except (TypeError, ValueError):
             return jsonify({'error': f'invalid model_type_id {raw_model!r}'}), 400
         surrogate_meta = None
-        surrogate_id = SS.surrogate_model_type_id()
+        if SS is None and model_type_id != URBANOPT_MODEL_TYPE_ID:
+            return jsonify({'error': 'fast estimate unavailable',
+                            'details': 'this build carries no fast estimate (URBANopt only)'}), 503
+        surrogate_id = SS.surrogate_model_type_id() if SS is not None else None
         if surrogate_id is not None and model_type_id == surrogate_id:
             # the fast estimate is hourly: a coarser reporting_frequency without a datelevel becomes the matching
             # resample (URBANopt would report at that frequency natively); a finer one cannot be served
@@ -447,7 +464,7 @@ def process_asset_update():
                 surrogate_meta = SS.precheck()
             except SS.SurrogateUnavailable as e:
                 return jsonify({'error': 'fast estimate unavailable', 'details': str(e)}), 503
-        elif model_type_id != SS.URBANOPT_MODEL_TYPE_ID:
+        elif model_type_id != URBANOPT_MODEL_TYPE_ID:
             return jsonify({'error': f'unknown model_type_id {model_type_id}'}), 400
 
         logger.info(f"Accepted async simulation {simulation_name} for asset {asset_id} (model {model_type_id})")
