@@ -505,3 +505,17 @@ must carry the `NOTICE` file, which credits the URBANopt, OpenStudio, EnergyPlus
 ComStock components vendored or transcribed here under their BSD-style licenses. Building-stock data
 processed by the solver carries its own terms (ODbL for OpenStreetMap and Overture derivatives); see
 the powertwin-flow project.
+
+## Citation
+
+If you use PowerTwin-Solver in your work, please cite it as:
+
+```bibtex
+@software{powertheory2026powertwinsolver,
+  author  = {{Power Theory Inc.}},
+  title   = {{PowerTwin-Solver}: uncalibrated urban building energy models from footprints and metadata with URBANopt, OpenStudio and EnergyPlus},
+  year    = {2026},
+  version = {1.6},
+  url     = {https://github.com/power-theory/powertwin-solver}
+}
+```
