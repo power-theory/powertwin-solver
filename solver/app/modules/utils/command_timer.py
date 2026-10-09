@@ -30,7 +30,10 @@ def uo_timeout(cap=None):
 #   descendant: the command runs in its own session so killpg reaps the whole tree (a plain
 #   subprocess timeout kills only the direct shell and orphans the grandchildren).
 ############################################################################################################
-def run_command(command, timeout=None):
+def run_command(command, timeout=None, capture=False):
+    """Run a shell command in its own process group; return its wall time in seconds, or with capture=True
+    (elapsed, stdout, stderr). A non-zero exit raises CalledProcessError, a timeout TimeoutExpired (both carry
+    the output)."""
     start_time = time.time()
     # Pass per-sim thread-local flags explicitly (URBANOPT_* / POWERTWIN_KEEP_DIRS)
     # instead of relying on inherited process env, so concurrent sims each hand the
@@ -60,4 +63,6 @@ def run_command(command, timeout=None):
         raise subprocess.CalledProcessError(proc.returncode, command, stdout, stderr)
     logger.info(f"Command '{command}' executed successfully.")
     logger.info(f"Output: {stdout}")
+    if capture:
+        return end_time - start_time, stdout, stderr
     return end_time - start_time

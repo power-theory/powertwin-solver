@@ -93,9 +93,63 @@ def create_scenario_file(FEATURE_FILE_JSON, MAPPER_FILE, SCENARIO_FILE_CSV):
 #   the feature file and the scenario file. The simulation is processed and the metadata is cleaned.
 #   The total time is calculated and the metadata is updated in the database.
 ############################################################################################################
+############################################################################################################
+# Transient failures: a building's simulation is retried, from a clean run dir, when OpenStudio or EnergyPlus died
+# from a crash rather than from the model. A native heap-corruption abort ("malloc(): unaligned tcache chunk
+# detected ... Aborted (core dumped)") lost one residential Teton building in about 100,000 local simulations
+# (2026-10-08) and reran clean; `uo run` itself exits 0 then, so the only trace is a missing feature report and the
+# crash text in its output. Model errors (EnergyPlus fatals, measure exceptions) fail the same way every time and
+# are not retried; neither are timeouts or stop requests. Simulations are deterministic (patch_openstudio_standards
+# item 6), so a retried building gives the numbers an uninterrupted run gives.
+############################################################################################################
+import re as _re
+
+TRANSIENT_ATTEMPTS = 3
+_TRANSIENT = _re.compile(r"malloc\(\)|double free|free\(\): invalid|corrupted (?:size|double-linked|top size)"
+                         r"|core dumped|Segmentation fault|Bus error|SIGSEGV|SIGABRT|SIGBUS|std::bad_alloc"
+                         r"|Cannot allocate memory|Out of memory|Killed process", _re.IGNORECASE)
+_MODEL_ERROR = _re.compile(r"\*\*\s*Fatal\s*\*\*|EnergyPlus Terminated--Fatal Error", _re.IGNORECASE)
+
+
+def transient_failure(text):
+    """The crash signature in a failed run's output, or None when it does not look transient (no crash
+    signature, or an EnergyPlus fatal error, which a rerun repeats)."""
+    if not text or _MODEL_ERROR.search(text):
+        return None
+    m = _TRANSIENT.search(text)
+    return m.group(0) if m else None
+
+
+def run_with_transient_retries(run, report_path, asset_run_dir, stopped=lambda: False, attempts=None,
+                               on_retry=None):
+    """run() -> (elapsed, stdout, stderr), raising CalledProcessError on a non-zero exit. Returns the elapsed time
+    of the attempt that produced report_path. A failed attempt (non-zero exit or no report) whose output carries a
+    transient signature is retried after removing asset_run_dir, up to `attempts` in all; otherwise the failure
+    is left to the caller: the exception is re-raised, or the missing report surfaces when the report is cleaned."""
+    attempts = attempts or TRANSIENT_ATTEMPTS
+    for attempt in range(1, attempts + 1):
+        error = None
+        try:
+            elapsed, out, err = run()
+        except subprocess.CalledProcessError as e:
+            error, elapsed, out, err = e, None, e.stdout, e.stderr
+        if error is None and os.path.exists(report_path):
+            return elapsed
+        signature = transient_failure(f"{out or ''}\n{err or ''}")
+        if attempt < attempts and signature and not stopped():
+            if on_retry:
+                on_retry(attempt, signature)
+            shutil.rmtree(asset_run_dir, ignore_errors=True)
+            continue
+        if error is not None:
+            raise error
+        return elapsed
+
+
 def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, simulation_name):
     from modules.diagnostics import update_time, get_weather
     
+    SIM_ROOT = SIMULATION_DIR   # the simulation's own dir, where a stop request is recorded
     feature_start_time = time.time()
     
     feature_file_name = os.path.basename(FEATURE_FILE_JSON)
@@ -235,8 +289,22 @@ def run_uosimulation(SIMULATION_DIR,LOCAL_DIR,FEATURE_FILE_JSON, batch_index, si
             logger.error(f"BATCH {batch_index}: UrbanOpt CLI discovery failed: {e}")
             raise
 
-        uo_run_time = run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}",
-                                  timeout=uo_timeout())
+        def _note_retry(attempt, signature):
+            logger.warning(f"BATCH {batch_index}: TRANSIENT RETRY {asset_id}: attempt {attempt} of "
+                           f"{TRANSIENT_ATTEMPTS} crashed ({signature}); rerunning from a clean run dir")
+            try:
+                with open(os.path.join(LOCAL_DIR, 'transient_retries.log'), 'a') as fh:
+                    fh.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}\t{asset_id}\t{attempt}\t{signature}\n")
+            except OSError:
+                pass
+
+        uo_run_time = run_with_transient_retries(
+            lambda: run_command(f"{uo_cmd} run --scenario {SCENARIO_FILE_CSV} --feature {FEATURE_FILE_JSON}",
+                                timeout=uo_timeout(), capture=True),
+            os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_index}', str(asset_id),
+                         'feature_reports', 'default_feature_report.csv'),
+            os.path.join(SIMULATION_DIR, 'run', f'powertwin_scenario_{batch_index}', str(asset_id)),
+            stopped=lambda: stop_requested(SIM_ROOT), on_retry=_note_retry)
 
         logger.info(f"BATCH {batch_index}: Processing UrbanOpt simulation for: {asset_id}")
         # `uo process` runs the scenario-level post-processor (urbanopt-reopt
