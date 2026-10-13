@@ -23,7 +23,11 @@ MAN=$P/$COLLECTION_ID/upload/${SIMULATION_NAME}_resolved_inputs.json
 STOCH=False; [ "${URBANOPT_STOCHASTIC_SAMPLING:-false}" = true ] && STOCH=True
 mkdir -p "$OUT"
 echo "[$(date '+%F %T')] collect $SIMULATION_NAME -> $OUT (stochastic $STOCH, repo $REPO_COPY: $(cat "$REPO_COPY/REVISION" 2>/dev/null))"
-apptainer exec --bind "$P" --bind "$REPO_COPY:/work" --env PYTHONPATH=/work/surrogate \
+# resolver 3.3 derives a missing county_fips from the county polygons with shapely (1b6e3fa), which collect.sif
+# lacks: shapely 2.0.7 (the solver image's pin) for its Python 3.10 sits in COLLECT_PYLIB (2026-10-06)
+PYLIB=${COLLECT_PYLIB:-$P/shared/pylib_collect_py310}
+[ -d "$PYLIB/shapely" ] || { echo "no shapely in $PYLIB (pip install --target it with collect.sif's python)"; exit 2; }
+apptainer exec --bind "$P" --bind "$REPO_COPY:/work" --env PYTHONPATH="$PYLIB:/work/surrogate" \
   --env URBANOPT_SIMULATION_YEAR="${URBANOPT_SIMULATION_YEAR:-2026}" "$P/shared/sif_containers/collect.sif" python3 - <<PY
 import time
 from app.modules.data.collector import collect, make_osw_weather_resolver

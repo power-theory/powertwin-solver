@@ -52,3 +52,4 @@ def test_collect_post_refuses_an_arm_it_cannot_collect():
     col = open(os.path.join(REPO, "apptainer", "ops", "collect-surrogate.sh")).read()
     assert 'STOCH=False; [ "${URBANOPT_STOCHASTIC_SAMPLING:-false}" = true ] && STOCH=True' in col
     assert "stochastic=$STOCH" in col and '--bind "$REPO_COPY:/work"' in col
+    assert 'PYTHONPATH="$PYLIB:/work/surrogate"' in col   # shapely for the resolver's county lookup
