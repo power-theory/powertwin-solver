@@ -19,4 +19,11 @@ ComStock parquets and stamps `_source` provenance), rewrite the pins with
 `cd solver/upload/reference_data && sha256sum *.json.gz comstock2024_state_code_adoption.json comstock_lighting_lpd.json insulation_presets.json > county_tables.sha256` (the three plain-JSON resolver 3.3 tables are pinned too, since 2026-10-03), and commit the tables and the pins
 together. A new table also goes in the resolver's required list (`sim_params_spec`, the import-time guard).
 
+Since resolver 3.4 (2026-10-11, County Prior Pooling Plan) the builders pool every table: each area's cell is blended
+toward its parent area's (state toward division, PUMA toward state, county toward its PUMA or its state) with a strength
+k estimated per table, tier and part from the source data, and a part with no signal beyond sampling noise ships no
+cells at that tier (the resolver walks to the parent). Each table's `_pooling` block records rho, the shuffled-label null, k and the cells
+used; a state tier (`_states`, `state_ref`) sits between PUMA and division. Method, citations and tests:
+`tests/assumptions_ledger.yaml` (COUNTY_POOLING) and `tests/tools/build_county_priors.py`.
+
 They live HERE, not under tests/, because `_load_ref` and the docker image COPY read this directory.

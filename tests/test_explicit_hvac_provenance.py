@@ -15,8 +15,11 @@ os.environ.setdefault("POWERTWIN_LOG_DIR", "/tmp")
 from modules.simulation import generateFeatureFile as G  # noqa: E402
 
 # Pilot home 15000 (Teton, 1993, 861 sq ft): the county donor is an electric wall furnace, no ducts.
-WALL_FURNACE_HOME = {"county_fips": "56039", "state": "WY", "year_built": 1993, "area": 860.6,
-                     "floor_count": 1, "latitude": 43.477666, "longitude": -110.75584}
+# A house whose hosted-mode heating donor is a ductless wall furnace. Teton (56039) was until resolver 3.4 pooled the
+# county tables: its county cell no longer overrides its PUMA, whose modal donor is a ducted furnace. McKinley County,
+# NM (Gallup) keeps a wall furnace at the PUMA, state and division blend.
+WALL_FURNACE_HOME = {"county_fips": "35031", "state": "NM", "year_built": 1993, "area": 860.6,
+                     "floor_count": 1, "latitude": 35.528, "longitude": -108.742}
 
 
 def _props(metadata, bid="15000"):
@@ -58,7 +61,7 @@ def test_repicking_the_resolved_heating_type_changes_nothing(hosted):
     base = _props(WALL_FURNACE_HOME)
     # the path under test is live: the donor gives this house a detail and an electric fuel
     assert (base["heating_system_type"], base.get("heating_equipment_detail"), base["heating_system_fuel_type"]) == \
-        ("furnace", "WallFurnace", "electricity")
+        ("furnace", "WallFurnace", "wood")
     repick = _props({**WALL_FURNACE_HOME, "heating_system_type": base["heating_system_type"]})
     assert repick == base  # detail, ducts, fuels and explicit_params all as unedited
 

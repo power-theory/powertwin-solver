@@ -36,11 +36,22 @@ def test_table_2_is_the_reports_table():
     assert lpd["Warehouse"]["gen1"] == 0.83 and lpd["RetailStripmall"]["gen4"] == 0.64
 
 
-@pytest.mark.parametrize("bt,want", [("Office", (0.79, "gen2_t8_halogen", "county_division")),
-                                     ("Strip shopping mall", (0.64, "gen4_led", "county_county")),
-                                     ("Nonrefrigerated warehouse", (0.4, "gen2_t8_halogen", "county_division"))])
+# Resolver 3.4 (pooled tables): ComStock's lighting generation has no county signal within a state, so the county
+# cells are not shipped and Teton reads Wyoming's cell blended toward Mountain North. Wyoming's strip malls are a close
+# split (gen1 0.381, gen2 0.355), so their mode is gen1; pooling removes sampling noise, not a genuine near-tie.
+@pytest.mark.parametrize("bt,want", [("Office", (0.79, "gen2_t8_halogen", "county_state")),
+                                     ("Strip shopping mall", (1.59, "gen1_t12_incandescent", "county_state")),
+                                     ("Nonrefrigerated warehouse", (0.4, "gen2_t8_halogen", "county_state"))])
 def test_teton_goldens_take_the_modal_generation_in_hosted_mode(bt, want):
     assert light(bt) == want
+
+
+def test_maricopa_large_hotel_takes_arizonas_t8_not_a_county_tie():
+    """The ASU finding (2026-10-11): Maricopa's 18 sampled large hotels tied gen1 7 to gen2 7 and the alphabetical
+    tie-break gave every dorm 1.31 W/ft2; Arizona (pooled toward Mountain South) is clearly gen2."""
+    ctx = S.build_asset_ctx({"state": "AZ", "county_fips": "04013", "year_built": 2003, "area": 300000,
+                             "floor_count": 7}, building_type="Lodging")
+    assert S.resolve_lighting(ctx) == (0.8, "gen2_t8_halogen", "county_state")
 
 
 @pytest.mark.parametrize("case", ["dd_off", "house", "no_comstock_type"])
@@ -54,7 +65,7 @@ def test_no_lpd_leaves_the_old_path(monkeypatch, case):
 def test_stochastic_draws_follow_the_county_shares(monkeypatch):
     monkeypatch.setenv("URBANOPT_STOCHASTIC_SAMPLING", "true")
     gens = {light("Strip shopping mall", building_id=str(i))[1] for i in range(200)}
-    assert gens == {"gen1_t12_incandescent", "gen2_t8_halogen", "gen4_led"}        # Teton's county cell, 21 buildings
+    assert gens == {"gen1_t12_incandescent", "gen2_t8_halogen", "gen3_t5_cfl", "gen4_led", "gen5_led"}  # Wyoming
 
 
 def test_workflow_and_mapper_apply_it_and_keep_the_vacant_cut():

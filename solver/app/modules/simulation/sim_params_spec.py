@@ -34,7 +34,7 @@ log = logging.getLogger('Generate Feature Files')
 # Bump when resolver logic or reference data changes.
 # Stamped into feature.json so results are traceable to the model that produced them.
 # push.sh syncs this to the README header automatically.
-RESOLVER_VERSION = '3.3'  # 3.3: a commercial building's interior lighting LPD comes from its ComStock lighting generation (resolve_lighting) and its template (construction and HVAC) follows its state's energy-code adoption years from ComStock 2024.1 (resolved_templates), California on DEER with its CEC zone, and a county-drawn 'Residential forced air furnace' builds as ComStock's unventilated furnace (MEASURE_NATIVE_SYSTEMS; system_type is CONFIRMABLE); 3.2: an explicit floor_height is a house's ceiling height and a saved wall/roof_material is ignored (RETIRED_INPUT_FIELDS); 3.1: an explicit heating_system_type or water_heater_type equal to the unset default only confirms it (CONFIRMABLE_FIELDS); 3.0: CR review fixes
+RESOLVER_VERSION = '3.4'  # 3.4: the county tables are pooled (County Prior Pooling Plan): every cell blended toward its parent area with a per-table strength estimated from the source data, a state tier between PUMA and division, and tiers with no signal beyond sampling noise not shipped (residential county cells; commercial lighting, hours and thermostat county cells); a surrogate trained on 3.3 defaults is refused until retrained; 3.3: a commercial building's interior lighting LPD comes from its ComStock lighting generation (resolve_lighting) and its template (construction and HVAC) follows its state's energy-code adoption years from ComStock 2024.1 (resolved_templates), California on DEER with its CEC zone, and a county-drawn 'Residential forced air furnace' builds as ComStock's unventilated furnace (MEASURE_NATIVE_SYSTEMS; system_type is CONFIRMABLE); 3.2: an explicit floor_height is a house's ceiling height and a saved wall/roof_material is ignored (RETIRED_INPUT_FIELDS); 3.1: an explicit heating_system_type or water_heater_type equal to the unset default only confirms it (CONFIRMABLE_FIELDS); 3.0: CR review fixes
 
 _REF_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'upload', 'reference_data'
@@ -57,16 +57,20 @@ def _load_ref(name: str) -> dict:
 
 
 def _county_prior(ref_name: str, county_fips):
-    """CR campaign (WP-00): three-tier county prior lookup with sample-floor fallback.
+    """CR campaign (WP-00): tiered county prior lookup with sample-floor fallback.
 
-    Tables built by tests/tools/build_county_priors.py carry, PER COUNTY, three
-    precomputed cells (county / puma-union / division) plus their raw sample sizes,
-    and a `_floors` block set by the builder (owner-ratified: residential 30,
-    commercial 10; division always serves). County->PUMA is many-to-many, so the
+    Tables built by tests/tools/build_county_priors.py carry, PER COUNTY, its cells
+    (county / puma-union / state / division) plus their raw sample sizes, and a
+    `_floors` block set by the builder (owner-ratified: residential 30, commercial
+    10; state and division always serve). County->PUMA is many-to-many, so the
     puma cell is the union of rows in every PUMA intersecting the county,
     precomputed at build time - no geographic mapping ships to the resolver.
+    Since 2026-10-11 (County Prior Pooling Plan) every cell is already blended
+    toward its parent at build time, and a tier with no signal beyond sampling
+    noise is not shipped (e.g. residential county cells, which add nothing to the
+    PUMA, and commercial lighting, hours and thermostat county cells).
 
-    Returns (cell_dict, tier_name) where tier_name is 'county' | 'puma' |
+    Returns (cell_dict, tier_name) where tier_name is 'county' | 'puma' | 'state' |
     'division', or (None, None) when the county is unknown to the table.
     """
     for cell, tier in _county_prior_tiers(ref_name, county_fips):
@@ -75,7 +79,7 @@ def _county_prior(ref_name: str, county_fips):
 
 
 def _county_prior_tiers(ref_name: str, county_fips):
-    """Yield every (cell, tier) meeting its floor, county -> puma -> division.
+    """Yield every (cell, tier) meeting its floor, county -> puma -> state -> division.
     Consumers whose cells are sub-keyed (e.g. commercial hours keyed by building
     type inside each tier, WP-C1) walk this until a tier actually carries their
     sub-key; plain consumers take the first yield via _county_prior."""
@@ -100,6 +104,9 @@ def _county_prior_tiers(ref_name: str, county_fips):
         cell = None
     if cell and cell.get('_n', 0) >= floors.get('puma', 1):
         yield (cell, 'puma')
+    cell = table.get('_states', {}).get(entry.get('state_ref', ''))
+    if cell and cell.get('_n', 0) >= floors.get('state', 1):
+        yield (cell, 'state')
     cell = table.get('_divisions', {}).get(entry.get('division_ref', ''))
     if cell and cell.get('_n', 0) >= floors.get('division', 1):
         yield (cell, 'division')
@@ -827,7 +834,7 @@ def build_asset_ctx(metadata: dict, building_type: str | None = None,
 #   flat_default       - resolver returned None; caller will use
 #                        SIM_PARAM_DEFAULTS[field]. Emitted by the preview
 #                        endpoint, not by the internal resolvers.
-FALLBACK_LEVELS = ('county_acs', 'county_county', 'county_puma', 'county_division', 'division_vintage', 'division_all', 'vintage_specific', 'region_all', 'building_type_only', 'flat_default')
+FALLBACK_LEVELS = ('county_acs', 'county_county', 'county_puma', 'county_state', 'county_division', 'division_vintage', 'division_all', 'vintage_specific', 'region_all', 'building_type_only', 'flat_default')
 
 
 def _doe_ref_name(building_type: str | None, ctx: dict | None = None) -> str | None:

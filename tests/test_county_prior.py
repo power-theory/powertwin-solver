@@ -27,10 +27,13 @@ TABLE = {
                    "division_ref": "D"},
         "56002": {"county": {"_n": 2, "v": "county-val"},
                    "puma_union_ref": "P1|P2", "division_ref": "D"},
+        "56003": {"county": {"_n": 1, "v": "county-val"},
+                   "state_ref": "56", "division_ref": "D"},
     },
     "_pumas": {"P1": {"_n": 220, "v": "puma-val"},
                 "P-thin": {"_n": 5, "v": "puma-val"}},
     "_puma_unions": {"P1|P2": {"_n": 300, "v": "union-val"}},
+    "_states": {"56": {"_n": 900, "v": "state-val"}},
     "_divisions": {"D": {"_n": 5000, "v": "div-val"}},
 }
 
@@ -57,6 +60,10 @@ def test_tier_walk_and_floor_boundaries(ref_dir):
     assert (tier, cell["v"]) == ("division", "div-val"), "thin puma -> referenced division"
     cell, tier = sps._county_prior("syn_table", "56001")
     assert (tier, cell["v"]) == ("division", "div-val"), "no puma ref -> division"
+    cell, tier = sps._county_prior("syn_table", "56003")
+    assert (tier, cell["v"]) == ("state", "state-val"), "thin county, no puma -> its state (pooled tables, 3.4)"
+    tiers = [t for _, t in sps._county_prior_tiers("syn_table", "56003")]
+    assert tiers == ["state", "division"]
     cell, tier = sps._county_prior("syn_table", "56002")
     assert (tier, cell["v"]) == ("puma", "union-val"), "multi-puma county -> union cell"
 
@@ -101,8 +108,9 @@ def test_builder_core_three_tier_and_cells():
     tiers = bcp.build_three_tier(
         df, lambda sub: bcp.share_cell(sub, "val"),
         county_col="county", puma_col="puma", division_col="division",
-        floors=bcp.RES_FLOORS)
+        floors=bcp.RES_FLOORS, pool=False)
     counties = tiers["counties"]
+    assert counties["56039"]["state_ref"] == "56" and tiers["_states"]["56"]["_n"] == 50
     # gisjoin normalization
     assert set(counties) == {"56039", "56011"}
     # county tier n and shares (residual folded into mode, sums to 1)
@@ -167,3 +175,142 @@ def test_county_fips_is_derived_offline_from_the_shipped_boundaries(monkeypatch)
     ctx = sps.build_asset_ctx({"latitude": 43.48, "longitude": -110.76, "state": "WY", "area": 2000},
                               building_type="Single-Family Detached")
     assert ctx["county_fips"] == "56039"
+
+
+# --- pooling (County Prior Pooling Plan, 2026-10-11) ----------------------------------------------------------------
+
+def _bcp():
+    sys.path.insert(0, os.path.join(REPO, "tests", "tools"))
+    import build_county_priors as bcp
+    return bcp
+
+
+def test_blend_limits_and_donor_weights():
+    bcp = _bcp()
+    child = {"mode": "a", "shares": {"a": 0.8, "b": 0.2}, "_n": 10}
+    parent = {"mode": "b", "shares": {"a": 0.3, "b": 0.6, "c": 0.1}, "_n": 1000}
+    near_child = bcp._blend_leaf(child, parent, 1e-9)
+    assert near_child["shares"] == {"a": 0.8, "b": 0.2} and near_child["_n"] == 10
+    near_parent = bcp._blend_leaf(child, parent, 1e9)
+    assert near_parent["shares"] == {"a": 0.3, "b": 0.6, "c": 0.1} and near_parent["mode"] == "b"
+    half = bcp._blend_leaf(child, parent, 10)          # n = k: the midpoint
+    assert half["shares"] == {"a": 0.55, "b": 0.4, "c": 0.05} and half["mode"] == "a"
+    dc = {"donors": [{"w": 1.0, "x": "1"}], "_n": 5}
+    dp = {"donors": [{"w": 0.5, "x": "1"}, {"w": 0.5, "x": "2"}], "_n": 500}
+    out = bcp._blend_leaf(dc, dp, 5)
+    w = {d["x"]: d["w"] for d in out["donors"]}
+    assert w == {"1": 0.75, "2": 0.25} and abs(sum(w.values()) - 1) < 1e-9
+
+
+def _leaf_from(rng, probs, n):
+    counts = rng.multinomial(n, probs)
+    return {"shares": {str(i): c / n for i, c in enumerate(counts) if c}, "_n": float(n)}
+
+
+@pytest.mark.parametrize("conc", [None, 20.0])
+def test_estimate_rho_recovers_the_between_area_share(conc):
+    """No signal: children are samples of the parent mix, rho ~ 0. Signal: each child's true mix is
+    Dirichlet(conc * pi), so rho = 1 / (conc + 1) ~ 0.048."""
+    import numpy as np
+    bcp = _bcp()
+    rng = np.random.default_rng(7)
+    pi = np.array([0.5, 0.3, 0.15, 0.05])
+    groups = []
+    for _ in range(40):
+        kids, rows = [], np.zeros(4)
+        for _ in range(25):
+            theta = pi if conc is None else rng.dirichlet(conc * pi)
+            n = int(rng.integers(10, 80))
+            counts = rng.multinomial(n, theta)
+            rows += counts
+            kids.append({"v": {"shares": {str(i): c / n for i, c in enumerate(counts) if c}, "_n": float(n)}})
+        parent = {"v": {"shares": {str(i): c / rows.sum() for i, c in enumerate(rows) if c}, "_n": float(rows.sum())}}
+        groups.append((parent, kids))
+    (part, (rho, m)), = bcp.estimate_rho(groups).items()
+    assert part == "|shares" and m == 1000
+    want = 0.0 if conc is None else 1 / (conc + 1)
+    assert abs(rho - want) < 0.01, rho
+
+
+def test_child_equal_to_parent_contributes_nothing():
+    """A residential county that is its whole PUMA (f = 1, no siblings) must not bias rho negative."""
+    bcp = _bcp()
+    leaf = {"v": {"shares": {"a": 0.7, "b": 0.3}, "_n": 50.0}}
+    assert bcp.estimate_rho([(leaf, [leaf])]) == {"|shares": (0.0, 1)}
+
+
+def _synthetic_stock(signal, seed=3):
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(seed)
+    rows = []
+    for st in ("56", "16", "30", "49"):
+        for c in range(30):
+            probs = rng.dirichlet([3, 2, 1]) if signal else [0.5, 0.3, 0.2]
+            vals = rng.choice(["a", "b", "c"], size=60, p=probs)
+            rows += [{"county": f"G{st}0{c:03d}0", "puma": f"P{st}", "division": "Mountain North", "val": v,
+                      "weight": 1.0} for v in vals]
+    return pd.DataFrame(rows)
+
+
+def test_pooling_drops_or_keeps_the_county_tier_by_signal():
+    bcp = _bcp()
+    floors = dict(bcp.COM_FLOORS)
+    fn = lambda sub: bcp.share_cell(sub, "val")
+    noise = bcp.build_three_tier(_synthetic_stock(False), fn, "county", "puma", "division", floors, include_puma=False)
+    pk = noise["_pooling"]["county"]["|shares"]
+    # counties are noise: a 60-building county keeps at most a small weight against its state's mix
+    assert pk["k"] is None or 60 / (60 + pk["k"]) < 0.25, pk
+    real = bcp.build_three_tier(_synthetic_stock(True), fn, "county", "puma", "division", floors, include_puma=False)
+    pk = real["_pooling"]["county"]["|shares"]
+    assert pk["k"] is not None and pk["k"] < 20, pk
+    raw = bcp.build_three_tier(_synthetic_stock(True), fn, "county", "puma", "division", floors, include_puma=False,
+                               pool=False)
+    for fips, e in real["counties"].items():
+        a, b = e["county"]["shares"], raw["counties"][fips]["county"]["shares"]
+        st = raw["_states"][e["state_ref"]]["shares"]
+        for x in b:                                         # every share moved toward the state's, never past it
+            lo, hi = sorted((b[x], st.get(x, 0.0)))
+            assert lo - 0.002 <= a.get(x, 0.0) <= hi + 0.002
+
+
+def test_pooled_build_is_reproducible():
+    bcp = _bcp()
+    fn = lambda sub: bcp.share_cell(sub, "val")
+    one = bcp.build_three_tier(_synthetic_stock(True), fn, "county", "puma", "division", bcp.COM_FLOORS,
+                               include_puma=False)
+    two = bcp.build_three_tier(_synthetic_stock(True), fn, "county", "puma", "division", bcp.COM_FLOORS,
+                               include_puma=False)
+    assert json.dumps(one, sort_keys=True) == json.dumps(two, sort_keys=True)
+
+
+def test_parts_get_their_own_k_and_a_dropped_part_walks_up():
+    """pv-like cell: a has_pv share with real state signal and a donor bundle with none. One k for the table let the
+    bundle swamp the share (resolver 3.4 review, 2026-10-11); each part is estimated and pooled on its own."""
+    import numpy as np
+    import pandas as pd
+    bcp = _bcp()
+    rng = np.random.default_rng(5)
+    rows = []
+    for st, p_yes in zip((f"{i:02d}" for i in range(10, 30)), np.linspace(0.02, 0.30, 20)):
+        for c in range(6):
+            for _ in range(60):
+                rows.append({"county": f"G{st}0{c:03d}0", "puma": f"P{st}", "division": "Mountain North",
+                             "has": "Yes" if rng.random() < p_yes else "No", "sz": str(rng.integers(1, 4)),
+                             "weight": 1.0})
+    df = pd.DataFrame(rows)
+
+    def fn(sub):
+        yes = sub[sub["has"] == "Yes"]
+        cell = {"has_pv": bcp.share_cell(sub, "has")}
+        if len(yes) >= 5:
+            cell["sys"] = bcp.donor_cell(yes, ["sz"])
+        return cell
+
+    t = bcp.build_three_tier(df, fn, "county", "puma", "division", bcp.COM_FLOORS, include_puma=False)
+    st = t["_pooling"]["state"]
+    assert st["|shares"]["k"] is not None and st["|shares"]["k"] < 50, st
+    assert st["|donors"]["k"] is None or st["|donors"]["k"] > st["|shares"]["k"] * 3, st
+    if st["|donors"]["k"] is None:                       # dropped: the state cell keeps has_pv only
+        assert all("sys" not in c for c in t["_states"].values())
+        assert all("has_pv" in c for c in t["_states"].values())

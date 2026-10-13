@@ -20,7 +20,7 @@
 # =============================================================================
 
 meta:
-  resolver_version: "3.3"
+  resolver_version: "3.4"
   precedence: [metadata_override, dynamic_resolver, flat_default]   # get_param order
   dynamic_gate: URBANOPT_DYNAMIC_DEFAULTS           # off -> flat defaults only
   stochastic_gate: URBANOPT_STOCHASTIC_SAMPLING     # share-weighted vs winner-take-all
@@ -309,6 +309,22 @@ sources:
   federal_min_standards:
     origin: "U.S. federal minimum appliance efficiency standards by era (AFUE/SEER/HSPF)"
     status_note: "values are standard but the code comments do NOT cite a specific rule/year -- see physical_constants oracle status"
+  COUNTY_POOLING:
+    origin: "Resolver 3.4 (County Prior Pooling Plan, owner 2026-10-11): every ComStock/ResStock county table (the 17 *_county_*.json.gz) is pooled at build time by tests/tools/build_county_priors.py - each area's cell blended toward its parent area's, top-down (state toward division, PUMA toward state, county toward its PUMA or, without one, its state): (n x cell + k x parent) / (n + k), n the leaf's Kish effective sample size"
+    citations:
+      - "Efron, B. and Morris, C. (1975), Data Analysis Using Stein's Estimator and its Generalizations, Journal of the American Statistical Association 70(350):311-319, doi:10.1080/01621459.1975.10479864, eq. (1.8): the Bayes estimate shrinks an area's observed value toward the prior mean by sampling variance / (sampling + between-area variance), estimated from the data in the empirical Bayes case (fetched 2026-10-11)"
+      - "Mosimann, J. E. (1962), On the compound multinomial distribution, the multivariate beta-distribution, and correlations among proportions, Biometrika 49(1-2):65-82, doi:10.1093/biomet/49.1-2.65: the Dirichlet-multinomial; with concentration k the between-area share of variance is rho = 1 / (k + 1) and the posterior mean is (n x observed + k x parent) / (n + k) (listing fetched 2026-10-11)"
+    estimation: "k = (1 - r) / r per table, tier and part (the quantity a leaf describes: e.g. pv's has_pv share vs its size donors, ducts' location vs leakage; one k per table let a high-cardinality bundle swamp a share, found in the 2026-10-11 build), r = rho - null: rho by method of moments from the built cells (nested-sampling terms, so an area equal to its parent contributes nothing), null = mean rho over 3 builds with the tier's labels shuffled within the parent (fixed seeds); r <= 0 ships no cells for that tier. Values, nulls and cell counts are recorded in each table's _pooling block"
+    tier: "state tier (state fips from the county) added between PUMA and division; level name county_state"
+    audit: "pt-vault Dev/powertwin-solver/Validation Report 2026-09, 2026-10-11 entries (flow-ssd/tmp_clsf/county_signal_audit): commercial county signal real for fuels and HVAC system only; residential county adds nothing beyond the PUMA"
+    oracles:
+      - tests/test_county_prior.py::test_blend_limits_and_donor_weights
+      - tests/test_county_prior.py::test_estimate_rho_recovers_the_between_area_share
+      - tests/test_county_prior.py::test_child_equal_to_parent_contributes_nothing
+      - tests/test_county_prior.py::test_pooling_drops_or_keeps_the_county_tier_by_signal
+      - tests/test_county_prior.py::test_pooled_build_is_reproducible
+      - tests/test_county_prior.py::test_tier_walk_and_floor_boundaries
+      - tests/test_county_prior.py::test_parts_get_their_own_k_and_a_dropped_part_walks_up
 
 # =============================================================================
 # CTX DERIVATION -- build_asset_ctx, upstream of EVERY field. The LOGIC is IN
