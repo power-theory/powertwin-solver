@@ -678,7 +678,7 @@ fields:
     flat_default: ""
     resolver: "_resolve_ducts"
     source_assumption: {residential: "RESSTOCK2024_county_ducts leakage-label shares; label parsed to (pct, R)"}
-    invariants: ["drawn from the same leakage-label draw as duct_insulation_r (one salt, deterministic per building)"]
+    invariants: ["drawn from the same leakage-label draw as duct_insulation_r (one salt, deterministic per building)", "an explicit value (WEA measure d, 2026-10-13) is delivered even when the county priors left the location unresolved: without a location PowerTwin.rb applies the leakage and insulation alone, so OS-HPXML places the ducts as it would (review: naming a location moved basement ducts to the attic); a ductless system ignores it"]
     oracle:
       resolver: [test_resolvers::resolver_golden]
       integration: []
@@ -853,7 +853,8 @@ fields:
     flat_default: ""
     resolver: "_resolve_com_airtightness"
     source_assumption: {commercial: "COMSTOCK2024_county_tstat air shares (NIST-correlation delivery, no unit conversion)"}
-    oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
+    invariants: ["an explicit value (WEA measure d, 2026-10-13) is dropped, with a warning, on a prototype outside set_nist_infiltration_correlations' own mapping (sim_params_spec.NIST_PROTOTYPES, mirroring PowerTwinRefs::NIST_TYPE_FOR_PROTOTYPE and the measure's infer_nist_building_type), where it would fail the build ('NIST coefficients are not available'), e.g. Laboratory"]
+    oracle: {resolver: [test_resolvers::resolver_golden], integration: [test_retrofit_overrides_phase2::test_commercial_plug_load_cut_and_airtightness_guard], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
 
   heating_setpoint_f:
     workflow: residential_only
@@ -966,6 +967,104 @@ fields:
       resolver: [test_resolvers::test_resolver_golden, test_residential_lighting::test_explicit_led_caps_the_cfl_share]
       integration: [test_residential_lighting::test_feature_file_carries_the_fractions_for_houses_only]
       status: RESOLVER_PROVEN_INTEGRATION_PARTIAL
+
+  heating_afue:
+    workflow: residential_only
+    type: numeric
+    range: [0.5, 0.99]
+    units: "AFUE as a fraction; BuildResidentialHPXML heating_system_heating_efficiency"
+    flat_default: ""
+    resolver: "none: an explicit override only (Retrofit Overrides Plan phase 2, WEA measure c); unset, the vintage turnover rule (powertwin_refs furnace_afue / boiler_afue) or the explicit-equipment rule decides"
+    source_assumption: {residential: "HPXML takes AFUE as a fraction up to 1 (EPvalidator.xml); federal minimums 10 CFR 430.32 (eCFR, 2026-09-01 version, fetched 2026-10-13, xml md5 4077e6dc): non-weatherized gas furnace 80.0% (e)(1)(ii), gas hot-water boiler 82% (e)(2); [0.5, 0.99] is an input guard"}
+    invariants: ["fuel-fired Furnace, WallFurnace or Boiler only; any other system logs and ignores it (an electric system stays 1.0)", "applied after the turnover and explicit-equipment rules"]
+    oracle:
+      resolver: [test_resolvers::test_non_dynamic_fields]
+      integration: [test_retrofit_overrides_phase2::test_ratings_reach_feature_file, test_retrofit_overrides_phase2::test_mapper_ratings_apply_only_to_rated_systems]
+      status: PARTIAL
+
+  cooling_seer2:
+    workflow: residential_only
+    type: numeric
+    range: [8.0, 35.0]
+    units: "SEER2; cooling_system_cooling_efficiency (type SEER2) and heat_pump_cooling_efficiency (type SEER2)"
+    flat_default: ""
+    resolver: "none: an explicit override only (Retrofit Overrides Plan phase 2, WEA measure c); unset, the vintage SEER rule or the explicit-equipment rule decides"
+    source_assumption: {residential: "federal minimums 10 CFR 430.32 (eCFR, 2026-09-01 version, fetched 2026-10-13, xml md5 4077e6dc) (c)(5), from 2023: split AC 13.4 SEER2, split heat pump 14.3; [8, 35] is an input guard"}
+    invariants: ["central or mini-split AC (an unset type is central AC) and air-to-air or mini-split heat pumps; a room AC (EER-rated) or ground-source unit logs and ignores it"]
+    oracle:
+      resolver: [test_resolvers::test_non_dynamic_fields]
+      integration: [test_retrofit_overrides_phase2::test_ratings_reach_feature_file, test_retrofit_overrides_phase2::test_mapper_ratings_apply_only_to_rated_systems]
+      status: PARTIAL
+
+  heat_pump_hspf2:
+    workflow: residential_only
+    type: numeric
+    range: [5.0, 14.0]
+    units: "HSPF2; heat_pump_heating_efficiency (type HSPF2)"
+    flat_default: ""
+    resolver: "none: an explicit override only (Retrofit Overrides Plan phase 2, WEA measure c); unset, the vintage HSPF rule or the explicit-equipment (cold-climate) rule decides"
+    source_assumption: {residential: "federal minimums 10 CFR 430.32 (eCFR, 2026-09-01 version, fetched 2026-10-13, xml md5 4077e6dc) (c)(5), from 2023: split heat pump 7.5 HSPF2, single-package 6.7; [5, 14] is an input guard"}
+    invariants: ["air-to-air or mini-split heat pumps only (ground-source is COP-rated)"]
+    oracle:
+      resolver: [test_resolvers::test_non_dynamic_fields]
+      integration: [test_retrofit_overrides_phase2::test_ratings_reach_feature_file, test_retrofit_overrides_phase2::test_mapper_ratings_apply_only_to_rated_systems]
+      status: PARTIAL
+
+  refrigerator_kwh_per_year:
+    workflow: residential_only
+    type: numeric
+    range: [100.0, 1500.0]
+    units: "EnergyGuide rated kWh/yr; BuildResidentialHPXML refrigerator_rated_annual_kwh"
+    flat_default: ""
+    resolver: "none: an explicit override only (Retrofit Overrides Plan phase 2, WEA measure e); unset, OS-HPXML's default applies"
+    source_assumption: {residential: "BuildResidentialHPXML measure.rb (urbanopt-cli 1.0.1 vendored residential-measures, read from the frozen solver image 2026-10-13): refrigerator_rated_annual_kwh, its units as stated; the bounds are input guards"}
+    invariants: ["houses only"]
+    oracle:
+      resolver: [test_resolvers::test_non_dynamic_fields]
+      integration: [test_retrofit_overrides_phase2::test_appliances_reach_feature_file_and_mapper]
+      status: PARTIAL
+
+  clothes_dryer_cef:
+    workflow: residential_only
+    type: numeric
+    range: [1.0, 6.0]
+    units: "combined energy factor, lb/kWh; BuildResidentialHPXML clothes_dryer_efficiency (type CombinedEnergyFactor)"
+    flat_default: ""
+    resolver: "none: an explicit override only (Retrofit Overrides Plan phase 2, WEA measure e); unset, OS-HPXML's default applies"
+    source_assumption: {residential: "BuildResidentialHPXML measure.rb (urbanopt-cli 1.0.1 vendored residential-measures, read from the frozen solver image 2026-10-13): clothes_dryer_efficiency (type CombinedEnergyFactor), its units as stated; the bounds are input guards"}
+    invariants: ["ignored where the house has no dryer"]
+    oracle:
+      resolver: [test_resolvers::test_non_dynamic_fields]
+      integration: [test_retrofit_overrides_phase2::test_appliances_reach_feature_file_and_mapper]
+      status: PARTIAL
+
+  plug_load_kwh_per_year:
+    workflow: residential_only
+    type: numeric
+    range: [0.0, 20000.0]
+    units: "kWh/yr of other (residual) plug loads PER DWELLING UNIT (BuildResidentialModel applies the argument to every unit it builds, so a multifamily building gets it per unit); BuildResidentialHPXML misc_plug_loads_other_annual_kwh"
+    flat_default: ""
+    resolver: "none: an explicit override only (Retrofit Overrides Plan phase 2, WEA measure e); unset, OS-HPXML's default applies"
+    source_assumption: {residential: "BuildResidentialHPXML measure.rb (urbanopt-cli 1.0.1 vendored residential-measures, read from the frozen solver image 2026-10-13): misc_plug_loads_other_annual_kwh, its units as stated; the bounds are input guards"}
+    invariants: ["a vacant house keeps its zeroed plug loads (the vacancy block runs after)"]
+    oracle:
+      resolver: [test_resolvers::test_non_dynamic_fields]
+      integration: [test_retrofit_overrides_phase2::test_appliances_reach_feature_file_and_mapper]
+      status: PARTIAL
+
+  plug_load_reduction_pct:
+    workflow: commercial_only
+    type: numeric
+    range: [0.0, 90.0]
+    units: "percent cut to interior electric equipment; ReduceElectricEquipmentLoadsByPercentage elecequip_power_reduction_percent"
+    flat_default: ""
+    resolver: "none: an explicit override only (Retrofit Overrides Plan phase 2, WEA measure e); unset, the prototype's equipment stands"
+    source_assumption: {commercial: "openstudio-ee ReduceElectricEquipmentLoadsByPercentage (the measure the vacant branch already uses at 23%); the bound is an input guard"}
+    invariants: ["commercial only; a vacant building keeps its own 23% cut and ignores it"]
+    oracle:
+      resolver: [test_resolvers::test_non_dynamic_fields]
+      integration: [test_retrofit_overrides_phase2::test_commercial_plug_load_cut_and_airtightness_guard]
+      status: PARTIAL
 
   infiltration_ach50:
     workflow: residential_only
@@ -1103,11 +1202,12 @@ physical_constants:
 # COVERAGE SUMMARY -- the scoreboard. Conviction = drive UNVERIFIED -> 0.
 # =============================================================================
 coverage_summary:
-  fields_total: 18
+  fields_total: 51   # rebuilt from the field rows 2026-10-13 (was 18, stale since the CR campaign added rows)
   PROVEN: []
-  RESOLVER_PROVEN_INTEGRATION_PARTIAL: [heating_system_fuel_type, window_type, wall_r_value, roof_r_value, number_of_occupants]   # e2e (test_sim_e2e via run_docker.sh) VALUE-asserts these in the built model for the slice: heating fuel (wood->OtherFuel, gas->NaturalGas) on meter+IDF; window U physical+varying (IDF) and in pane-type band (HPXML); wall cavity R -> documented assembly (cavity*0.75+2.5) and ceiling (roof_r+1.0) in HPXML; occupants EXACT (NumberofResidents). Slice-wide ALSO: completeness (6/6 sim), raw energy-balance closure, PER-FUEL capture.
-  RESOLVER_PROVEN_INTEGRATION_UNVERIFIED: [heating_system_type, op_schedule_fields(x4), cooling_system_fuel_type, service_water_heating_fuel_type, water_heater_type, wall_material, roof_material, window_to_wall_ratio]
-  STATIC: [system_type, floor_height]
+  RESOLVER_PROVEN_INTEGRATION_PARTIAL: [floor_height, heating_system_fuel_type, lighting_cfl_fraction, lighting_led_fraction, number_of_occupants, roof_r_value, wall_r_value, window_type]
+  RESOLVER_PROVEN_INTEGRATION_UNVERIFIED: [bedrooms_per_unit, clothes_dryer_fuel, com_airtightness_75pa, com_cooling_adjustment_f, com_heating_adjustment_f, cooking_range_fuel, cooling_fraction_served, cooling_setpoint_f, cooling_system_fuel_type, cooling_type_detail, duct_insulation_r, duct_leakage_pct, duct_location, foundation_type, garage_cars, heating_equipment_detail, heating_has_ducts, heating_setpoint_f, heating_system_type, infiltration_ach50, misc_gas_fireplace, misc_gas_grill, misc_gas_lighting, op_schedule_fields, pv_azimuth_deg, pv_system_kw, roof_material, service_water_heating_fuel_type, system_type, wall_material, water_heater_type, window_to_wall_ratio]
+  PARTIAL: [clothes_dryer_cef, cooling_seer2, door_r_value, heat_pump_hspf2, heating_afue, lighting_power_density, plug_load_kwh_per_year, plug_load_reduction_pct, refrigerator_kwh_per_year, window_shgc, window_u_factor]
+  STATIC: []
   note: "all resolver oracles PROVEN (test_resolvers + golden + powertwin_refs). INTEGRATION layer: the e2e gate (test_sim_e2e via run_docker.sh over ALL subtypes, both workflows) is green -- completeness + energy-balance closure + per-fuel capture + value-in-IDF + PER-FIELD value-in-HPXML for the residential envelope + EUI plausibility + A/B dynamic-delivery + test_all_dynamic_defaults_delivered_to_model (EVERY dynamic field's in.osw measure arg == resolved get_param, all 27 buildings both workflows) + test_commercial_envelope_reaches_built_model (the BUILT EnergyPlus opaque-envelope R distribution differs dynamic-ON vs OFF for every commercial building -- the resolved envelope reached + changed what EnergyPlus simulated). Remaining: cooling fuel implicit-electric; commercial envelope OUTPUT is A/B-verified (roof exact-matches, wall = resolved + base mass); delivery != resolver source-correctness."
   ctx_derivation:   # IN CONTROL logic upstream of every field
     PROVEN_FALLBACK: [county_fips]            # offline lookup + degrade-to-division proven (not boundary-file truth)

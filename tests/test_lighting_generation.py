@@ -72,7 +72,7 @@ def test_workflow_and_mapper_apply_it_and_keep_the_vacant_cut():
     osw = [s["measure_dir_name"] for s in json.load(open(os.path.join(SOLVER, "upload", "base_workflow.osw")))["steps"]]
     assert osw.index("set_lighting_power_density") + 1 == osw.index("ReduceLightingLoadsByPercentage")
     rb = open(os.path.join(SOLVER, "upload", "PowerTwin.rb")).read()
-    seg = rb.split("# Interior lighting (resolver 3.3)", 1)[1][:2500]
+    seg = rb.split("# Interior lighting (resolver 3.3)", 1)[1][:4500]   # the phase-2 plug-load cut sits before the vacant branch
     assert "if PowerTwinRefs.present?(props[:lighting_power_density])" in seg
     assert "'set_lighting_power_density', 'target_w_per_ft2', props[:lighting_power_density].to_f" in seg
     vacant = seg.split("if props[:vacant]", 1)[1].split("elsif", 1)[0]

@@ -637,7 +637,9 @@ module URBANopt
               # (~0.75 framing derate on cavity + ~2.5 series), so an uninsulated
               # pre-1980 cavity (R-1) yields ~R-3.3 assembly (U~0.30) instead of
               # the absurd R-1 assembly (U-1.0). Commercial consumes cavity R
-              # correctly via IncreaseInsulationRValueForExteriorWalls (additive).
+              # as the insulation layer's own R: IncreaseInsulationRValueForExteriorWalls / roofs set the R of the
+              # construction's highest-R layer to the value (openstudio-ee 0.11.1, measure.rb 162-263), not added to it
+              # and not the whole assembly's R (a layer at or below R-1 is left as built).
               if PowerTwinRefs.present?(res_wall_r)
                 args[:wall_assembly_r] = PowerTwinRefs.wall_assembly_r(res_wall_r)
               end
@@ -952,6 +954,20 @@ module URBANopt
                   args[:ducts_supply_insulation_r] = r_val
                   args[:ducts_return_insulation_r] = r_val
                 end
+              elsif ducted && (PowerTwinRefs.present?(res_props[:duct_leakage_pct]) || PowerTwinRefs.present?(res_props[:duct_insulation_r]))
+                # A duct sealing or insulation retrofit with no resolved duct location (2026-10-13 review): the leakage
+                # and insulation alone, so OS-HPXML keeps placing the ducts where it would (basement or crawlspace before
+                # the attic); naming a location here would move them as well as seal them.
+                if PowerTwinRefs.present?(res_props[:duct_leakage_pct])
+                  total_frac = res_props[:duct_leakage_pct].to_f / 100.0
+                  args[:ducts_leakage_units] = 'Percent'
+                  args[:ducts_supply_leakage_to_outside_value] = (total_frac * 2.0 / 3.0).round(3)
+                  args[:ducts_return_leakage_to_outside_value] = (total_frac / 3.0).round(3)
+                end
+                if PowerTwinRefs.present?(res_props[:duct_insulation_r])
+                  args[:ducts_supply_insulation_r] = res_props[:duct_insulation_r].to_f
+                  args[:ducts_return_insulation_r] = res_props[:duct_insulation_r].to_f
+                end
               end
               if PowerTwinRefs.present?(res_props[:service_water_heating_fuel_type])
                 args[:water_heater_fuel_type] = res_props[:service_water_heating_fuel_type].to_s
@@ -1032,6 +1048,47 @@ module URBANopt
                 args[:heat_pump_heating_capacity_retention_temp] = 5.0
               end
             end
+
+            # Explicit equipment ratings and appliances (Retrofit Overrides Plan phase 2, WEA measures c and e; 2026-10-13):
+            # after the turnover and explicit-equipment rules, so a typed rating wins; each applies only to a system that
+            # is rated that way (HPXML refuses a SEER2 on a room AC or an HSPF2 on a ground-source heat pump), else it is
+            # logged and ignored. Before the vacancy block, so a vacant house keeps its zeroed plug loads.
+            if PowerTwinRefs.present?(res_props[:heating_afue])
+              if %w[Furnace WallFurnace Boiler].include?(args[:heating_system_type].to_s) && args[:heating_system_fuel].to_s.downcase != 'electricity'
+                args[:heating_system_heating_efficiency] = res_props[:heating_afue].to_f
+              else
+                @@logger.warn("Feature #{feature.id}: heating_afue ignored (#{args[:heating_system_type]} on #{args[:heating_system_fuel]} is not a fuel-fired furnace or boiler)")
+              end
+            end
+            if PowerTwinRefs.present?(res_props[:cooling_seer2])
+              seer2 = res_props[:cooling_seer2].to_f
+              applied = false
+              if ['central air conditioner', 'mini-split'].include?(args[:cooling_system_type].to_s)
+                args[:cooling_system_cooling_efficiency_type] = 'SEER2'
+                args[:cooling_system_cooling_efficiency] = seer2
+                applied = true
+              end
+              if %w[air-to-air mini-split].include?(args[:heat_pump_type].to_s)
+                args[:heat_pump_cooling_efficiency_type] = 'SEER2'
+                args[:heat_pump_cooling_efficiency] = seer2
+                applied = true
+              end
+              @@logger.warn("Feature #{feature.id}: cooling_seer2 ignored (no SEER2-rated system)") unless applied
+            end
+            if PowerTwinRefs.present?(res_props[:heat_pump_hspf2])
+              if %w[air-to-air mini-split].include?(args[:heat_pump_type].to_s)
+                args[:heat_pump_heating_efficiency_type] = 'HSPF2'
+                args[:heat_pump_heating_efficiency] = res_props[:heat_pump_hspf2].to_f
+              else
+                @@logger.warn("Feature #{feature.id}: heat_pump_hspf2 ignored (no air-to-air or mini-split heat pump)")
+              end
+            end
+            args[:refrigerator_rated_annual_kwh] = res_props[:refrigerator_kwh_per_year].to_f if PowerTwinRefs.present?(res_props[:refrigerator_kwh_per_year])
+            if PowerTwinRefs.present?(res_props[:clothes_dryer_cef]) && args[:clothes_dryer_present].to_s != 'false'
+              args[:clothes_dryer_efficiency_type] = 'CombinedEnergyFactor'
+              args[:clothes_dryer_efficiency] = res_props[:clothes_dryer_cef].to_f
+            end
+            args[:misc_plug_loads_other_annual_kwh] = res_props[:plug_load_kwh_per_year].to_f if PowerTwinRefs.present?(res_props[:plug_load_kwh_per_year])
 
             # Vacant buildings: no occupants, pipe-freeze heating, no cooling, and the
             # occupant-driven loads suppressed (Q/A R-009): HPXML derives hot water and
@@ -1634,6 +1691,12 @@ module URBANopt
               # occupants 0 (all completely vacant buildings report 0 workers and 0 hours); interior lighting cut 60%
               # (lit floorspace share 0.398 of the warehouse's, survey-reported); equipment cut 23% (office + computing +
               # other electricity intensity 0.769 of the warehouse's, EIA-modeled, CI includes no cut).
+              # An explicit commercial plug-load cut (Retrofit Overrides Plan phase 2, WEA measure e; 2026-10-13): the same
+              # ReduceElectricEquipmentLoadsByPercentage the vacant branch uses; a vacant building keeps its own cut.
+              if PowerTwinRefs.present?(props[:plug_load_reduction_pct]) && !props[:vacant]
+                OpenStudio::Extension.set_measure_argument(osw, 'ReduceElectricEquipmentLoadsByPercentage', '__SKIP__', false)
+                OpenStudio::Extension.set_measure_argument(osw, 'ReduceElectricEquipmentLoadsByPercentage', 'elecequip_power_reduction_percent', props[:plug_load_reduction_pct].to_f)
+              end
               # A vacant building keeps its 60% lighting cut below, on top of an explicit LPD too (as on the resolver's).
               if props[:vacant]
                 OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', '__SKIP__', false)

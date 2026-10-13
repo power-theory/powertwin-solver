@@ -91,6 +91,9 @@ NON_DYNAMIC_FIELDS = [
     'window_u_factor', 'window_shgc',
     'lighting_power_density',   # explicit commercial lighting retrofit (2026-10-13); resolve_lighting is separate
     'door_r_value',             # explicit residential door retrofit (2026-10-13)
+    # explicit equipment ratings and appliances (Retrofit Overrides Plan phase 2, 2026-10-13)
+    'heating_afue', 'cooling_seer2', 'heat_pump_hspf2', 'refrigerator_kwh_per_year',
+    'clothes_dryer_cef', 'plug_load_kwh_per_year', 'plug_load_reduction_pct',
 ]
 
 passed = 0

@@ -248,6 +248,16 @@ SIM_PARAM_DEFAULTS = {
     # is also the LED retrofit input. Empty with dynamic defaults off: BuildResidentialHPXML's own default stands.
     'lighting_led_fraction': '',
     'lighting_cfl_fraction': '',
+    # Explicit equipment ratings and appliances (Retrofit Overrides Plan phase 2, WEA measures c and e; 2026-10-13):
+    # empty = the solver's own choice (the vintage turnover rule or the explicit-equipment rule; OS-HPXML's appliance
+    # defaults); a value replaces it. Houses, except plug_load_reduction_pct (commercial electric equipment).
+    'heating_afue': '',              # fuel-fired furnace, wall furnace or boiler, fraction
+    'cooling_seer2': '',             # central or mini-split AC and air-to-air / mini-split heat pump cooling
+    'heat_pump_hspf2': '',           # air-to-air / mini-split heat pump heating
+    'refrigerator_kwh_per_year': '', # EnergyGuide rated annual kWh
+    'clothes_dryer_cef': '',         # combined energy factor, lb/kWh
+    'plug_load_kwh_per_year': '',    # other (residual) plug loads per dwelling unit (BuildResidentialModel applies it to every unit)
+    'plug_load_reduction_pct': '',   # commercial interior electric equipment cut, percent
     'wall_r_value': 13.0,            # ResStock TRG post-1980 SFD avg / IECC CZ4 min
     'roof_r_value': 30.0,            # ResStock TRG post-1980 ceiling avg
     'floor_height': 9.0,             # last resort only: commercial resolves the prototype's typical story (3.6 m outside its domain), houses 8 ft
@@ -343,6 +353,20 @@ NUMERIC_RANGES = {
     'door_r_value': (1.0, 15.0),
     'lighting_led_fraction': (0.0, 1.0),   # BuildResidentialHPXML lighting_*_fraction_* are fractions (Frac)
     'lighting_cfl_fraction': (0.0, 1.0),
+    # Ratings: HPXML takes AFUE as a fraction up to 1 (EPvalidator.xml); the federal minimums (10 CFR 430.32, eCFR
+    # 2026-09-01 version fetched 2026-10-13): non-weatherized gas furnace 80.0% AFUE (e)(1)(ii), gas hot-water boiler
+    # 82% (e)(2), split AC 13.4 SEER2 and split heat pump 14.3 SEER2 / 7.5 HSPF2 from 2023 (c)(5). The bounds are input
+    # guards around those (an older unit sits below the minimum, a top unit far above it).
+    'heating_afue': (0.5, 0.99),
+    'cooling_seer2': (8.0, 35.0),
+    'heat_pump_hspf2': (5.0, 14.0),
+    # Appliances: input guards around the BuildResidentialHPXML arguments' units (refrigerator rated kWh/yr, dryer CEF
+    # lb/kWh, other plug loads kWh/yr). Not offered: a clothes washer or dishwasher efficiency, which HPXML only takes
+    # with the appliance's full EnergyGuide label (rates, gas cost, usage, capacity; EPvalidator, 2026-10-13 run)
+    'refrigerator_kwh_per_year': (100.0, 1500.0),
+    'clothes_dryer_cef': (1.0, 6.0),
+    'plug_load_kwh_per_year': (0.0, 20000.0),
+    'plug_load_reduction_pct': (0.0, 90.0),
     'wall_r_value':         (0.0, 80.0),   # 0.0 = Uninsulated (county insulation draws)
     'roof_r_value':         (0.0, 80.0),
     'floor_height':         (6.0, float('inf')),   # no maximum (owner 2026-10-01: a cap only blocked real tall
@@ -2582,6 +2606,15 @@ def _resolve_infiltration(ctx):
 # BuildResidentialHPXML's interior CFL fraction default (measure.rb lighting_interior_fraction_cfl, 0.1): what a house
 # keeps when dynamic defaults are off, and the CFL share an explicit LED fraction is trimmed against when nothing resolves
 HPXML_DEFAULT_INTERIOR_CFL = 0.1
+
+
+# set_nist_infiltration_correlations' own prototype mapping (PowerTwinRefs::NIST_TYPE_FOR_PROTOTYPE, the measure's
+# infer_nist_building_type): a prototype outside it ('Laboratory') has no NIST coefficients and fails the build with an
+# airtightness value, so an explicit one is dropped there (2026-10-13; the resolved value comes only from ComStock cells)
+NIST_PROTOTYPES = frozenset({
+    'SmallOffice', 'MediumOffice', 'LargeOffice', 'RetailStandalone', 'RetailStripmall', 'Warehouse',
+    'QuickServiceRestaurant', 'FullServiceRestaurant', 'Outpatient', 'SuperMarket', 'SecondarySchool',
+    'PrimarySchool', 'SmallHotel', 'LargeHotel', 'Hospital', 'MidriseApartment', 'HighriseApartment'})
 
 
 def _resolve_res_lighting(field, ctx):

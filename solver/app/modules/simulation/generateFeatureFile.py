@@ -15,7 +15,7 @@ import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
-from modules.simulation.sim_params_spec import resolved_templates, resolve_lighting, residential_lighting_fractions, comstock_native_system, COMSTOCK_HVAC_KEY, CONFIRMABLE_FIELDS, RESIDENTIAL_BUILDING_TYPES, get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref, ENUM_VALUES, NUMERIC_RANGES, TIME_FIELDS, RETIRED_INPUT_FIELDS
+from modules.simulation.sim_params_spec import resolved_templates, resolve_lighting, residential_lighting_fractions, NIST_PROTOTYPES, _preset_prototype, comstock_native_system, COMSTOCK_HVAC_KEY, CONFIRMABLE_FIELDS, RESIDENTIAL_BUILDING_TYPES, get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref, ENUM_VALUES, NUMERIC_RANGES, TIME_FIELDS, RETIRED_INPUT_FIELDS
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
@@ -665,10 +665,18 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # CR WP-C2: commercial thermostat deltas + airtightness (resolver returns
     # nothing for residential buildings; empty = omit, measures stay skipped).
     for f in ('com_heating_adjustment_f', 'com_cooling_adjustment_f',
-              'com_airtightness_75pa'):
+              'com_airtightness_75pa', 'plug_load_reduction_pct'):
         v = get_param(asset_metadata, f, ctx)
-        if v not in (None, ''):
-            new_properties[f] = v
+        if v in (None, ''):
+            continue
+        if f == 'plug_load_reduction_pct' and building_type in RESIDENTIAL_TYPES:
+            continue          # commercial only; a house's plug loads are plug_load_kwh_per_year
+        if (f == 'com_airtightness_75pa' and asset_metadata.get(f) not in (None, '')
+                and building_type not in RESIDENTIAL_TYPES and _preset_prototype(ctx) not in NIST_PROTOTYPES):
+            logger.warning(f"Building {building_id}: com_airtightness_75pa ignored: the {_preset_prototype(ctx)} "
+                           f"prototype has no NIST infiltration coefficients")
+            continue
+        new_properties[f] = v
 
     # Operating hours: only emit when both start and duration are set AND duration
     # isn't 24:00 (which collides with the implicit end-of-day Time(24:00:00) in
@@ -814,18 +822,29 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         # flat default = omit, so the dynamic-OFF arm keeps HPXML's own defaults).
         # The mapper applies them only to systems it builds as ducted.
         duct_loc = get_param(asset_metadata, 'duct_location', ctx)
-        if duct_loc not in (None, ''):
-            d_leak = get_param(asset_metadata, 'duct_leakage_pct', ctx)
-            d_ins = get_param(asset_metadata, 'duct_insulation_r', ctx)
+        d_leak = get_param(asset_metadata, 'duct_leakage_pct', ctx)
+        d_ins = get_param(asset_metadata, 'duct_insulation_r', ctx)
+        if duct_loc not in (None, '') and d_leak not in (None, ''):
             # Emit the trio only when leakage ALSO resolved: an explicit metadata
             # location with unresolved leakage used to emit '' and build perfectly
             # sealed R-0 ducts via Ruby ''.to_f (review finding 7).
+            new_properties.update({
+                "duct_location": duct_loc,
+                "duct_leakage_pct": d_leak,
+                "duct_insulation_r": d_ins if d_ins not in (None, '') else 0.0,
+            })
+        elif any(asset_metadata.get(k) not in (None, '') and v not in (None, '')
+                 for k, v in (('duct_leakage_pct', d_leak), ('duct_insulation_r', d_ins))):
+            # A duct sealing or insulation retrofit on a house whose county priors left the location (or leakage)
+            # unresolved (2026-10-13): deliver what was set, with the location only if one resolved; without one,
+            # PowerTwin.rb applies the leakage and insulation alone and OS-HPXML places the ducts as it would. A
+            # ductless system ignores both there.
+            if duct_loc not in (None, ''):
+                new_properties["duct_location"] = duct_loc
             if d_leak not in (None, ''):
-                new_properties.update({
-                    "duct_location": duct_loc,
-                    "duct_leakage_pct": d_leak,
-                    "duct_insulation_r": d_ins if d_ins not in (None, '') else 0.0,
-                })
+                new_properties["duct_leakage_pct"] = d_leak
+            if d_ins not in (None, ''):
+                new_properties["duct_insulation_r"] = d_ins
 
         # CR WP-R3: occupied-stock setpoints (joint donor) + envelope ACH50.
         # CR WP-R4: appliance fuels + misc gas loads (one gas-line-coherent donor).
@@ -836,6 +855,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             new_properties["lighting_led_fraction"] = led
             new_properties["lighting_cfl_fraction"] = cfl
         for f in ('heating_setpoint_f', 'cooling_setpoint_f', 'infiltration_ach50', 'door_r_value',
+                  'heating_afue', 'cooling_seer2', 'heat_pump_hspf2', 'refrigerator_kwh_per_year',
+                  'clothes_dryer_cef', 'plug_load_kwh_per_year',
                   'clothes_dryer_fuel', 'cooking_range_fuel',
                   'misc_gas_grill', 'misc_gas_lighting', 'misc_gas_fireplace',
                   'pv_system_kw', 'pv_azimuth_deg',
