@@ -34,7 +34,7 @@ log = logging.getLogger('Generate Feature Files')
 # Bump when resolver logic or reference data changes.
 # Stamped into feature.json so results are traceable to the model that produced them.
 # push.sh syncs this to the README header automatically.
-RESOLVER_VERSION = '3.4'  # 3.4: the county tables are pooled (County Prior Pooling Plan): every cell blended toward its parent area with a per-table strength estimated from the source data, a state tier between PUMA and division, and tiers with no signal beyond sampling noise not shipped (residential county cells; commercial lighting, hours and thermostat county cells); a surrogate trained on 3.3 defaults is refused until retrained; 3.3: a commercial building's interior lighting LPD comes from its ComStock lighting generation (resolve_lighting) and its template (construction and HVAC) follows its state's energy-code adoption years from ComStock 2024.1 (resolved_templates), California on DEER with its CEC zone, and a county-drawn 'Residential forced air furnace' builds as ComStock's unventilated furnace (MEASURE_NATIVE_SYSTEMS; system_type is CONFIRMABLE); 3.2: an explicit floor_height is a house's ceiling height and a saved wall/roof_material is ignored (RETIRED_INPUT_FIELDS); 3.1: an explicit heating_system_type or water_heater_type equal to the unset default only confirms it (CONFIRMABLE_FIELDS); 3.0: CR review fixes
+RESOLVER_VERSION = '3.5'  # 3.5: a house's lighting is its county's ResStock 2024.2 share-weighted LED and CFL fractions (resstock2024_county_lighting; was BuildResidentialHPXML's 90% incandescent default, never a decision) with an explicit lighting_led_fraction override; a surrogate trained on 3.4 is refused until retrained; 3.4: the county tables are pooled (County Prior Pooling Plan): every cell blended toward its parent area with a per-table strength estimated from the source data, a state tier between PUMA and division, and tiers with no signal beyond sampling noise not shipped (residential county cells; commercial lighting, hours and thermostat county cells); a surrogate trained on 3.3 defaults is refused until retrained; 3.3: a commercial building's interior lighting LPD comes from its ComStock lighting generation (resolve_lighting) and its template (construction and HVAC) follows its state's energy-code adoption years from ComStock 2024.1 (resolved_templates), California on DEER with its CEC zone, and a county-drawn 'Residential forced air furnace' builds as ComStock's unventilated furnace (MEASURE_NATIVE_SYSTEMS; system_type is CONFIRMABLE); 3.2: an explicit floor_height is a house's ceiling height and a saved wall/roof_material is ignored (RETIRED_INPUT_FIELDS); 3.1: an explicit heating_system_type or water_heater_type equal to the unset default only confirms it (CONFIRMABLE_FIELDS); 3.0: CR review fixes
 
 _REF_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '..', '..', '..', 'upload', 'reference_data'
@@ -124,7 +124,7 @@ _COUNTY_TABLES = (
     'resstock2024_county_cooling', 'resstock2024_county_pv',
     'comstock2024_county_hours', 'comstock2024_county_system',
     'comstock2024_county_fuels', 'comstock2024_county_tstat',
-    'comstock2024_county_lighting', 'cec_building_climate_zones',
+    'comstock2024_county_lighting', 'cec_building_climate_zones', 'resstock2024_county_lighting',
     # resolver 3.3 plain-JSON tables (tracked, not LFS)
     'comstock2024_state_code_adoption', 'comstock_lighting_lpd', 'insulation_presets',
 )
@@ -243,6 +243,11 @@ SIM_PARAM_DEFAULTS = {
     'lighting_power_density': '',
     # Explicit door R-value (h*ft^2*F/Btu; 2026-10-13), houses: replaces OS-HPXML's 4.4 for a door retrofit.
     'door_r_value': '',
+    # A house's lighting (resolver 3.5, 2026-10-13): the fractions of its interior, exterior and garage lighting that
+    # are LED and CFL (the rest incandescent), resolved from its county's ResStock 2024.2 shares; lighting_led_fraction
+    # is also the LED retrofit input. Empty with dynamic defaults off: BuildResidentialHPXML's own default stands.
+    'lighting_led_fraction': '',
+    'lighting_cfl_fraction': '',
     'wall_r_value': 13.0,            # ResStock TRG post-1980 SFD avg / IECC CZ4 min
     'roof_r_value': 30.0,            # ResStock TRG post-1980 ceiling avg
     'floor_height': 9.0,             # last resort only: commercial resolves the prototype's typical story (3.6 m outside its domain), houses 8 ft
@@ -336,6 +341,8 @@ NUMERIC_RANGES = {
     # an input guard around OS-HPXML BuildResidentialHPXML door_rvalue's default R-4.4 (an uninsulated solid door is
     # about R-2, an insulated fiberglass or steel door R-5 to R-7)
     'door_r_value': (1.0, 15.0),
+    'lighting_led_fraction': (0.0, 1.0),   # BuildResidentialHPXML lighting_*_fraction_* are fractions (Frac)
+    'lighting_cfl_fraction': (0.0, 1.0),
     'wall_r_value':         (0.0, 80.0),   # 0.0 = Uninsulated (county insulation draws)
     'roof_r_value':         (0.0, 80.0),
     'floor_height':         (6.0, float('inf')),   # no maximum (owner 2026-10-01: a cap only blocked real tall
@@ -2572,6 +2579,53 @@ def _resolve_infiltration(ctx):
     return (float(m.group(1)), f'county_{tier}')
 
 
+# BuildResidentialHPXML's interior CFL fraction default (measure.rb lighting_interior_fraction_cfl, 0.1): what a house
+# keeps when dynamic defaults are off, and the CFL share an explicit LED fraction is trimmed against when nothing resolves
+HPXML_DEFAULT_INTERIOR_CFL = 0.1
+
+
+def _resolve_res_lighting(field, ctx):
+    """A house's LED or CFL lighting fraction (resolver 3.5): its county's ResStock 2024.2 share of homes on 100% LED or
+    100% CFL lighting (in.lighting, resstock2024_county_lighting, pooled county / PUMA / state / division tiers). The
+    share-weighted fraction, not a drawn type, so the result is deterministic in both sampling modes and unbiased in
+    aggregate; ResStock's options set interior, exterior and garage alike (options_lookup.tsv v3.3.0), and so does the
+    mapper."""
+    if ctx.get('building_type') not in RESIDENTIAL_BUILDING_TYPES:
+        return (None, None)
+    cell, tier = _county_prior('resstock2024_county_lighting', ctx.get('county_fips'))
+    if cell is None:   # no county: the state's cell, then the division's (the table carries both tiers)
+        table = _load_ref('resstock2024_county_lighting')
+        abbr_to_fips = {a: f for f, a in _STATE_FIPS_TO_ABBR.items()}
+        for key, ref, t in (('_states', abbr_to_fips.get(ctx.get('state')), 'state'),
+                            ('_divisions', ctx.get('division'), 'division')):
+            c = table.get(key, {}).get(ref or '')
+            if c and c.get('shares'):
+                cell, tier = c, t
+                break
+    if not cell or not cell.get('shares'):
+        return (None, None)
+    label = '100% LED' if field == 'lighting_led_fraction' else '100% CFL'
+    return (round(float(cell['shares'].get(label, 0.0)), 3), f'county_{tier}')
+
+
+def residential_lighting_fractions(metadata, ctx):
+    """(led, cfl) a house is built with, or ('', '') when neither resolves (dynamic defaults off, no county): the
+    resolved or explicit fractions, with the CFL share capped at 1 - LED so the two never exceed 1 (an explicit LED share
+    of 0.9 leaves at most 0.1 CFL; the rest is incandescent). One place for generateFeatureFile and the surrogate
+    collector."""
+    if not is_dynamic_defaults_enabled():
+        # PowerTwin.rb applies the fractions only on the dynamic-defaults path (as the other residential explicit inputs),
+        # so the feature file must not claim a lighting the house is not built with (review 2026-10-13)
+        return ('', '')
+    led = get_param(metadata, 'lighting_led_fraction', ctx)
+    cfl = get_param(metadata, 'lighting_cfl_fraction', ctx)
+    if led in (None, '') and cfl in (None, ''):
+        return ('', '')
+    led = 0.0 if led in (None, '') else float(led)
+    cfl = HPXML_DEFAULT_INTERIOR_CFL if cfl in (None, '') else float(cfl)
+    return (round(led, 3), round(min(cfl, 1.0 - led), 3))
+
+
 def resolve_default(field: str, ctx: dict):
     """Single entry-point for dynamic default resolution. Returns
     (value, level) where level is one of FALLBACK_LEVELS, or (None, None)
@@ -2584,6 +2638,8 @@ def resolve_default(field: str, ctx: dict):
     if not is_dynamic_defaults_enabled() or not ctx:
         return (None, None)
     try:
+        if field in ('lighting_led_fraction', 'lighting_cfl_fraction'):
+            return _resolve_res_lighting(field, ctx)
         if field == 'floor_height':
             # commercial: the prototype's typical story, which the patched zoning step now builds (houses keep
             # URBANopt's 8 ft unless a user sets floor_height, see RESIDENTIAL_UNSET_CEILING_HEIGHT_FT)

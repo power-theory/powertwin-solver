@@ -156,6 +156,13 @@ sources:
     regen: tests/tools/build_county_pv.py
     notes: ["CR WP-R6: retires the phantom-renewables register row - PV becomes physically modeled (pv_system_present + max power W + azimuth)", "floors res 30"]
 
+  RESSTOCK2024_county_lighting:
+    file: resstock2024_county_lighting.json.gz
+    origin: "NREL ResStock 2024.2 metadata (resstock_tmy3_release_2 metadata/baseline.parquet, md5 4535090f): in.lighting {mode, shares} of 100% CFL / 100% Incandescent / 100% LED, weight-weighted, pooled county / PUMA / state / division"
+    extracted: 2026-10-13
+    regen: tests/tools/build_county_res_lighting.py
+    notes: ["resolver 3.5: replaces BuildResidentialHPXML's default lighting (interior 10% CFL, the rest incandescent), never a decision", "floors res 30"]
+
   COMSTOCK2024_county_tstat:
     file: comstock2024_county_tstat.json.gz
     origin: "NREL ComStock 2024 R1 metadata: tstat = JOINT donors of (in.tstat_htg_sp_f [th], in.tstat_clg_sp_f [tc]) sentinel-filtered (999 = no mechanical setpoint; keep th 40-90, tc 60-95); air = in.airtightness shares, m3/(h*m2) AT 75 Pa (the column suffix says m3_per_m2_s but values 5-75 step 5 are the standard commercial pressurization metric)"
@@ -932,6 +939,34 @@ fields:
       integration: [test_retrofit_overrides::test_door_r_value_reaches_feature_file_and_mapper]
       status: PARTIAL
 
+  lighting_led_fraction:
+    workflow: residential_only
+    type: numeric
+    range: [0.0, 1.0]
+    units: "fraction of the house's interior, exterior and garage lighting that is LED (BuildResidentialHPXML lighting_*_fraction_led)"
+    flat_default: ""
+    resolver: "_resolve_res_lighting (resolver 3.5): the county's ResStock 2024.2 share of homes on 100% LED lighting (resstock2024_county_lighting, pooled county / PUMA / state / division), share-weighted rather than drawn, so deterministic in both sampling modes; an explicit value is the LED retrofit input (WEA measure a). Replaces BuildResidentialHPXML's default (interior 10% CFL, 0% LED; exterior and garage 100% incandescent), which PowerTwin.rb had applied to every house without a decision"
+    source_assumption: {residential: "NREL ResStock 2024.2 in.lighting (resstock_tmy3_release_2 metadata/baseline.parquet, md5 4535090f, fetched 2026-10-13): weighted national 27.3% 100% LED / 35.6% 100% CFL / 37.1% 100% Incandescent, Wyoming 38.9 / 35.4 / 25.7, flat across vintages; Teton County cell 36.7% LED, 36.2% CFL. ResStock's options (resources/options_lookup.tsv, NREL/resstock v3.3.0, Lighting rows) set interior, exterior and garage alike, and so does the mapper"}
+    invariants: ["houses only; commercial lighting is lighting_power_density", "LED + CFL never exceed 1: residential_lighting_fractions caps CFL at 1 - LED", "dynamic defaults off: nothing emitted, BuildResidentialHPXML's default stands", "the surrogate features carry the same values (schema 0.6.0); an explicit value outside the county shares the model saw routes to URBANopt"]
+    oracle:
+      resolver: [test_resolvers::test_resolver_golden, test_residential_lighting::test_teton_house_gets_its_county_shares]
+      integration: [test_residential_lighting::test_feature_file_carries_the_fractions_for_houses_only, test_residential_lighting::test_surrogate_vector_carries_the_fractions]
+      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL
+
+  lighting_cfl_fraction:
+    workflow: residential_only
+    type: numeric
+    range: [0.0, 1.0]
+    units: "fraction of the house's lighting that is CFL (BuildResidentialHPXML lighting_*_fraction_cfl); the rest after LED and CFL is incandescent"
+    flat_default: ""
+    resolver: "_resolve_res_lighting: the county's ResStock 2024.2 share of homes on 100% CFL lighting; capped at 1 - LED when the LED share is explicit (no CFL resolved: BuildResidentialHPXML's 0.1, HPXML_DEFAULT_INTERIOR_CFL)"
+    source_assumption: {residential: "as lighting_led_fraction"}
+    invariants: ["as lighting_led_fraction"]
+    oracle:
+      resolver: [test_resolvers::test_resolver_golden, test_residential_lighting::test_explicit_led_caps_the_cfl_share]
+      integration: [test_residential_lighting::test_feature_file_carries_the_fractions_for_houses_only]
+      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL
+
   infiltration_ach50:
     workflow: residential_only
     type: numeric
@@ -1061,7 +1096,6 @@ physical_constants:
     - {name: surrogate_evaluation_thresholds, values: "delta_gbm min_nonzero 20 (as gbm_pca min_active 20), eval_delta SIGN_MIN 2% of baseline, pair_fanout MONOTONE_TOL 0.5%", basis: "evaluation conventions for the delta surrogate (fit floor for a PCA basis; direction and monotonicity checks above EnergyPlus and rounding noise); they gate reported metrics, not simulated energy", status: UNVERIFIED}
     - {name: base_workflow.osw measure args, where: base_workflow.osw, items: "EV (100%/0.5 curtail), ice/chilled-water storage setpoints+times, peak-hour EPD/thermostat adjustments, insulation increases R-10 wall/R-30 roof, default LPD 35% (replaced under DD by COMMERCIAL_LIGHTING_LPD, 2026-10-01) + equip 20% reduction, QAQC tolerances, default weather (Buffalo CZ6A)", status: UNVERIFIED}
     - {name: vacant_commercial_reductions, values: "occupants 0; interior lighting -60% (after the lighting-generation LPD); electric equipment -23%", source: "EIA CBECS 2018 public microdata (cbecs2018_final_public.csv, codebook, User's Guide Jan 2023), PBA 1 Vacant n=117 vs PBA 5 nonrefrigerated warehouse n=753, FINALWT-weighted, jackknife SE: lit floorspace share ratio 0.398 (SE 0.050, survey); office+computing+other electricity EUI ratio 0.769 (SE 0.172, EIA-modeled); completely vacant buildings report 0 workers and 0 hours. Reproduces EIA tables C4/E4/C14 Vacant rows. Analysis: flow-ssd/tmp_clsf/vacant_research (2026-10-01)", where: "powertwin_refs.rb VACANT_LIGHTING_CUT_PCT / VACANT_EQUIPMENT_CUT_PCT; PowerTwin.rb vacant branch", note: "replaced uncited 90/80 (2026-10-01); no CBECS source for vacant exterior lighting or setpoints (exterior lighting left at the openstudio-standards allowance; a 1,454 ft2 vacant building's total sits in the CBECS small-vacant band)", oracle: test_regression_guards::test_vacant_cuts_are_the_cbecs_values, status: PROVEN}
-    - {name: residential_lighting_fractions, values: "interior 10% CFL, 0% LFL, 0% LED (so 90% incandescent); exterior and garage 100% incandescent", where: "BuildResidentialHPXML measure.xml defaults (lighting_interior_fraction_cfl 0.1, every other lighting_*_fraction_* 0.0): PowerTwin.rb sets none of them, and its argument fill takes the measure defaults; confirmed in a built house (in.osw and in.xml LightingGroup, 2026-10-13, flow-ssd/tmp_clsf/baseboard_check)", note: "unsourced engine default, never a decision (no ledger, vault or git record). ResStock 2024.2 in.lighting, weight-weighted share of homes (baseline.parquet md5 4535090f, OEDI resstock_tmy3_release_2, fetched 2026-10-13): national 37.1% 100% Incandescent, 35.6% 100% CFL, 27.3% 100% LED; Wyoming 25.7% / 35.4% / 38.9%; flat across vintages. Owner 2026-10-13: replace with county share-weighted fractions plus an explicit lighting_led_fraction override (vault Retrofit Overrides Plan); a resolver version change, so it ships with a retrained surrogate", status: UNVERIFIED}
     - {name: emissions_subregion_defaults, values: "RMPAc/RockyMtn/RMPA, years 2019/2020", where: base_workflow.osw add_ems_emissions_reporting, note: "overridden per-asset by state in PowerTwin.rb when present", status: UNVERIFIED}
     - {name: district_heating_CO2, status: UNVERIFIED, note: "add_ems_emissions_reporting emits electricity/gas/propane/oil emissions ONLY (observed in the now-removed e2e; re-confirm via container run); district heating produces energy but NO CO2 column -> counting it needs solver post-processing + a chosen factor. OPEN DECISION."}
 

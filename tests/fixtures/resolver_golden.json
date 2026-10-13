@@ -94,6 +94,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
+        "null": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -260,6 +266,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
+        "null": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -399,6 +411,12 @@
         "null": 2000
       },
       "infiltration_ach50": {
+        "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
         "null": 2000
       },
       "misc_gas_fireplace": {
@@ -551,6 +569,12 @@
         "null": 2000
       },
       "infiltration_ach50": {
+        "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
         "null": 2000
       },
       "misc_gas_fireplace": {
@@ -713,6 +737,12 @@
         "null": 2000
       },
       "infiltration_ach50": {
+        "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
         "null": 2000
       },
       "misc_gas_fireplace": {
@@ -895,6 +925,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
+        "null": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -1051,6 +1087,12 @@
         "null": 2000
       },
       "infiltration_ach50": {
+        "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
         "null": 2000
       },
       "misc_gas_fireplace": {
@@ -1214,6 +1256,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
+        "null": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -1354,6 +1402,12 @@
         "null": 2000
       },
       "infiltration_ach50": {
+        "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
         "null": 2000
       },
       "misc_gas_fireplace": {
@@ -1510,6 +1564,12 @@
         "null": 2000
       },
       "infiltration_ach50": {
+        "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "null": 2000
+      },
+      "lighting_led_fraction": {
         "null": 2000
       },
       "misc_gas_fireplace": {
@@ -1708,6 +1768,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.39": 2000
+      },
+      "lighting_led_fraction": {
+        "0.215": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1954,
         "Yes": 46
@@ -1852,6 +1918,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.38": 2000
+      },
+      "lighting_led_fraction": {
+        "0.241": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -2057,6 +2129,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.39": 2000
+      },
+      "lighting_led_fraction": {
+        "0.215": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1940,
         "Yes": 60
@@ -2203,6 +2281,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.38": 2000
+      },
+      "lighting_led_fraction": {
+        "0.241": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -2407,6 +2491,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.39": 2000
+      },
+      "lighting_led_fraction": {
+        "0.215": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1949,
         "Yes": 51
@@ -2547,6 +2637,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.38": 2000
+      },
+      "lighting_led_fraction": {
+        "0.241": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -2690,6 +2786,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.359": 2000
+      },
+      "lighting_led_fraction": {
+        "0.201": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -2829,6 +2931,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.359": 2000
+      },
+      "lighting_led_fraction": {
+        "0.201": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -2975,6 +3083,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.359": 2000
+      },
+      "lighting_led_fraction": {
+        "0.201": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -3119,6 +3233,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.333": 2000
+      },
+      "lighting_led_fraction": {
+        "0.293": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -3259,6 +3379,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.333": 2000
+      },
+      "lighting_led_fraction": {
+        "0.293": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -3407,6 +3533,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.333": 2000
+      },
+      "lighting_led_fraction": {
+        "0.293": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -3550,6 +3682,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.35": 2000
+      },
+      "lighting_led_fraction": {
+        "0.371": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -3690,6 +3828,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.35": 2000
+      },
+      "lighting_led_fraction": {
+        "0.371": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -3834,6 +3978,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.35": 2000
+      },
+      "lighting_led_fraction": {
+        "0.371": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -4037,6 +4187,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.386": 2000
+      },
+      "lighting_led_fraction": {
+        "0.261": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1944,
         "Yes": 56
@@ -4178,6 +4334,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.394": 2000
+      },
+      "lighting_led_fraction": {
+        "0.262": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -4380,6 +4542,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.386": 2000
+      },
+      "lighting_led_fraction": {
+        "0.261": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1956,
         "Yes": 44
@@ -4526,6 +4694,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.394": 2000
+      },
+      "lighting_led_fraction": {
+        "0.262": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -4731,6 +4905,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.386": 2000
+      },
+      "lighting_led_fraction": {
+        "0.261": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1938,
         "Yes": 62
@@ -4867,6 +5047,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.394": 2000
+      },
+      "lighting_led_fraction": {
+        "0.262": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -5068,6 +5254,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.387": 2000
+      },
+      "lighting_led_fraction": {
+        "0.253": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1941,
         "Yes": 59
@@ -5212,6 +5404,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.355": 2000
+      },
+      "lighting_led_fraction": {
+        "0.312": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -5414,6 +5612,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.387": 2000
+      },
+      "lighting_led_fraction": {
+        "0.253": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1943,
         "Yes": 57
@@ -5560,6 +5764,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.355": 2000
+      },
+      "lighting_led_fraction": {
+        "0.312": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -5768,6 +5978,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.387": 2000
+      },
+      "lighting_led_fraction": {
+        "0.253": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1952,
         "Yes": 48
@@ -5909,6 +6125,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.355": 2000
+      },
+      "lighting_led_fraction": {
+        "0.312": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -6111,6 +6333,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.38": 2000
+      },
+      "lighting_led_fraction": {
+        "0.345": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1941,
         "Yes": 59
@@ -6253,6 +6481,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.371": 2000
+      },
+      "lighting_led_fraction": {
+        "0.37": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -6451,6 +6685,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.38": 2000
+      },
+      "lighting_led_fraction": {
+        "0.345": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1925,
         "Yes": 75
@@ -6597,6 +6837,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.371": 2000
+      },
+      "lighting_led_fraction": {
+        "0.37": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -6802,6 +7048,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.38": 2000
+      },
+      "lighting_led_fraction": {
+        "0.345": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1942,
         "Yes": 58
@@ -6941,6 +7193,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.371": 2000
+      },
+      "lighting_led_fraction": {
+        "0.37": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -7086,6 +7344,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.354": 2000
+      },
+      "lighting_led_fraction": {
+        "0.239": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -7226,6 +7490,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.354": 2000
+      },
+      "lighting_led_fraction": {
+        "0.239": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -7371,6 +7641,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.354": 2000
+      },
+      "lighting_led_fraction": {
+        "0.239": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -7514,6 +7790,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.327": 2000
+      },
+      "lighting_led_fraction": {
+        "0.278": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -7661,6 +7943,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.327": 2000
+      },
+      "lighting_led_fraction": {
+        "0.278": 2000
+      },
       "misc_gas_fireplace": {
         "null": 2000
       },
@@ -7804,6 +8092,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.327": 2000
+      },
+      "lighting_led_fraction": {
+        "0.278": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -8001,6 +8295,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.332": 2000
+      },
+      "lighting_led_fraction": {
+        "0.189": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1935,
         "Yes": 65
@@ -8142,6 +8442,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.343": 2000
+      },
+      "lighting_led_fraction": {
+        "0.206": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -8337,6 +8643,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.332": 2000
+      },
+      "lighting_led_fraction": {
+        "0.189": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1939,
         "Yes": 61
@@ -8483,6 +8795,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.343": 2000
+      },
+      "lighting_led_fraction": {
+        "0.206": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000
@@ -8685,6 +9003,12 @@
       "infiltration_ach50": {
         "null": 2000
       },
+      "lighting_cfl_fraction": {
+        "0.332": 2000
+      },
+      "lighting_led_fraction": {
+        "0.189": 2000
+      },
       "misc_gas_fireplace": {
         "No": 1940,
         "Yes": 60
@@ -8824,6 +9148,12 @@
       },
       "infiltration_ach50": {
         "null": 2000
+      },
+      "lighting_cfl_fraction": {
+        "0.343": 2000
+      },
+      "lighting_led_fraction": {
+        "0.206": 2000
       },
       "misc_gas_fireplace": {
         "null": 2000

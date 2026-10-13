@@ -59,7 +59,7 @@ ALL_DYNAMIC_FIELDS = [
     "heating_setpoint_f", "cooling_setpoint_f", "infiltration_ach50",
     "system_type",
     "com_heating_adjustment_f", "com_cooling_adjustment_f", "com_airtightness_75pa",
-    "pv_system_kw", "pv_azimuth_deg",
+    "pv_system_kw", "pv_azimuth_deg", "lighting_led_fraction", "lighting_cfl_fraction",
     "bedrooms_per_unit",
     "foundation_type", "garage_cars",
     "cooling_type_detail", "cooling_fraction_served",
@@ -1838,7 +1838,7 @@ _GOLDEN_STOCH = ['heating_system_type', 'heating_system_fuel_type',
                  'system_type', 'clothes_dryer_fuel', 'cooking_range_fuel',
                  'misc_gas_grill', 'misc_gas_lighting', 'misc_gas_fireplace',
                  'com_heating_adjustment_f', 'com_cooling_adjustment_f',
-                 'com_airtightness_75pa', 'pv_system_kw', 'pv_azimuth_deg',
+                 'com_airtightness_75pa', 'pv_system_kw', 'pv_azimuth_deg', 'lighting_led_fraction', 'lighting_cfl_fraction',
                  'bedrooms_per_unit', 'foundation_type', 'garage_cars',
                  'cooling_type_detail', 'cooling_fraction_served']
 _GOLDEN_DET = ['cooling_system_fuel_type', 'number_of_occupants', 'weekday_start_time']

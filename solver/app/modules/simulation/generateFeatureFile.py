@@ -15,7 +15,7 @@ import re
 
 from modules.diagnostics import asset_analysis
 from modules.utils import initialize_logger
-from modules.simulation.sim_params_spec import resolved_templates, resolve_lighting, comstock_native_system, COMSTOCK_HVAC_KEY, CONFIRMABLE_FIELDS, RESIDENTIAL_BUILDING_TYPES, get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref, ENUM_VALUES, NUMERIC_RANGES, TIME_FIELDS, RETIRED_INPUT_FIELDS
+from modules.simulation.sim_params_spec import resolved_templates, resolve_lighting, residential_lighting_fractions, comstock_native_system, COMSTOCK_HVAC_KEY, CONFIRMABLE_FIELDS, RESIDENTIAL_BUILDING_TYPES, get_param, OCCUPANTS_MAPPING, build_asset_ctx, SQFT_PER_BEDROOM, RESOLVER_VERSION, is_dynamic_defaults_enabled, is_vacant, _load_ref, ENUM_VALUES, NUMERIC_RANGES, TIME_FIELDS, RETIRED_INPUT_FIELDS
 
 external_log_dir = os.environ.get('POWERTWIN_LOG_DIR')
 logger = initialize_logger('Generate Feature Files', external_log_dir)
@@ -830,6 +830,11 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         # CR WP-R3: occupied-stock setpoints (joint donor) + envelope ACH50.
         # CR WP-R4: appliance fuels + misc gas loads (one gas-line-coherent donor).
         # Empty = omit; the mapper keeps its cited literals / HPXML defaults.
+        # resolver 3.5: the house's LED and CFL lighting fractions (county ResStock shares, or an explicit LED share)
+        led, cfl = residential_lighting_fractions(asset_metadata, ctx)
+        if led != '':
+            new_properties["lighting_led_fraction"] = led
+            new_properties["lighting_cfl_fraction"] = cfl
         for f in ('heating_setpoint_f', 'cooling_setpoint_f', 'infiltration_ach50', 'door_r_value',
                   'clothes_dryer_fuel', 'cooking_range_fuel',
                   'misc_gas_grill', 'misc_gas_lighting', 'misc_gas_fireplace',

@@ -392,6 +392,8 @@ def test_surrogate_explicit_inputs_match_what_the_collector_reads():
     body = src[src.index("def resolve_static_vector"):src.index("def load_targets")]
     reads = set(re.findall(r'gp\("([a-z_0-9]+)"\)', body)) | set(re.findall(r'meta\.get\("([a-z_0-9]+)"\)', body))
     reads |= set(C._GET_PARAM_KEY.values())
+    if "residential_lighting_fractions(meta, ctx)" in body:   # resolver 3.5: both lighting fields through one helper
+        reads |= {"lighting_led_fraction", "lighting_cfl_fraction"}
     assert reads == set(C.EXPLICIT_INPUTS), (sorted(reads - C.EXPLICIT_INPUTS), sorted(C.EXPLICIT_INPUTS - reads))
 
 

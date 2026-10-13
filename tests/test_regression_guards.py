@@ -62,6 +62,7 @@ DYNAMIC_FIELDS = [
     "system_type",
     "com_heating_adjustment_f", "com_cooling_adjustment_f", "com_airtightness_75pa",
     "pv_system_kw", "pv_azimuth_deg",
+    "lighting_led_fraction", "lighting_cfl_fraction",
     "bedrooms_per_unit",
     "foundation_type", "garage_cars",
     "cooling_type_detail", "cooling_fraction_served",

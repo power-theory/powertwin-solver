@@ -788,6 +788,18 @@ module URBANopt
               end
               # Explicit door R-value (h-ft^2-R/Btu; 2026-10-13): replaces OS-HPXML's default R-4.4 for a door retrofit
               args[:door_rvalue] = res_props[:door_r_value].to_f if PowerTwinRefs.present?(res_props[:door_r_value])
+              # Resolver 3.5: the house's LED and CFL lighting fractions (its county's ResStock 2024.2 shares, or an
+              # explicit LED share), for interior, exterior and garage alike as ResStock's lighting options set them;
+              # the rest is incandescent. Absent (dynamic defaults off), BuildResidentialHPXML's defaults stand.
+              if PowerTwinRefs.present?(res_props[:lighting_led_fraction])
+                led = res_props[:lighting_led_fraction].to_f
+                cfl = res_props[:lighting_cfl_fraction].to_f
+                %w[interior exterior garage].each do |loc|
+                  args[:"lighting_#{loc}_fraction_led"] = led
+                  args[:"lighting_#{loc}_fraction_cfl"] = cfl
+                  args[:"lighting_#{loc}_fraction_lfl"] = 0.0
+                end
+              end
               # CR WP-R4: appliance fuels + misc gas loads from the county donor
               # (gas-line coherent: same draw carries dryer/range/grill/lighting/
               # fireplace). 'none' = the home has no such appliance.

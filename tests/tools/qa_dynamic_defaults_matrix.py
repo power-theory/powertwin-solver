@@ -72,6 +72,8 @@ FIELDS = (
     "com_airtightness_75pa",
     "pv_system_kw",
     "pv_azimuth_deg",
+    "lighting_led_fraction",
+    "lighting_cfl_fraction",
     "bedrooms_per_unit",
     "foundation_type",
     "garage_cars",
@@ -120,6 +122,8 @@ OVERRIDE = {
     "com_cooling_adjustment_f":       -3.0,
     "com_airtightness_75pa":          35.0,
     "pv_system_kw":                   6.0,
+    "lighting_led_fraction":          0.8,
+    "lighting_cfl_fraction":          0.1,
     "pv_azimuth_deg":                 225.0,
     "bedrooms_per_unit":              6.0,
     "foundation_type":                "crawlspace - vented",
@@ -167,6 +171,8 @@ FLAT = {
     "com_cooling_adjustment_f":       "",                  # omitted
     "com_airtightness_75pa":          "",                  # omitted
     "pv_system_kw":                   "",                  # omitted
+    "lighting_led_fraction":          "",                  # omitted
+    "lighting_cfl_fraction":          "",                  # omitted
     "pv_azimuth_deg":                 "",                  # omitted
     "bedrooms_per_unit":              "",                  # omitted
     "foundation_type":                "",                  # omitted -> region-modal legacy
@@ -220,6 +226,8 @@ MEASURE = {
     "com_cooling_adjustment_f":       ("AdjustThermostatSetpointsByDegrees", "cooling_adjustment"),        # CR WP-C2
     "com_airtightness_75pa":          ("set_nist_infiltration_correlations", "airtightness_value"),        # CR WP-C2
     "pv_system_kw":                   ("BuildResidentialModel", "pv_system_max_power_output"),             # CR WP-R6
+    "lighting_led_fraction":          ("BuildResidentialModel", "lighting_interior_fraction_led"),         # resolver 3.5
+    "lighting_cfl_fraction":          ("BuildResidentialModel", "lighting_interior_fraction_cfl"),         # resolver 3.5
     "pv_azimuth_deg":                 ("BuildResidentialModel", "pv_system_array_azimuth"),                # CR WP-R6
     "bedrooms_per_unit":              ("BuildResidentialModel", "geometry_unit_num_bedrooms"),             # CR WP-R5 (via number_of_bedrooms property)
     "foundation_type":                ("BuildResidentialModel", "geometry_foundation_type"),               # CR WP-R5 (via feature foundation_type)
@@ -340,6 +348,8 @@ FEATURE_KEY = {
     "com_cooling_adjustment_f":       ("com_cooling_adjustment_f",),
     "com_airtightness_75pa":          ("com_airtightness_75pa",),
     "pv_system_kw":                   ("pv_system_kw",),
+    "lighting_led_fraction":          ("lighting_led_fraction",),
+    "lighting_cfl_fraction":          ("lighting_cfl_fraction",),
     "pv_azimuth_deg":                 ("pv_azimuth_deg",),
     "cooling_type_detail":            ("cooling_type_detail",),
     "cooling_fraction_served":        ("cooling_fraction_served",),
@@ -734,7 +744,7 @@ def resolve_expected(metadata: dict[str, Any], building_type: str) -> dict[str, 
         "'clothes_dryer_fuel','cooking_range_fuel','misc_gas_grill',"
         "'misc_gas_lighting','misc_gas_fireplace','system_type',"
         "'com_heating_adjustment_f','com_cooling_adjustment_f','com_airtightness_75pa',"
-        "'pv_system_kw','pv_azimuth_deg','bedrooms_per_unit',"
+        "'pv_system_kw','pv_azimuth_deg','lighting_led_fraction','lighting_cfl_fraction','bedrooms_per_unit',"
         "'foundation_type','garage_cars','cooling_type_detail','cooling_fraction_served',"
         "'heating_equipment_detail','heating_has_ducts',"
         ""
