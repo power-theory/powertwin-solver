@@ -365,3 +365,58 @@ def test_a_replaced_model_is_reloaded_and_broken_parts_are_refused(served):
     with pytest.raises(SS.SurrogateUnavailable, match="unreadable"):
         SS.precheck()
 
+
+
+def test_explicit_params_the_model_does_not_read_route_to_urbanopt(served):
+    """A fast estimate must not silently ignore a user's explicit value (2026-10-13): a building whose metadata sets a
+    simulation param the surrogate does not read is skipped with a reason; params it reads are served as before."""
+    rows = ROWS + [(3, 4, {"area": 1800, "floor_count": 1, "year_built": 1999, "infiltration_ach50": 3.0},
+                    {"1": "e3"}, _square(LON + 0.02, 9)),
+                   (4, OFFICE, {"area": 9000, "floor_count": 1, "year_built": 2001, "system_type": "VAV chiller with gas boiler reheat"},
+                    {"1": "e4"}, _square(LON + 0.03, 30)),
+                   (5, 4, {"area": 1800, "floor_count": 1, "year_built": 1999, "window_u_factor": 0.3, "wall_r_value": 21},
+                    {"1": "e5"}, _square(LON + 0.04, 9))]
+    mcsv, gj = _request(served["local"], rows)
+    entries, _, _, ids, skipped, _ = SS.build_entries(mcsv, gj)
+    assert ids == ["1", "2", "5"]
+    assert "infiltration_ach50" in skipped["3"] and "URBANopt" in skipped["3"]
+    assert "system_type" in skipped["4"]
+    assert entries[2]["explicit"] == {"window_u_factor": 0.3, "wall_r_value": 21}
+
+
+def test_surrogate_explicit_inputs_match_what_the_collector_reads():
+    """EXPLICIT_INPUTS must name every metadata key resolve_static_vector reads explicitly, and only those."""
+    import re
+    from surrogate.app.modules.data import collector as C
+    src = open(C.__file__).read()
+    body = src[src.index("def resolve_static_vector"):src.index("def load_targets")]
+    reads = set(re.findall(r'gp\("([a-z_0-9]+)"\)', body)) | set(re.findall(r'meta\.get\("([a-z_0-9]+)"\)', body))
+    reads |= set(C._GET_PARAM_KEY.values())
+    assert reads == set(C.EXPLICIT_INPUTS), (sorted(reads - C.EXPLICIT_INPUTS), sorted(C.EXPLICIT_INPUTS - reads))
+
+
+def test_values_beyond_training_and_unread_params_are_refused_up_front(served):
+    """2026-10-13 review: a value outside what the model saw goes to URBANopt (trees do not extrapolate), per
+    building in build_entries and at request time (refusal -> asset_update answers 409, not a failed background run)."""
+    from surrogate.app.modules.data import collector as C
+    res_u = C.trained_spans(True)["window_u_factor"]
+    com_lpd = C.trained_spans(False)["lighting_power_density"]
+    assert res_u[0] <= 0.30 <= res_u[1] and com_lpd == (0.21, 1.73)
+    rows = ROWS + [(3, 4, {"area": 1800, "floor_count": 1, "year_built": 1999, "window_u_factor": 0.05},
+                    {"1": "e3"}, _square(LON + 0.02, 9)),
+                   (4, OFFICE, {"area": 9000, "floor_count": 1, "year_built": 2001, "lighting_power_density": 3.0},
+                    {"1": "e4"}, _square(LON + 0.03, 30)),
+                   (5, OFFICE, {"area": 9000, "floor_count": 1, "year_built": 2001, "lighting_power_density": 0.45,
+                                "door_r_value": " "}, {"1": "e5"}, _square(LON + 0.04, 30))]
+    mcsv, gj = _request(served["local"], rows)
+    _, _, _, ids, skipped, _ = SS.build_entries(mcsv, gj)
+    assert ids == ["1", "2", "5"]                     # a whitespace-only value is unset, as get_param reads it
+    assert "window_u_factor" in skipped["3"] and "training range" in skipped["3"]
+    assert "lighting_power_density" in skipped["4"]
+    assert SS.refusal([{"asset_metadata": {"infiltration_ach50": 3}}]).startswith("explicit infiltration_ach50")
+    assert "training range" in SS.refusal([{"asset_metadata": json.dumps({"lighting_power_density": 3.0})}])
+    assert "training range" in SS.refusal([{"asset_subtype_id": OFFICE, "asset_metadata": {"lighting_power_density": 3.0}}])
+    assert SS.refusal([{"asset_subtype_id": 4, "asset_metadata": {"window_u_factor": 1.3}}])     # beyond a house's tiers
+    assert SS.refusal([{"asset_metadata": {"window_u_factor": 0.3, "wall_r_value": 21}}]) is None
+    views = open(os.path.join(APP, "views.py")).read()
+    assert "refused = SS.refusal(metadata_json)" in views and "'route': 'urbanopt'" in views

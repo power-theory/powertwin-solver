@@ -624,6 +624,10 @@ module URBANopt
                 args[:window_ufactor] = (u / 5.678263).round(3)
                 args[:window_shgc] = shgc.round(3)
               end
+              # Explicit window performance (2026-10-13): a rated U-factor (IP, as HPXML takes it) or SHGC set on the
+              # building replaces the tier's number for that property.
+              args[:window_ufactor] = res_props[:window_u_factor].to_f.round(3) if PowerTwinRefs.present?(res_props[:window_u_factor])
+              args[:window_shgc] = res_props[:window_shgc].to_f.round(3) if PowerTwinRefs.present?(res_props[:window_shgc])
               res_constr = res_props[:constructions] || {}
               res_wall_r = (res_constr[:wall] || {})[:r_value]
               res_roof_r = (res_constr[:roof] || {})[:r_value]
@@ -782,6 +786,8 @@ module URBANopt
                 args[:air_leakage_house_pressure] = 50
                 args[:air_leakage_value] = res_props[:infiltration_ach50].to_f
               end
+              # Explicit door R-value (h-ft^2-R/Btu; 2026-10-13): replaces OS-HPXML's default R-4.4 for a door retrofit
+              args[:door_rvalue] = res_props[:door_r_value].to_f if PowerTwinRefs.present?(res_props[:door_r_value])
               # CR WP-R4: appliance fuels + misc gas loads from the county donor
               # (gas-line coherent: same draw carries dryer/range/grill/lighting/
               # fireplace). 'none' = the home has no such appliance.
@@ -1562,8 +1568,14 @@ module URBANopt
               # Window: tier + climate_zone -> (U-factor, SHGC).
               window_tier = PowerTwinRefs.present?(props[:window_type]) ? props[:window_type] :
                             ((props[:windows] || [{}]).first || {})[:window_type]
-              if PowerTwinRefs.present?(window_tier)
-                u, shgc = PowerTwinRefs.window_props(window_tier, climate_zone)
+              win_u_ip = props[:window_u_factor]
+              win_shgc = props[:window_shgc]
+              if PowerTwinRefs.present?(window_tier) || PowerTwinRefs.present?(win_u_ip) || PowerTwinRefs.present?(win_shgc)
+                # the tier's (U, SHGC), the modal Double Pane when only an explicit number is set; an explicit rated
+                # U-factor (IP; the measure takes SI) or SHGC replaces the tier's number for that property (2026-10-13)
+                u, shgc = PowerTwinRefs.window_props(PowerTwinRefs.present?(window_tier) ? window_tier : 'Double Pane', climate_zone)
+                u = win_u_ip.to_f * 5.678263 if PowerTwinRefs.present?(win_u_ip)
+                shgc = win_shgc.to_f if PowerTwinRefs.present?(win_shgc)
                 OpenStudio::Extension.set_measure_argument(osw, 'set_window_construction', '__SKIP__', false)
                 OpenStudio::Extension.set_measure_argument(osw, 'set_window_construction', 'u_factor', u)
                 OpenStudio::Extension.set_measure_argument(osw, 'set_window_construction', 'shgc', shgc)
@@ -1610,6 +1622,7 @@ module URBANopt
               # occupants 0 (all completely vacant buildings report 0 workers and 0 hours); interior lighting cut 60%
               # (lit floorspace share 0.398 of the warehouse's, survey-reported); equipment cut 23% (office + computing +
               # other electricity intensity 0.769 of the warehouse's, EIA-modeled, CI includes no cut).
+              # A vacant building keeps its 60% lighting cut below, on top of an explicit LPD too (as on the resolver's).
               if props[:vacant]
                 OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', '__SKIP__', false)
                 OpenStudio::Extension.set_measure_argument(osw, 'set_people_per_floor_area', 'target_total', 0)

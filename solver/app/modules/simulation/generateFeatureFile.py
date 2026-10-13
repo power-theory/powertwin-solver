@@ -618,6 +618,8 @@ def process_feature(feature, building_area_list, building_type_list, building_na
     # Commercial story height (2026-09-30): urbanopt-geojson's zoning step read this property and then built every
     # commercial story at a fixed 3.6 m; patches/patch_openstudio_standards.py makes it honour the value (ft). Houses
     # take the residential path (ceiling height from an explicit floor_height in PowerTwin.rb).
+    if building_type in RESIDENTIAL_TYPES and asset_metadata.get('lighting_power_density') not in (None, ''):
+        logger.info(f"Building {building_id}: lighting_power_density is a commercial input; a house ignores it")
     if building_type not in RESIDENTIAL_TYPES:
         new_properties["floor_to_floor_height"] = floor_height
         # Resolver 3.3: the construction and HVAC templates from the state's energy-code adoption years (ComStock
@@ -646,8 +648,12 @@ def process_feature(feature, building_area_list, building_type_list, building_na
                 new_properties["cec_climate_zone"] = cec_zone
         # Resolver 3.3: installed interior lighting from the building's ComStock lighting generation (PowerTwin.rb's
         # set_lighting_power_density replaces the flat 35% cut when this is present).
+        lpd_explicit = get_param(asset_metadata, 'lighting_power_density', ctx)
         try:
-            lpd, lighting_gen, _lvl = resolve_lighting(ctx)
+            if lpd_explicit not in (None, ''):   # a lighting retrofit: the building's own LPD (2026-10-13)
+                lpd, lighting_gen = float(lpd_explicit), 'explicit'
+            else:
+                lpd, lighting_gen, _lvl = resolve_lighting(ctx)
         except Exception as exc:   # noqa: BLE001 - degrade, never stop the run
             logger.warning(f"Building {building_id}: lighting generation unavailable ({type(exc).__name__}: {exc}); "
                            f"the 35% cut applies")
@@ -824,7 +830,7 @@ def process_feature(feature, building_area_list, building_type_list, building_na
         # CR WP-R3: occupied-stock setpoints (joint donor) + envelope ACH50.
         # CR WP-R4: appliance fuels + misc gas loads (one gas-line-coherent donor).
         # Empty = omit; the mapper keeps its cited literals / HPXML defaults.
-        for f in ('heating_setpoint_f', 'cooling_setpoint_f', 'infiltration_ach50',
+        for f in ('heating_setpoint_f', 'cooling_setpoint_f', 'infiltration_ach50', 'door_r_value',
                   'clothes_dryer_fuel', 'cooking_range_fuel',
                   'misc_gas_grill', 'misc_gas_lighting', 'misc_gas_fireplace',
                   'pv_system_kw', 'pv_azimuth_deg',
@@ -832,6 +838,13 @@ def process_feature(feature, building_area_list, building_type_list, building_na
             v = get_param(asset_metadata, f, ctx)
             if v not in (None, ''):
                 new_properties[f] = v
+
+    # Explicit window performance (IP U-factor, SHGC), either sector: only when set, so the window_type tier decides
+    # otherwise; PowerTwin.rb replaces the tier's number with it
+    for f in ('window_u_factor', 'window_shgc'):
+        v = get_param(asset_metadata, f, ctx)
+        if v not in (None, ''):
+            new_properties[f] = v
 
     # Remove useless properties
     new_properties.pop('height', None)

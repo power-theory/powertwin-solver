@@ -87,6 +87,66 @@ def get_server():
 _EXPLICIT_KEYS = tuple(G._EXPLICIT_PARAM_KEYS) + ('vacant', 'number_of_units', 'units', 'number_of_residential_units')
 
 
+def _surrogate_inputs() -> frozenset:
+    """The metadata keys whose explicit value the fast estimate reads (the collector's EXPLICIT_INPUTS)."""
+    from surrogate.app.modules.data.collector import EXPLICIT_INPUTS
+    return EXPLICIT_INPUTS
+
+
+def _explicit(md: dict) -> dict:
+    """The metadata's explicit simulation params; blank and whitespace-only values are unset, as get_param reads them."""
+    return {k: md[k] for k in _EXPLICIT_KEYS if md.get(k) is not None and str(md.get(k)).strip() != ''}
+
+
+def _unservable(explicit: dict, building_type) -> str | None:
+    """Why a fast estimate would not be this building, or None (2026-10-13): an explicit param the model does not read
+    (it would ignore it), or an explicit value outside what it was trained on (a tree model does not extrapolate).
+    building_type None (not known yet) checks the range against both workflows' spans."""
+    unread = sorted(set(explicit) - _surrogate_inputs())
+    if unread:
+        return f"explicit {', '.join(unread)} not an input of the fast estimate; simulate with URBANopt"
+    from surrogate.app.modules.data.collector import explicit_outside_training
+    from surrogate.app.modules.sampling.sim_levers import EFFECTIVE_BUILDING_TYPE
+    from modules.simulation.sim_params_spec import RESIDENTIAL_BUILDING_TYPES
+    if building_type is None:   # outside in every workflow the key has a training span in
+        from surrogate.app.modules.data.collector import trained_spans
+        per = {res: set(explicit_outside_training(explicit, res)) for res in (True, False)}
+        outside = sorted(k for k in set(per[True]) | set(per[False])
+                         if all(k in per[res] for res in (True, False) if k in trained_spans(res)))
+    else:
+        res = EFFECTIVE_BUILDING_TYPE.get(building_type, building_type) in RESIDENTIAL_BUILDING_TYPES
+        outside = explicit_outside_training(explicit, res)
+    if outside:
+        return f"explicit {', '.join(outside)} outside the fast estimate's training range; simulate with URBANopt"
+    return None
+
+
+def _int_or_none(v):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def refusal(metadata_rows) -> str | None:
+    """The request-time check for asset_update: the first building the fast estimate cannot be, with the reason, so
+    the caller gets a clear 409 instead of a failed background run."""
+    import json
+    for row in metadata_rows or []:
+        md = row.get('asset_metadata') if isinstance(row, dict) else None
+        if isinstance(md, str):
+            try:
+                md = json.loads(md)
+            except ValueError:
+                continue
+        if isinstance(md, dict):
+            sub = G.ASSET_SUBTYPES.get(_int_or_none(row.get('asset_subtype_id')) or -1)
+            reason = _unservable(_explicit(md), sub['name'] if sub else None)
+            if reason:
+                return reason
+    return None
+
+
 def build_entries(metadata_csv_path: str, geojson_path: str):
     """The collector entries of every simulatable footprint in the request, with the EPW each one uses, its sensors
     map and its building id; plus the ids skipped (no weather, unsimulatable type) with the reason."""
@@ -123,6 +183,11 @@ def build_entries(metadata_csv_path: str, geojson_path: str):
             skipped[bid] = f'weather file {title} not available'
             continue
         md = meta[bid]
+        explicit = _explicit(md)
+        reason = _unservable(explicit, typ.get(bid))
+        if reason:   # a fast estimate of a different building, or beyond what it learned (2026-10-13)
+            skipped[bid] = reason
+            continue
         if year_to_decade(md.get('year_built')) is None:
             skipped[bid] = 'no year_built (the model was trained on buildings with one)'
             continue
@@ -152,7 +217,7 @@ def build_entries(metadata_csv_path: str, geojson_path: str):
             'floor_area_ft2': floor_area,
             'floor_count': floors,
             'shape_factor': sim_shape_factor(feat.get('geometry')),
-            'explicit': {k: md[k] for k in _EXPLICIT_KEYS if md.get(k) not in (None, '')},
+            'explicit': explicit,
         })
         epws.append(epw)
         sens.append(sensors.get(bid, {}))

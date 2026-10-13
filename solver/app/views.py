@@ -464,6 +464,12 @@ def process_asset_update():
                 surrogate_meta = SS.precheck()
             except SS.SurrogateUnavailable as e:
                 return jsonify({'error': 'fast estimate unavailable', 'details': str(e)}), 503
+            # an explicit param the model does not read, or a value beyond its training: a clear refusal now, not a
+            # failed background run (2026-10-13); the caller can resubmit for URBANopt
+            refused = SS.refusal(metadata_json)
+            if refused:
+                return jsonify({'error': 'fast estimate cannot serve this building', 'route': 'urbanopt',
+                                'details': refused}), 409
         elif model_type_id != URBANOPT_MODEL_TYPE_ID:
             return jsonify({'error': f'unknown model_type_id {model_type_id}'}), 400
 

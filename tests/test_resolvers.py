@@ -87,6 +87,10 @@ ALL_DYNAMIC_FIELDS = [
 
 NON_DYNAMIC_FIELDS = [
     # floor_height resolves the commercial prototype's typical story since 2026-09-30 (houses still return None)
+    # explicit window performance overrides (2026-10-13): never resolved, the window_type tier decides when unset
+    'window_u_factor', 'window_shgc',
+    'lighting_power_density',   # explicit commercial lighting retrofit (2026-10-13); resolve_lighting is separate
+    'door_r_value',             # explicit residential door retrofit (2026-10-13)
 ]
 
 passed = 0

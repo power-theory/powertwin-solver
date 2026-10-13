@@ -233,6 +233,16 @@ SIM_PARAM_DEFAULTS = {
 
     # Numeric
     'window_to_wall_ratio': 0.20,    # CBECS 2018 commercial median
+    # Explicit window performance (2026-10-13): rated (NFRC) whole-window U-factor in IP Btu/h*ft^2*F and SHGC.
+    # Empty means the window_type tier decides both (powertwin_refs.rb window_props[_residential]); a value set
+    # here replaces the tier's number for that property only. No resolver default: an override, never a draw.
+    'window_u_factor': '',
+    'window_shgc': '',
+    # Explicit commercial interior lighting power density (W/ft2, building average; 2026-10-13): replaces the
+    # resolver's ComStock lighting generation (resolve_lighting) for a lighting retrofit. Houses ignore it.
+    'lighting_power_density': '',
+    # Explicit door R-value (h*ft^2*F/Btu; 2026-10-13), houses: replaces OS-HPXML's 4.4 for a door retrofit.
+    'door_r_value': '',
     'wall_r_value': 13.0,            # ResStock TRG post-1980 SFD avg / IECC CZ4 min
     'roof_r_value': 30.0,            # ResStock TRG post-1980 ceiling avg
     'floor_height': 9.0,             # last resort only: commercial resolves the prototype's typical story (3.6 m outside its domain), houses 8 ft
@@ -315,6 +325,17 @@ NUMERIC_RANGES = {
     'cooling_setpoint_f': (60.0, 90.0),
     'infiltration_ach50': (0.5, 75.0),
     'window_to_wall_ratio': (0.0, 0.8),
+    # EnergyPlus 24.2 WindowMaterial:SimpleGlazingSystem takes any U-factor > 0 (the 7.0 W/m2-K cap ended at 9.6)
+    # and an SHGC strictly between 0 and 1 (Energy+.idd); the U bounds are an input guard around the tiers' own
+    # extremes (triple low-e U-0.20, single clear U-1.04 IP), the SHGC bounds keep the engine's open interval
+    'window_u_factor': (0.05, 1.5),
+    'window_shgc': (0.01, 0.99),
+    # an input guard around NREL/TP-5500-86100 Table 2's installed building-average LPDs (comstock_lighting_lpd:
+    # 0.21 W/ft2 for the newest LED to 1.73 for T12 / incandescent across the 14 ComStock types)
+    'lighting_power_density': (0.1, 3.5),
+    # an input guard around OS-HPXML BuildResidentialHPXML door_rvalue's default R-4.4 (an uninsulated solid door is
+    # about R-2, an insulated fiberglass or steel door R-5 to R-7)
+    'door_r_value': (1.0, 15.0),
     'wall_r_value':         (0.0, 80.0),   # 0.0 = Uninsulated (county insulation draws)
     'roof_r_value':         (0.0, 80.0),
     'floor_height':         (6.0, float('inf')),   # no maximum (owner 2026-10-01: a cap only blocked real tall
