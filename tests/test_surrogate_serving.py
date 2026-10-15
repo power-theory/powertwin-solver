@@ -205,7 +205,7 @@ def test_unsimulatable_and_weatherless_buildings_are_skipped(served, monkeypatch
 def test_asset_update_routes_by_model_type_id():
     body = VIEWS.split("\ndef process_asset_update(", 1)[1].split("\ndef ", 1)[0]
     # absent is URBANopt; an unknown id is a 400; a fast estimate this solver cannot serve is a 503, never URBANopt
-    assert "SS.URBANOPT_MODEL_TYPE_ID if raw_model in (None, '')" in body
+    assert "URBANOPT_MODEL_TYPE_ID if raw_model in (None, '')" in body
     assert "unknown model_type_id" in body and "), 400" in body.split("unknown model_type_id", 1)[1][:80]
     assert "except SS.SurrogateUnavailable" in body and "), 503" in body.split("except SS.SurrogateUnavailable", 1)[1][:160]
     # the check runs before any directory is made, and the surrogate runs in its own worker

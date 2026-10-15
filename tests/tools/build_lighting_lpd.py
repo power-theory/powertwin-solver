@@ -21,7 +21,7 @@ import subprocess
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(REPO, "solver", "upload", "reference_data", "comstock_lighting_lpd.json")
-PDF = "/home/missionloyd/dev/flow-ssd/tmp_clsf/comstock_cache/nrel_86100_led_lighting.pdf"
+PDF = "/mnt/WD2002FAEX-007BA0-4/solver/tmp_clsf/comstock_cache/nrel_86100_led_lighting.pdf"
 PDF_SHA256 = "8571300be9139a57b75768d87cdcf942a7295de9419011f858f11f7526fd4e5c"
 # Table 2's row names -> in.comstock_building_type (ComStock 2024.1 baseline.parquet)
 COMSTOCK = {"full_service_restaurant": "FullServiceRestaurant", "hospital": "Hospital", "large_hotel": "LargeHotel",

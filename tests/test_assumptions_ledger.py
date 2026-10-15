@@ -132,6 +132,16 @@ def test_enum_and_range_consistency():
 # --------------------------------------------------------------------------- #
 # 3. PROVENANCE -- every _load_ref file is documented and every source exists
 # --------------------------------------------------------------------------- #
+def test_resolver_version_pins_match_the_solver():
+    """The ledger's meta.resolver_version and the surrogate schema's RESOLVER_VERSION_EXPECTED follow
+    sim_params_spec.RESOLVER_VERSION; both were left behind once (the schema at 3.4, 7a60d36; the ledger at 3.5,
+    47ce3b7) with nothing failing."""
+    solver = _load_spec().RESOLVER_VERSION
+    assert str(_load_ledger()["meta"]["resolver_version"]) == solver
+    schema_src = open(os.path.join(REPO, "surrogate", "app", "modules", "schema.py")).read()
+    assert re.search(r'^RESOLVER_VERSION_EXPECTED = "([^"]+)"', schema_src, re.M).group(1) == solver
+
+
 def test_reference_files_documented_and_present():
     ledger = _load_ledger()
     documented = {s.get("file") for s in ledger["sources"].values() if isinstance(s, dict) and s.get("file")}

@@ -3,7 +3,7 @@
 
 Source: the California Energy Commission "California Building Climate Zones" layer (ArcGIS FeatureServer
 BuildingClimateZones_CEC_2015, WGS84, field BZone), fetched 2026-09-30 with its checksum in
-flow-ssd/tmp_clsf/cec_climate_zones/SHA256SUMS. Zones 3 and 6 are invalid polygons as published, so make_valid.
+/mnt/WD2002FAEX-007BA0-4/solver/tmp_clsf/cec_climate_zones/SHA256SUMS. Zones 3 and 6 are invalid polygons as published, so make_valid.
 
 The published geometry is kept as is (gzipped, so it is an LFS object pinned in county_tables.sha256): even a
 0.0002 degree simplification moved ZIP 94925, whose center sits 8 m from the zone 2/3 line. A --tolerance is
@@ -24,7 +24,7 @@ from shapely.validation import make_valid
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(REPO, "solver", "upload", "reference_data", "cec_building_climate_zones.json.gz")
-SRC = "/home/missionloyd/dev/flow-ssd/tmp_clsf/cec_climate_zones"
+SRC = "/mnt/WD2002FAEX-007BA0-4/solver/tmp_clsf/cec_climate_zones"
 SERVICE = ("https://services3.arcgis.com/bWPjFyq029ChCGur/arcgis/rest/services/BuildingClimateZones_CEC_2015/"
            "FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson")
 
