@@ -99,10 +99,9 @@ def clean_asset_dir(ASSET_DIR, LOCAL_BATCH_SIMULATION_DIR):
     # eplusout.sql, in.idf, generated_files/, feature_reports/ etc. after
     # a sim. Identical gating to run_UOsim.py / views.py so
     # one toggle preserves every cleanup point.
-    # Back-compat: legacy SIMULATION_KEEP_RUN_DIR and POWERTWIN_KEEP_DIRS
-    # still honored so existing apptainer wrappers and .env.local files
-    # don't need a flag-day rename.
-    keep_run_dir = _bool_env('URBANOPT_KEEP_RUN_DIR') or _bool_env('SIMULATION_KEEP_RUN_DIR')
+    # POWERTWIN_KEEP_DIRS (below) is the narrower keep the cluster job
+    # script and the UI's keep-directories box still set.
+    keep_run_dir = _bool_env('URBANOPT_KEEP_RUN_DIR')
     if not keep_run_dir:
         # Define the files and directories to keep
         keep_files = {'in.osm', 'in.osw'}

@@ -20,7 +20,7 @@ def run(tmp_path, monkeypatch):
     monkeypatch.chdir(SOLVER)
     monkeypatch.syspath_prepend(os.path.join(SOLVER, "app"))
     monkeypatch.setenv("POWERTWIN_LOG_DIR", "/tmp")
-    for k in ("URBANOPT_KEEP_RUN_DIR", "SIMULATION_KEEP_RUN_DIR", "POWERTWIN_KEEP_DIRS"):
+    for k in ("URBANOPT_KEEP_RUN_DIR", "POWERTWIN_KEEP_DIRS"):
         monkeypatch.delenv(k, raising=False)
     from modules.simulation import clean_report as C
     monkeypatch.setattr(C, "get_epw_utc_offset", lambda title: -7)   # no EPW cache in tests; Mountain standard
