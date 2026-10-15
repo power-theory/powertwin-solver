@@ -27,8 +27,9 @@ variables:
 test_resolvers:
   stage: test
   image: python:3.10-slim
+  # the test runner: a docker executor without the host docker socket (this job makes no docker calls)
   tags:
-    - k8s
+    - test
   script:
     # mpi4py (in solver/requirements) has no slim-image wheel; build it against a real MPI toolchain
     - apt-get update && apt-get install -y --no-install-recommends gcc libopenmpi-dev
