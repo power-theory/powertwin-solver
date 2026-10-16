@@ -71,6 +71,14 @@ def retry_on_database_error(func):
         return None  # Should never reach here
     
     return wrapper
+
+
+def _reraise_if_locked(e):
+    """A read that swallowed a lock error returned an empty answer the caller trusts: a batch read
+    no assets and ran none of its buildings, a weather lookup gave None (the nat34h local probe,
+    2026-10-15: 8 of 300 buildings never ran, 1 failed). Raise it so retry_on_database_error retries."""
+    if isinstance(e, sqlite3.OperationalError) and any(p in str(e).lower() for p in ('locked', 'locking protocol')):
+        raise e
 @retry_on_database_error
 def get_sqlite_connection():
     """SQLite connection with environment-dependent lifetime and journal mode.
@@ -367,6 +375,7 @@ def get_bulk_assets(simulation_name: str, limit: Optional[int] = None) -> List[D
         return assets
         
     except Exception as e:
+        _reraise_if_locked(e)
         logger.error(f"Error getting bulk assets: {e}")
         return []
 
@@ -461,6 +470,7 @@ def get_distinct_weather_files(simulation_name: str) -> list:
         return [row['weather_file'] for row in cursor.fetchall()]
 
     except Exception as e:
+        _reraise_if_locked(e)
         logger.error(f"Error getting distinct weather files: {e}")
         return []
 
@@ -489,6 +499,7 @@ def get_weather(asset_id: int, simulation_name: str) -> Optional[Tuple[str, str]
             return None
         
     except Exception as e:
+        _reraise_if_locked(e)
         logger.error(f"Error getting weather file: {e}")
         return None
 
@@ -540,6 +551,7 @@ def get_failed_assets(simulation_name: str) -> List[Dict[str, Any]]:
         return assets
         
     except Exception as e:
+        _reraise_if_locked(e)
         logger.error(f"Error getting failed assets: {e}")
         return []
 
@@ -625,6 +637,7 @@ def get_status_stats(simulation_name: str, batch_id: int = None) -> Dict[str, in
         return stats
         
     except Exception as e:
+        _reraise_if_locked(e)
         logger.error(f"Error getting status stats: {e}")
         return {}
 
@@ -653,6 +666,7 @@ def get_bulk_batchids(simulation_name: str) -> List[int]:
         return batch_ids
         
     except Exception as e:
+        _reraise_if_locked(e)
         logger.error(f"Error getting batch IDs: {e}")
         return []
 
@@ -679,6 +693,7 @@ def get_batch_total(simulation_name: str) -> int:
         return total
         
     except Exception as e:
+        _reraise_if_locked(e)
         logger.error(f"Error getting batch total: {e}")
         return 0
 
@@ -703,6 +718,7 @@ def get_asset_total(simulation_name: str) -> int:
         return total
         
     except Exception as e:
+        _reraise_if_locked(e)
         logger.error(f"Error getting asset total: {e}")
         return 0
 

@@ -431,12 +431,19 @@ def run_batch(batch_num, SIMULATION_DIR,LOCAL_DIR, simulation_name):
 
     logger.info(f"BATCH {batch_num}: Using simulation directory: {SIMULATION_DIR}")
 
-    total_assets = get_asset_total(simulation_name,batch_num)
-    
-    logger.debug(f"BATCH {batch_num}: Processing {total_assets} assets...")
-    
-    # Get all assets for this batch, ordered by order_rank
-    assets = get_bulk_assets(simulation_name, batch_num)
+    # a locked database used to read as an empty batch ("Completed - 0 successful"); the reads now
+    # raise once their retries run out, and a raise here would abort every batch in the joblib
+    # call, so this batch alone logs and returns, its buildings left Not Processed Yet
+    try:
+        total_assets = get_asset_total(simulation_name,batch_num)
+
+        logger.debug(f"BATCH {batch_num}: Processing {total_assets} assets...")
+
+        # Get all assets for this batch, ordered by order_rank
+        assets = get_bulk_assets(simulation_name, batch_num)
+    except Exception as e:
+        logger.error(f"BATCH {batch_num}: could not read its assets, none run (left Not Processed Yet): {e}")
+        return
 
     # NOTE: In UrbanOpt, we need to process assets sequentially to avoid conflicts
     # Each batch can run in parallel, but within a batch, assets must run sequentially
