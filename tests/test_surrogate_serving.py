@@ -422,3 +422,58 @@ def test_values_beyond_training_and_unread_params_are_refused_up_front(served):
     assert SS.refusal([{"asset_metadata": {"window_u_factor": 0.3, "wall_r_value": 21}}]) is None
     views = open(os.path.join(APP, "views.py")).read()
     assert "refused = SS.refusal(metadata_json)" in views and "'route': 'urbanopt'" in views
+
+
+def _consolidated(cleaned_dir, cid, resample, tmp):
+    """consolidate_sensor_logs' rows for every building under cleaned_dir (its worker, as the cluster runs it)."""
+    import pandas as pd
+    from pathlib import Path
+    from modules.utils import consolidate_sensor_logs as CL
+    os.makedirs(tmp, exist_ok=True)
+    CL.process_worker((0, sorted(Path(cleaned_dir).iterdir()), cid, resample, [], str(tmp)))
+    df = pd.read_csv(os.path.join(tmp, "worker_0.csv"), dtype={"sensor_id": str, "collection_id": str})
+    return sorted((r.sensor_id, r.ts, float(r.value)) for r in df.itertuples())
+
+
+@pytest.mark.parametrize("translations", ["true", "false"])
+def test_log_rows_are_what_a_request_reports_at_every_datelevel(tmp_path, monkeypatch, translations):
+    """2026-10-20: a state's fast estimate goes straight to sensor logs at a datelevel. Its rows must be the packed
+    rows a request at that datelevel gets (pack_results._normalize_rows on the cleaned report) and, monthly, the
+    consolidated rows a simulation's cluster run writes; the timestamps carry the same start-of-period rule."""
+    from modules.utils.pack_results import _normalize_rows
+    from modules.utils.precision import round_series
+    monkeypatch.setenv("URBANOPT_POSTPROCESS_TRANSLATIONS", translations)
+    y = np.zeros((10, 8760), np.float32)
+    rng = np.random.RandomState(1)
+    y[0], y[7] = rng.lognormal(0, 2, 8760), rng.lognormal(-1, 1, 8760)       # electricity, natural gas
+    sensors = {"1": "e9", "8": "g9", "9": "p9"}                              # propane has a sensor but no energy
+    serving.write_cleaned_reports(str(tmp_path / "c"), "9", y, sensors, 2026, -7, round_series=round_series)
+    for level in (None, "H", "D", "W", "M", "Y", "A"):
+        got = sorted(SS.log_rows(y, sensors, 2026, -7, level))
+        want = []
+        for f in sorted(glob.glob(str(tmp_path / "c" / "9" / "*.csv"))):
+            rows = list(csv.DictReader(open(f)))
+            want += [(rows[0]["id"], r["ts"], r["value"]) for r in _normalize_rows(
+                [{"ts": x["ts"], "value": float(x["value"])} for x in rows], {"A": "Y"}.get(level, level))]
+        assert got == sorted(want), level
+    assert {sid for sid, *_ in SS.log_rows(y, sensors, 2026, -7, "M")} == {"e9", "g9"}
+    monthly = sorted((sid, ts.replace("T", " "), v) for sid, ts, v in SS.log_rows(y, sensors, 2026, -7, "M"))
+    assert monthly == _consolidated(tmp_path / "c", "7", "M", tmp_path / "cl")
+    n_months = {r[1] for r in monthly}
+    assert len(n_months) == (12 if translations == "true" else 13)          # end-of-period spill without translations
+    window = list(SS.log_rows(y, sensors, 2026, -7, "D", "2026-03-01", "2026-03-31 23:59:59"))
+    assert len({ts for _, ts, _ in window}) == 31
+
+
+def test_run_logs_writes_the_collection_at_a_datelevel(served, tmp_path, monkeypatch):
+    monkeypatch.setenv("URBANOPT_POSTPROCESS_TRANSLATIONS", "true")
+    server = SS.get_server()
+    out = tmp_path / "logs.csv"
+    res = SS.run_logs(str(out), served["mcsv"], served["gj"], server, "7", resample="M")
+    assert res["buildings"] == 2 and res["datelevel"] == "month" and res["skipped"] == {}
+    rows = list(csv.DictReader(open(out)))
+    assert list(rows[0]) == list(SS.LOG_FIELDS) and res["rows"] == len(rows) == 36   # 3 streams x 12 months
+    SS.run(served["local"], served["mcsv"], served["gj"], server)                     # the same buildings, hourly
+    want = _consolidated(os.path.join(served["local"], "cleaned_reports"), "7", "M", tmp_path / "cl")
+    assert sorted((r["sensor_id"], r["ts"], float(r["value"])) for r in rows) == want
+    assert {r["collection_id"] for r in rows} == {"7"} and rows[0]["ts"].endswith(" 19:00:00")

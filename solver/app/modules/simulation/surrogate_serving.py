@@ -249,3 +249,105 @@ def run(sim_local_dir: str, metadata_csv_path: str, geojson_path: str, server) -
 def G_sps():
     from modules.simulation import sim_params_spec
     return sim_params_spec
+
+
+LOG_FIELDS = ('sensor_id', 'collection_id', 'ts', 'value', 'metadata')
+
+
+def log_rows(y, sensors: dict, year: int, utc_offset_h: float, resample=None, start_date_time=None,
+             end_date_time=None):
+    """One building's prediction as the rows a request at that datelevel reports, with no cleaned report on disk: the
+    cleaned report's own stamps and rounding (serving.stream_series), bucketed by pack_results._normalize_rows, the
+    function pack_simulation_results applies to every simulation (the EPW's local calendar, the translations flag,
+    start-of-period markers in naive UTC, 4 significant figures after the sum). `resample` takes the request's codes
+    (None = native hourly, H, D, W, M, Y, A); the window bounds are the request's. Yields (sensor id, ts, value)."""
+    from modules.utils.pack_results import _RESAMPLE_CANON, _normalize_rows
+    from modules.utils.precision import round_series
+    resample = (resample or '').strip().upper() or None
+    resample = _RESAMPLE_CANON.get(resample, resample)
+    import pandas as pd
+    serving = _serving()
+    parsed = None
+    for _slug, sid, stamps, values in serving.stream_series(y, sensors, year, utc_offset_h, round_series=round_series):
+        if parsed is None:   # the report's stamps, parsed once per building as _normalize_rows parses them
+            parsed = pd.to_datetime(pd.Series(stamps))
+        rows = {'ts': parsed, 'value': values.astype(float)}   # the cleaned report's columns, as a DataFrame takes them
+        for r in _normalize_rows(rows, resample, start_date_time, end_date_time):
+            yield sid, r['ts'], r['value']
+
+
+def run_logs(out_csv: str, metadata_csv_path: str, geojson_path: str, server, collection_id, resample=None,
+             start_date_time=None, end_date_time=None) -> dict:
+    """The fast estimate for a whole collection written straight to one sensor-log CSV at the requested datelevel, in
+    consolidate_sensor_logs' layout (sensor_id, collection_id, ts 'YYYY-MM-DD HH:MM:SS' naive UTC, value, metadata), so
+    a state needs no hourly files on disk; the rows equal what a request at that datelevel would report (log_rows).
+    Returns {'buildings', 'rows', 'skipped', 'datelevel'}."""
+    import csv
+    from modules.utils.pack_results import _RESAMPLE_CANON, _RESAMPLE_TO_DATELEVEL
+    entries, epws, sens, ids, skipped, _ = build_entries(metadata_csv_path, geojson_path)
+    if not entries:
+        raise RuntimeError(f'no building could be estimated: {skipped or "no footprints"}')
+    code = _RESAMPLE_CANON.get((resample or '').strip().upper(), (resample or '').strip().upper()) or None
+    n = 0
+    offsets = {}
+    with open(out_csv, 'w', newline='') as f:
+        w = csv.writer(f, lineterminator='\n')
+        w.writerow(LOG_FIELDS)
+        for start, Y in server.predict(entries, G_sps(), epws):
+            for k, y in enumerate(Y):
+                title = os.path.splitext(os.path.basename(epws[start + k]))[0]
+                if title not in offsets:
+                    offsets[title] = W.get_epw_utc_offset(title)
+                for sid, ts, value in log_rows(y, sens[start + k], server.sim_year, offsets[title], code,
+                                               start_date_time, end_date_time):
+                    w.writerow((sid, collection_id, ts.replace('T', ' '), value, '{}'))
+                    n += 1
+    return {'buildings': len(ids), 'rows': n, 'skipped': skipped,
+            'datelevel': _RESAMPLE_TO_DATELEVEL.get(code, 'hour') if code else 'hour'}
+
+
+def main(argv=None):
+    """python -m modules.simulation.surrogate_serving <metadata.csv> <asset_geometries.geojson> <out.csv>
+    --collection-id N [--resample M] [--start ...] [--end ...]: the fast estimate for a whole collection (a state, in
+    chunks) as one sensor-log CSV at a datelevel, in the model's training mode, as the asset_update worker runs it.
+    Writes <out.csv>.json beside it: the model, the settings, the input md5s, the counts and the skipped buildings."""
+    import argparse
+    import hashlib
+    import json
+    import time
+    from modules.utils.sim_flags import clear_sim_flags, set_sim_flags
+    ap = argparse.ArgumentParser(description=main.__doc__)
+    ap.add_argument('metadata_csv'); ap.add_argument('geojson'); ap.add_argument('out_csv')
+    ap.add_argument('--collection-id', required=True)
+    ap.add_argument('--resample', default=None, help='H, D, W, M or Y (default: native hourly)')
+    ap.add_argument('--start', default=None); ap.add_argument('--end', default=None)
+    a = ap.parse_args(argv)
+    t0 = time.time()
+    server = get_server()
+    env = server.env()
+    os.environ.update(env)            # the resolver and the packing read the process env as well as the flags
+    set_sim_flags(env['URBANOPT_DYNAMIC_DEFAULTS'], env['URBANOPT_STOCHASTIC_SAMPLING'], None, None, None)
+    try:
+        res = run_logs(a.out_csv, a.metadata_csv, a.geojson, server, a.collection_id, a.resample, a.start, a.end)
+    finally:
+        clear_sim_flags()
+
+    def md5(p):
+        h = hashlib.md5()
+        with open(p, 'rb') as f:
+            for chunk in iter(lambda: f.read(1 << 20), b''):
+                h.update(chunk)
+        return h.hexdigest()
+    run = {'model': server.meta, 'model_dir': server.model_dir, 'resolver_env': env, 'resample': a.resample,
+           'window': [a.start, a.end], 'collection_id': a.collection_id,
+           'translations': os.environ.get('URBANOPT_POSTPROCESS_TRANSLATIONS', ''),
+           'inputs': {os.path.basename(p): md5(p) for p in (a.metadata_csv, a.geojson)},
+           'output_md5': md5(a.out_csv), 'seconds': round(time.time() - t0, 1), **res}
+    with open(a.out_csv + '.json', 'w') as f:
+        json.dump(run, f, indent=1)
+    print(json.dumps({k: run[k] for k in ('buildings', 'rows', 'datelevel', 'seconds')}), flush=True)
+    return run
+
+
+if __name__ == '__main__':   # from the solver root with app on the path (cd /solver; PYTHONPATH=app python -m ...), as direct_runner runs
+    main()
