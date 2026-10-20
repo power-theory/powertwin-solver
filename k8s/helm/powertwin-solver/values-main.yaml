@@ -58,7 +58,9 @@ flask:
   resources:
     requests:
       cpu: "1"
-      memory: 2Gi
+      # request = limit (owner 2026-10-20): Karpenter sizes the solver pool from requests, so an honest request gets
+      # main a node with room for its 3 concurrent sims (peak about 4.2 GB) and makes it the last eviction pick
+      memory: 6Gi
     limits:
       # Measured on dev 2026-09-14 with the same image: 3 concurrent sims peak at 4235Mi and
       # 4 concurrent at 5803Mi, so a 4Gi ceiling OOMs even at 3. Throughput is flat between 3
