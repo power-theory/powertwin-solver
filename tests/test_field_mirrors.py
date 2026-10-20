@@ -144,6 +144,16 @@ def test_db_spec_fields_are_solver_fields():
     assert not retired, f"db still offers retired fields: {sorted(retired)}"
 
 
+def test_every_db_spec_field_is_a_fan_out_lever():
+    """The delta surrogate answers only edits to levers its fan-out varied (Surrogate Serving Plan, delta handshake rule
+    4), so a field the product offers and the sampler leaves out routes every edit of it to a full URBANopt run."""
+    sys.path.insert(0, REPO)
+    from surrogate.app.modules.sampling.scenario_fanout import LEVER_SECTOR
+    db = set(_db_spec())
+    assert db == set(LEVER_SECTOR), (f"db only: {sorted(db - set(LEVER_SECTOR))}; "
+                                     f"sampler only: {sorted(set(LEVER_SECTOR) - db)}")
+
+
 def test_db_spec_ranges_and_defaults_match_solver():
     from modules.simulation.sim_params_spec import NUMERIC_RANGES, SIM_PARAM_DEFAULTS
     drift = []
