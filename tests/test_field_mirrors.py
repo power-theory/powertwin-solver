@@ -147,9 +147,9 @@ def test_db_spec_fields_are_solver_fields():
 def test_every_db_spec_field_is_a_fan_out_lever():
     """The delta surrogate answers only edits to levers its fan-out varied (Surrogate Serving Plan, delta handshake rule
     4), so a field the product offers and the sampler leaves out routes every edit of it to a full URBANopt run."""
+    db = set(_db_spec())   # first: it skips where the db spec is absent (CI), before the sampler's own dependencies load
     sys.path.insert(0, REPO)
     from surrogate.app.modules.sampling.scenario_fanout import LEVER_SECTOR
-    db = set(_db_spec())
     assert db == set(LEVER_SECTOR), (f"db only: {sorted(db - set(LEVER_SECTOR))}; "
                                      f"sampler only: {sorted(set(LEVER_SECTOR) - db)}")
 
