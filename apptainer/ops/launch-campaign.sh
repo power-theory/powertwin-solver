@@ -4,7 +4,8 @@
 #   ~/ops/launch-campaign.sh <arm.env> [--after JOBID]
 # The env file sets (required) CAMPAIGN SIMULATION_NAME COLLECTION_ID SIF_TAG METADATA_SRC GEOJSON_SRC, the
 # URBANOPT_* settings the arm needs (the job template's defaults otherwise), and optionally NODES CPUS MEM TIME
-# PARTITION (defaults 8 / 48 / 200G / 3-00:00:00 / mb), QOS (a TIME over 3 days needs long), POST_PARTITION (the
+# PARTITION (defaults 8 / 48 / 200G / 3-00:00:00 / mb), QOS (a TIME over 3 days needs long), EXCLUDE (nodes kept off
+# the arm; it replaces the job template's --exclude list, so repeat those nodes), POST_PARTITION (the
 # post job's partition; default its script's), POST=consolidate|asu|none (default consolidate) and
 # SCORE_CID (the collection id stamped into the consolidated logs; default COLLECTION_ID). POST=collect instead
 # collects the arm into surrogate training data (collect-surrogate.sh; needs MANIFEST_SRC, REPO_COPY, KEEP_RUN_DIR).
@@ -49,7 +50,8 @@ fi
 DEP=(); [ -n "$AFTER" ] && DEP=(--dependency=afterok:$AFTER)
 QOSARG=(); [ -n "${QOS:-}" ] && QOSARG=(--qos="$QOS")
 POSTPART=(); [ -n "${POST_PARTITION:-}" ] && POSTPART=(--partition="$POST_PARTITION")
-arm=$(sb --parsable "${DEP[@]}" "${QOSARG[@]}" --job-name="powertwin-$SIMULATION_NAME" --partition="${PARTITION:-mb}" \
+EXCLARG=(); [ -n "${EXCLUDE:-}" ] && EXCLARG=(--exclude="$EXCLUDE")
+arm=$(sb --parsable "${DEP[@]}" "${QOSARG[@]}" "${EXCLARG[@]}" --job-name="powertwin-$SIMULATION_NAME" --partition="${PARTITION:-mb}" \
   --nodes="${NODES:-8}" --ntasks-per-node=1 --cpus-per-task="${CPUS:-48}" --mem="${MEM:-200G}" --time="${TIME:-3-00:00:00}" \
   --no-requeue --mail-user=admin@powertheoryinc.com --mail-type=ALL --output="$C/logs/%x_%j.out" \
   --export=ALL,SOLVER_SIF="$SIF",METADATA_CSV_PATH="$MD",ASSET_GEOJSON_PATH="$GJ" "$OPS/example-sql-start.sh")
