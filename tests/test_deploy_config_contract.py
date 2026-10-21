@@ -113,3 +113,20 @@ def test_every_flask_build_supplies_the_surrogate_context():
         assert build["context"] == "./solver" and build.get("additional_contexts", {}).get("surrogate") == "./surrogate", name
     # numba must cache outside the root-owned code: the pod runs as uid 1000 and a SIF is read-only
     assert "NUMBA_CACHE_DIR=/tmp/" in DOCKERFILE and "setpriv --reuid=1000" in DOCKERFILE
+
+
+def test_fast_estimate_is_off_by_default_and_on_main():
+    """Owner 2026-10-20: nat34h serves on dev first; main stays off until dev is checked end to end. The model ships as
+    its own image, copied by an initContainer after an md5 check (k8s/model-image)."""
+    yaml = pytest.importorskip("yaml")
+    chart = os.path.join(REPO, "k8s", "helm", "powertwin-solver")
+    vals = {n: yaml.safe_load(open(os.path.join(chart, f"values{n}.yaml"))) for n in ("", "-dev", "-main")}
+    base = vals[""]["flask"]["surrogate"]
+    assert base["modelImage"] == "" and base["modelDir"] == "" and base["modelTypeId"] == "3"
+    assert not (vals["-main"]["flask"].get("surrogate") or {}).get("modelImage")
+    dev = vals["-dev"]["flask"].get("surrogate") or {}
+    if dev.get("modelImage"):   # a branch that turns it on names the model image and its directory
+        assert dev["modelImage"].split("/")[-1].startswith("powertwin-solver-model") and dev["modelDir"]
+    assert "{{- if $surOn }}" in HELM_T and "md5sum -c -s MD5SUMS" in HELM_T and "SURROGATE_MODEL_DIR" in HELM_T
+    dockerfile = open(os.path.join(REPO, "k8s", "model-image", "Dockerfile")).read()
+    assert "@sha256:" in dockerfile and "COPY model/ /model/" in dockerfile

@@ -47,6 +47,28 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+      {{- $sur := .Values.flask.surrogate | default dict }}
+      {{- $surOn := and $sur.modelImage $sur.modelDir }}
+      {{- if $surOn }}
+      initContainers:
+        # the fast estimate's model: check the image's manifest, then copy it where the solver reads it
+        - name: surrogate-model
+          image: {{ $sur.modelImage | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - cd /model && md5sum -c -s MD5SUMS && cp -R /model/. /surrogate-model/ && test -f /surrogate-model/{{ $sur.modelDir }}/serving_meta.json
+          volumeMounts:
+            - name: surrogate-model
+              mountPath: /surrogate-model
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            capabilities:
+              drop:
+                - ALL
+      {{- end }}
       containers:
         - name: flask
           image: {{ include "solver.image" (dict "ctx" . "image" .Values.flask.image) }}
@@ -113,6 +135,18 @@ spec:
               value: {{ .Values.flask.urbanopt.keepRunDir | quote }}
             - name: URBANOPT_RUN_TIMEOUT_S
               value: {{ .Values.flask.urbanopt.runTimeoutS | quote }}
+            {{- if $surOn }}
+            - name: SURROGATE_MODEL_DIR
+              value: {{ printf "/models/%s" $sur.modelDir | quote }}
+            - name: SURROGATE_MODEL_TYPE_ID
+              value: {{ $sur.modelTypeId | default "3" | quote }}
+            {{- $cpu := toString (dig "limits" "cpu" "" (.Values.flask.resources | default dict)) }}
+            {{- $threads := $sur.threads | default (regexMatch "^[0-9]+$" $cpu | ternary $cpu "") }}
+            {{- if $threads }}
+            - name: SURROGATE_THREADS
+              value: {{ $threads | quote }}
+            {{- end }}
+            {{- end }}
             {{- range $key, $value := .Values.flask.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
@@ -146,8 +180,18 @@ spec:
               mountPath: /solver/data
             - name: scratch-logs
               mountPath: /solver/logs
+            {{- if $surOn }}
+            - name: surrogate-model
+              mountPath: /models
+              readOnly: true
+            {{- end }}
       volumes:
         - name: scratch-data
           emptyDir: {}
         - name: scratch-logs
           emptyDir: {}
+        {{- if $surOn }}
+        - name: surrogate-model
+          emptyDir:
+            sizeLimit: 2Gi
+        {{- end }}

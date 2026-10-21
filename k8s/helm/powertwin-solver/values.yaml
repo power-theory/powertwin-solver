@@ -172,6 +172,17 @@ flask:
   # Extra non-sensitive runtime env.
   env: {}
 
+  # Fast estimate (surrogate serving; owner 2026-10-20: dev first, then main). Off unless modelImage and modelDir are
+  # both set: the model ships as its own image (k8s/model-image/build.sh: busybox, /model/<modelDir>/ and /model/MD5SUMS),
+  # an initContainer checks the manifest and copies it into an emptyDir, and the solver reads
+  # SURROGATE_MODEL_DIR=/models/<modelDir>. Turning it off (both empty) refuses fast-estimate requests with a 503;
+  # URBANopt runs are untouched either way.
+  surrogate:
+    modelImage: ""     # e.g. <registry>/powertwin-solver-model@sha256:... (pin by digest)
+    modelDir: ""       # e.g. nat34h-47ce3b7
+    modelTypeId: "3"   # the db's sensor_logs_pred_model_types id: 3 the baseline fast estimate (nat34h), 4 the delta (owner 2026-10-20)
+    threads: ""        # SURROGATE_THREADS; empty = the container's whole-number cpu limit
+
 # ---------------------------------------------------------------------------
 mss:
   image:
