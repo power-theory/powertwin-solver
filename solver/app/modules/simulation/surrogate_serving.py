@@ -348,7 +348,7 @@ def main(argv=None):
         return h.hexdigest()
     run = {'model': server.meta, 'model_dir': server.model_dir, 'resolver_env': env, 'resample': a.resample,
            'window': [a.start, a.end], 'collection_id': a.collection_id,
-           'translations': os.environ.get('URBANOPT_POSTPROCESS_TRANSLATIONS', ''),
+           'translations': os.environ.get('URBANOPT_POSTPROCESS_TRANSLATIONS', '').strip().lower() in ('1', 'true', 'yes', 'on'),
            'inputs': {os.path.basename(p): md5(p) for p in (a.metadata_csv, a.geojson)},
            'output_md5': md5(a.out_csv), 'seconds': round(time.time() - t0, 1), **res}
     with open(a.out_csv + '.json', 'w') as f:

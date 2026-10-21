@@ -482,6 +482,16 @@ def test_run_logs_writes_the_collection_at_a_datelevel(served, tmp_path, monkeyp
     assert {r["collection_id"] for r in rows} == {"7"} and rows[0]["ts"].endswith(" 19:00:00")
 
 
+def test_cli_records_translations_as_a_boolean(served, tmp_path, monkeypatch):
+    # the CLI's run record says whether timestamps were translated, as predict_collection's does (db reads both)
+    monkeypatch.setenv("URBANOPT_POSTPROCESS_TRANSLATIONS", "True")
+    for k, v in SS.get_server().env().items():
+        monkeypatch.setenv(k, v)          # restores what main's os.environ.update leaves behind
+    out = tmp_path / "cli.csv"
+    SS.main([served["mcsv"], served["gj"], str(out), "--collection-id", "7", "--resample", "M"])
+    assert json.load(open(str(out) + ".json"))["translations"] is True
+
+
 def test_predict_collection_chunks_reproduce_one_run(served, tmp_path, monkeypatch):
     """apptainer/ops/predict_collection.py (2026-10-20): a collection split into chunks, predicted per chunk and merged,
     gives exactly the rows of one run_logs over the whole collection, and the gate pass counts the same streams."""
