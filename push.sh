@@ -27,19 +27,20 @@ if ! python3 tests/test_resolvers.py; then
   exit 1
 fi
 
-# 0b. Sync README version from RESOLVER_VERSION
+# 0b. Sync the README's resolver line from RESOLVER_VERSION (the title carries the release version, set by hand:
+# v2.0.0 is the benchmark release, see README "Versions")
 VERSION=$(python3 -c "
 import importlib.util, os
 s = importlib.util.spec_from_file_location('sps', 'solver/app/modules/simulation/sim_params_spec.py')
 m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
 print(m.RESOLVER_VERSION)
 ")
-sed -i "s/^# PowerTwin Solver v.*/# PowerTwin Solver v${VERSION}/" README.md
+sed -i "s/^Resolver version: .*/Resolver version: ${VERSION}/" README.md
 if ! git diff --quiet README.md; then
   git add README.md
-  git commit -m "docs: bump README version to v${VERSION}"
+  git commit -m "docs: README resolver version ${VERSION}"
   SHORT_SHA=$(git rev-parse --short HEAD)
-  echo "  README updated to v${VERSION}"
+  echo "  README resolver version updated to ${VERSION}"
 fi
 echo ""
 
@@ -47,13 +48,9 @@ echo ""
 echo "--- Pushing to GitLab (origin) ---"
 git push origin "${BRANCH}"
 
-# 2. Push to GitHub
-if git remote get-url "${GITHUB_REMOTE}" &>/dev/null; then
-  echo "--- Pushing to GitHub (${GITHUB_REMOTE}) ---"
-  git push "${GITHUB_REMOTE}" "${BRANCH}"
-else
-  echo "--- Skipping GitHub (remote '${GITHUB_REMOTE}' not configured) ---"
-fi
+# 2. GitHub is public and gets a filtered mirror, never the raw branch (2026-10-21): surrogate/, classifier/ and
+# validation/ are left out of its history and customer material is scrubbed. A plain push here would publish them.
+echo "--- Skipping GitHub: it is updated from a filtered mirror (vault Dev/powertwin-solver/GitHub Mirror) ---"
 
 # ---------------------------------------------------------------------------
 # DISABLED (2026-07): building images and pushing to the local ${DOCKER_REGISTRY}

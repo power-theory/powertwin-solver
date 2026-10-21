@@ -1,4 +1,6 @@
-# PowerTwin Solver v1.6
+# PowerTwin Solver v2.1.0
+
+Resolver version: 3.5
 
 ## HOW TO RUN
 ```sh
@@ -510,7 +512,17 @@ If you use PowerTwin-Solver in your work, please cite it as:
   author  = {{Power Theory Inc.}},
   title   = {{PowerTwin-Solver}: uncalibrated urban building energy models from footprints and metadata with URBANopt, OpenStudio and EnergyPlus},
   year    = {2026},
-  version = {1.6},
+  version = {2.1.0},
   url     = {https://github.com/power-theory/powertwin-solver}
 }
 ```
+
+### Versions
+
+- **v2.1.0**: the current code.
+- **v2.0.0** (git tag `v2.0.0`): the release behind the
+  [PowerTwin-Solver Benchmark](https://github.com/power-theory/powertwin-solver-benchmark) (Teton County, WY,
+  against ORNL Model America). Its frozen solver image,
+  `missionloyd/powertwin-solver-benchmark@sha256:973f856d2c52add3f85e4cadcb6ab1c7ab61c454b880174b60585310b95b70dd`,
+  holds the exact code the report ran; every image is pinned in that repo's `reproduce/images.txt`. To cite the
+  benchmark's results, cite v2.0.0.
