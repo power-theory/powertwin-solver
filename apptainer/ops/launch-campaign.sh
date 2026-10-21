@@ -25,7 +25,7 @@ P=/project/cowy-ptheory/powertwin
 C=$P/campaigns/$CAMPAIGN
 OPS=$HOME/ops
 SIF=$P/shared/sif_containers/flask-$SIF_TAG.sif
-[ -s "$SIF" ] || { echo "no SIF $SIF: sbatch ~/ops/pull-sif.sh $SIF_TAG first"; exit 2; }
+[ -s "$SIF" ] || { echo "no SIF $SIF: run apptainer/ops/push-sif.sh $SIF_TAG on exodus first"; exit 2; }
 COLL=$P/$COLLECTION_ID
 for d in "$COLL/powertwin_data/$SIMULATION_NAME" "$COLL/user_files/$SIMULATION_NAME"; do
   [ ! -e "$d" ] || { echo "refusing: $d exists (a reused run dir stalls the job); pick a new SIMULATION_NAME or collection dir"; exit 2; }

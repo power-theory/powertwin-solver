@@ -4,14 +4,13 @@ The standard way to run a simulation campaign on the cluster. Runbook: vault `De
 
 | Script | Where it runs | What it does |
 |---|---|---|
-| `sync-to-cluster.sh` | exodus, from the repo | copies `apptainer/example-sql-start.sh` and these scripts to `~/ops/` on the cluster; links the documented `~/rm-job.sh`, `~/grind_trash*.py` and `~/qa_sif_pull.sh` to them |
-| `pull-sif.sh <tag>...` | `sbatch` | pulls `missionloyd/powertwin-solver-flask:<tag>` into `flask-<tag>.sif` and verifies it inside the SIF; `--as-flask` also replaces `flask.sif` |
+| `sync-to-cluster.sh` | exodus, from the repo | copies `apptainer/example-sql-start.sh` and these scripts to `~/ops/` on the cluster; links the documented `~/rm-job.sh` and `~/grind_trash*.py` to them |
+| `push-sif.sh <tag>...` | exodus, from the repo | sends `development/powertwin-solver/flask:<tag>` from the exodus GitLab registry to the cluster (`push-image-arcc`; the cluster cannot reach the registry), where a `build-sif` job builds `flask-<tag>.sif` and runs `verify-flask.sh` inside it before it gets its name; `--as-flask` also replaces `flask.sif` in a job after the build passes |
 | `launch-campaign.sh <arm.env> [--after JOBID]` | login node | stages one arm's inputs into its collection dir and submits `example-sql-start.sh` with the arm's settings, plus `post-consolidate.sh` after it |
 | `post-consolidate.sh` | `sbatch` (by the launcher) | monthly sensor logs like the scored runs; with `POST=asu`, per-building end uses from the kept run tree (`extract_enduse.py`, `extract_sql.py`) |
 | `collect-surrogate.sh` | `sbatch` (by the launcher, `POST=collect`) | collects a kept-run-dir arm into surrogate training data in `collect.sif` against `REPO_COPY`, with the arm's stochastic mode |
 | `rm-job.sh`, `grind_trash.py`, `grind_trash2.py` | `sbatch` | the only sanctioned way to delete trees (never on the login node) |
 | `archive-home.sh [--dry-run]` | `sbatch` | moves loose scripts and job logs out of `~` into `~/archive/<YYYY-MM>/`; nothing deleted |
-| `qa_sif_pull.sh` | `sbatch` | legacy: pulls `:latest` over `flask.sif`; prefer `pull-sif.sh --as-flask <tag>` |
 
 Every campaign lives in `/project/cowy-ptheory/powertwin/campaigns/<name>/`: `arms/*.env`, `logs/`, `results/`, `inputs.md5`, `jobs.tsv`. Nothing lands in `~`.
 
