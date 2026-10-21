@@ -290,6 +290,7 @@ def run_logs(out_csv: str, metadata_csv_path: str, geojson_path: str, server, co
     code = _RESAMPLE_CANON.get((resample or '').strip().upper(), (resample or '').strip().upper()) or None
     n = 0
     offsets = {}
+    streams = {}   # sensor_type_id -> buildings with a non-zero stream of it (settings.sensorTypeOptions, 2026-10-20)
     with open(out_csv, 'w', newline='') as f:
         w = csv.writer(f, lineterminator='\n')
         w.writerow(LOG_FIELDS)
@@ -298,12 +299,19 @@ def run_logs(out_csv: str, metadata_csv_path: str, geojson_path: str, server, co
                 title = os.path.splitext(os.path.basename(epws[start + k]))[0]
                 if title not in offsets:
                     offsets[title] = W.get_epw_utc_offset(title)
+                type_of = {str(sid): str(t) for t, sid in sens[start + k].items()}
+                written = set()
                 for sid, ts, value in log_rows(y, sens[start + k], server.sim_year, offsets[title], code,
                                                start_date_time, end_date_time):
                     w.writerow((sid, collection_id, ts.replace('T', ' '), value, '{}'))
                     n += 1
+                    if value:
+                        written.add(type_of.get(str(sid)))
+                for t in written:
+                    streams[t] = streams.get(t, 0) + 1
     return {'buildings': len(ids), 'rows': n, 'skipped': skipped,
-            'datelevel': _RESAMPLE_TO_DATELEVEL.get(code, 'hour') if code else 'hour'}
+            'datelevel': _RESAMPLE_TO_DATELEVEL.get(code, 'hour') if code else 'hour',
+            'streams_by_sensor_type': {t: streams[t] for t in sorted(streams, key=lambda x: int(x))}}
 
 
 def main(argv=None):

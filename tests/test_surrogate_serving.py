@@ -298,6 +298,8 @@ def test_model_type_setting_cannot_break_or_reroute_urbanopt(monkeypatch):
     for raw, want in (("3", 3), (" 7 ", 7), ("abc", None), ("1", None), ("", None)):
         monkeypatch.setenv("SURROGATE_MODEL_TYPE_ID", raw)
         assert SS.surrogate_model_type_id() == want, raw
+    monkeypatch.delenv("SURROGATE_MODEL_TYPE_ID")
+    assert SS.surrogate_model_type_id() == 3   # the baseline fast estimate; 4 is the delta (owner 2026-10-20)
 
 
 def test_bad_year_setting_is_a_503_not_a_500(served, monkeypatch):
@@ -471,9 +473,50 @@ def test_run_logs_writes_the_collection_at_a_datelevel(served, tmp_path, monkeyp
     out = tmp_path / "logs.csv"
     res = SS.run_logs(str(out), served["mcsv"], served["gj"], server, "7", resample="M")
     assert res["buildings"] == 2 and res["datelevel"] == "month" and res["skipped"] == {}
+    assert res["streams_by_sensor_type"] == {"1": 2, "8": 1}   # electricity on both, gas on the house only
     rows = list(csv.DictReader(open(out)))
     assert list(rows[0]) == list(SS.LOG_FIELDS) and res["rows"] == len(rows) == 36   # 3 streams x 12 months
     SS.run(served["local"], served["mcsv"], served["gj"], server)                     # the same buildings, hourly
     want = _consolidated(os.path.join(served["local"], "cleaned_reports"), "7", "M", tmp_path / "cl")
     assert sorted((r["sensor_id"], r["ts"], float(r["value"])) for r in rows) == want
     assert {r["collection_id"] for r in rows} == {"7"} and rows[0]["ts"].endswith(" 19:00:00")
+
+
+def test_predict_collection_chunks_reproduce_one_run(served, tmp_path, monkeypatch):
+    """apptainer/ops/predict_collection.py (2026-10-20): a collection split into chunks, predicted per chunk and merged,
+    gives exactly the rows of one run_logs over the whole collection, and the gate pass counts the same streams."""
+    import importlib.util
+    import shutil
+    monkeypatch.setenv("URBANOPT_POSTPROCESS_TRANSLATIONS", "true")
+    monkeypatch.setenv("SOLVER_APP", APP)
+    spec = importlib.util.spec_from_file_location("predict_collection", os.path.join(REPO, "apptainer", "ops", "predict_collection.py"))
+    PC = importlib.util.module_from_spec(spec); spec.loader.exec_module(PC)
+    coll = tmp_path / "coll"; coll.mkdir()
+    shutil.copy(served["mcsv"], coll / "9_metadata.csv"); shutil.copy(served["gj"], coll / "9_asset_geometries.geojson")
+    whole = tmp_path / "whole.csv"
+    # the chunks' thread count: the pickled SplitSurrogate this tiny model serves through gives slightly different
+    # values at a different xgboost thread count (a gas month 834.7 vs 835.6); the compact model production serves is
+    # bit-identical at 1, 2, 4 and 40 threads (nat34h, 300 Teton buildings, 2026-10-20)
+    monkeypatch.setenv("SURROGATE_THREADS", "1")
+    # the reference runs in the model's training mode, as the chunks (and surrogate_serving's CLI) do; without it the
+    # two differ by the mode and match only when the difference happens to round away
+    from modules.utils.sim_flags import clear_sim_flags, set_sim_flags
+    server = SS.get_server()
+    for k, v in server.env().items():
+        monkeypatch.setenv(k, v)          # also restores what the chunks' os.environ.update leaves behind
+    set_sim_flags(server.env()["URBANOPT_DYNAMIC_DEFAULTS"], server.env()["URBANOPT_STOCHASTIC_SAMPLING"], None, None, None)
+    try:
+        SS.run_logs(str(whole), str(coll / "9_metadata.csv"), str(coll / "9_asset_geometries.geojson"), server, "77", "M")
+    finally:
+        clear_sim_flags()
+    out = tmp_path / "out"
+    PC.main([str(coll), "9", str(out), "--collection-id", "77", "--chunk", "1", "--workers", "0", "--threads", "1"])
+    run = json.load(open(out / "9_tiny_month.json"))
+    assert run["chunks"] == 2 and run["buildings"] == 2 and run["translations"] is True
+    assert open(out / "9_tiny_month.csv").read().splitlines()[1:] == open(whole).read().splitlines()[1:]
+    assert run["output_md5"] == PC.md5(str(out / "9_tiny_month.csv"))
+    PC.main([str(coll), "9", str(out), "--collection-id", "77", "--chunk", "1", "--workers", "0", "--mode", "gate"])
+    gate = json.load(open(out / "9_tiny_gate.json"))
+    assert gate["streams_by_sensor_type"] == run["streams_by_sensor_type"] == {"1": 2, "8": 1}
+    PC.main([str(coll), "9", str(out), "--collection-id", "77", "--chunk", "1", "--workers", "0"])   # rerun: resumes
+    assert json.load(open(out / "9_tiny_month.json"))["output_md5"] == run["output_md5"]
