@@ -259,3 +259,22 @@ def test_emissions_floor_area_is_rounded(tmp_path):
     rb = open(os.path.join(str(tmp_path), 'gems', 'openstudio-common-measures-0.11.1', 'lib', 'measures',
                            'add_ems_emissions_reporting', 'measure.rb')).read()
     assert P._EMS_AREA not in rb and 'floor_area = (building.floorArea * 10.764).round(6)' in rb
+
+
+def test_a_heat_pump_never_heats_a_loop_above_140f(tmp_path, capsys):
+    """natfan2 (2026-10-21): every sampled 'Coil:WaterHeating:AirToWaterHeatPump:Pumped ... Rated total cooling capacity
+    is zero or less' fatal (13 of 40 failures) was a SmallHotel with swh_src HeatPump: model_add_typical_swh gave its
+    180 F Laundry loop (the only target above 140 F in every 90.1 edition) a heat pump water heater, whose COP curve
+    falls below 1 at 82 C condenser water. That loop takes electric resistance, as the library's booster heaters always
+    do; a 140 F loop keeps its heat pump and a requested gas or electric heater is untouched."""
+    lib = _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    rel = os.path.join('standards', 'Standards.ServiceWaterHeating.rb')
+    src = open(os.path.join(lib, rel)).read()
+    assert src.count('powertwin patch') == 1
+    rule = "loop_water_heater_fuel = water_heater_fuel == 'HeatPump' && service_water_temperature_f > 140.0 ? 'Electricity' : water_heater_fuel"
+    assert rule in src and src.index(rule) < src.index('swh_loop = OpenstudioStandards::ServiceWaterHeating.create_service_water_heating_loop(model,')
+    call = src[src.index('create_service_water_heating_loop(model,'):]
+    assert 'water_heater_fuel: loop_water_heater_fuel,' in call.split('number_of_water_heaters')[0]
+    assert 'water_heater_fuel = ' not in src.replace(rule, '')   # the requested fuel itself never changes (it carries
+                                                                  # on to the next space type)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fix upstream defects in the gems a simulation loads: openstudio-standards 0.7.x (1, 2, 4, 6), urbanopt-geojson 1.0.x
+"""Fix upstream defects in the gems a simulation loads: openstudio-standards 0.7.x (1, 2, 4, 6, 7), urbanopt-geojson 1.0.x
 (3, 5) and openstudio-model-articulation (6).
 
 1. create_typical.rb, weekend hours past midnight. The midnight-overlap message interpolates
@@ -58,6 +58,15 @@
    follow OpenStudio's summation order: it now sorts on the value to 1e-9 and then the zone name. openstudio-common-
    measures' add_ems_emissions_reporting rounds the floor area it writes into its EMS program (its last digit followed
    the same order). The SpaceList order in the translated input is fixed by the upload measure powertwin_canonical_idf.
+
+7. Standards.ServiceWaterHeating.rb model_add_typical_swh, a heat pump on a 180 F loop. With water_heater_fuel
+   'HeatPump' (PowerTwin's swh_src for a commercial heat pump water heater) every dedicated loop gets a heat pump water
+   heater, SmallHotel's 180 F Laundry loop too (the only target above 140 F in every 90.1 edition). At 82 C condenser
+   water its COP curve falls below 1, so EnergyPlus stops on 'Coil:WaterHeating:AirToWaterHeatPump:Pumped ... Rated
+   total cooling capacity is zero or less' (natfan2 2026-10-21: 13 of 40 sampled failures, every one a SmallHotel
+   with HeatPump). The patch gives a loop above 140 F electric resistance, as the library's booster water heaters
+   always are ('booster water heaters are always assumed to be electric resistance', the same file); 140 F loops keep
+   their heat pump and a requested gas or electric heater is unchanged.
 
 Usage: patch_openstudio_standards.py [GEM_ROOT ...]
 Patches every openstudio-standards and urbanopt-geojson copy under the given gem roots (default: the image's gem
@@ -223,6 +232,13 @@ _EMS_AREA_FIX = ("    # powertwin patch: building.floorArea sums the spaces in O
                  "    # changed from run to run in the EMS program text (2026-10-08); round it\n"
                  "    floor_area = (building.floorArea * 10.764).round(6) #change from m2 to ft2\n")
 
+_SWH_LOOP = '        # Add service water loop with water heater\n        swh_loop = OpenstudioStandards::ServiceWaterHeating.create_service_water_heating_loop(model,\n                                                                                              system_name: "#{space_type.name} Service Water Loop",\n                                                                                              service_water_temperature: service_water_temperature_c,\n                                                                                              service_water_pump_head: 0.01,\n                                                                                              service_water_pump_motor_efficiency: 1.0,\n                                                                                              water_heater_capacity: water_heater_capacity_w,\n                                                                                              water_heater_volume: water_heater_volume_m3,\n                                                                                              water_heater_fuel: water_heater_fuel,\n'
+_SWH_LOOP_FIX = ("        # powertwin patch: a heat pump cannot heat water for a loop above 140 F (SmallHotel Laundry, 180 F): its COP\n"
+                 "        # curve falls below 1 and EnergyPlus stops on 'Rated total cooling capacity is zero or less' (natfan2\n"
+                 "        # 2026-10-21). Such a loop takes electric resistance, as the library's booster heaters always do\n"
+                 "        loop_water_heater_fuel = water_heater_fuel == 'HeatPump' && service_water_temperature_f > 140.0 ? 'Electricity' : water_heater_fuel\n"
+                 + '        # Add service water loop with water heater\n        swh_loop = OpenstudioStandards::ServiceWaterHeating.create_service_water_heating_loop(model,\n                                                                                              system_name: "#{space_type.name} Service Water Loop",\n                                                                                              service_water_temperature: service_water_temperature_c,\n                                                                                              service_water_pump_head: 0.01,\n                                                                                              service_water_pump_motor_efficiency: 1.0,\n                                                                                              water_heater_capacity: water_heater_capacity_w,\n                                                                                              water_heater_volume: water_heater_volume_m3,\n                                                                                              water_heater_fuel: loop_water_heater_fuel,\n')
+
 # gem -> (library dir under the gem's lib, [(file under that dir, [(defect, fix), ...]), ...])
 GEM_PATCHES = {
     'openstudio-standards': ('openstudio-standards', [
@@ -235,6 +251,7 @@ GEM_PATCHES = {
          [(_BLEND_ARRAY, _BLEND_ARRAY_FIX), (_BLEND_LARGEST, _BLEND_LARGEST_FIX), (_BLEND_TOTALS, _BLEND_TOTALS_FIX)]),
         (os.path.join('..', 'openstudio-standards.rb'), [(_ORDER_SHIM_ANCHOR, _ORDER_SHIM)]),
         (os.path.join('standards', 'Standards.Model.rb'), [(_OUTLIER_SORT, _OUTLIER_SORT_FIX)]),
+        (os.path.join('standards', 'Standards.ServiceWaterHeating.rb'), [(_SWH_LOOP, _SWH_LOOP_FIX)]),
     ]),
     'urbanopt-geojson': (os.path.join('urbanopt', 'geojson'), [
         ('building.rb', [(_FLOOR_FIXED, _FLOOR_FIX)]),
