@@ -1,29 +1,30 @@
 # =============================================================================
-# assumptions_ledger.yaml  --  the assumptions + verification ledger for the PowerTwin resolver
+# assumptions_ledger.yaml: assumptions and verification ledger for the PowerTwin resolver
 # =============================================================================
-# For every programmable simulation parameter: its authoritative SOURCE
-# ASSUMPTION (where the value/logic comes from), the INVARIANTS that must hold,
-# and its ORACLE STATUS (what evidence proves it correct, and at which layer).
+# One entry per programmable simulation parameter: where its value or logic
+# comes from (source), what must always hold (invariants), and what evidence
+# shows it is right and at which layer (oracle status).
 #
-# Conviction model (see the metalevel QA design):
-#   A field is PROVEN only when its resolver oracle AND its integration oracle
-#   (where it reaches the sim) AND its invariants are all green. Anything less is
-#   PROPERTY (invariant-checked, no per-cell/integration oracle) or UNVERIFIED.
-#   The UNVERIFIED rows ARE the uncertainty surface -- nothing hand-wavy is left.
+# Status levels (see the QA design):
+#   A field is PROVEN only when its resolver oracle, its integration oracle
+#   (where the value reaches the simulation) and its invariants all pass.
+#   Anything less is PROPERTY (invariants checked, no per-cell or integration
+#   oracle) or UNVERIFIED. The UNVERIFIED rows are what we have not shown yet.
 #
-# "Correct" here means IMPLEMENTATION-correct + MODEL-faithful (provable), NOT
-# reality-valid (requires metered ground truth; out of scope -- no calibration).
+# "Correct" means the code does what this file says and the model gets what
+# the resolver produced. It does not mean the results match reality; that
+# needs metered data and is out of scope here (no calibration).
 #
-# Keep in sync with RESOLVER_VERSION in sim_params_spec.py and the mirror spec
-# powertwin-db/api/lib/simulationParamsSpec.js. Tests should derive from this
-# file; QA findings should be checked against it before scoring.
+# Keep in sync with RESOLVER_VERSION in sim_params_spec.py and with
+# powertwin-db/api/lib/simulationParamsSpec.js. Tests should be derived from
+# this file, and QA findings checked against it before scoring.
 # =============================================================================
 
 meta:
   resolver_version: "3.5"
   precedence: [metadata_override, dynamic_resolver, flat_default]   # get_param order
-  dynamic_gate: URBANOPT_DYNAMIC_DEFAULTS           # off -> flat defaults only
-  stochastic_gate: URBANOPT_STOCHASTIC_SAMPLING     # share-weighted vs winner-take-all
+  dynamic_gate: URBANOPT_DYNAMIC_DEFAULTS           # off: flat defaults only
+  stochastic_gate: URBANOPT_STOCHASTIC_SAMPLING     # on: share-weighted draw; off: the most common value
   fallback_levels: [county_acs, division_vintage, division_all, vintage_specific, region_all, building_type_only, flat_default]
   residential_building_types: [Single-Family Detached, Single-Family Attached, Multifamily]
   stochastic_method: "deterministic MD5(building_id + salt) -> [0,1) -> share-weighted pick; same building always resolves identically"
@@ -31,8 +32,8 @@ meta:
     coarse_4: [pre-1980, 1980-1999, 2000-2009, 2010+]          # fuel mix, envelope, window
     decade:   [pre-1950, 1950-1959, 1960-1969, 1970-1979, 1980-1989, 1990-1999, 2000-2009, 2010-2019, 2020+]  # system/wh type, fuel-by-system
 
-# --- The irreducible uncertainty, ENUMERATED. -------------------------------
-# "100% conviction" = these four are the ONLY things not provable, each accepted.
+# What we cannot prove here, and accept as given.
+# Everything else in this file is something we can test.
 trust_boundaries:
   - id: energyplus_physics
     accepted: "EnergyPlus 24.1 physics is validated third-party (ASHRAE-140/BESTEST). We verify the model we feed it (model-faithful), not its physics."
@@ -49,7 +50,7 @@ trust_boundaries:
     accepted: "Third-party services/data out of our control: energyplus.net EPW weather, Census county boundaries (urbanopt/us_counties.geojson, shipped), EnergyPlus physics. The FCC Census Block API (county_fips) was dropped 2026-10-03 when it began failing every request."
     in_control_seam: "We control + prove correct integration (timeout/retry/cache/version pinning) and the fallback on failure -- e.g. a point outside every county -> no-county RECS division path (PROVEN). We do NOT prove their uptime or internal accuracy."
 
-# --- Authoritative origins (deduped). Fields reference these by key. ---------
+# Data sources, listed once. Fields refer to them by key.
 sources:
   RECS2020_fuel_mix:
     file: recs2020_residential_fuel_mix.json
@@ -334,10 +335,10 @@ sources:
       - tests/test_county_prior.py::test_parts_get_their_own_k_and_a_dropped_part_walks_up
 
 # =============================================================================
-# CTX DERIVATION -- build_asset_ctx, upstream of EVERY field. The LOGIC is IN
-# CONTROL (provable); the INPUTS feeding it are out of control (see input_contract
-# + trust_boundaries input_data_truth/external_services). Conviction is over the
-# logic + the fallback, NEVER over input truth or third-party internals.
+# CTX DERIVATION: build_asset_ctx, which runs before every field. The logic is
+# ours and can be tested; its inputs are not (see input_contract and the
+# input_data_truth and external_services trust boundaries). We vouch for the
+# logic and the fallback, not for the inputs or for third-party internals.
 # =============================================================================
 ctx_derivation:
   vintage_and_decade:
@@ -376,10 +377,10 @@ ctx_derivation:
     oracle: {status: UNVERIFIED, note: "lat/lon->CZ correctness has NO test; nearest-station has no distance cap (DEFENSIVE, flagged). closure: enumerate known lat/lon->CZ pairs"}
 
 # =============================================================================
-# INPUT CONTRACT -- what metadata INPUTS must satisfy + whether we validate.
-# Inputs are out of control (input_data_truth); the CONTRACT + VALIDATION are IN
-# control. UNVERIFIED rows here = real holes -- the m2/ft2 and Integer/String bugs
-# lived here. "Bad input" is NOT an excuse where we never asserted the contract.
+# INPUT CONTRACT: what metadata inputs must satisfy, and whether we check it.
+# We don't control the inputs (input_data_truth), but we do control the contract
+# and its validation. UNVERIFIED rows here are real gaps; the m2/ft2 and
+# Integer/String bugs came from here. Bad input is no excuse where we never checked.
 # =============================================================================
 input_contract:
   area:
@@ -409,7 +410,7 @@ input_contract:
     oracle: {status: PARTIAL, tests: [test_resolvers::precedence], note: "test_precedence exercises get_param enum-validate + numeric-clamp; does NOT enforce downstream TYPE contracts (the Integer-vs-String setpoint bug was a Ruby-side type-contract gap, not caught here)"}
 
 # =============================================================================
-# FIELDS -- the programmable parameters. THIS is the ledger.
+# FIELDS: the programmable parameters, the main part of this file.
 # oracle.status: PROVEN | RESOLVER_PROVEN_INTEGRATION_PARTIAL | RESOLVER_PROVEN_INTEGRATION_UNVERIFIED | STATIC | PROPERTY
 # =============================================================================
 fields:
@@ -430,7 +431,7 @@ fields:
     oracle:
       resolver: [test_resolvers::County_electric_marginal, test_resolvers::nocounty_marginal, test_resolvers::resolver_golden]
       integration: [test_sim_e2e::test_resolved_values_reach_idf, test_sim_e2e::test_forced_wood_lands_on_otherfuels, test_sim_e2e::test_capture_through_clean_report]
-      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e (run_docker.sh leaf slice): forced wood->OtherFuel + gas->NaturalGas reach the built in.idf, land on the fuel meter, and are captured per-fuel. PARTIAL: forced fuels proven; full per-building fuel-in-IDF not exhaustively asserted.
+      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e (run_docker.sh leaf slice): forced wood (OtherFuel) and gas (NaturalGas) reach the built in.idf, land on the fuel meter and are captured per fuel. Partial because only the forced fuels are checked, not every building's fuel in the IDF.
     design_notes: ["biogenic wood CO2 excluded downstream (carbon-neutral convention) -- by design"]
 
   heating_system_type:
@@ -446,7 +447,7 @@ fields:
       - "modal type need NOT equal raw RECS mode -- reconciliation intentionally reshapes (electric-heavy South -> heat-pump-dominant)"
     oracle:
       resolver: [test_resolvers::resolver_golden, test_resolvers::County_electric_marginal]
-      integration: []   # PENDING: container run (run_docker.sh) of synthetic leaf set
+      integration: []   # pending: a container run (run_docker.sh) of the synthetic leaf set
       status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
     design_notes: ["raw RECS 'furnace' lumps electric furnaces; reconciliation routes them to hp/electric_resistance -- intended, not a deviation"]
 
@@ -462,7 +463,7 @@ fields:
     invariants: ["~99% electricity nationally", "residential CZ>=7 -> none"]
     oracle:
       resolver: [test_resolvers::resolver_golden]
-      integration: []   # PENDING: container run of synthetic leaf set
+      integration: []   # pending: a container run of the synthetic leaf set
       status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
 
   service_water_heating_fuel_type:
@@ -477,7 +478,7 @@ fields:
     invariants: ["HPWH -> electricity", "conditioned on the resolved heating FUEL (not just system type)", "P(SWH=heating fuel) tracks RECS within tolerance for gas/electric", "shares sum to 1"]
     oracle:
       resolver: [test_resolvers::resolver_golden, test_resolvers::SWH_electric_resistance]
-      integration: []   # PENDING: container run of synthetic leaf set
+      integration: []   # pending: a container run of the synthetic leaf set
       status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
 
   water_heater_type:
@@ -490,7 +491,7 @@ fields:
     invariants: ["shares sum to 1", "distribution matches ResStock division x decade"]
     oracle:
       resolver: [test_resolvers::Water_heater_type, test_resolvers::water_heater_type_all_divisions, test_resolvers::resolver_golden]
-      integration: []   # PENDING: container run of synthetic leaf set
+      integration: []   # pending: a container run of the synthetic leaf set
       status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
 
   window_type:
@@ -507,7 +508,7 @@ fields:
       ruby: [test_powertwin_refs::window_props_residential, test_powertwin_refs::window_props]
       static_guard: [test_regression_guards::H9]
       integration: [test_sim_e2e::test_resolved_values_reach_idf, test_sim_e2e::test_resolved_envelope_values_in_hpxml]
-      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e (run_docker.sh leaf slice): the built in.idf carries physical SimpleGlazingSystem U-factors that VARY across vintage/type/CZ (1.14-6.24 W/m2K); the residential HPXML window U also falls in the resolved pane-type's IP band (Single/Double/Triple). PARTIAL: exact tier->U value not equated.
+      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e (run_docker.sh leaf slice): the built in.idf has SimpleGlazingSystem U-factors that vary with vintage, type and climate zone (1.14 to 6.24 W/m2K), and the residential HPXML window U falls in the resolved pane type's band (single, double or triple). Partial because the exact U for each tier is not checked.
 
   wall_material: &envelope_material
     workflow: both
@@ -520,7 +521,7 @@ fields:
     note: "L-011: tier bin edges are HEURISTIC (no external citation); wall edges bracket the flat wall_r default (13 -> Insulated). Checked 2026-09-29 against IECC 2009 Table 402.1.1 (https://up.codes/viewer/pennsylvania/iecc-2009/chapter/4/residential-energy-efficiency: ceiling R-30 CZ1-3, R-38 CZ4-5, R-49 CZ6-8; wood-frame wall R-13 CZ1-4, R-20 or 13+5 CZ5-6, R-21 CZ7-8): the earlier note that roof edges track IECC ceiling minimums (R-19 pre-2009 / R-38 2009+) was wrong, no IECC ceiling minimum is R-19; with these edges a code-minimum 2009 house is Super Insulated for walls in CZ5+ and roofs in CZ4+. Bins only label the R draw (the feature label and the surrogate feature); energy flows through the R value itself. Since resolver 3.2 (owner 2026-09-29, Insulation Presets Plan) the tier is a RETIRED input: a saved wall/roof_material is ignored (RETIRED_INPUT_FIELDS), the R-value is the only insulation input, and the preview offers code R presets (INSULATION_presets)."
     oracle:
       resolver: [test_resolvers::resolver_golden, test_resolvers::envelope]
-      integration: []   # built into model; no sim-output assertion that material landed
+      integration: []   # built into the model; nothing checks the material in the simulation output
       status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
 
   roof_material: *envelope_material
@@ -528,9 +529,9 @@ fields:
   wall_r_value:
     workflow: both
     type: numeric
-    range: [0.0, 80.0]   # 0.0 = Uninsulated (county insulation draws, review fix)   # L-014: sanity clamp, not physics -- R-1 ~ uninsulated assembly film resistance floor; R-80 above any realized-stock wall (ResStock max cavity ~R-40ish, Passive-House walls ~R-40-60); clamp exists to reject unit errors
+    range: [0.0, 80.0]   # 0.0 = uninsulated (county insulation draws, review fix)   # L-014: a sanity clamp to catch unit errors, not a physical limit; R-80 is above any real wall (ResStock cavities top out around R-40, Passive House walls R-40 to R-60)
     units: "hr-ft2-F/Btu (CAVITY-only for residential)"
-    flat_default: 13.0   # L-012 adjudicated 2026-09: post-1980 stock-weighted mean cavity R from repo recs2020_envelope.json = 13.07; reviewer's 14.59 matches neither weighting -- 13.0 stands
+    flat_default: 13.0   # L-012, settled 2026-09: the post-1980 stock-weighted mean cavity R in recs2020_envelope.json is 13.07; the reviewer's 14.59 matches neither weighting, so 13.0 stays
     resolver: "_resolve_envelope"
     source_assumption: {residential: "ResStock 2024.2 realized-stock CAVITY-R {mode, shares} distribution (SFD, weighted), share-weighted per building", commercial: "ComStock 2024.1 realized-stock ASSEMBLY-R {mode, shares}, dual-keyed by climate zone (primary) + census region (fallback), share-weighted per building"}
     physical_mapping: "residential cavity->HPXML assembly via PowerTwinRefs.wall_assembly_r = cavity*0.75 + 2.5 (wood-frame parallel-path heuristic); commercial R is already assembly"
@@ -539,12 +540,12 @@ fields:
       resolver: [test_resolvers::resolver_golden, test_resolvers::envelope]
       ruby: [test_powertwin_refs::wall_assembly_r]
       integration: [test_sim_e2e::test_resolved_envelope_values_in_hpxml]
-      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e: resolved cavity R lands at the documented assembly R (cavity*0.75+2.5) among the built HPXML walls, per residential building in the slice. PARTIAL: residential HPXML only (commercial R is OSM-applied, not yet asserted).
+      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e: the resolved cavity R shows up as the documented assembly R (cavity*0.75+2.5) among the built HPXML walls, for each residential building in the slice. Partial: residential HPXML only; commercial R is applied in the OSM and not checked yet.
 
   roof_r_value:
     workflow: both
     type: numeric
-    range: [0.0, 80.0]   # 0.0 = Uninsulated
+    range: [0.0, 80.0]   # 0.0 = uninsulated
     units: "hr-ft2-F/Btu (CEILING insulation for residential)"
     flat_default: 30.0
     resolver: "_resolve_envelope"
@@ -555,7 +556,7 @@ fields:
       resolver: [test_resolvers::resolver_golden, test_resolvers::envelope]
       ruby: [test_powertwin_refs::ceiling_assembly_r]
       integration: [test_sim_e2e::test_resolved_envelope_values_in_hpxml]
-      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e: resolved ceiling R lands at the documented assembly (roof_r+1.0) as the max horizontal assembly R in the built HPXML, per residential building. PARTIAL: residential HPXML only (commercial R is OSM-applied).
+      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e: the resolved ceiling R shows up as the documented assembly (roof_r+1.0), the largest horizontal assembly R in the built HPXML, for each residential building. Partial: residential HPXML only; commercial R is applied in the OSM.
 
   window_to_wall_ratio:
     workflow: both
@@ -578,7 +579,7 @@ fields:
     type: numeric
     range: [0, 100000]
     units: occupants
-    flat_default: ""   # empty -> omit, template default
+    flat_default: ""   # empty: left out, the template default applies
     resolver: "_resolve_occupants"
     source_assumption:
       residential: "bedrooms+1 per dwelling unit (HPXML/Manual J); 700 sqft/bedroom if bedrooms absent (RECS 2020 weighted: 695 SFD); default 3 bedrooms (RECS 2020 SFD mode); divided by units for MF"
@@ -587,9 +588,9 @@ fields:
     oracle:
       resolver: [test_resolvers::Occupants, test_regression_guards::H7]
       integration: [test_sim_e2e::test_resolved_envelope_values_in_hpxml]
-      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e: resolved occupant count lands EXACTLY as HPXML NumberofResidents, per residential building in the slice. PARTIAL: residential HPXML only (commercial occupancy is OSM density-applied).
+      status: RESOLVER_PROVEN_INTEGRATION_PARTIAL   # e2e: the resolved occupant count equals HPXML NumberofResidents for each residential building in the slice. Partial: residential HPXML only; commercial occupancy is applied as a density in the OSM.
 
-  op_schedule_fields:   # weekday/weekend start_time + duration (4 fields, identical handling)
+  op_schedule_fields:   # weekday and weekend start_time and duration (4 fields, handled the same way)
     workflow: both
     type: "time string HH:MM (00:00-23:59); empty -> omit"
     fields: [weekday_start_time, weekday_duration, weekend_start_time, weekend_duration]
@@ -599,7 +600,7 @@ fields:
     invariants: ["county draw is one joint donor per building (salt hours_donor)", "zero-duration day omits both of that day's fields", "24:00 rejected"]
     oracle:
       resolver: [test_resolvers::Operating_schedule, test_regression_guards::H1]
-      integration: []   # PENDING re-verify: container run of synthetic leaf set (was proven by the now-removed e2e)
+      integration: []   # needs re-checking with a container run of the synthetic leaf set (the e2e that covered it was removed)
       status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
     design_notes: ["the source window is an OCCUPANCY heuristic, not operating hours; applying it as create_typical's op-hours lever mis-phases 24/7/overnight types -> suppression is the fix"]
 
@@ -619,28 +620,28 @@ fields:
   floor_height:
     workflow: both
     type: numeric
-    range: [6.0, .inf]   # L-020: 20 -> 30 on 2026-09-30 (Warehouse prototype 28 ft), then no maximum on 2026-10-01 (owner: a cap only blocked real tall buildings); the 6 ft minimum catches a metres entry
+    range: [6.0, .inf]   # L-020: the maximum went from 20 to 30 on 2026-09-30 (the Warehouse prototype is 28 ft) and was dropped on 2026-10-01 (owner: a cap only blocked real tall buildings); the 6 ft minimum catches a value entered in metres
     units: feet
-    flat_default: 9.0    # last resort only (no prototype); was the commercial default until 2026-09-30, cited to "DOE prototype / 90.1 Appendix G" with no table, and no prototype uses 9 ft except SmallHotel
+    flat_default: 9.0    # last resort only, when there is no prototype; it was the commercial default until 2026-09-30, cited to "DOE prototype / 90.1 Appendix G" without a table, and only SmallHotel uses 9 ft
     resolver: "resolve_default floor_height: commercial = PROTOTYPE_TYPICAL_STORY_FT of the prototype PowerTwin.rb builds when _prototype_story_applies (not Vacant, 1,000 ft2 or more), else URBANOPT_ZONING_STORY_FT (3.6 m); unset with DD off or no resolver value: get_param returns what URBANopt builds (house 8 ft ceiling, commercial 3.6 m), never the flat 9 (2026-09-30); houses none (they simulate 8 ft unless explicit, RESIDENTIAL_UNSET_CEILING_HEIGHT_FT)"
     source_assumption: {commercial: "openstudio-standards 0.7.1 create_bar.rb building_form_defaults typical_story", residential: "URBANopt residential util.rb 8 ft unless explicit"}
     note: "until 2026-09-30 urbanopt-geojson's zoning step built every commercial story at 3.6 m (11.8 ft) whatever the input (building.rb:89); patched (URBANOPT_GEOJSON_FLOOR_PATCH)"
     oracle:
       resolver: [test_insulation_presets::test_commercial_floor_height_is_the_prototype_story]
-      integration: []   # verified by overlay simulations on 2026-09-30 (built volume/area = the story height), no e2e test yet
+      integration: []   # checked by overlay simulations on 2026-09-30 (built volume over area equals the story height); no e2e test yet
       status: RESOLVER_PROVEN_INTEGRATION_PARTIAL
 
   heating_equipment_detail:
     workflow: residential_only
     type: enum
     values: [Furnace, WallFurnace, Boiler, ElectricResistance, air-to-air, mini-split, ground-to-air]
-    flat_default: ""   # empty -> coarse heating_system_type stands alone (division fallback); ground-to-air is explicit-only (no donor label), built COP/EER-rated and ducted (2026-09-21)
+    flat_default: ""   # empty: heating_system_type alone decides (division fallback); ground-to-air only comes from an explicit choice (no donor has it) and is built ducted with COP and EER ratings (2026-09-21)
     resolver: "_heating_donor -> _parse_heating_donor_label (county joint, ACS-raked)"
     source_assumption: {residential: "RESSTOCK2024_county_heating donor's native equipment class; WallFurnace is DUCTLESS and 25% of Teton's electric heat - collapsing it to Furnace recreates the D-60 duct penalty; Shared Heating approximated as Boiler (dominant real config for MF shared heat)"}
     invariants: ["same donor drives heating_system_type, heating_system_fuel_type, heating_has_ducts (one salt, deterministic)", "raked fuel marginal equals renormalized served ACS (verified to 4 decimals on Teton)"]
     oracle:
       resolver: [test_resolvers::resolver_golden]
-      integration: []   # WP-R2 exit gate: e2e + Teton arm
+      integration: []   # WP-R2 exit gate: e2e and a Teton arm
       status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
     design_notes: ["donor efficiency label (in.hvac_heating_efficiency) carried in the table but NOT yet applied - vintage-based turnover stays authoritative; scoped as WP-R2b", "WallFurnace skips the Furnace AFUE turnover (HPXML default efficiency applies) - noted limitation"]
 
@@ -661,7 +662,7 @@ fields:
     workflow: residential_only
     type: enum
     values: [conditioned space, attic, crawlspace, basement - conditioned, basement - unconditioned, garage]
-    flat_default: ""   # empty -> omit; HPXML defaults apply (dynamic-OFF unchanged)
+    flat_default: ""   # empty: left out, HPXML defaults apply (unchanged with dynamic defaults off)
     resolver: "_resolve_ducts -> _county_prior('resstock2024_county_ducts')"
     source_assumption: {residential: "RESSTOCK2024_county_ducts location shares, county-first (puma/division fallback), vintage-binned; ResStock labels mapped to HPXML location literals"}
     invariants: ["only applied by the mapper to systems built as ducted (Furnace / air-to-air heat pump)", "shares sum to 1 per cell", "county tier requires n >= 30 (ledger floor)"]
@@ -702,7 +703,7 @@ fields:
     workflow: residential_only
     type: enum
     values: [electricity, natural gas, propane, none]
-    flat_default: ""   # empty -> omit; HPXML defaults apply
+    flat_default: ""   # empty: left out, HPXML defaults apply
     resolver: "_resolve_appliance -> _appliance_donor('resstock2024_county_appliances')"
     source_assumption: {residential: "RESSTOCK2024_county_appliances joint donor, gas-arm keyed; 'none' = no dryer (clothes_dryer_present=false)"}
     invariants: ["same donor as cooking_range_fuel and the three misc gas channels (salt appliance_donor)", "arm chosen from the resolved heating/SWH fuels (gas-line coherence)"]
@@ -755,7 +756,7 @@ fields:
     workflow: residential_only
     type: enum
     values: [central air conditioner, room air conditioner, none]
-    flat_default: ""   # empty -> legacy fuel-driven central AC
+    flat_default: ""   # empty: the older fuel-driven central AC path
     resolver: "_resolve_cooling -> _cooling_donor('resstock2024_county_cooling')"
     source_assumption: {residential: "RESSTOCK2024_county_cooling joint donor; applies only when the home is NOT a heat pump (mapper guard sys_type != heat_pump; HPXML literals via HVACType constants)"}
     invariants: ["same donor as cooling_fraction_served (salt cooling_donor)", "heat-pump homes keep the WP-R2 donor's cooling", "room AC carries EER 10.7 (ResStock 2024.2 weighted modal label) - HPXML rejects SEER-typed efficiency for room AC (r5a e2e catch)"]
@@ -775,7 +776,7 @@ fields:
     workflow: residential_only
     type: enum
     values: [slab, crawlspace - vented, crawlspace - unvented, crawlspace - conditioned, basement - unconditioned, basement - conditioned, ambient]
-    flat_default: ""   # empty -> region-modal legacy path in emission
+    flat_default: ""   # empty: the older path, the region's most common value when the feature file is written
     resolver: "_resolve_geometry -> _geometry_donor('resstock2024_county_geometry')"
     source_assumption: {residential: "RESSTOCK2024_county_geometry joint donor (labels mapped onto the vendored util.rb feature vocabulary); supersedes the CZ<=3-slab heuristic where a tier serves (county data reflects its own climate)"}
     invariants: ["explicit metadata foundation outranks the donor", "same donor as garage_cars (salt geometry_donor)", "multifamily stays forced slab in emission"]
@@ -786,7 +787,7 @@ fields:
     type: numeric
     range: [0.0, 3.0]
     units: "attached-garage car count; mapper sizes 12 ft per car, clamps below the estimated unit width (F-01), 0 = none"
-    flat_default: ""   # empty -> RECS garage_rate hash legacy path
+    flat_default: ""   # empty: the older path, the RECS garage_rate table
     resolver: "_resolve_geometry"
     source_assumption: {residential: "RESSTOCK2024_county_geometry joint donor"}
     oracle: {resolver: [test_resolvers::resolver_golden], integration: [], status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED}
@@ -796,7 +797,7 @@ fields:
     type: numeric
     range: [1.0, 10.0]
     units: "bedrooms per dwelling unit; emission multiplies by units for HPXML number_of_bedrooms"
-    flat_default: ""   # empty -> area/700 formula stands
+    flat_default: ""   # empty: the area/700 formula is used
     resolver: "_household_donor('resstock2024_county_household') via the bedrooms_per_unit dispatch branch"
     source_assumption: {residential: "RESSTOCK2024_county_household joint donor; occupants come from the SAME donor inside _resolve_occupants (salt household_donor)"}
     invariants: ["explicit metadata bedrooms outrank the donor (both here and in _resolve_occupants)", "occupants-bedrooms coherence: one donor, one salt"]
@@ -807,7 +808,7 @@ fields:
     type: numeric
     range: [0.5, 50.0]
     units: "kWDC nameplate; mapper passes watts to pv_system_max_power_output"
-    flat_default: ""   # empty -> no PV (the overwhelming majority)
+    flat_default: ""   # empty: no PV (most buildings)
     resolver: "_resolve_pv -> _county_prior('resstock2024_county_pv')"
     source_assumption: {residential: "RESSTOCK2024_county_pv has_pv share (salt pv_present) then joint (size, orientation) donor (salt pv_donor)"}
     invariants: ["same donor as pv_azimuth_deg", "stochastic-off mode is No nearly everywhere (modal rule)"]
@@ -1081,16 +1082,16 @@ fields:
       status: RESOLVER_PROVEN_INTEGRATION_UNVERIFIED
 
 # =============================================================================
-# DERIVED FIELDS -- programmable feature.json params NOT in SIM_PARAM_DEFAULTS
-# (set by generateFeatureFile.py logic / metadata, not the resolve_default resolver),
-# documented here rather than in `fields:` (which mirrors SIM_PARAM_DEFAULTS exactly).
+# DERIVED FIELDS: feature.json parameters that are not in SIM_PARAM_DEFAULTS.
+# generateFeatureFile.py or the metadata sets them, not resolve_default, so they
+# are listed here instead of under `fields:`, which matches SIM_PARAM_DEFAULTS exactly.
 # =============================================================================
 derived_fields:
   foundation_type_legacy_path:
     workflow: residential
     source_assumption: "LEGACY FALLBACK ONLY since CR WP-R5 (foundation_type is now a resolver field with a county donor): recs2020_envelope.foundation_type modal per census region (RECS HC10.1); CZ1-3 forces slab; multifamily always slab. Fires in generateFeatureFile.process_feature when the resolver returns empty."
     invariants: ["SFD/SFA only; MF -> slab", "CZ1-3 -> slab regardless of region"]
-    verified_by: [test_resolvers::reference_data]   # reference-data presence; no per-cell sim oracle yet
+    verified_by: [test_resolvers::reference_data]   # checks that the reference data exists; no per-cell simulation oracle yet
     note: "design-choice (modal foundation); not share-weighted"
   vacant:
     workflow: both
@@ -1108,25 +1109,27 @@ derived_fields:
     invariants: ["bedrooms >= 1 when derived"]
     verified_by: [test_resolvers::occupants]
 
-# Sensor / output (capture) layer: resolved energy lands on EnergyPlus meters mapped by
-# sensor_types.csv (id -> meter column(s) -> unit conversion) in clean_report.py.
-# Two SEPARATE checks, do not conflate them:
-#  - energy_balance (tests/energy_balance.py) verifies the RAW default_feature_report's
-#    INTERNAL closure: sum(end-use by fuel) == fuel facility. It does NOT certify that
-#    clean_report captured those fuels into the cleaned output.
-#  - capture-through-clean_report is the e2e's cleaned-output check + clean_report's loud
-#    WARNINGs on gaps (none-of-columns-present; sensor present in report but undeclared in
-#    metadata). clean_report sums whatever alternative columns are PRESENT (so the Steam/
-#    DistrictHeating(Water/Steam) rename no longer drops district heat).
-# wood -> OtherFuels:Facility (captured, sensor id 0); CO2 excludes biogenic wood by design.
+# Sensor and output layer: resolved energy lands on EnergyPlus meters, which
+# sensor_types.csv maps to a sensor id, meter columns and a unit conversion in
+# clean_report.py. There are two separate checks:
+#  - energy_balance (tests/energy_balance.py) checks that the raw
+#    default_feature_report adds up: end uses by fuel sum to that fuel's facility
+#    total. It does not show that clean_report carried those fuels into the
+#    cleaned output.
+#  - capture through clean_report is covered by the e2e's cleaned-output check and
+#    clean_report's warnings on gaps (none of a sensor's columns present, or a
+#    sensor in the report but not in the metadata). clean_report sums whichever
+#    alternative columns are present, so the Steam / DistrictHeating(Water/Steam)
+#    rename no longer drops district heat.
+# Wood goes to OtherFuels:Facility (captured, sensor id 0); CO2 leaves out biogenic wood on purpose.
 
 # =============================================================================
-# PHYSICAL CONSTANTS -- downstream Ruby/OSW values the fields map to.
-# These convert resolver enums/tiers into the numbers EnergyPlus consumes.
+# PHYSICAL CONSTANTS: the Ruby and OSW values the fields map to downstream.
+# They turn resolver enums and tiers into the numbers EnergyPlus uses.
 # =============================================================================
 physical_constants:
 
-  cited_and_golden:   # cited source + pinned by Ruby golden -> PROVEN value
+  cited_and_golden:   # cited source and pinned by a Ruby golden, so PROVEN
     - {name: CZ_WINDOW,        source: ASHRAE_90_1_2013, where: powertwin_refs.rb, oracle: test_powertwin_refs::window_props,             status: PROVEN}
     - {name: CZ_WINDOW_RES,    source: IECC_2015,        where: powertwin_refs.rb, oracle: test_powertwin_refs::window_props_residential, status: PROVEN}
     - {name: TIER_FACTOR,      source: RESNET_HERS,      where: powertwin_refs.rb, oracle: test_powertwin_refs::window_props,             status: PROVEN}
@@ -1175,7 +1178,7 @@ physical_constants:
     - {name: FAST_ESTIMATE_MODEL_TYPE_ID, value: "3 (SURROGATE_MODEL_TYPE_ID), URBANopt 1; absent model_type_id is URBANopt, any other id a 400", basis: "powertwin-db sensor_logs_pred_model_types holds 1 URBANopt and 2 LSTM (inactive); the serving plan seeds 3 'PowerTwin fast estimate' inactive (db plan step 2, not yet in the seed on 2026-10-03); owner 2026-10-20: 3 is the nat34h baseline, named 'Flash' (db seed 3,Flash,1; inactive on main until deployed), 4 reserved for the delta", where: "solver surrogate_serving.surrogate_model_type_id; views.process_asset_update", oracle: test_surrogate_serving::test_asset_update_routes_by_model_type_id, status: ASSUMPTION}
     - {name: URBANOPT_GEOJSON_FLOOR_PATCH, value: "zoning floor_to_floor_height = the feature's floor_to_floor_height (ft) else 3.6 m", source: "urbanopt-geojson 1.0.1 lib/urbanopt/geojson/building.rb:78,89 (reads floor_to_floor_height then fixes 3.6 m when zoning)", where: "patches/patch_openstudio_standards.py GEM_PATCHES['urbanopt-geojson']; generateFeatureFile writes floor_to_floor_height for commercial features", note: "verified 2026-09-30: at 11.81 ft the patched run reproduces current code exactly (Teton 14616); retail 20 ft +4.9% electricity, warehouse 20 ft +14%", oracle: test_standards_patch, status: PROVEN}
 
-  derivation_heuristic:   # defensible derivation, golden-pinned, but a heuristic not a standard -> PROPERTY
+  derivation_heuristic:   # a reasonable derivation pinned by a golden, but a heuristic rather than a standard, so PROPERTY
     - {name: commercial_insulation_presets, formula: "insulation R = 1/U_max - R(other layers) - films, clamped at 0", basis: "the construction a commercial building is built with is the construction set of its prototype's openstudio-standards lookup name (every office is 'Office', RetailStandalone 'Retail', RetailStripmall 'StripMall'; hotels residential) in the template its year selects (PowerTwin.rb lookup_template_by_year_built: DOE Ref pre-1980 / 1980-2004, 90.1-2004/2007/2010/2013); U_max is ASHRAE 90.1-2007 / 90.1-2019 for that construction type, category and climate zone (openstudio-standards 0.7.1); the openstudio-ee IncreaseInsulation measures set the construction's single insulation layer. Verified 2026-09-29 on Teton 14616 (1980, Mixed use -> Office, zone 7A): R-11.7 wall / R-19.72 and R-34.6 roof built U 0.071 / 0.0481 and 0.028 against 90.1 U_max 0.071 / 0.048 and 0.028 (eplustbl Opaque Exterior). The current-code preset is dropped where it is below the minimum (2019 relaxed semiheated metal-building walls). Review 2026-09-30: the code-minimum presets use the county zone on the IECC 2015 map (the 2009 IECC and 90.1-2007 map; 373 of 3,222 counties differ from 2021); no preset where the template insulation layer is R-1 or less (the measures skip it) or the value is below R-1; a hotel is residential only where the template has a residential set (SmallHotel in the 90.1 templates)", where: "sim_params_spec.insulation_presets, _preset_prototype, _preset_template", oracle: [test_insulation_presets::test_commercial_conversion_from_the_standards_data, test_insulation_presets::test_presets_target_the_construction_the_simulation_builds, test_insulation_presets::test_template_follows_the_mapper, test_insulation_presets::test_presets_follow_the_prototype_the_mapper_builds], status: PROPERTY}
     - {name: RETIRED_INPUT_FIELDS, value: "wall_material, roof_material", basis: "owner 2026-09-29: the R-value is the only insulation input (the tier had been inert since 2026-06-08, 92493a8); a saved tier is ignored and never counts as explicit, stored values still validate", where: "sim_params_spec.get_param, generateFeatureFile._EXPLICIT_PARAM_KEYS", oracle: [test_insulation_presets::test_a_saved_tier_changes_nothing, test_insulation_presets::test_a_saved_tier_is_not_an_explicit_param], status: PROPERTY}
     - {name: AREA_FIT_TOL, value: 0.01, basis: "relative footprint area within which a commercial outline is simulated as mapped: metadata area vs the outline as OpenStudio projects it differs by measurement only on stock (Teton within 0.12%, a second stock systematically higher, natv3 within 0.5% except rows whose area came from another source; measured 2026-09-28), not an edit; keeps stock byte-identical", where: generateFeatureFile.py fit_footprint_to_area, oracle: test_commercial_area_geometry::test_stock_within_tolerance_is_simulated_as_mapped, status: PROPERTY}
@@ -1183,7 +1186,7 @@ physical_constants:
     - {name: ceiling_assembly_r, formula: "roof+1.0", basis: "attic finish+film series", oracle: test_powertwin_refs::ceiling_assembly_r, status: PROPERTY}
     - {name: residential_window_glazing, values: "Single U-1.04 IP / Triple U-0.20 IP", basis: "physical glazing bounds (ASHRAE HOF/RESNET)", oracle: test_powertwin_refs, status: PROPERTY}
 
-  cited_informally:   # real federal standards but code cites no specific rule/year; golden pins the VALUES not the source -> PROPERTY
+  cited_informally:   # real federal standards, but the code cites no rule or year; the golden pins the values, not the source, so PROPERTY
     - {name: furnace_afue, ladder: "1992:0.80 else 0.78", source: federal_min_standards, oracle: test_powertwin_refs::furnace_afue, status: PROPERTY}
     - {name: boiler_afue,  ladder: "2021:0.84 2012:0.82 else 0.80", source: federal_min_standards, oracle: test_powertwin_refs::boiler_afue, status: PROPERTY}
     - {name: ac_seer,      ladder: "2023:15/14 2015+south:14 2006:13 else 10", source: federal_min_standards, note: "AC gates 14 on southern; HP does not", oracle: test_powertwin_refs::ac_seer, status: PROPERTY}
@@ -1197,7 +1200,7 @@ physical_constants:
     - {name: vacant_setpoints, values: "heat 55F / cool 99F / occupants 0", basis: "pipe-freeze, no-cooling convention", status: PROPERTY}
     - {name: garage_dims, values: "24w x 20d ft, 100% protrusion", source: "RECS2020 2-car standard", note: "requires unit length > 24ft or BuildResidentialHPXML errors -- realistic cfa(ft2) inputs satisfy this", status: PROPERTY}
 
-  uncited:   # NO source cited, NO targeted oracle -> THIS IS THE UNVERIFIED SURFACE
+  uncited:   # no source cited and no targeted oracle: these are the unverified values
     - {name: surrogate_evaluation_thresholds, values: "delta_gbm min_nonzero 20 (as gbm_pca min_active 20), eval_delta SIGN_MIN 2% of baseline, pair_fanout MONOTONE_TOL 0.5%", basis: "evaluation conventions for the delta surrogate (fit floor for a PCA basis; direction and monotonicity checks above EnergyPlus and rounding noise); they gate reported metrics, not simulated energy", status: UNVERIFIED}
     - {name: fanout_sampling_levels, values: "scenario_fanout NUMERIC_OAT (four one-at-a-time points per numeric lever) and SAMPLE_RANGES (joint-draw spans), all inside sim_params_spec NUMERIC_RANGES; heating setpoint levels and span below the cooling ones", basis: "training design for the delta surrogate (where its pairs are drawn), not a simulated quantity: the retrofit overrides' input guards are wider than real buildings (20,000 kWh of plug load, 75 ACH50), so the levels and spans sit around what buildings carry", oracle: "test_scenario_fanout::test_joint_draw_spans_sit_inside_the_solver_ranges, ::test_setpoint_draws_never_heat_above_cooling", status: UNVERIFIED}
     - {name: base_workflow.osw measure args, where: base_workflow.osw, items: "EV (100%/0.5 curtail), ice/chilled-water storage setpoints+times, peak-hour EPD/thermostat adjustments, insulation increases R-10 wall/R-30 roof, default LPD 35% (replaced under DD by COMMERCIAL_LIGHTING_LPD, 2026-10-01) + equip 20% reduction, QAQC tolerances, default weather (Buffalo CZ6A)", status: UNVERIFIED}
@@ -1206,26 +1209,26 @@ physical_constants:
     - {name: district_heating_CO2, status: UNVERIFIED, note: "add_ems_emissions_reporting emits electricity/gas/propane/oil emissions ONLY (observed in the now-removed e2e; re-confirm via container run); district heating produces energy but NO CO2 column -> counting it needs solver post-processing + a chosen factor. OPEN DECISION."}
 
 # =============================================================================
-# COVERAGE SUMMARY -- the scoreboard. Conviction = drive UNVERIFIED -> 0.
+# COVERAGE SUMMARY: fields by status. The goal is no UNVERIFIED rows.
 # =============================================================================
 coverage_summary:
-  fields_total: 51   # rebuilt from the field rows 2026-10-13 (was 18, stale since the CR campaign added rows)
+  fields_total: 51   # recounted from the field rows on 2026-10-13 (it said 18, out of date since the CR campaign added rows)
   PROVEN: []
   RESOLVER_PROVEN_INTEGRATION_PARTIAL: [floor_height, heating_system_fuel_type, lighting_cfl_fraction, lighting_led_fraction, number_of_occupants, roof_r_value, wall_r_value, window_type]
   RESOLVER_PROVEN_INTEGRATION_UNVERIFIED: [bedrooms_per_unit, clothes_dryer_fuel, com_airtightness_75pa, com_cooling_adjustment_f, com_heating_adjustment_f, cooking_range_fuel, cooling_fraction_served, cooling_setpoint_f, cooling_system_fuel_type, cooling_type_detail, duct_insulation_r, duct_leakage_pct, duct_location, foundation_type, garage_cars, heating_equipment_detail, heating_has_ducts, heating_setpoint_f, heating_system_type, infiltration_ach50, misc_gas_fireplace, misc_gas_grill, misc_gas_lighting, op_schedule_fields, pv_azimuth_deg, pv_system_kw, roof_material, service_water_heating_fuel_type, system_type, wall_material, water_heater_type, window_to_wall_ratio]
   PARTIAL: [clothes_dryer_cef, cooling_seer2, door_r_value, heat_pump_hspf2, heating_afue, lighting_power_density, plug_load_kwh_per_year, plug_load_reduction_pct, refrigerator_kwh_per_year, window_shgc, window_u_factor]
   STATIC: []
   note: "all resolver oracles PROVEN (test_resolvers + golden + powertwin_refs). INTEGRATION layer: the e2e gate (test_sim_e2e via run_docker.sh over ALL subtypes, both workflows) is green -- completeness + energy-balance closure + per-fuel capture + value-in-IDF + PER-FIELD value-in-HPXML for the residential envelope + EUI plausibility + A/B dynamic-delivery + test_all_dynamic_defaults_delivered_to_model (EVERY dynamic field's in.osw measure arg == resolved get_param, all 27 buildings both workflows) + test_commercial_envelope_reaches_built_model (the BUILT EnergyPlus opaque-envelope R distribution differs dynamic-ON vs OFF for every commercial building -- the resolved envelope reached + changed what EnergyPlus simulated). Remaining: cooling fuel implicit-electric; commercial envelope OUTPUT is A/B-verified (roof exact-matches, wall = resolved + base mass); delivery != resolver source-correctness."
-  ctx_derivation:   # IN CONTROL logic upstream of every field
-    PROVEN_FALLBACK: [county_fips]            # offline lookup + degrade-to-division proven (not boundary-file truth)
-    PROPERTY: [vintage_and_decade, region_and_division]   # exercised indirectly; need direct enumeration
+  ctx_derivation:   # our logic, run before every field
+    PROVEN_FALLBACK: [county_fips]            # the offline lookup and the fallback to division are proven, not the boundary file itself
+    PROPERTY: [vintage_and_decade, region_and_division]   # covered indirectly; needs a direct enumeration
     PARTIAL: [units_and_bedrooms]
-    UNVERIFIED: [climate_zone]                # lat/lon->CZ has no test
-  input_contract:   # IN CONTROL validation of OUT-OF-CONTROL inputs
+    UNVERIFIED: [climate_zone]                # no test for lat/lon to climate zone
+  input_contract:   # our checks on inputs we don't control
     PROVEN: [state]
     PARTIAL: [year_built, latitude_longitude, metadata_overrides]
-    UNVERIFIED: [area]                        # ft2 unit not validated (m2/ft2 bug)
-  open_uncertainty:   # what stands between us and 100% conviction (the honest list)
+    UNVERIFIED: [area]                        # ft2 unit not checked (the m2/ft2 bug)
+  open_uncertainty:   # what has not been shown yet
     - "ctx: climate_zone is sourced from get_location (the assigned weather station), NOT lat/lon->CZ, and is now INDIRECTLY verified e2e -- commercial envelope R is CZ-keyed and its in.osw delivery matches resolved at the get_location CZ (test_all_dynamic_defaults_delivered). vintage/division still have no DIRECT enumeration test (only indirect via the delivered values)."
     - "input_contract: area ft2 unit not validated (m2/ft2); lat/lon no bbox check; metadata override TYPE contract not enforced (Int/String)"
     - "INTEGRATION layer: e2e gate (test_sim_e2e via run_docker.sh over ALL subtypes, both workflows) green -- completeness, energy-balance closure (<=8%), per-fuel capture, value-in-IDF, PER-FIELD value-in-HPXML for the residential envelope, EUI plausibility, A/B dynamic-delivery, test_all_dynamic_defaults_delivered_to_model (EVERY dynamic field's in.osw measure ARG == resolved get_param, all 27 buildings both workflows -- envelope wall/roof/wwr/window-U, heating+swh fuel via the create_typical htg_src/swh_src lever, occupants, commercial op-hour schedules, residential HVAC + water-heater type), AND test_commercial_envelope_reaches_built_model (the BUILT EnergyPlus model's opaque-envelope assembly-R distribution, eplusout.sql Envelope Summary, differs dynamic-ON vs OFF for every commercial building -- the resolved envelope reached + CHANGED what EnergyPlus simulated; the roof even exact-value-matches, ~14.3 built for resolved 14). STILL OPEN: cooling fuel is implicit-electric (no distinct measure arg); commercial envelope OUTPUT is A/B-verified (reaches+moves the model) with only the roof exact-value-matched (built wall = resolved + base mass); delivery != resolver source-correctness (host distribution suite's job)."
@@ -1236,12 +1239,12 @@ coverage_summary:
     - "district-heating CO2 omission -- open decision (post-process or accept)"
     - "federal-standard efficiency ladders cite no specific rule/year (values pinned, provenance informal)"
     - "self-integrity: test_assumptions_ledger.py now PROVES every named oracle EXISTS (existence closed); it does NOT yet prove each test asserts its SPECIFIC claim -- semantic match is still trust"
-  not_in_scope:   # the trust_boundaries above -- accepted, not counted as uncertainty
+  not_in_scope:   # the trust_boundaries above: accepted, not counted as open
     - "EnergyPlus physics; survey-source representativeness; design choices; FP reproducibility"
     - "input_data_truth (provider's lat/lon/year/area truth); external_services internals (energyplus.net uptime+accuracy, county boundary file accuracy) -- we prove the contract + fallback, not their truth"
 
 # =============================================================================
-# HOW TO REACH 100% CONVICTION FROM HERE (the closure plan)
+# CLOSURE PLAN: the work left to clear the remaining UNVERIFIED rows
 # =============================================================================
 closure_plan:
   - "DONE: test_assumptions_ledger.py is the single-file spec-integrity proof -- enforces field completeness, enum/range consistency, source provenance, shares conservation, and that every claimed oracle EXISTS. Run it + the named oracles = the closed loop."
