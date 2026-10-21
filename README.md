@@ -140,12 +140,10 @@ solver status <simulation_name>
 - Apptainer/Singularity module available
 - Adequate storage allocation in your HPC project directory
 
-Download directory locally and build with Docker
-```bash
-docker compose build
-docker tag powertwin-solver-powertwin-solver-flask:latest <docker_username>/powertwin-solver-flask:latest
-docker push <docker_username>/powertwin-solver-flask:latest
-```
+The solver image is built by CI and kept in the GitLab container registry as
+`development/powertwin-solver/flask:<tag>` (images are no longer pushed to Docker Hub). The cluster
+cannot reach the registry, so the image is sent to it and built into a SIF there (Step 2). The
+scripts for this, and the standard campaign launch, are in `apptainer/ops/` (see its README).
 
 ### Step 1: Set Up Directory Structure
 
@@ -160,20 +158,16 @@ Create the following directory structure in your HPC shared storage:
         └── metadata.csv
 ```
 
-### Step 2: Build Container Images
+### Step 2: Build the Solver SIF
 
-Convert the Docker images to Apptainer/Singularity format:
+From the repo, on the host that can reach the registry:
 
 ```bash
-# Load the Apptainer module
-module load apptainer/1.4.1
+# send flask:<tag> to the cluster; a build-sif job builds flask-<tag>.sif and checks it (verify-flask.sh)
+apptainer/ops/push-sif.sh <tag>
 
-# Build required container images in your sif_containers directory
-cd /<project_directory>/sif_containers
-
-# Required: Solver container
-apptainer build flask.sif docker://<docker_username>/powertwin-solver-flask:latest
-
+# the same, and install it as flask.sif once the build and the check pass
+apptainer/ops/push-sif.sh --as-flask <tag>
 ```
 
 ### Step 3: Configure and Run Simulations
@@ -181,7 +175,8 @@ apptainer build flask.sif docker://<docker_username>/powertwin-solver-flask:late
 1. Modify simulation parameters in the HPC scripts as needed (Paths injest files)
 2. HPC_SHARED_DIR and <project_directory> should be the same as <HPC_SHARED_STORAGE>
 3. <simulation_name> in simulation parameters should match name of <simulation_name> in the upload directory
-4. Submit jobs using SLURM:
+4. Submit jobs using SLURM (for a campaign of several arms, use `apptainer/ops/launch-campaign.sh <arm.env>`
+   instead, as described in `apptainer/ops/README.md`):
 
 ```bash
 # Default
@@ -330,8 +325,8 @@ seeded into `simulation_*_types` tables and served at
 | `wall_material` | label only | `Insulated` | the tier of the wall R-value the building uses; a saved value is ignored since resolver 3.2 (Insulation Presets Plan) | written as " Wall" in feature.json |
 | `roof_material` | label only | `Insulated` | the tier of the roof R-value the building uses; a saved value is ignored since resolver 3.2 | written as " Roof" in feature.json |
 | `window_to_wall_ratio` | number | `0.20` | OpenStudio Standards prototype WWR per building_type (commercial only) | range `[0.0, 0.8]` |
-| `wall_r_value` | number | `13.0` | ResStock TRG / CBECS region+vintage avg | range `[1.0, 80.0]` |
-| `roof_r_value` | number | `30.0` | ResStock TRG / CBECS region+vintage avg | range `[1.0, 80.0]` |
+| `wall_r_value` | number | `13.0` | ResStock TRG / CBECS region+vintage avg | range `[0.0, 80.0]` (0 = uninsulated) |
+| `roof_r_value` | number | `30.0` | ResStock TRG / CBECS region+vintage avg | range `[0.0, 80.0]` (0 = uninsulated) |
 | `floor_height` | number | unset = what URBANopt builds: houses 8 ft (ceiling), commercial 3.6 m (11.81 ft zoning story), dynamic defaults on or off | commercial with dynamic defaults: `PROTOTYPE_TYPICAL_STORY_FT` of its prototype when not Vacant and 1,000 ft2 or more (ComStock's domain); an explicit value is a house's ceiling height | minimum 6.0, no maximum (a non-finite value falls back to the default) |
 | `weekday_start_time` | time `HH:MM` | `""` (template default) | OpenStudio Standards operating hours per building_type | emit only when paired with non-empty `weekday_duration` |
 | `weekday_duration` | time `HH:MM` | `""` (template default) | OpenStudio Standards operating hours per building_type | must not equal `24:00` (schedule collision) |
