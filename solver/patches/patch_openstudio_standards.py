@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fix upstream defects in the gems a simulation loads: openstudio-standards 0.7.x (1, 2, 4, 6, 7), urbanopt-geojson 1.0.x
+"""Fix upstream defects in the gems a simulation loads: openstudio-standards 0.7.x (1, 2, 4, 6, 7, 8), urbanopt-geojson 1.0.x
 (3, 5) and openstudio-model-articulation (6).
 
 1. create_typical.rb, weekend hours past midnight. The midnight-overlap message interpolates
@@ -67,6 +67,13 @@
    with HeatPump). The patch gives a loop above 140 F electric resistance, as the library's booster water heaters
    always are ('booster water heaters are always assumed to be electric resistance', the same file); 140 F loops keep
    their heat pump and a requested gas or electric heater is unchanged.
+
+8. weather/stat_file.rb parse, a tropical station's typical weeks. The parser reads a summer and a winter 'Typical Week
+   Period selected', but a tropical .stat lists one (5 of the 1,219 local stations: Hawaii's Lihue TMY2 and AP TMY3,
+   Keahole-Kona, Hilo Intl TMY3, Kailua-Kaneohe MCAS), so StatFile.load raised NoMethodError and every commercial
+   building on that station failed in create_typical (natfan2 2026-10-21: 278 of 562 failures, Lihue and Keahole-Kona).
+   A missing winter week is 'NA', as the parser already records a missing autumn and spring week; the typical weeks
+   are only printed (to_s, to_json), never used to build the model.
 
 Usage: patch_openstudio_standards.py [GEM_ROOT ...]
 Patches every openstudio-standards and urbanopt-geojson copy under the given gem roots (default: the image's gem
@@ -239,6 +246,11 @@ _SWH_LOOP_FIX = ("        # powertwin patch: a heat pump cannot heat water for a
                  "        loop_water_heater_fuel = water_heater_fuel == 'HeatPump' && service_water_temperature_f > 140.0 ? 'Electricity' : water_heater_fuel\n"
                  + '        # Add service water loop with water heater\n        swh_loop = OpenstudioStandards::ServiceWaterHeating.create_service_water_heating_loop(model,\n                                                                                              system_name: "#{space_type.name} Service Water Loop",\n                                                                                              service_water_temperature: service_water_temperature_c,\n                                                                                              service_water_pump_head: 0.01,\n                                                                                              service_water_pump_motor_efficiency: 1.0,\n                                                                                              water_heater_capacity: water_heater_capacity_w,\n                                                                                              water_heater_volume: water_heater_volume_m3,\n                                                                                              water_heater_fuel: loop_water_heater_fuel,\n')
 
+_STAT_WINTER = "          @typical_winter_dry_week = Date.parse(\"#{match_data[1][0].split(':')[0]} 2000\")\n"
+_STAT_WINTER_FIX = ("          # powertwin patch: a tropical .stat (Lihue, Keahole-Kona) lists one typical week and no winter week;\n"
+                    "          # record it 'NA' like a missing autumn or spring week (the weeks are only printed) (2026-10-21)\n"
+                    "          @typical_winter_dry_week = match_data[1].nil? ? 'NA' : Date.parse(\"#{match_data[1][0].split(':')[0]} 2000\")\n")
+
 # gem -> (library dir under the gem's lib, [(file under that dir, [(defect, fix), ...]), ...])
 GEM_PATCHES = {
     'openstudio-standards': ('openstudio-standards', [
@@ -252,6 +264,7 @@ GEM_PATCHES = {
         (os.path.join('..', 'openstudio-standards.rb'), [(_ORDER_SHIM_ANCHOR, _ORDER_SHIM)]),
         (os.path.join('standards', 'Standards.Model.rb'), [(_OUTLIER_SORT, _OUTLIER_SORT_FIX)]),
         (os.path.join('standards', 'Standards.ServiceWaterHeating.rb'), [(_SWH_LOOP, _SWH_LOOP_FIX)]),
+        (os.path.join('weather', 'stat_file.rb'), [(_STAT_WINTER, _STAT_WINTER_FIX)]),
     ]),
     'urbanopt-geojson': (os.path.join('urbanopt', 'geojson'), [
         ('building.rb', [(_FLOOR_FIXED, _FLOOR_FIX)]),

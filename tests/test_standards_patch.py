@@ -278,3 +278,16 @@ def test_a_heat_pump_never_heats_a_loop_above_140f(tmp_path, capsys):
     assert 'water_heater_fuel: loop_water_heater_fuel,' in call.split('number_of_water_heaters')[0]
     assert 'water_heater_fuel = ' not in src.replace(rule, '')   # the requested fuel itself never changes (it carries
                                                                   # on to the next space type)
+
+
+def test_a_stat_file_with_one_typical_week_parses(tmp_path, capsys):
+    """natfan2 (2026-10-21): 278 of 562 failures were create_typical_building_from_model raising NoMethodError at
+    stat_file.rb:349 on two Hawaii stations (Lihue TMY2, Keahole-Kona TMY3): a tropical .stat lists one 'Typical Week
+    Period selected' and the parser read a second (the winter week). A missing winter week is 'NA', as the parser
+    already records a missing autumn and spring week; the typical weeks are only printed, never used by the model."""
+    lib = _gem(str(tmp_path))
+    P.main([str(tmp_path)])
+    src = open(os.path.join(lib, 'weather', 'stat_file.rb')).read()
+    assert src.count('powertwin patch') == 1
+    assert "@typical_winter_dry_week = match_data[1].nil? ? 'NA' : Date.parse(" in src
+    assert "@typical_winter_dry_week = Date.parse(" not in src
